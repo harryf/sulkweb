@@ -1,12 +1,14 @@
-import { Phase } from './Phase'
-import { GameCycle } from '../GameCycle'
-import { ClockAndCP } from './ClockAndCP'
+import { Phase } from './Phase.js';
+import { GameCycle } from '../GameCycle.js';
+import { ClockAndCP } from './ClockAndCP.js';
 
 export class EndPhase extends Phase {
-  readonly name = 'EndPhase'
-  onEnter() { /* turn ends */ }
-  next(ctx: GameCycle) {
-    ctx.turnNumber += 1          // advance turn counter here
-    return new ClockAndCP()
+  readonly name = 'EndPhase';
+
+  onEnter(): void {}
+
+  next(ctx: GameCycle): Phase {
+    ctx.turnNumber++;
+    return new ClockAndCP();
   }
 }

@@ -1,4 +1,3 @@
-
 export type Dir = 0 | 1 | 2 | 3        // 0=N,1=E,2=S,3=W
 export const LEFT  = 3  // –90°
 export const RIGHT = 1  // +90°

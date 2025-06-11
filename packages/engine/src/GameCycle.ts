@@ -1,5 +1,6 @@
-import { Phase } from './phases/Phase'
-import { ClockAndCP } from './phases/ClockAndCP'
+import { Phase } from './phases/Phase.js';
+import { ClockAndCP } from './phases/ClockAndCP.js';
+
 
 export class GameCycle {
   /** Incremented every time EndPhase rolls to ClockAndCP. */

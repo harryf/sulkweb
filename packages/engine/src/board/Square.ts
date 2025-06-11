@@ -1,5 +1,5 @@
-import { Feature } from '../rules/Feature';
-import { Dir } from '../rules/directions';
+import { Feature } from '../rules/Feature.js';
+import { Dir } from '../rules/directions.js';
 
 /**
  * Represents a single square on the game board.

@@ -2,10 +2,11 @@
   "name": "@sulk/engine",
   "version": "0.0.1",
   "private": true,
+  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "example": "ts-node src/example.ts",
+    "example": "node --import ./scripts/register-ts-node.js src/example.ts",
     "build": "rimraf dist && tsc -b",
     "test": "vitest run --coverage"
   },

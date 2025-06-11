@@ -1,4 +1,4 @@
-import { Square } from './Square';
+import { Square } from './Square.js';
 
 /**
  * Represents the game board, containing all squares.

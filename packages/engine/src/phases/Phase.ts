@@ -1,4 +1,4 @@
-import { GameCycle } from '../GameCycle'
+import { GameCycle } from '../GameCycle.js';
 
 /**
  * Abstract phase in the Sulk turn loop.

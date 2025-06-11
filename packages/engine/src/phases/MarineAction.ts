@@ -1,8 +1,13 @@
-import { Phase } from './Phase'
-import { GameCycle } from '../GameCycle'
-import { StealerAction } from './StealerAction'
+import { Phase } from './Phase.js';
+import { GameCycle } from '../GameCycle.js';
+import { StealerAction } from './StealerAction.js';
 
 export class MarineAction extends Phase {
-  readonly name = 'MarineAction'
-  next(_ctx: GameCycle) { return new StealerAction() }
+  readonly name = 'MarineAction';
+
+  onEnter(): void {}
+
+  next(_ctx: GameCycle): Phase {
+    return new StealerAction();
+  }
 }

@@ -1,5 +1,5 @@
 
-import { Square } from '../board/Square';
+import { Square } from '../board/Square.js';
 
 export abstract class Feature {
   readonly square: Square        // import from board

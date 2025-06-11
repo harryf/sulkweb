@@ -1,8 +1,7 @@
-
-import { Dir, rotate } from './directions'
-import { MOVE_COST, TURN_COST }          from './costTables'
-import { Board } from '../board/Board'
-import { Square } from '../board/Square'
+import { Dir, rotate } from './directions.js';
+import { MOVE_COST, TURN_COST } from './costTables.js';
+import { Board } from '../board/Board.js';
+import { Square } from '../board/Square.js';
 
 export class Piece {
   readonly board: Board

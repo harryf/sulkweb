@@ -1,5 +1,5 @@
 
-import type { Dir } from './directions'
+import type { Dir } from './directions.js';
 
 export const MOVE_COST: Record<'F'|'FL'|'FR'|'B'|'L'|'R'|'BL'|'BR', number> = {
   F:1, B:2, L:2, R:2, FL:1, FR:1, BL:2, BR:2

@@ -12,3 +12,8 @@ export * from './phases/ClockAndCP'
 export * from './phases/MarineAction'
 export * from './phases/StealerAction'
 export * from './phases/EndPhase'
+
+export * from './GameEngine.js'
+export { loadMissionSync } from './missions/missionLoader.js'
+export * from './missions/missionTypes.js'
+

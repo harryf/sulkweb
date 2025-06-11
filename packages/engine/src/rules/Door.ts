@@ -1,6 +1,6 @@
 
-import { Feature } from './Feature'
-import { Square } from '../board/Square'
+import { Feature } from './Feature.js';
+import { Square } from '../board/Square.js';
 import { Dir } from './directions'
 
 export class Door extends Feature {

@@ -1,8 +1,10 @@
-import { Board } from './board/Board';
-import { Piece } from './rules/Piece';
-import { Door } from './rules/Door';
-import { hasLineOfSight } from './board/los';
-import { GameCycle } from './GameCycle';
+import { Board } from './board/Board.js';
+import { Piece } from './rules/Piece.js';
+import { Door } from './rules/Door.js';
+import { hasLineOfSight } from './board/los.js';
+import { GameCycle } from './GameCycle.js';
+import { loadMissionSync } from './missions/missionLoader.js';
+import { GameEngine } from './GameEngine.js';
 
 // 1. Create a board
 const board = new Board(5, 5, []);
@@ -68,6 +70,28 @@ for (let i = 0; i < 5; i++) {
   console.log(`→ New Turn: ${game.turnNumber}, Phase: ${game.phase.name}`);
 }
 // --- End GameCycle Example ---
+
+// --- Mission Loader Example ---
+console.log('\n\n--- Mission Loader Example ---');
+
+const missionPath = new URL('./missions/sampleMission.json', import.meta.url).pathname;
+const mission = loadMissionSync(missionPath);
+const engine = new GameEngine(mission);
+
+console.log(`Loaded mission: "${mission.name}"`);
+console.log('Board layout:');
+
+let output = '';
+for (let y = 0; y < engine.state.board.height; y++) {
+  let row = '';
+  for (let x = 0; x < engine.state.board.width; x++) {
+    const square = engine.state.board.getSquare(x, y);
+    row += square && square.sectionId !== -1 ? ' ■' : '  ';
+  }
+  output += row + '\n';
+}
+console.log(output);
+
 
 console.log('\nTo run this example:');
 console.log('1. Ensure ts-node is installed: pnpm add -D ts-node --filter ./packages/engine');

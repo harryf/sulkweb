@@ -5,3 +5,7 @@ dist/
 *.log
 .vscode/
 
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/

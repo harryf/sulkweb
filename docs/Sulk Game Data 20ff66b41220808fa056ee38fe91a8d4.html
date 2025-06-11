@@ -1,0 +1,709 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>Sulk Game Data</title><style>
+/* cspell:disable-file */
+/* webkit printing magic: print all background colors */
+html {
+	-webkit-print-color-adjust: exact;
+}
+* {
+	box-sizing: border-box;
+	-webkit-print-color-adjust: exact;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+@media only screen {
+	body {
+		margin: 2em auto;
+		max-width: 900px;
+		color: rgb(55, 53, 47);
+	}
+}
+
+body {
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+a,
+a.visited {
+	color: inherit;
+	text-decoration: underline;
+}
+
+.pdf-relative-link-path {
+	font-size: 80%;
+	color: #444;
+}
+
+h1,
+h2,
+h3 {
+	letter-spacing: -0.01em;
+	line-height: 1.2;
+	font-weight: 600;
+	margin-bottom: 0;
+}
+
+.page-title {
+	font-size: 2.5rem;
+	font-weight: 700;
+	margin-top: 0;
+	margin-bottom: 0.75em;
+}
+
+h1 {
+	font-size: 1.875rem;
+	margin-top: 1.875rem;
+}
+
+h2 {
+	font-size: 1.5rem;
+	margin-top: 1.5rem;
+}
+
+h3 {
+	font-size: 1.25rem;
+	margin-top: 1.25rem;
+}
+
+.source {
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	padding: 1.5em;
+	word-break: break-all;
+}
+
+.callout {
+	border-radius: 3px;
+	padding: 1rem;
+}
+
+figure {
+	margin: 1.25em 0;
+	page-break-inside: avoid;
+}
+
+figcaption {
+	opacity: 0.5;
+	font-size: 85%;
+	margin-top: 0.5em;
+}
+
+mark {
+	background-color: transparent;
+}
+
+.indented {
+	padding-left: 1.5em;
+}
+
+hr {
+	background: transparent;
+	display: block;
+	width: 100%;
+	height: 1px;
+	visibility: visible;
+	border: none;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+img {
+	max-width: 100%;
+}
+
+@media only print {
+	img {
+		max-height: 100vh;
+		object-fit: contain;
+	}
+}
+
+@page {
+	margin: 1in;
+}
+
+.collection-content {
+	font-size: 0.875rem;
+}
+
+.column-list {
+	display: flex;
+	justify-content: space-between;
+}
+
+.column {
+	padding: 0 1em;
+}
+
+.column:first-child {
+	padding-left: 0;
+}
+
+.column:last-child {
+	padding-right: 0;
+}
+
+.table_of_contents-item {
+	display: block;
+	font-size: 0.875rem;
+	line-height: 1.3;
+	padding: 0.125rem;
+}
+
+.table_of_contents-indent-1 {
+	margin-left: 1.5rem;
+}
+
+.table_of_contents-indent-2 {
+	margin-left: 3rem;
+}
+
+.table_of_contents-indent-3 {
+	margin-left: 4.5rem;
+}
+
+.table_of_contents-link {
+	text-decoration: none;
+	opacity: 0.7;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.18);
+}
+
+table,
+th,
+td {
+	border: 1px solid rgba(55, 53, 47, 0.09);
+	border-collapse: collapse;
+}
+
+table {
+	border-left: none;
+	border-right: none;
+}
+
+th,
+td {
+	font-weight: normal;
+	padding: 0.25em 0.5em;
+	line-height: 1.5;
+	min-height: 1.5em;
+	text-align: left;
+}
+
+th {
+	color: rgba(55, 53, 47, 0.6);
+}
+
+ol,
+ul {
+	margin: 0;
+	margin-block-start: 0.6em;
+	margin-block-end: 0.6em;
+}
+
+li > ol:first-child,
+li > ul:first-child {
+	margin-block-start: 0.6em;
+}
+
+ul > li {
+	list-style: disc;
+}
+
+ul.to-do-list {
+	padding-inline-start: 0;
+}
+
+ul.to-do-list > li {
+	list-style: none;
+}
+
+.to-do-children-checked {
+	text-decoration: line-through;
+	opacity: 0.375;
+}
+
+ul.toggle > li {
+	list-style: none;
+}
+
+ul {
+	padding-inline-start: 1.7em;
+}
+
+ul > li {
+	padding-left: 0.1em;
+}
+
+ol {
+	padding-inline-start: 1.6em;
+}
+
+ol > li {
+	padding-left: 0.2em;
+}
+
+.mono ol {
+	padding-inline-start: 2em;
+}
+
+.mono ol > li {
+	text-indent: -0.4em;
+}
+
+.toggle {
+	padding-inline-start: 0em;
+	list-style-type: none;
+}
+
+/* Indent toggle children */
+.toggle > li > details {
+	padding-left: 1.7em;
+}
+
+.toggle > li > details > summary {
+	margin-left: -1.1em;
+}
+
+.selected-value {
+	display: inline-block;
+	padding: 0 0.5em;
+	background: rgba(206, 205, 202, 0.5);
+	border-radius: 3px;
+	margin-right: 0.5em;
+	margin-top: 0.3em;
+	margin-bottom: 0.3em;
+	white-space: nowrap;
+}
+
+.collection-title {
+	display: inline-block;
+	margin-right: 1em;
+}
+
+.page-description {
+	margin-bottom: 2em;
+}
+
+.simple-table {
+	margin-top: 1em;
+	font-size: 0.875rem;
+	empty-cells: show;
+}
+.simple-table td {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table th {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table-header-color {
+	background: rgb(247, 246, 243);
+	color: black;
+}
+.simple-table-header {
+	font-weight: 500;
+}
+
+time {
+	opacity: 0.5;
+}
+
+.icon {
+	display: inline-block;
+	max-width: 1.2em;
+	max-height: 1.2em;
+	text-decoration: none;
+	vertical-align: text-bottom;
+	margin-right: 0.5em;
+}
+
+img.icon {
+	border-radius: 3px;
+}
+
+.user-icon {
+	width: 1.5em;
+	height: 1.5em;
+	border-radius: 100%;
+	margin-right: 0.5rem;
+}
+
+.user-icon-inner {
+	font-size: 0.8em;
+}
+
+.text-icon {
+	border: 1px solid #000;
+	text-align: center;
+}
+
+.page-cover-image {
+	display: block;
+	object-fit: cover;
+	width: 100%;
+	max-height: 30vh;
+}
+
+.page-header-icon {
+	font-size: 3rem;
+	margin-bottom: 1rem;
+}
+
+.page-header-icon-with-cover {
+	margin-top: -0.72em;
+	margin-left: 0.07em;
+}
+
+.page-header-icon img {
+	border-radius: 3px;
+}
+
+.link-to-page {
+	margin: 1em 0;
+	padding: 0;
+	border: none;
+	font-weight: 500;
+}
+
+p > .user {
+	opacity: 0.5;
+}
+
+td > .user,
+td > time {
+	white-space: nowrap;
+}
+
+input[type="checkbox"] {
+	transform: scale(1.5);
+	margin-right: 0.6em;
+	vertical-align: middle;
+}
+
+p {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+.image {
+	border: none;
+	margin: 1.5em 0;
+	padding: 0;
+	border-radius: 0;
+	text-align: center;
+}
+
+.code,
+code {
+	background: rgba(135, 131, 120, 0.15);
+	border-radius: 3px;
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-size: 85%;
+	tab-size: 2;
+}
+
+code {
+	color: #eb5757;
+}
+
+.code {
+	padding: 1.5em 1em;
+}
+
+.code-wrap {
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.code > code {
+	background: none;
+	padding: 0;
+	font-size: 100%;
+	color: inherit;
+}
+
+blockquote {
+	font-size: 1.25em;
+	margin: 1em 0;
+	padding-left: 1em;
+	border-left: 3px solid rgb(55, 53, 47);
+}
+
+.bookmark {
+	text-decoration: none;
+	max-height: 8em;
+	padding: 0;
+	display: flex;
+	width: 100%;
+	align-items: stretch;
+}
+
+.bookmark-title {
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	height: 1.75em;
+	white-space: nowrap;
+}
+
+.bookmark-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.bookmark-info {
+	flex: 4 1 180px;
+	padding: 12px 14px 14px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.bookmark-image {
+	width: 33%;
+	flex: 1 1 180px;
+	display: block;
+	position: relative;
+	object-fit: cover;
+	border-radius: 1px;
+}
+
+.bookmark-description {
+	color: rgba(55, 53, 47, 0.6);
+	font-size: 0.75em;
+	overflow: hidden;
+	max-height: 4.5em;
+	word-break: break-word;
+}
+
+.bookmark-href {
+	font-size: 0.75em;
+	margin-top: 0.25em;
+}
+
+.sans { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+.code { font-family: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace; }
+.serif { font-family: Lyon-Text, Georgia, ui-serif, serif; }
+.mono { font-family: iawriter-mono, Nitti, Menlo, Courier, monospace; }
+.pdf .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK JP'; }
+.pdf:lang(zh-CN) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC'; }
+.pdf:lang(zh-TW) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK TC'; }
+.pdf:lang(ko-KR) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK KR'; }
+.pdf .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.pdf .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK JP'; }
+.pdf:lang(zh-CN) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK SC'; }
+.pdf:lang(zh-TW) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK TC'; }
+.pdf:lang(ko-KR) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK KR'; }
+.pdf .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.highlight-default {
+	color: rgba(50, 48, 44, 1);
+}
+.highlight-gray {
+	color: rgba(115, 114, 110, 1);
+	fill: rgba(115, 114, 110, 1);
+}
+.highlight-brown {
+	color: rgba(159, 107, 83, 1);
+	fill: rgba(159, 107, 83, 1);
+}
+.highlight-orange {
+	color: rgba(217, 115, 13, 1);
+	fill: rgba(217, 115, 13, 1);
+}
+.highlight-yellow {
+	color: rgba(203, 145, 47, 1);
+	fill: rgba(203, 145, 47, 1);
+}
+.highlight-teal {
+	color: rgba(68, 131, 97, 1);
+	fill: rgba(68, 131, 97, 1);
+}
+.highlight-blue {
+	color: rgba(51, 126, 169, 1);
+	fill: rgba(51, 126, 169, 1);
+}
+.highlight-purple {
+	color: rgba(144, 101, 176, 1);
+	fill: rgba(144, 101, 176, 1);
+}
+.highlight-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.highlight-red {
+	color: rgba(205, 60, 58, 1);
+	fill: rgba(205, 60, 58, 1);
+}
+.highlight-default_background {
+	color: rgba(50, 48, 44, 1);
+}
+.highlight-gray_background {
+	background: rgba(248, 248, 247, 1);
+}
+.highlight-brown_background {
+	background: rgba(244, 238, 238, 1);
+}
+.highlight-orange_background {
+	background: rgba(251, 236, 221, 1);
+}
+.highlight-yellow_background {
+	background: rgba(251, 243, 219, 1);
+}
+.highlight-teal_background {
+	background: rgba(237, 243, 236, 1);
+}
+.highlight-blue_background {
+	background: rgba(231, 243, 248, 1);
+}
+.highlight-purple_background {
+	background: rgba(248, 243, 252, 1);
+}
+.highlight-pink_background {
+	background: rgba(252, 241, 246, 1);
+}
+.highlight-red_background {
+	background: rgba(253, 235, 236, 1);
+}
+.block-color-default {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray {
+	color: rgba(115, 114, 110, 1);
+	fill: rgba(115, 114, 110, 1);
+}
+.block-color-brown {
+	color: rgba(159, 107, 83, 1);
+	fill: rgba(159, 107, 83, 1);
+}
+.block-color-orange {
+	color: rgba(217, 115, 13, 1);
+	fill: rgba(217, 115, 13, 1);
+}
+.block-color-yellow {
+	color: rgba(203, 145, 47, 1);
+	fill: rgba(203, 145, 47, 1);
+}
+.block-color-teal {
+	color: rgba(68, 131, 97, 1);
+	fill: rgba(68, 131, 97, 1);
+}
+.block-color-blue {
+	color: rgba(51, 126, 169, 1);
+	fill: rgba(51, 126, 169, 1);
+}
+.block-color-purple {
+	color: rgba(144, 101, 176, 1);
+	fill: rgba(144, 101, 176, 1);
+}
+.block-color-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.block-color-red {
+	color: rgba(205, 60, 58, 1);
+	fill: rgba(205, 60, 58, 1);
+}
+.block-color-default_background {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray_background {
+	background: rgba(248, 248, 247, 1);
+}
+.block-color-brown_background {
+	background: rgba(244, 238, 238, 1);
+}
+.block-color-orange_background {
+	background: rgba(251, 236, 221, 1);
+}
+.block-color-yellow_background {
+	background: rgba(251, 243, 219, 1);
+}
+.block-color-teal_background {
+	background: rgba(237, 243, 236, 1);
+}
+.block-color-blue_background {
+	background: rgba(231, 243, 248, 1);
+}
+.block-color-purple_background {
+	background: rgba(248, 243, 252, 1);
+}
+.block-color-pink_background {
+	background: rgba(252, 241, 246, 1);
+}
+.block-color-red_background {
+	background: rgba(253, 235, 236, 1);
+}
+.select-value-color-uiBlue { background-color: undefined; }
+.select-value-color-pink { background-color: rgba(225, 136, 179, 0.27); }
+.select-value-color-purple { background-color: rgba(168, 129, 197, 0.27); }
+.select-value-color-green { background-color: rgba(123, 183, 129, 0.27); }
+.select-value-color-gray { background-color: rgba(84, 72, 49, 0.15); }
+.select-value-color-translucentGray { background-color: undefined; }
+.select-value-color-orange { background-color: rgba(224, 124, 57, 0.27); }
+.select-value-color-brown { background-color: rgba(210, 162, 141, 0.35); }
+.select-value-color-red { background-color: rgba(244, 171, 159, 0.4); }
+.select-value-color-yellow { background-color: rgba(236, 191, 66, 0.39); }
+.select-value-color-blue { background-color: rgba(93, 165, 206, 0.27); }
+.select-value-color-pageGlass { background-color: undefined; }
+.select-value-color-washGlass { background-color: undefined; }
+
+.checkbox {
+	display: inline-flex;
+	vertical-align: text-bottom;
+	width: 16;
+	height: 16;
+	background-size: 16px;
+	margin-left: 2px;
+	margin-right: 5px;
+}
+
+.checkbox-on {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%2358A9D7%22%2F%3E%0A%3Cpath%20d%3D%22M6.71429%2012.2852L14%204.9995L12.7143%203.71436L6.71429%209.71378L3.28571%206.2831L2%207.57092L6.71429%2012.2852Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+
+.checkbox-off {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20x%3D%220.75%22%20y%3D%220.75%22%20width%3D%2214.5%22%20height%3D%2214.5%22%20fill%3D%22white%22%20stroke%3D%22%2336352F%22%20stroke-width%3D%221.5%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+	
+</style></head><body><article id="20ff66b4-1220-808f-a056-ee38fe91a8d4" class="page sans"><header><h1 class="page-title">Sulk Game Data</h1><p class="page-description"></p></header><div class="page-body"><h3 id="20ff66b4-1220-8076-83d9-c9c9005b29e3" class="">Sulk <code>/data</code> folder — what’s inside and what it’s for</h3><p id="20ff66b4-1220-8038-918c-e29b8b3ba3ca" class=""><em>(Everything here is engine-agnostic; paths are shown relative to </em><em><code>data/</code></em><em>)</em></p><table id="20ff66b4-1220-8004-92d7-f60bc5dd8fb7" class="simple-table"><tbody><tr id="20ff66b4-1220-80b0-8c12-f425fdb8c870"><td id="OJaq" class="">Top-level sub-dir</td><td id="Ajw;" class="">Purpose</td><td id="}ixN" class="">Typical consumption in a fresh engine</td></tr><tr id="20ff66b4-1220-806c-a2c4-faba985c2a53"><td id="OJaq" class=""><strong>fonts/</strong></td><td id="Ajw;" class="">Bundled TTF typefaces plus meta-files.</td><td id="}ixN" class="">Load each font once at startup, map to in-game styles (dialog, HUD, dice).</td></tr><tr id="20ff66b4-1220-8025-9290-c7f17cae2cdf"><td id="OJaq" class=""><strong>images/</strong></td><td id="Ajw;" class="">Engine-chrome graphics (buttons, splash, app icon). These <em>never</em> change with theme selection.</td><td id="}ixN" class="">Import as UI sprites;  fits in any display resolution because each button is self-contained PNG with alpha.</td></tr><tr id="20ff66b4-1220-8023-a6d6-f59368df8974"><td id="OJaq" class=""><strong>missions/</strong></td><td id="Ajw;" class="">All mission plug-ins (<code>MISH_*.py</code>) plus a template and nested family folders (<code>beta/</code>, <code>space_hulk/</code>, <code>debug/</code>).</td><td id="}ixN" class="">Dynamic discovery at launch; each file is a small rules script implementing the template described in <code>MISSIONS_INFO</code>.</td></tr><tr id="20ff66b4-1220-8003-8595-eeb1b792bc03"><td id="OJaq" class=""><strong>sounds/</strong></td><td id="Ajw;" class="">WAV clips for nearly every UI or combat event; <code>SOUNDS_INFO</code> states copyright.</td><td id="}ixN" class="">Load lazily on first use or preload into a sound-bank; each maps one-to-one to a gameplay event.</td></tr><tr id="20ff66b4-1220-800a-b5c1-d5939480cc52"><td id="OJaq" class=""><strong>themes/</strong></td><td id="Ajw;" class="">Skinnable artwork packs. The root holds <code>THEMES_INFO</code>; each child dir (only <code>default/</code> is shipped) is a self-contained atlas of piece and board-tile PNGs.</td><td id="}ixN" class="">Allow runtime theme override by prepending an alternate theme folder to the search path; if an asset is missing, fall back to <code>themes/default/</code>.</td></tr></tbody></table><hr id="20ff66b4-1220-80ef-b538-cc8aacb43e52"/><h2 id="20ff66b4-1220-8081-88d0-eb699445f67f" class="">1. <code>fonts/</code></h2><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><pre id="20ff66b4-1220-80f4-9f0d-cd54eaa42459" class="code"><code class="language-Plain Text" style="white-space:pre-wrap;word-break:break-all">bash
+Copy
+fonts/
+├── FONTS_INFO          # explains licences
+├── fudd.ttf
+├── fudd.txt            # licence text for Fudd font
+├── kimberley.ttf
+└── kimberley.txt       # licence text for Kimberley font
+
+</code></pre><ul id="20ff66b4-1220-80a2-9c48-f9b9f0486d36" class="bulleted-list"><li style="list-style-type:disc"><strong>Fudd</strong> (Matthew Welch) and <strong>Kimberley</strong> (Ray Larabie) are free fonts; each has an explicit licence TXT.</li></ul><ul id="20ff66b4-1220-8021-92a7-d1ad372b648b" class="bulleted-list"><li style="list-style-type:disc">The engine uses them at different sizes for: large headlines, dialogs, HUD clocks and dice faces.</li></ul><hr id="20ff66b4-1220-8003-b155-ca8932852e87"/><h2 id="20ff66b4-1220-8057-acf7-ca07c9fdad25" class="">2. <code>images/</code> (UI chrome)</h2><p id="20ff66b4-1220-80d0-a060-dd658523a7fb" class="">All 48 × 48 ish PNGs with premultiplied alpha (button faces) or colorkey transparency (legacy cursor sprites).</p><ul id="20ff66b4-1220-801d-8103-ffd5fbd55e13" class="bulleted-list"><li style="list-style-type:disc">Naming convention:<p id="20ff66b4-1220-800a-bc96-fbb4a432c247" class=""><code>thing_&lt;state&gt;.png</code> where state ∈ {<code>enabled</code>, <code>pressed</code>, <code>disabled</code>}</p></li></ul><ul id="20ff66b4-1220-808a-9b4b-d7402eef9c42" class="bulleted-list"><li style="list-style-type:disc">Files shipped cover every global and per-piece button (shoot, door, self-destruct, etc.), so a port can bind button logic to one sprite sheet without slicing.</li></ul><ul id="20ff66b4-1220-80f0-90c3-e61f1f184755" class="bulleted-list"><li style="list-style-type:disc">Also includes:<ul id="20ff66b4-1220-80d6-9200-e85a5947899e" class="bulleted-list"><li style="list-style-type:circle"><code>splash.png</code> – title screen displayed during asset loading.</li></ul><ul id="20ff66b4-1220-80a8-a7b8-dc786d8cee6a" class="bulleted-list"><li style="list-style-type:circle"><code>icon.png</code> – window/task-bar icon.</li></ul></li></ul><hr id="20ff66b4-1220-80b6-89da-da3e59d7c228"/><h2 id="20ff66b4-1220-8090-9000-c99e7a1e03fd" class="">3. <code>missions/</code></h2><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><pre id="20ff66b4-1220-80e6-ad6e-d52cae468fed" class="code"><code class="language-Plain Text" style="white-space:pre-wrap;word-break:break-all">
+missions/
+├── MISSIONS_INFO           # long template (included in prompt)
+├── beta/                   # family folder
+│   ├── MISH_beta_1.py
+│   └── MISH_beta_2.py
+├── debug/
+│   └── MISH_debug_1.py
+└── space_hulk/
+    ├── MISH_space_hulk_1.py .. _6.py
+
+</code></pre><ul id="20ff66b4-1220-80e5-9d10-fac62ceafdde" class="bulleted-list"><li style="list-style-type:disc"><strong>Discovery rule</strong>: walk sub-directories, import every <code>MISH_*.py</code>.</li></ul><ul id="20ff66b4-1220-808d-aac8-d5451d00e049" class="bulleted-list"><li style="list-style-type:disc"><strong>Template</strong> (<code>MISSIONS_INFO</code>) spells out the contract:<ul id="20ff66b4-1220-8080-86b8-fc1b7cb8a822" class="bulleted-list"><li style="list-style-type:circle">Constants: <code>NAME</code>, <code>FAMILY</code>, <code>NUM</code>, <code>AUTHOR</code>, <code>FLAGS</code>, <code>BLIPS</code>, <code>BLIP_SET</code>…</li></ul><ul id="20ff66b4-1220-80a7-ba6b-c01cc4eb1976" class="bulleted-list"><li style="list-style-type:circle"><code>BOARD</code> layout is a nested tuple of sections → squares, where each square may embed a dict of <strong>feature codes</strong> (<code>DOOR</code>, <code>EXIT</code>, etc.).</li></ul><ul id="20ff66b4-1220-8008-9be8-d0bb899494a3" class="bulleted-list"><li style="list-style-type:circle">Optional callbacks (<code>pre_deploy_rule</code>, <code>post_action_script</code>, <code>victory_check</code>, …) give scenario-specific tweaks.</li></ul></li></ul><ul id="20ff66b4-1220-8065-90ee-cf2de2ee5474" class="bulleted-list"><li style="list-style-type:disc">If two modules share the same <code>FAMILY</code> + <code>NUM</code>, load fails — enforced during import.</li></ul><hr id="20ff66b4-1220-80bb-9ce3-d94ab88a38a6"/><h2 id="20ff66b4-1220-8097-81cc-c3ffab24fcad" class="">4. <code>sounds/</code></h2><p id="20ff66b4-1220-80f6-b744-e81bbf669272" class="">Contains <strong>13 WAV files</strong> (<code>44 kHz</code> mono) and one info file.</p><table id="20ff66b4-1220-804e-8829-ce42ddb688a0" class="simple-table"><tbody><tr id="20ff66b4-1220-8086-8523-f6dbb41fd02a"><td id="ZmGk" class="">File</td><td id="fNf}" class="">Event mapped in original game</td><td id="Q\^n" class="">Licence note</td></tr><tr id="20ff66b4-1220-80c4-bf4f-eff695c1f948"><td id="ZmGk" class=""><code>marine_shoot_bolter.wav</code></td><td id="fNf}" class="">Storm-bolter single shot</td><td id="Q\^n" class="">PD</td></tr><tr id="20ff66b4-1220-80cc-b5b7-e09d502a0b55"><td id="ZmGk" class=""><code>marine_shoot_flamer.wav</code></td><td id="fNf}" class="">Flamer burst</td><td id="Q\^n" class="">PD</td></tr><tr id="20ff66b4-1220-80f5-a1be-dcba6bb49a8c"><td id="ZmGk" class=""><code>assault_cannon_burst.wav</code></td><td id="fNf}" class="">Assault-cannon burst</td><td id="Q\^n" class="">licence warning in code (“legally dodgy”)</td></tr><tr id="20ff66b4-1220-80c4-b6ef-eb86ef691c1e"><td id="ZmGk" class=""><code>marine_move.wav</code></td><td id="fNf}" class="">Any piece move</td><td id="Q\^n" class="">PD</td></tr><tr id="20ff66b4-1220-8099-92bc-c22aef63a734"><td id="ZmGk" class=""><code>marine_cc.wav</code></td><td id="fNf}" class="">Close-combat punch</td><td id="Q\^n" class="">PD</td></tr><tr id="20ff66b4-1220-8093-9488-d97ff2e98d2c"><td id="ZmGk" class=""><code>marine_kill_skewered.wav</code></td><td id="fNf}" class="">Piece death scream</td><td id="Q\^n" class="">PD</td></tr><tr id="20ff66b4-1220-804c-89bd-cdd38157e3ae"><td id="ZmGk" class=""><code>chain_fist.wav</code></td><td id="fNf}" class="">Chain-fist door cut</td><td id="Q\^n" class="">PD</td></tr><tr id="20ff66b4-1220-8003-8224-f6e5048f3fb2"><td id="ZmGk" class=""><code>marine_jam.wav</code></td><td id="fNf}" class="">Weapon jam</td><td id="Q\^n" class="">PD</td></tr><tr id="20ff66b4-1220-807f-9b76-c5e8715a575d"><td id="ZmGk" class=""><code>marine_selfdestruct_flamer.wav</code></td><td id="fNf}" class="">Flamer self-destruct</td><td id="Q\^n" class="">PD</td></tr><tr id="20ff66b4-1220-8004-aefb-db8c7d8a223d"><td id="ZmGk" class=""><code>door_open.wav</code></td><td id="fNf}" class="">Door open / close</td><td id="Q\^n" class="">PD</td></tr><tr id="20ff66b4-1220-8082-affd-d71d3d9ff11f"><td id="ZmGk" class=""><code>button_press.wav</code>, <code>button_unpress.wav</code>, <code>button_fail.wav</code></td><td id="fNf}" class="">UI click variants</td><td id="Q\^n" class="">GPL-2 (re-licenced TLK sounds)</td></tr><tr id="20ff66b4-1220-804a-99de-eceaba6fbed5"><td id="ZmGk" class=""><code>click.wav</code></td><td id="fNf}" class="">Low-priority UI tick</td><td id="Q\^n" class="">PD</td></tr></tbody></table><p id="20ff66b4-1220-8082-8544-c12a8fe07dda" class="">Load-on-demand is safe; clips are ≤ 200 kB.</p><hr id="20ff66b4-1220-8049-bf6d-cd2c6ac3aa15"/><h2 id="20ff66b4-1220-80d2-95b4-d6f9b603750a" class="">5. <code>themes/default/</code></h2><p id="20ff66b4-1220-8018-9f04-cfb592a1b425" class="">A <strong>full sprite atlas</strong>; any other theme must replicate the same filenames to be valid.</p><h3 id="20ff66b4-1220-80a3-b56b-cd6a9b42485f" class="">Critical dimensions</h3><table id="20ff66b4-1220-8096-891b-ee5dda9784e6" class="simple-table"><tbody><tr id="20ff66b4-1220-80f3-8396-c0b6b8911a76"><td id="E:_l" class="">Base sprite</td><td id="_=pJ" class="">Meaning</td><td id="@XZ&gt;" class="">Consequences</td></tr><tr id="20ff66b4-1220-80e4-9869-d154eb1713f3"><td id="E:_l" class=""><code>square_corridor.png</code></td><td id="_=pJ" class="">1 logical board square</td><td id="@XZ&gt;" class="">All “square_*.png” must match this exactly.</td></tr><tr id="20ff66b4-1220-80df-8b15-c85c181fbb4f"><td id="E:_l" class=""><code>mini_square.png</code></td><td id="_=pJ" class="">1 miniature map tile</td><td id="@XZ&gt;" class="">Must be at least 2 px wide; ratio <em>mini : full</em> must stay constant across themes (20–30 to 1 suggested).</td></tr></tbody></table><h3 id="20ff66b4-1220-8061-b231-c2e05007b889" class="">File groups</h3><ul id="20ff66b4-1220-8006-bb9e-c4c3a3b9d1d7" class="bulleted-list"><li style="list-style-type:disc"><strong>Board tiles</strong> – <code>square_corridor.png</code>, <code>square_room.png</code></li></ul><ul id="20ff66b4-1220-8063-885b-f20b600f8882" class="bulleted-list"><li style="list-style-type:disc"><strong>Mini-map</strong> – <code>mini_square.png</code>, <code>mini_blip.png</code>, <code>mini_stealer.png</code>, <code>mini_terminator.png</code>, <code>mini_entryexit.png</code></li></ul><ul id="20ff66b4-1220-8025-a480-ee8fd5470840" class="bulleted-list"><li style="list-style-type:disc"><strong>Pieces &amp; blips</strong> – <code>terminator_*</code>, <code>stealer.png</code>, <code>blip.png</code>, <code>blip_1.png</code>…<p id="20ff66b4-1220-80a5-beba-fc3adb240acb" class="">(Many terminator poses allow damage animation.)</p></li></ul><ul id="20ff66b4-1220-807f-9a15-e51c6a2fc7b8" class="bulleted-list"><li style="list-style-type:disc"><strong>FX &amp; overlays</strong> – flames, muzzle flashes, facing arrow, selection rings, sectionline.</li></ul><ul id="20ff66b4-1220-8042-a33d-c62015d721e8" class="bulleted-list"><li style="list-style-type:disc"><strong>Markers</strong> – jam, overwatch, convert, damage.</li></ul><ul id="20ff66b4-1220-80cd-9ce7-c91834591080" class="bulleted-list"><li style="list-style-type:disc"><strong>Features</strong> – doors open/closed, bulkhead, crate, ducting, rubble, cat, entry/exit.</li></ul><h3 id="20ff66b4-1220-80c9-b70f-ef74526ff036" class="">Theme rules (from <code>THEMES_INFO</code>)</h3><ol type="1" id="20ff66b4-1220-8034-a15f-cf9c671cd12e" class="numbered-list" start="1"><li>Omit a file → engine falls back to <code>themes/default/</code>.</li></ol><ol type="1" id="20ff66b4-1220-8010-ab86-d27ef5d2f757" class="numbered-list" start="2"><li>Transparency must match the original (RGB key or alpha channel as appropriate).</li></ol><ol type="1" id="20ff66b4-1220-80d3-9e3c-dccfd2913072" class="numbered-list" start="3"><li><strong>Mini : full</strong> scale must be consistent theme-wide.</li></ol><ol type="1" id="20ff66b4-1220-8061-9bd8-d0d488e5ec65" class="numbered-list" start="4"><li>Keep colour depth, but resolution agnostic – engine draws pixel-perfect.</li></ol><hr id="20ff66b4-1220-808b-a238-ffb2064f6671"/><h2 id="20ff66b4-1220-80e9-ae6b-f4fac336165e" class="">6. Licence meta-files</h2><ul id="20ff66b4-1220-800a-8821-f459d5543eb8" class="bulleted-list"><li style="list-style-type:disc"><strong>FONTS_INFO</strong> – credits and redistribution limits for Fudd &amp; Kimberley.</li></ul><ul id="20ff66b4-1220-802c-8cca-eddde2afb83b" class="bulleted-list"><li style="list-style-type:disc"><strong>SOUNDS_INFO</strong> – calls out three GPL-v2 UI sounds; everything else is Public Domain.</li></ul><ul id="20ff66b4-1220-8050-a65d-d7a0a68219e9" class="bulleted-list"><li style="list-style-type:disc"><strong>THEMES_INFO</strong> – technical constraints for creating additional themes.</li></ul><hr id="20ff66b4-1220-8062-a328-d341f046758b"/><h3 id="20ff66b4-1220-8099-9eea-c0d6c5049146" class="">Porting tips</h3><ul id="20ff66b4-1220-80b9-98f5-ebfeb2a67207" class="bulleted-list"><li style="list-style-type:disc">Treat <strong>themes</strong> as a pluggable “asset bundle”. Your asset loader should search:</li></ul><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><pre id="20ff66b4-1220-8042-838b-c40b2725f066" class="code"><code class="language-Plain Text" style="white-space:pre-wrap;word-break:break-all">php-template
+Copy
+&lt;chosen theme&gt;/&lt;filename&gt;
+→ default/&lt;filename&gt;
+→ engine-error if missing
+
+</code></pre><ul id="20ff66b4-1220-801d-adbe-ede461e8b73b" class="bulleted-list"><li style="list-style-type:disc"><strong>Images/</strong> never themed, so can stay in one atlas.</li></ul><ul id="20ff66b4-1220-8014-bae0-f0302a16ef0b" class="bulleted-list"><li style="list-style-type:disc">Mission import can be retained verbatim (dynamic Python) or converted to JSON/YAML mirroring the template keys.</li></ul><ul id="20ff66b4-1220-804f-97d0-f80898674e94" class="bulleted-list"><li style="list-style-type:disc">For sounds: map the filenames to enum events, store licence flag alongside for later packaging.</li></ul><p id="20ff66b4-1220-805f-852f-d2cf53ee11d1" class="">With this map you can replicate Sulk’s resource pipeline (fonts → draw, sounds → event bus, images → sprite sheets) in any engine without digging through the original loader code.</p></div></article><span class="sans" style="font-size:14px;padding-top:2em"></span></body></html>

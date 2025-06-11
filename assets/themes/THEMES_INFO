@@ -1,0 +1,27 @@
+Sulk - data - themes - THEMES_INFO
+
+    Themeing info:
+
+A theme directory must contain files following the naming scheme laid out in
+the default.  The files square_corridor.png and mini_square.png are read at
+runtime to check the scale of the theme.
+
+Other than these two files, if you leave an image out, Sulk will load the image
+from the default theme directory instead.
+
+There are the following constraints on themes:
+
+- The 'square' images must all be the same size as square_corridor.png, the 'mini'
+  images must all be the same size as mini_square.png, etc etc.
+
+- Image format should respect the transparency method of each file (either
+  no transparency, a colorkey keyed to the top left pixel, or an alpha 
+  channel).  To check this read load_data() in main.py.
+
+- The ratio between the width of square_corridor.png and mini_square.png must
+  be exact, and preferably between 20:1 and 30:1, I'd say.
+
+- The width of mini_square.png must be at least 2 pixels.
+
+- Be careful to make sure odd images like select.png, entry.png, etc 
+  are sized in scale.

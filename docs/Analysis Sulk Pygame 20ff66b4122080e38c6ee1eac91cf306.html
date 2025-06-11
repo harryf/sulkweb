@@ -1,0 +1,701 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>Analysis Sulk Pygame</title><style>
+/* cspell:disable-file */
+/* webkit printing magic: print all background colors */
+html {
+	-webkit-print-color-adjust: exact;
+}
+* {
+	box-sizing: border-box;
+	-webkit-print-color-adjust: exact;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+@media only screen {
+	body {
+		margin: 2em auto;
+		max-width: 900px;
+		color: rgb(55, 53, 47);
+	}
+}
+
+body {
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+a,
+a.visited {
+	color: inherit;
+	text-decoration: underline;
+}
+
+.pdf-relative-link-path {
+	font-size: 80%;
+	color: #444;
+}
+
+h1,
+h2,
+h3 {
+	letter-spacing: -0.01em;
+	line-height: 1.2;
+	font-weight: 600;
+	margin-bottom: 0;
+}
+
+.page-title {
+	font-size: 2.5rem;
+	font-weight: 700;
+	margin-top: 0;
+	margin-bottom: 0.75em;
+}
+
+h1 {
+	font-size: 1.875rem;
+	margin-top: 1.875rem;
+}
+
+h2 {
+	font-size: 1.5rem;
+	margin-top: 1.5rem;
+}
+
+h3 {
+	font-size: 1.25rem;
+	margin-top: 1.25rem;
+}
+
+.source {
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	padding: 1.5em;
+	word-break: break-all;
+}
+
+.callout {
+	border-radius: 3px;
+	padding: 1rem;
+}
+
+figure {
+	margin: 1.25em 0;
+	page-break-inside: avoid;
+}
+
+figcaption {
+	opacity: 0.5;
+	font-size: 85%;
+	margin-top: 0.5em;
+}
+
+mark {
+	background-color: transparent;
+}
+
+.indented {
+	padding-left: 1.5em;
+}
+
+hr {
+	background: transparent;
+	display: block;
+	width: 100%;
+	height: 1px;
+	visibility: visible;
+	border: none;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+img {
+	max-width: 100%;
+}
+
+@media only print {
+	img {
+		max-height: 100vh;
+		object-fit: contain;
+	}
+}
+
+@page {
+	margin: 1in;
+}
+
+.collection-content {
+	font-size: 0.875rem;
+}
+
+.column-list {
+	display: flex;
+	justify-content: space-between;
+}
+
+.column {
+	padding: 0 1em;
+}
+
+.column:first-child {
+	padding-left: 0;
+}
+
+.column:last-child {
+	padding-right: 0;
+}
+
+.table_of_contents-item {
+	display: block;
+	font-size: 0.875rem;
+	line-height: 1.3;
+	padding: 0.125rem;
+}
+
+.table_of_contents-indent-1 {
+	margin-left: 1.5rem;
+}
+
+.table_of_contents-indent-2 {
+	margin-left: 3rem;
+}
+
+.table_of_contents-indent-3 {
+	margin-left: 4.5rem;
+}
+
+.table_of_contents-link {
+	text-decoration: none;
+	opacity: 0.7;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.18);
+}
+
+table,
+th,
+td {
+	border: 1px solid rgba(55, 53, 47, 0.09);
+	border-collapse: collapse;
+}
+
+table {
+	border-left: none;
+	border-right: none;
+}
+
+th,
+td {
+	font-weight: normal;
+	padding: 0.25em 0.5em;
+	line-height: 1.5;
+	min-height: 1.5em;
+	text-align: left;
+}
+
+th {
+	color: rgba(55, 53, 47, 0.6);
+}
+
+ol,
+ul {
+	margin: 0;
+	margin-block-start: 0.6em;
+	margin-block-end: 0.6em;
+}
+
+li > ol:first-child,
+li > ul:first-child {
+	margin-block-start: 0.6em;
+}
+
+ul > li {
+	list-style: disc;
+}
+
+ul.to-do-list {
+	padding-inline-start: 0;
+}
+
+ul.to-do-list > li {
+	list-style: none;
+}
+
+.to-do-children-checked {
+	text-decoration: line-through;
+	opacity: 0.375;
+}
+
+ul.toggle > li {
+	list-style: none;
+}
+
+ul {
+	padding-inline-start: 1.7em;
+}
+
+ul > li {
+	padding-left: 0.1em;
+}
+
+ol {
+	padding-inline-start: 1.6em;
+}
+
+ol > li {
+	padding-left: 0.2em;
+}
+
+.mono ol {
+	padding-inline-start: 2em;
+}
+
+.mono ol > li {
+	text-indent: -0.4em;
+}
+
+.toggle {
+	padding-inline-start: 0em;
+	list-style-type: none;
+}
+
+/* Indent toggle children */
+.toggle > li > details {
+	padding-left: 1.7em;
+}
+
+.toggle > li > details > summary {
+	margin-left: -1.1em;
+}
+
+.selected-value {
+	display: inline-block;
+	padding: 0 0.5em;
+	background: rgba(206, 205, 202, 0.5);
+	border-radius: 3px;
+	margin-right: 0.5em;
+	margin-top: 0.3em;
+	margin-bottom: 0.3em;
+	white-space: nowrap;
+}
+
+.collection-title {
+	display: inline-block;
+	margin-right: 1em;
+}
+
+.page-description {
+	margin-bottom: 2em;
+}
+
+.simple-table {
+	margin-top: 1em;
+	font-size: 0.875rem;
+	empty-cells: show;
+}
+.simple-table td {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table th {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table-header-color {
+	background: rgb(247, 246, 243);
+	color: black;
+}
+.simple-table-header {
+	font-weight: 500;
+}
+
+time {
+	opacity: 0.5;
+}
+
+.icon {
+	display: inline-block;
+	max-width: 1.2em;
+	max-height: 1.2em;
+	text-decoration: none;
+	vertical-align: text-bottom;
+	margin-right: 0.5em;
+}
+
+img.icon {
+	border-radius: 3px;
+}
+
+.user-icon {
+	width: 1.5em;
+	height: 1.5em;
+	border-radius: 100%;
+	margin-right: 0.5rem;
+}
+
+.user-icon-inner {
+	font-size: 0.8em;
+}
+
+.text-icon {
+	border: 1px solid #000;
+	text-align: center;
+}
+
+.page-cover-image {
+	display: block;
+	object-fit: cover;
+	width: 100%;
+	max-height: 30vh;
+}
+
+.page-header-icon {
+	font-size: 3rem;
+	margin-bottom: 1rem;
+}
+
+.page-header-icon-with-cover {
+	margin-top: -0.72em;
+	margin-left: 0.07em;
+}
+
+.page-header-icon img {
+	border-radius: 3px;
+}
+
+.link-to-page {
+	margin: 1em 0;
+	padding: 0;
+	border: none;
+	font-weight: 500;
+}
+
+p > .user {
+	opacity: 0.5;
+}
+
+td > .user,
+td > time {
+	white-space: nowrap;
+}
+
+input[type="checkbox"] {
+	transform: scale(1.5);
+	margin-right: 0.6em;
+	vertical-align: middle;
+}
+
+p {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+.image {
+	border: none;
+	margin: 1.5em 0;
+	padding: 0;
+	border-radius: 0;
+	text-align: center;
+}
+
+.code,
+code {
+	background: rgba(135, 131, 120, 0.15);
+	border-radius: 3px;
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-size: 85%;
+	tab-size: 2;
+}
+
+code {
+	color: #eb5757;
+}
+
+.code {
+	padding: 1.5em 1em;
+}
+
+.code-wrap {
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.code > code {
+	background: none;
+	padding: 0;
+	font-size: 100%;
+	color: inherit;
+}
+
+blockquote {
+	font-size: 1.25em;
+	margin: 1em 0;
+	padding-left: 1em;
+	border-left: 3px solid rgb(55, 53, 47);
+}
+
+.bookmark {
+	text-decoration: none;
+	max-height: 8em;
+	padding: 0;
+	display: flex;
+	width: 100%;
+	align-items: stretch;
+}
+
+.bookmark-title {
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	height: 1.75em;
+	white-space: nowrap;
+}
+
+.bookmark-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.bookmark-info {
+	flex: 4 1 180px;
+	padding: 12px 14px 14px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.bookmark-image {
+	width: 33%;
+	flex: 1 1 180px;
+	display: block;
+	position: relative;
+	object-fit: cover;
+	border-radius: 1px;
+}
+
+.bookmark-description {
+	color: rgba(55, 53, 47, 0.6);
+	font-size: 0.75em;
+	overflow: hidden;
+	max-height: 4.5em;
+	word-break: break-word;
+}
+
+.bookmark-href {
+	font-size: 0.75em;
+	margin-top: 0.25em;
+}
+
+.sans { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+.code { font-family: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace; }
+.serif { font-family: Lyon-Text, Georgia, ui-serif, serif; }
+.mono { font-family: iawriter-mono, Nitti, Menlo, Courier, monospace; }
+.pdf .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK JP'; }
+.pdf:lang(zh-CN) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC'; }
+.pdf:lang(zh-TW) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK TC'; }
+.pdf:lang(ko-KR) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK KR'; }
+.pdf .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.pdf .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK JP'; }
+.pdf:lang(zh-CN) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK SC'; }
+.pdf:lang(zh-TW) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK TC'; }
+.pdf:lang(ko-KR) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK KR'; }
+.pdf .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.highlight-default {
+	color: rgba(50, 48, 44, 1);
+}
+.highlight-gray {
+	color: rgba(115, 114, 110, 1);
+	fill: rgba(115, 114, 110, 1);
+}
+.highlight-brown {
+	color: rgba(159, 107, 83, 1);
+	fill: rgba(159, 107, 83, 1);
+}
+.highlight-orange {
+	color: rgba(217, 115, 13, 1);
+	fill: rgba(217, 115, 13, 1);
+}
+.highlight-yellow {
+	color: rgba(203, 145, 47, 1);
+	fill: rgba(203, 145, 47, 1);
+}
+.highlight-teal {
+	color: rgba(68, 131, 97, 1);
+	fill: rgba(68, 131, 97, 1);
+}
+.highlight-blue {
+	color: rgba(51, 126, 169, 1);
+	fill: rgba(51, 126, 169, 1);
+}
+.highlight-purple {
+	color: rgba(144, 101, 176, 1);
+	fill: rgba(144, 101, 176, 1);
+}
+.highlight-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.highlight-red {
+	color: rgba(205, 60, 58, 1);
+	fill: rgba(205, 60, 58, 1);
+}
+.highlight-default_background {
+	color: rgba(50, 48, 44, 1);
+}
+.highlight-gray_background {
+	background: rgba(248, 248, 247, 1);
+}
+.highlight-brown_background {
+	background: rgba(244, 238, 238, 1);
+}
+.highlight-orange_background {
+	background: rgba(251, 236, 221, 1);
+}
+.highlight-yellow_background {
+	background: rgba(251, 243, 219, 1);
+}
+.highlight-teal_background {
+	background: rgba(237, 243, 236, 1);
+}
+.highlight-blue_background {
+	background: rgba(231, 243, 248, 1);
+}
+.highlight-purple_background {
+	background: rgba(248, 243, 252, 1);
+}
+.highlight-pink_background {
+	background: rgba(252, 241, 246, 1);
+}
+.highlight-red_background {
+	background: rgba(253, 235, 236, 1);
+}
+.block-color-default {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray {
+	color: rgba(115, 114, 110, 1);
+	fill: rgba(115, 114, 110, 1);
+}
+.block-color-brown {
+	color: rgba(159, 107, 83, 1);
+	fill: rgba(159, 107, 83, 1);
+}
+.block-color-orange {
+	color: rgba(217, 115, 13, 1);
+	fill: rgba(217, 115, 13, 1);
+}
+.block-color-yellow {
+	color: rgba(203, 145, 47, 1);
+	fill: rgba(203, 145, 47, 1);
+}
+.block-color-teal {
+	color: rgba(68, 131, 97, 1);
+	fill: rgba(68, 131, 97, 1);
+}
+.block-color-blue {
+	color: rgba(51, 126, 169, 1);
+	fill: rgba(51, 126, 169, 1);
+}
+.block-color-purple {
+	color: rgba(144, 101, 176, 1);
+	fill: rgba(144, 101, 176, 1);
+}
+.block-color-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.block-color-red {
+	color: rgba(205, 60, 58, 1);
+	fill: rgba(205, 60, 58, 1);
+}
+.block-color-default_background {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray_background {
+	background: rgba(248, 248, 247, 1);
+}
+.block-color-brown_background {
+	background: rgba(244, 238, 238, 1);
+}
+.block-color-orange_background {
+	background: rgba(251, 236, 221, 1);
+}
+.block-color-yellow_background {
+	background: rgba(251, 243, 219, 1);
+}
+.block-color-teal_background {
+	background: rgba(237, 243, 236, 1);
+}
+.block-color-blue_background {
+	background: rgba(231, 243, 248, 1);
+}
+.block-color-purple_background {
+	background: rgba(248, 243, 252, 1);
+}
+.block-color-pink_background {
+	background: rgba(252, 241, 246, 1);
+}
+.block-color-red_background {
+	background: rgba(253, 235, 236, 1);
+}
+.select-value-color-uiBlue { background-color: undefined; }
+.select-value-color-pink { background-color: rgba(225, 136, 179, 0.27); }
+.select-value-color-purple { background-color: rgba(168, 129, 197, 0.27); }
+.select-value-color-green { background-color: rgba(123, 183, 129, 0.27); }
+.select-value-color-gray { background-color: rgba(84, 72, 49, 0.15); }
+.select-value-color-translucentGray { background-color: undefined; }
+.select-value-color-orange { background-color: rgba(224, 124, 57, 0.27); }
+.select-value-color-brown { background-color: rgba(210, 162, 141, 0.35); }
+.select-value-color-red { background-color: rgba(244, 171, 159, 0.4); }
+.select-value-color-yellow { background-color: rgba(236, 191, 66, 0.39); }
+.select-value-color-blue { background-color: rgba(93, 165, 206, 0.27); }
+.select-value-color-pageGlass { background-color: undefined; }
+.select-value-color-washGlass { background-color: undefined; }
+
+.checkbox {
+	display: inline-flex;
+	vertical-align: text-bottom;
+	width: 16;
+	height: 16;
+	background-size: 16px;
+	margin-left: 2px;
+	margin-right: 5px;
+}
+
+.checkbox-on {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%2358A9D7%22%2F%3E%0A%3Cpath%20d%3D%22M6.71429%2012.2852L14%204.9995L12.7143%203.71436L6.71429%209.71378L3.28571%206.2831L2%207.57092L6.71429%2012.2852Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+
+.checkbox-off {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20x%3D%220.75%22%20y%3D%220.75%22%20width%3D%2214.5%22%20height%3D%2214.5%22%20fill%3D%22white%22%20stroke%3D%22%2336352F%22%20stroke-width%3D%221.5%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+	
+</style></head><body><article id="20ff66b4-1220-80e3-8c6e-e1eac91cf306" class="page sans"><header><h1 class="page-title">Analysis Sulk Pygame</h1><p class="page-description"></p></header><div class="page-body"><h2 id="20ff66b4-1220-80ee-9559-df0a50b5c7c1" class="">1. Top-level runtime loop</h2><table id="20ff66b4-1220-80ef-b52e-da3f642a2ee2" class="simple-table"><tbody><tr id="20ff66b4-1220-8027-a835-d57d83566554"><td id="?]]O" class="" style="width:353px">Responsibility</td><td id="E=Ol" class="" style="width:353px">What it really does</td></tr><tr id="20ff66b4-1220-805d-9b27-c7793e2eb495"><td id="?]]O" class="" style="width:353px"><strong>Game Kernel</strong></td><td id="E=Ol" class="" style="width:353px">Initializes subsystems (graphics, sound, input, missions), then runs a frame loop:1. Clear render layers.2. <code>currentPhase.loop()</code> to advance rules and push input handlers.3. Tick the global clock, propagate <code>elapsed</code> and <code>fps</code> values.4. Run any automatic <code>update()</code> on sprites (animation, timers, tooltips, etc.).5. Composite layers to the screen.</td></tr><tr id="20ff66b4-1220-80ce-94ee-f5141d169f53"><td id="?]]O" class="" style="width:353px"><strong>Loop exit</strong></td><td id="E=Ol" class="" style="width:353px">When the active Phase sets <code>game._done</code> or the user picks “Restart”, the kernel tears everything down, optionally starts a new mission.</td></tr></tbody></table><hr id="20ff66b4-1220-80d8-818d-d12f0b97e4c5"/><h2 id="20ff66b4-1220-803d-bcd0-c26ecdd89168" class="">2. Global game object</h2><p id="20ff66b4-1220-8020-9a2f-dca075691389" class=""><strong>GameSession</strong> (named <code>SulkGame</code> in the original):</p><ul id="20ff66b4-1220-80cb-bb1a-f3afff6e6f88" class="bulleted-list"><li style="list-style-type:disc">Owns every long-lived subsystem (renderer, audio, RNG, mission module).</li></ul><ul id="20ff66b4-1220-80f0-ad3c-f780ab963662" class="bulleted-list"><li style="list-style-type:disc">Holds mutable game state:<ul id="20ff66b4-1220-80fa-9093-c50e6dbbc7ab" class="bulleted-list"><li style="list-style-type:circle"><strong>Teams</strong> (two player teams plus neutrals).</li></ul><ul id="20ff66b4-1220-80c9-a277-e4b838eb5274" class="bulleted-list"><li style="list-style-type:circle"><strong>Board</strong> (Squares, Features, Entry/Exit triangles).</li></ul><ul id="20ff66b4-1220-8018-9288-d7e4c698aead" class="bulleted-list"><li style="list-style-type:circle"><strong>Sprite groups</strong> (by render layer).</li></ul><ul id="20ff66b4-1220-802e-945d-c64dd3a3ee31" class="bulleted-list"><li style="list-style-type:circle">UI singletons (turn timer, CP clock, global buttons).</li></ul></li></ul><ul id="20ff66b4-1220-8040-9c6d-f1e4dc757e67" class="bulleted-list"><li style="list-style-type:disc">Creates and switches <strong>Phases</strong> which encapsulate rule sets for each step of play.</li></ul><ul id="20ff66b4-1220-80d5-b91a-cafdc40ae454" class="bulleted-list"><li style="list-style-type:disc">Exposes utility helpers such as <code>get_blip_value()</code>, <code>game_over_check()</code>.</li></ul><hr id="20ff66b4-1220-8000-a5d6-f4e819b94680"/><h2 id="20ff66b4-1220-80f0-8f49-fc2a88fee000" class="">3. Phase system (state machine for rules)</h2><p id="20ff66b4-1220-801c-9f41-e43350104d46" class="">A <strong>Phase</strong> is a lightweight state-object with:</p><table id="20ff66b4-1220-8070-b83c-f6dd01707347" class="simple-table"><tbody><tr id="20ff66b4-1220-80a0-b1b9-e04bd30968e0"><td id="Qg&gt;g" class="">Key fields</td><td id="FiFb" class="">Meaning</td></tr><tr id="20ff66b4-1220-80ce-9fb0-e2d80d8ed3bb"><td id="Qg&gt;g" class=""><code>handlers</code></td><td id="FiFb" class="">Stack of input objects – top of stack receives events first.</td></tr><tr id="20ff66b4-1220-803a-b1a9-e11b3b99fed1"><td id="Qg&gt;g" class=""><code>secretsTeam</code></td><td id="FiFb" class="">Which team may see hidden information during this phase.</td></tr><tr id="20ff66b4-1220-8081-a4ff-c8883c36ab68"><td id="Qg&gt;g" class=""><code>interruptable</code></td><td id="FiFb" class="">Whether Marines can break in with an interrupt.</td></tr><tr id="20ff66b4-1220-80fd-8379-f815b5e97bbe"><td id="Qg&gt;g" class=""><code>pausable</code></td><td id="FiFb" class="">Whether the pause menu is allowed here.</td></tr></tbody></table><h3 id="20ff66b4-1220-809c-8f7d-ec953fbd05db" class="">Phase progression in a normal turn</h3><ol type="1" id="20ff66b4-1220-80fc-8a56-d0ace78c8f09" class="numbered-list" start="1"><li><strong>ClockAndCP</strong> – Sets marine timer and command points.</li></ol><ol type="1" id="20ff66b4-1220-80d0-a12c-d7d223145a2c" class="numbered-list" start="2"><li><strong>MarineAction</strong> – Human or AI moves marines until timer expires or player taps <strong>Done</strong>.</li></ol><ol type="1" id="20ff66b4-1220-800a-91f1-c0687af298d3" class="numbered-list" start="3"><li><strong>StealerReinforce</strong> – Spawn blips (plus optional ambush counter).</li></ol><ol type="1" id="20ff66b4-1220-806d-961d-e12e4e423681" class="numbered-list" start="4"><li><strong>StealerAction</strong> – Stealers take their turn; Marines may interrupt.</li></ol><ol type="1" id="20ff66b4-1220-8042-9651-c53d40ea216e" class="numbered-list" start="5"><li><strong>EndPhase</strong> – Clear flames, remove temporary markers, advance turn counter, run mission hooks.</li></ol><ol type="1" id="20ff66b4-1220-8081-96a4-d2f56d0845ba" class="numbered-list" start="6"><li>Back to <strong>ClockAndCP</strong> for the next round.</li></ol><p id="20ff66b4-1220-80cd-a61f-ef4d95718f76" class="">Additional one-shot phases exist for choosing players, mission selection, deployment, post-game dialog, etc.</p><hr id="20ff66b4-1220-8090-9759-f20187f147d3"/><h2 id="20ff66b4-1220-80c6-bb66-f5ef98bb63bf" class="">4. Board topology</h2><ul id="20ff66b4-1220-80b1-a69b-d8be965060dc" class="bulleted-list"><li style="list-style-type:disc"><strong>Square</strong> – logical tile on the map.<ul id="20ff66b4-1220-80a8-ac6f-c5862cf69638" class="bulleted-list"><li style="list-style-type:circle">Knows its coordinate, section (room), adjacency list (cached), whether it is a deploy, entry or exit square.</li></ul><ul id="20ff66b4-1220-80f4-aba6-c5ff2141c0bb" class="bulleted-list"><li style="list-style-type:circle">Holds subordinate groups: <code>features</code>, <code>piece</code>, <code>hilite</code>.</li></ul><ul id="20ff66b4-1220-80d4-a6e7-dfc932d12e02" class="bulleted-list"><li style="list-style-type:circle">Utility: <code>get_passable</code>, <code>get_routable_to</code>, <code>find_piece_near</code>, <code>ang()</code> wrapper.</li></ul></li></ul><ul id="20ff66b4-1220-8051-9f46-de9014824793" class="bulleted-list"><li style="list-style-type:disc"><strong>EntryTriangle / ExitArrow</strong> – gateway objects that own a ring of invisible <strong>LimboSquares</strong> used for lurking or off-board pieces.</li></ul><ul id="20ff66b4-1220-8060-ad74-e4f3294a527c" class="bulleted-list"><li style="list-style-type:disc"><strong>Feature</strong> – anything rigid sitting on a Square (door, bulkhead, rubble, cat unit, flames). Common flags: <code>blockMove</code>, <code>blockLOS</code>, persistence. Subclasses implement extra logic (doors open/close, ducting destroyable, etc.).</li></ul><hr id="20ff66b4-1220-8004-ba94-dff267050dc2"/><h2 id="20ff66b4-1220-80fe-9f39-f1af4308e7cc" class="">5. Actors</h2><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><pre id="20ff66b4-1220-80a6-ad43-fa30083c79e6" class="code"><code class="language-Plain Text" style="white-space:pre-wrap;word-break:break-all">scss
+Copy
+Piece (base)
+├─ Genestealer family (Stealer, Blip, Ambush counter)
+└─ Terminator family (Storm-Bolter, Flamer, Assault-Cannon, Sergeant, Captain, Librarian, etc.)
+
+</code></pre><p id="20ff66b4-1220-80f6-98fd-e1dad835d0a6" class="">Shared behaviour supplied by <code>Piece</code>:</p><ul id="20ff66b4-1220-8024-9b57-c4458650656d" class="bulleted-list"><li style="list-style-type:disc">Facing, AP pool, movement cost tables, turn cost tables.</li></ul><ul id="20ff66b4-1220-80ab-a841-facf40cce47d" class="bulleted-list"><li style="list-style-type:disc"><strong>Sprite attachments</strong>: buttons (per-piece UI), markers (overwatch, jam), clocks (AP, ammo, psi).</li></ul><ul id="20ff66b4-1220-8048-ad1a-cf3701e8ee28" class="bulleted-list"><li style="list-style-type:disc">Combat helpers: LOS test, close-combat resolution, shooting template.</li></ul><ul id="20ff66b4-1220-80f0-a312-e351c104efff" class="bulleted-list"><li style="list-style-type:disc"><code>_post_action()</code> hook notifies the mission script and updates visuals.</li></ul><p id="20ff66b4-1220-806b-95e8-ca37785dccb3" class="">Weapon-specific mix-ins extend this with overwatch, ammo, reloads, autofire, self-destruct, grenade logic, psi powers and so on.</p><hr id="20ff66b4-1220-80a1-aecb-db8739016bb6"/><h2 id="20ff66b4-1220-8054-81fd-f0d1b32c00f4" class="">6. Teams and players</h2><ul id="20ff66b4-1220-801c-b588-ebc0e106cf20" class="bulleted-list"><li style="list-style-type:disc"><strong>Team</strong> object is a sprite group with fields: <code>type</code>, <code>color</code>, <code>player</code> (module), <code>status</code> (ACTIVE / INACTIVE), casualty counter.</li></ul><ul id="20ff66b4-1220-8065-b321-c434f4b861d2" class="bulleted-list"><li style="list-style-type:disc"><strong>Player module</strong> provides:<ul id="20ff66b4-1220-80b4-a6aa-d4f9f19e19c8" class="bulleted-list"><li style="list-style-type:circle"><code>phases</code> – concrete Phase subclasses appropriate for that player.</li></ul><ul id="20ff66b4-1220-80a8-a963-e26e309464ec" class="bulleted-list"><li style="list-style-type:circle"><code>UIinput</code> – concrete InputHandler subclasses that translate raw events or AI choices into game actions.</li></ul><ul id="20ff66b4-1220-8049-a37e-e609d1336541" class="bulleted-list"><li style="list-style-type:circle">Marker: <code>type = LOCAL_PLAYER | AI_PLAYER | REMOTE_PLAYER</code>.</li></ul></li></ul><p id="20ff66b4-1220-80cc-8daa-dd8867eee20b" class="">Because Phases call <code>team.player.UIinput.*</code>, the same core rules run unmodified for human or AI.</p><hr id="20ff66b4-1220-8004-a4a2-f26326b46bc2"/><h2 id="20ff66b4-1220-8044-8298-ed75bd04ecbd" class="">7. Input system</h2><ul id="20ff66b4-1220-8011-8c64-eec3c7b4abf9" class="bulleted-list"><li style="list-style-type:disc"><strong>InputHandler</strong> – stackable object with <code>handle()</code> that pumps pygame (or abstract) events, interprets clicks/keys, and can push further handlers (modal dialogs, piece selection, facing picker, etc.).</li></ul><ul id="20ff66b4-1220-80e5-aa50-de17c95a6922" class="bulleted-list"><li style="list-style-type:disc">Specialized handlers exist for every verb in the game: <code>Use_A_Piece</code>, <code>Select_A_Piece</code>, <code>Deploy_A_New_Piece</code>, <code>Pass_CAT</code>, …</li></ul><ul id="20ff66b4-1220-8040-ae37-f87995da98b6" class="bulleted-list"><li style="list-style-type:disc">AI uses the same API: its handlers fabricate events rather than reacting to hardware.</li></ul><hr id="20ff66b4-1220-80f0-bb6f-f36068c680cb"/><h2 id="20ff66b4-1220-8020-ac29-c59d6b9c5575" class="">8. Rendering pipeline</h2><ul id="20ff66b4-1220-80e5-b27d-f15e20d746d4" class="bulleted-list"><li style="list-style-type:disc">Sprites are partitioned into <strong>ClipGroups</strong> by <code>(render_layer, render_clip, auto_update flag)</code>.</li></ul><ul id="20ff66b4-1220-80a1-b501-ed810af157f9" class="bulleted-list"><li style="list-style-type:disc">The <strong>LayerArray</strong> orders those groups so that background, board, pieces, decals, HUD, dialog, tooltip appear correctly without a z-buffer.</li></ul><ul id="20ff66b4-1220-807b-9858-f452f643cb79" class="bulleted-list"><li style="list-style-type:disc">Every frame the kernel calls:<ol type="1" id="20ff66b4-1220-807d-87e6-e8b16623b204" class="numbered-list" start="1"><li><code>layer.clear(surface, background)</code></li></ol><ol type="1" id="20ff66b4-1220-8004-bddb-c38bd88dfabe" class="numbered-list" start="2"><li><code>layer.update()</code> for auto groups</li></ol><ol type="1" id="20ff66b4-1220-802e-8ce9-efabea7f83f5" class="numbered-list" start="3"><li><code>layer.draw(surface)</code> and finally <code>pygame.display.update(dirtyRects)</code>.</li></ol></li></ul><p id="20ff66b4-1220-80d4-9290-cf43fa109f51" class="">Sprites that are logically attached to Squares never move themselves – they take the square’s rect, so scrolling the board is O(N) per scroll, not per frame.</p><hr id="20ff66b4-1220-804e-997e-cc73f1226249"/><h2 id="20ff66b4-1220-802a-b5fe-cf9ca71fb916" class="">9. Mission plug-ins</h2><ul id="20ff66b4-1220-800e-9177-da4a9ac10593" class="bulleted-list"><li style="list-style-type:disc">Simple loader scans a directory for files named <code>MISH*.py</code>.</li></ul><ul id="20ff66b4-1220-8060-aca5-f98b7c3409e7" class="bulleted-list"><li style="list-style-type:disc">Each module exposes constants (board layout array, blip deck, flags, story, hooks like <code>pre_deploy_rule</code>, <code>post_action_script</code>, <code>victory_check</code>).</li></ul><ul id="20ff66b4-1220-80b5-b9de-f161d5d76930" class="bulleted-list"><li style="list-style-type:disc">This keeps scenario logic outside the engine proper.</li></ul><hr id="20ff66b4-1220-8023-98e4-d1fda147c592"/><h2 id="20ff66b4-1220-804c-84b2-c635a84ec3f5" class="">10. Key algorithms</h2><table id="20ff66b4-1220-80d6-a8b7-ce85a340ff69" class="simple-table"><tbody><tr id="20ff66b4-1220-80f9-976c-dadac30aac7f"><td id="lJ}^" class="">Purpose</td><td id="iF^@" class="">Outline</td></tr><tr id="20ff66b4-1220-801c-b7ea-f7dae2e83c85"><td id="lJ}^" class=""><strong>Line-of-Sight</strong></td><td id="iF^@" class="">Uses <code>functions.seeable()</code> – orthogonal and pure diagonal cases are fast.  For oblique angles it walks from source square towards target, stepping through LOS windows and checking blocking features.</td></tr><tr id="20ff66b4-1220-8015-b55a-e0b87139d549"><td id="lJ}^" class=""><strong>Shortest Routes</strong></td><td id="iF^@" class="">Breadth-first expansion (no heuristics) limited by max length; returns one or more equally short paths for AI or move validation.</td></tr><tr id="20ff66b4-1220-80bd-84b0-d5cb45b8119d"><td id="lJ}^" class=""><strong>Close Combat</strong></td><td id="iF^@" class="">Each combatant rolls <code>n</code> dice (table lookup) plus arc bonus, may parry (Sergeant, Librarian) and compare highs.</td></tr><tr id="20ff66b4-1220-8090-81bc-ced395cfc21f"><td id="lJ}^" class=""><strong>Flamer spread</strong></td><td id="iF^@" class="">When a square is flamed, it recursively calls <code>flame()</code> on orthogonal neighbours inside the same room.</td></tr><tr id="20ff66b4-1220-800d-a9dc-e87bbd441e62"><td id="lJ}^" class=""><strong>Blip conversion</strong></td><td id="iF^@" class="">Converts into Genestealers either voluntarily (on Stealer turn) or when revealed by LOS.  An InputHandler walks the triangle limbo, enforces “no entry within Marine LOS” rule, handles ambush counter logic.</td></tr></tbody></table><hr id="20ff66b4-1220-80c9-a0e6-eefee92d7c4b"/><h2 id="20ff66b4-1220-80dc-a34c-d4090a46e221" class="">11. UI toolkit</h2><ul id="20ff66b4-1220-80d3-9116-dc0fc0bb2b6f" class="bulleted-list"><li style="list-style-type:disc">Lightweight widget set (buttons, checkboxes, radio buttons, scrolling messages, tool-tips, dialogs with auto-pack).</li></ul><ul id="20ff66b4-1220-80ce-a647-f6c4b34024d2" class="bulleted-list"><li style="list-style-type:disc">Each widget is a sprite; dialogs are sprites that own widget lists.</li></ul><ul id="20ff66b4-1220-8052-a2a7-f8506950f7f7" class="bulleted-list"><li style="list-style-type:disc">All text rendering goes through helper functions so swapping fonts or porting to another GUI library is straightforward.</li></ul><hr id="20ff66b4-1220-80bb-89f6-cee59d6f9abb"/><h2 id="20ff66b4-1220-80f3-99a1-c5c9d29efff1" class="">12. How to port</h2><ol type="1" id="20ff66b4-1220-8039-96f5-fc8818309bbf" class="numbered-list" start="1"><li><strong>Replace pygame bindings</strong>. Provide equivalents for: surface, rect, event poll, sound play, timer, font render, alpha.</li></ol><ol type="1" id="20ff66b4-1220-8064-b18d-fddaabed9c93" class="numbered-list" start="2"><li><strong>Keep the data flow</strong>: a single GameSession owns Board, Teams, Phase. Every tick: clear, phase.loop, update sprites, draw.</li></ol><ol type="1" id="20ff66b4-1220-80c4-b677-de20399020dd" class="numbered-list" start="3"><li><strong>Mirror the sprite-tree</strong> or adopt an ECS where each sprite becomes a render component registered with a layer manager.</li></ol><ol type="1" id="20ff66b4-1220-8088-a241-d3baa9f51e6d" class="numbered-list" start="4"><li><strong>Re-implement algorithms verbatim</strong> (LOS, route-finding, combat) – they have no pygame dependency.</li></ol><ol type="1" id="20ff66b4-1220-805d-8371-e75085000865" class="numbered-list" start="5"><li><strong>Stub UI</strong>: at first drive the InputHandlers from scripted events or unit tests; later map them to your engine’s input system.</li></ol><ol type="1" id="20ff66b4-1220-80a8-9093-db542dbe6c53" class="numbered-list" start="6"><li><strong>Mission loading</strong>: if the new language supports dynamic modules, keep the file convention; otherwise turn missions into JSON or YAML descriptors plus a small DSL for hook points.</li></ol><ol type="1" id="20ff66b4-1220-80dc-8523-ee37bc51b755" class="numbered-list" start="7"><li><strong>Audio and timing</strong>: sounds are optional; only requirement is millisecond-accurate timers for Turn clock, Fade, Anim.</li></ol><hr id="20ff66b4-1220-8085-bb76-e426a8f1b2d9"/><h3 id="20ff66b4-1220-806a-b488-ec0a2de16c01" class="">Minimal object model (language neutral)</h3><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><pre id="20ff66b4-1220-80b8-869d-eae6ea45e545" class="code"><code class="language-Plain Text" style="white-space:pre-wrap;word-break:break-all">text
+Copy
+GameSession
+ ├── LayerManager
+ ├── Board                 (holds Squares, Entry/Exit, Features)
+ ├── Teams[MARINE, STEALER, NEUTRAL]
+ │     └── SpriteGroup&lt;Pieces&gt;
+ ├── Phase   (finite-state, owns InputHandler stack)
+ │     └── InputHandler[] (modal, last gets events)
+ ├── Renderer (knows LayerManager)
+ └── AssetRegistry (images, sounds, fonts, constants)
+
+</code></pre><p id="20ff66b4-1220-8054-958f-fc2a14c4ae83" class="">Each concrete subclass only needs to override small virtual methods, so the port can keep the same inheritance tree or flatten it into composition.</p><p id="20ff66b4-1220-80a0-9306-f3d847ea0d10" class="">Below is an <strong>engine-agnostic “contract”</strong> for every major entity that appears on the Sulk board.</p><p id="20ff66b4-1220-8007-9b0f-dcf33194d67e" class="">Each section lists:</p><ul id="20ff66b4-1220-80ca-bffb-e1b3441af556" class="bulleted-list"><li style="list-style-type:disc"><strong>State</strong> – data the object must expose.</li></ul><ul id="20ff66b4-1220-8090-ad09-f8f64e6eb5ff" class="bulleted-list"><li style="list-style-type:disc"><strong>Queries</strong> – read-only helpers other systems rely on.</li></ul><ul id="20ff66b4-1220-80b1-a797-ce778eeae200" class="bulleted-list"><li style="list-style-type:disc"><strong>Actions</strong> – game verbs that can succeed or fail (returning <code>True/False</code>).</li></ul><ul id="20ff66b4-1220-80cb-a4f0-d46e24df1f91" class="bulleted-list"><li style="list-style-type:disc"><strong>Internal rules</strong> – constraints or automatic side-effects the engine must enforce.</li></ul><p id="20ff66b4-1220-80fe-94c0-eea144af234f" class="">You can translate this to classes, structs, ECS components or network messages as you please.</p><hr id="20ff66b4-1220-8001-8448-eaf6142509da"/><h2 id="20ff66b4-1220-8062-a6a2-f01b64de18ef" class="">1. Geometry layer</h2><table id="20ff66b4-1220-805b-a56e-d3bd216cf2f2" class="simple-table"><tbody><tr id="20ff66b4-1220-8093-8893-e7a2387a11c4"><td id="{xep" class="">Object</td><td id="D&gt;IO" class="">State</td><td id="KdO;" class="">Queries</td><td id="Mg[F" class="">Actions</td><td id="UCop" class="">Internal rules</td></tr><tr id="20ff66b4-1220-809c-8acd-ee189ea9685d"><td id="{xep" class=""><strong>Board</strong></td><td id="D&gt;IO" class=""><code>squares[]</code> grid, list of <strong>Section</strong> (rooms), reference to current <code>phase</code></td><td id="KdO;" class=""><code>getSquare(coord)</code>, <code>centerOn(object)</code></td><td id="Mg[F" class=""><code>shift(offset)</code> (scroll)</td><td id="UCop" class="">No game logic, purely geometric.</td></tr><tr id="20ff66b4-1220-8088-96d1-e16d72863eab"><td id="{xep" class=""><strong>Square</strong></td><td id="D&gt;IO" class=""><code>coord</code>, <code>section</code>, sets: <code>features</code>, <code>piece</code>, flags: <code>isEntry,isExit,isDeploy</code>, <code>efacing</code> (for entry/exit)</td><td id="KdO;" class=""><code>getAdjacents()</code>, <code>getPassable(ignoreFlames, ignorePieces)</code>, <code>getLOSBlock()</code>, <code>getFlaming()</code>, <code>getRange(other)</code></td><td id="Mg[F" class=""><code>flame(spreadMode)</code></td><td id="UCop" class="">LOS test depends on <strong>seeable()</strong> algorithm, passable checks <code>features</code> and <code>piece</code>.</td></tr><tr id="20ff66b4-1220-801d-aef2-e76675dc1701"><td id="{xep" class=""><strong>EntryTriangle / ExitArrow</strong></td><td id="D&gt;IO" class=""><code>limboSquares[]</code>, <code>entryPoint</code> (ordinary Square), <code>efacing</code></td><td id="KdO;" class="">—</td><td id="Mg[F" class="">—</td><td id="UCop" class="">Stealers may lurk in limbo squares, Marines may exit via entryPoint if facing matches <code>efacing</code>.</td></tr><tr id="20ff66b4-1220-8003-9bd5-e3a63d8e9281"><td id="{xep" class=""><strong>Section</strong> (logical room)</td><td id="D&gt;IO" class="">set of Squares</td><td id="KdO;" class="">—</td><td id="Mg[F" class="">—</td><td id="UCop" class="">Used only for flame spread and end-of-turn cleanup.</td></tr></tbody></table><hr id="20ff66b4-1220-804f-84a9-f6b8a090ec6e"/><h2 id="20ff66b4-1220-80bf-a617-db8f6cceabbf" class="">2. Static board features</h2><p id="20ff66b4-1220-8012-a1e5-c4b05383baa5" class=""><em>All subclasses of </em><em><strong>Feature</strong></em><em>; immutable unless stated.</em></p><table id="20ff66b4-1220-805d-9a4d-fefe0258f3bb" class="simple-table"><tbody><tr id="20ff66b4-1220-809e-a551-ca59f66e6fdb"><td id="`LHH" class="">Feature</td><td id="Q_u[" class="">State</td><td id="aU]C" class="">Queries</td><td id="gM@l" class="">Actions</td><td id="@aF&gt;" class="">Internal rules</td></tr><tr id="20ff66b4-1220-80f9-b390-f3a40981ca26"><td id="`LHH" class=""><strong>Door</strong></td><td id="Q_u[" class=""><code>closed</code> flag</td><td id="aU]C" class=""><code>blocksMove</code>, <code>blocksLOS</code></td><td id="gM@l" class=""><code>open()</code>, <code>close()</code>, <code>kill()</code></td><td id="@aF&gt;" class="">Closed blocks move+LOS, open does not. If opened into an adjacent flame, the Door Square flames.</td></tr><tr id="20ff66b4-1220-80d5-b821-d650555b17db"><td id="`LHH" class=""><strong>Bulkhead / Ducting / Cryogenic Tank / Crate</strong></td><td id="Q_u[" class="">None special</td><td id="aU]C" class="">destruction thresholds</td><td id="gM@l" class=""><code>kill()</code></td><td id="@aF&gt;" class="">When killed becomes a <strong>DestroyedFeature</strong> (or <strong>Rubble</strong>).</td></tr><tr id="20ff66b4-1220-8015-9f70-f64626ae9ee0"><td id="`LHH" class=""><strong>Flames</strong></td><td id="Q_u[" class="">none</td><td id="aU]C" class=""><code>blocksMove</code> false, <code>blocksLOS</code> false</td><td id="gM@l" class="">—</td><td id="@aF&gt;" class="">Dies automatically at End phase unless <code>persist</code> flag set.</td></tr><tr id="20ff66b4-1220-8020-a0b8-f0e71c0006f3"><td id="`LHH" class=""><strong>CAT unit</strong></td><td id="Q_u[" class=""><code>damaged</code> bool, <code>carrier</code> (Piece or null)</td><td id="aU]C" class="">—</td><td id="gM@l" class=""><code>move(toSquare)</code>, <code>setCarrier(piece)</code>, <code>damage()</code>, <code>drop()</code></td><td id="@aF&gt;" class="">Counts as Feature when on floor, Piece when carried. May wander at End phase if undamaged and uncarried.</td></tr><tr id="20ff66b4-1220-8022-b524-dd2ebcdfc5b6"><td id="`LHH" class=""><strong>DestroyedFeature / Rubble / SectionLine</strong></td><td id="Q_u[" class="">cosmetic</td><td id="aU]C" class="">—</td><td id="gM@l" class="">—</td><td id="@aF&gt;" class="">Non-blocking except where noted.</td></tr></tbody></table><hr id="20ff66b4-1220-80ac-ba36-ef0c74315674"/><h2 id="20ff66b4-1220-8072-a951-d83d9da2deb3" class="">3. Teams</h2><table id="20ff66b4-1220-8013-9f37-db671392d638" class="simple-table"><tbody><tr id="20ff66b4-1220-801d-9661-ca6ea1fdffc1"><td id="dzEP" class="">Object</td><td id="WHs}" class="">State</td><td id="iB&gt;e" class="">Queries</td><td id="d@{K" class="">Actions</td><td id=";imT" class="">Internal rules</td></tr><tr id="20ff66b4-1220-805b-b190-fa06df36989c"><td id="dzEP" class=""><strong>Team</strong></td><td id="WHs}" class=""><code>type</code> (MARINE, STEALER, NEUTRAL), <code>color</code>, <code>pieces</code> set, <code>player</code> reference, <code>casualties</code>, <code>status</code> (ACTIVE/INACTIVE)</td><td id="iB&gt;e" class=""><code>getNextPiece(statusFilter)</code></td><td id="d@{K" class=""><code>refreshAll()</code></td><td id=";imT" class="">Switching ACTIVE/USED handled by <code>Piece.setActive()</code>.</td></tr></tbody></table><hr id="20ff66b4-1220-8065-89de-f325247988c1"/><h2 id="20ff66b4-1220-8078-8e8a-c57d2ef5096f" class="">4. Phase &amp; input infrastructure (summary)</h2><ul id="20ff66b4-1220-80ca-baa3-f05587df2a34" class="bulleted-list"><li style="list-style-type:disc"><strong>Phase</strong> holds an <code>InputHandler</code> stack and a reference to the secrets-owning Team.</li></ul><ul id="20ff66b4-1220-80ce-9c29-f9df7afc3ae3" class="bulleted-list"><li style="list-style-type:disc"><strong>InputHandler</strong> owns a mini-state machine for one modal interaction (select a square, choose facing, etc.).</li></ul><ul id="20ff66b4-1220-800e-b7e5-cc94a70f17af" class="bulleted-list"><li style="list-style-type:disc">Any verb below that needs UI should be wrapped inside an InputHandler in your engine.</li></ul><hr id="20ff66b4-1220-8046-9c23-e3e1d3675b3b"/><h2 id="20ff66b4-1220-80ed-88bc-df37b7729d1d" class="">5. Piece base contract</h2><table id="20ff66b4-1220-808c-b0b4-c27bdef7a85e" class="simple-table"><tbody><tr id="20ff66b4-1220-803c-95d6-fb627c35beeb"><td id="G;Yn" class="">State</td><td id="V=t?" class="">Queries</td><td id="\A_g" class="">Actions</td><td id="y@Fy" class="">Internal rules</td></tr><tr id="20ff66b4-1220-8097-9ac0-c18967378056"><td id="G;Yn" class=""><code>square</code>, <code>facing</code>, <code>team</code>, <code>apRemaining</code>, <code>status</code> (INACTIVE, ACTIVE, USED), sprite groups: <code>buttons, markers, clocks, anims</code></td><td id="V=t?" class=""><code>canMove(square)</code>, <code>canTurn(dir)</code>, <code>getPointsAvail()</code>, <code>arcTo(square)</code> (returns F,FL,FR,B, etc.), <code>ccScoreIsMax(target,score)</code></td><td id="\A_g" class=""><code>move(square)</code>, <code>turn(dir)</code>, <code>takePoints(n)</code>, <code>kill(style)</code>, <code>goMove</code>, <code>goTurn</code>, <code>goDoor</code>, <code>goCC</code>, <code>goShoot</code>, etc.</td><td id="y@Fy" class="">All actions call <code>_postAction(kind)</code> which updates visuals, registers last actor, and runs mission hooks.</td></tr></tbody></table><hr id="20ff66b4-1220-80fa-910c-d6b2b5deb6b7"/><h2 id="20ff66b4-1220-8045-b7e0-d10ace329b25" class="">6. Stealer objects</h2><table id="20ff66b4-1220-8060-9328-e4f304a1ea4d" class="simple-table"><tbody><tr id="20ff66b4-1220-8019-9946-cfd5528bd069"><td id="L&lt;=T" class="">Piece</td><td id="`S@u" class="">Extra state</td><td id="~sdE" class="">Key rules</td></tr><tr id="20ff66b4-1220-8026-a894-da80063e8117"><td id="L&lt;=T" class=""><strong>Genestealer</strong></td><td id="`S@u" class=""><code>justTurned</code> (last 90-deg turn), <code>seesMe</code> group</td><td id="~sdE" class="">6 AP, turn 0 AP unless same 90-deg twice, cannot turn while lurking, CC 3 dice front or 2 dice side/rear, may hide in entry triangle.</td></tr><tr id="20ff66b4-1220-809b-a997-d130c2024161"><td id="L&lt;=T" class=""><strong>Blip</strong> (inherits GS)</td><td id="`S@u" class=""><code>value</code> (1-3), <code>revealed</code> flag, <code>convertVoluntary</code></td><td id="~sdE" class="">Cannot turn or CC, movement 1 AP any dir, may not enter Marine LOS or squares adjacent to Marines, <code>convert()</code> spawns <code>value</code> Genestealers via InputHandler.</td></tr><tr id="20ff66b4-1220-80f3-83db-de7bdab5acfc"><td id="L&lt;=T" class=""><strong>AmbushCounter</strong></td><td id="`S@u" class=""><code>value</code> (0-1), may jam Marine guns when value reaches 0</td><td id="~sdE" class="">Behaves as blip until converted, on reveal deploy stealers or do nothing if value 0.</td></tr></tbody></table><hr id="20ff66b4-1220-8069-b7d6-cf9aa7a4d8f0"/><h2 id="20ff66b4-1220-8059-b275-ec02bccb5e8a" class="">7. Marine family</h2><p id="20ff66b4-1220-8027-8bc4-c43b142f9f93" class="">All Marines: 4 AP, turn costs 1/1/2 (left/right/about). Overwatch and ranged fire only if not jammed.</p><h3 id="20ff66b4-1220-8020-a573-dbd0fa36fae6" class="">Shared abilities</h3><table id="20ff66b4-1220-80f5-a870-cfcfb3d3a63c" class="simple-table"><tbody><tr id="20ff66b4-1220-808a-9bbe-d76464121f6d"><td id="K=eQ" class="">Ability</td><td id="aE\U" class="">Cost</td><td id="z&lt;@J" class="">Notes</td></tr><tr id="20ff66b4-1220-80f2-b734-eb2cfb54b98f"><td id="K=eQ" class="">Shoot storm bolter</td><td id="aE\U" class="">1 AP</td><td id="z&lt;@J" class="">Two dice to hit, miss gives +1 fire bonus (max 4) vs same target.</td></tr><tr id="20ff66b4-1220-8032-99af-ca44b5209de8"><td id="K=eQ" class="">Overwatch on/off</td><td id="aE\U" class="">2 AP / 0 AP</td><td id="z&lt;@J" class="">While on, piece cannot perform other actions until Overwatch canceled, hits up to 12 squares in front on Stealer move with same shoot rules, doubles on jam on doubles -&gt; jam weapon.</td></tr><tr id="20ff66b4-1220-80e2-8c6e-df521ddc900a"><td id="K=eQ" class="">Unjam</td><td id="aE\U" class="">1 AP</td><td id="z&lt;@J" class="">Clears jam marker.</td></tr><tr id="20ff66b4-1220-8008-9cac-f95e6794812e"><td id="K=eQ" class="">Use Door</td><td id="aE\U" class="">1 AP</td><td id="z&lt;@J" class="">Toggle door state if adjacent and in front.</td></tr><tr id="20ff66b4-1220-80ac-830c-ff4bb45a60d6"><td id="K=eQ" class="">Move and shoot (storm bolter only)</td><td id="aE\U" class="">Press button, then first move after press grants one free shot (0 AP).</td><td id="z&lt;@J" class=""></td></tr></tbody></table><h3 id="20ff66b4-1220-80d4-b9ec-eec53d2a8ca5" class="">Variants</h3><table id="20ff66b4-1220-80df-8319-fa97920c357b" class="simple-table"><tbody><tr id="20ff66b4-1220-8075-9d7c-df1344039996"><td id="dnSE" class="">Piece</td><td id="UmHs" class="">Differences / Special rules</td></tr><tr id="20ff66b4-1220-8064-a984-dfef85ef86cc"><td id="dnSE" class=""><strong>Sergeant</strong></td><td id="UmHs" class="">+30 s on Marine turn timer, +1 dice bonus to CC.</td></tr><tr id="20ff66b4-1220-80e7-ad61-d4e46ab83098"><td id="dnSE" class=""><strong>Sergeant (power sword)</strong></td><td id="UmHs" class="">As Sergeant, plus Parry ability (may force enemy reroll best CC die) and +1 CC bonus all arcs.</td></tr><tr id="20ff66b4-1220-8088-9902-de8bb6d8ef21"><td id="dnSE" class=""><strong>Lightning-claws Marine</strong></td><td id="UmHs" class="">No shooting, CC: 2 dice front (+2 bonus), 1 dice side/rear.</td></tr><tr id="20ff66b4-1220-8048-b9f0-f83dfbf6eea9"><td id="dnSE" class=""><strong>Chain-fist Marine</strong></td><td id="UmHs" class="">Can cut closed door / bulkhead (1 AP) instead of opening, acts like CC kill on door.</td></tr><tr id="20ff66b4-1220-802c-9a02-f541a96729ff"><td id="dnSE" class=""><strong>Thunder-hammer Marine</strong></td><td id="UmHs" class="">As Lightning-claws but Parry arc front+left, may self-destruct (1 AP) destroying everything in section.</td></tr><tr id="20ff66b4-1220-8058-8758-ef602e9546df"><td id="dnSE" class=""><strong>Assault-cannon Marine</strong></td><td id="UmHs" class="">Ammo 10, reload once (4 AP), autofire (2 AP uses 5 ammo, kill roll 3 dice), malfunctions on triple after 10 shots (area damage).</td></tr><tr id="20ff66b4-1220-80bd-a537-c21d6f6ba74c"><td id="dnSE" class=""><strong>Heavy-flamer Marine</strong></td><td id="UmHs" class="">Ammo 6, shot cost 2 AP, hits section up to 12 squares ahead, cannot shoot own section, self-destruct (1 AP) causes section-wide flames.</td></tr><tr id="20ff66b4-1220-80de-95c2-d6bd66020b5b"><td id="dnSE" class=""><strong>Captain</strong></td><td id="UmHs" class="">+30 s timer, +2 CP per turn, plasma grenade (1 AP, range 10, section splash 4+ to kill).</td></tr><tr id="20ff66b4-1220-80fe-a668-df208cf0ff0f"><td id="dnSE" class=""><strong>Librarian (Level 1-4)</strong></td><td id="UmHs" class="">Psi pool (10-40). Before own CC roll may spend any number of psi points, each grants +1 to every die this round.</td></tr><tr id="20ff66b4-1220-80e4-b700-ddd9fd22e08d"><td id="dnSE" class=""><strong>C.A.T.</strong></td><td id="UmHs" class="">When carried behaves like possession. Drop, pick up, pass (1 AP each). Damaged on fumble (die roll), destroyed if damaged twice.</td></tr></tbody></table><hr id="20ff66b4-1220-80cf-9605-dc1d4807b68d"/><h2 id="20ff66b4-1220-8046-b203-f49341499cb2" class="">8. CAT possession verbs</h2><table id="20ff66b4-1220-8023-807a-dd0bd17a6039" class="simple-table"><tbody><tr id="20ff66b4-1220-8039-bc1a-ee47f8d31150"><td id="lQG]" class="">Verb</td><td id="Uy;Y" class="">Preconditions</td><td id="nCdt" class="">Cost</td><td id="hq@_" class="">Effect</td></tr><tr id="20ff66b4-1220-8072-b958-c1cde2903cd2"><td id="lQG]" class=""><code>pickup_cat(cat)</code></td><td id="Uy;Y" class="">CAT on same square, Marine not over-watching</td><td id="nCdt" class="">1 AP</td><td id="hq@_" class="">CAT becomes possession.</td></tr><tr id="20ff66b4-1220-8089-82a2-fbbf4618dd86"><td id="lQG]" class=""><code>pass_cat(cat, otherMarine)</code></td><td id="Uy;Y" class="">CAT carried, other Marine orthogonal adjacent</td><td id="nCdt" class="">1 AP giver, 1 AP taker</td><td id="hq@_" class="">CAT transferred, each Marine may fumble on d6:2 (drop) or 1 (damage then drop).</td></tr><tr id="20ff66b4-1220-803e-9a27-e2b7410d8c9f"><td id="lQG]" class=""><code>drop_cat()</code></td><td id="Uy;Y" class="">CAT carried</td><td id="nCdt" class="">free</td><td id="hq@_" class="">CAT placed on carrier square.</td></tr></tbody></table><hr id="20ff66b4-1220-804d-8820-ce3a3bc61082"/><h2 id="20ff66b4-1220-806c-a745-d5ee35c95e76" class="">9. Combat resolution algorithms</h2><h3 id="20ff66b4-1220-80fd-a953-e824fcf06757" class="">Close combat</h3><ol type="1" id="20ff66b4-1220-80d3-bb49-fd869a708845" class="numbered-list" start="1"><li>Each side chooses dice count and bonus from arc table.</li></ol><ol type="1" id="20ff66b4-1220-80fb-a321-d3f3fb9c863d" class="numbered-list" start="2"><li>Piece with Parry ability may spend parry after dice reveal: force opponent to reroll highest die, keep new value.</li></ol><ol type="1" id="20ff66b4-1220-802f-8a62-e5ac0b2c456a" class="numbered-list" start="3"><li>Compare highest rolls: higher wins, loser destroyed. Tie—both live, Stealer rotates to face attacker if it lost roll.</li></ol><ol type="1" id="20ff66b4-1220-8078-820c-fcfacde51c18" class="numbered-list" start="4"><li>After combat winner may fumble possessions (<code>DisplayDie</code> d6 == 2 drop, 1 damage if CAT).</li></ol><h3 id="20ff66b4-1220-8023-92b9-dfc7558fc515" class="">Shooting</h3><p id="20ff66b4-1220-8031-b980-f793e4262c0d" class="">Storm bolter (and derivatives):</p><ul id="20ff66b4-1220-802a-ba0e-f1d2edb0a013" class="bulleted-list"><li style="list-style-type:disc">Roll two dice. Hit if either ≥ kill threshold (Door 6, Stealer 6, Marine 6, Flames immune).</li></ul><ul id="20ff66b4-1220-804b-a0bf-c2eddbdb68a3" class="bulleted-list"><li style="list-style-type:disc">Miss adds fire bonus if same target as last shot (max 4).</li></ul><ul id="20ff66b4-1220-8081-a49c-c9129740d027" class="bulleted-list"><li style="list-style-type:disc">Doubles while in Overwatch jams weapon.</li></ul><p id="20ff66b4-1220-80c0-87e9-eb1ec4db8812" class="">Flamer:</p><ul id="20ff66b4-1220-802a-8010-c98d6aacb86c" class="bulleted-list"><li style="list-style-type:disc">Choose target square within 12, in FIRE arc, LOS.</li></ul><ul id="20ff66b4-1220-80bb-a1f7-f2e31650b51c" class="bulleted-list"><li style="list-style-type:disc">Ignite entire Section (orthogonal spread).</li></ul><ul id="20ff66b4-1220-8002-939f-c836513bd8dd" class="bulleted-list"><li style="list-style-type:disc">Each piece/feature inside rolls <code>DisplayDie</code>, if ≥ fl_kill_scorereq it dies. Flames block movement but not LOS.</li></ul><p id="20ff66b4-1220-80a7-8c94-ccb3a0fe19ce" class="">Assault cannon:</p><ul id="20ff66b4-1220-80bf-b10c-e7770a675d62" class="bulleted-list"><li style="list-style-type:disc">Single shot identical to storm bolter but 3 dice, different kill tables.</li></ul><ul id="20ff66b4-1220-8077-bb21-e0f3be08e3bc" class="bulleted-list"><li style="list-style-type:disc">Autofire consumes 5 ammo, rolls 3 dice against every object in FIRE arc line of sight until nothing killed that pass.</li></ul><ul id="20ff66b4-1220-809e-a8fe-e2c3a899f26d" class="bulleted-list"><li style="list-style-type:disc">Malfunction check after each shot: three equal dice and total shots this game &gt; 10 → malfunction area attack then self-destruct.</li></ul><p id="20ff66b4-1220-80b9-9067-ccc4950f7a1b" class="">Grenade (Captain):</p><ul id="20ff66b4-1220-8089-af81-f59d4580c7e0" class="bulleted-list"><li style="list-style-type:disc">Choose square within 10, instant explosion in its Section, kill on 4+ roll.</li></ul><hr id="20ff66b4-1220-8091-b3e4-d39a0388aa32"/><h2 id="20ff66b4-1220-80d9-a438-eaf5f100f6f8" class="">10. End-phase cleanup</h2><ol type="1" id="20ff66b4-1220-80ba-9d4e-dd9f251a4923" class="numbered-list" start="1"><li>Increment turn counter and scroll message.</li></ol><ol type="1" id="20ff66b4-1220-8036-bcb0-c0ed6209d1a5" class="numbered-list" start="2"><li>Remove non-persistent flames and other temp features.</li></ol><ol type="1" id="20ff66b4-1220-80fd-8665-dedf43ad7541" class="numbered-list" start="3"><li>Reset fire bonuses, overwatch, move-and-shoot flags.</li></ol><ol type="1" id="20ff66b4-1220-807e-9788-f48c6a83388a" class="numbered-list" start="4"><li>Run Mission <code>end_script()</code>.</li></ol><ol type="1" id="20ff66b4-1220-8067-a722-c601d6371d0f" class="numbered-list" start="5"><li>Check victory conditions; if none, start next ClockAndCP phase.</li></ol><hr id="20ff66b4-1220-80cf-861a-f8e2ce87fcd3"/><h3 id="20ff66b4-1220-80b6-871e-c482fc4a7b9a" class="">How to extend</h3><p id="20ff66b4-1220-80ab-a6a3-fd8dad88b783" class="">Add a new Piece or Feature by defining:</p><ol type="1" id="20ff66b4-1220-80d5-9e4c-cb169a8e79c1" class="numbered-list" start="1"><li>Static data: AP, arc dice/bonus maps, weapon profile, UI button list.</li></ol><ol type="1" id="20ff66b4-1220-8011-ae01-ef5ccdff82b8" class="numbered-list" start="2"><li>Action helpers (<code>can_X</code>, <code>goX</code>, <code>X</code>) and kill thresholds.</li></ol><ol type="1" id="20ff66b4-1220-808e-9974-f9bc098fc629" class="numbered-list" start="3"><li>Any mission-specific hooks in <code>Mission.post_action_script</code> or <code>pre_deploy_rule</code>.</li></ol></div></article><span class="sans" style="font-size:14px;padding-top:2em"></span></body></html>

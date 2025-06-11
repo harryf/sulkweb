@@ -2,6 +2,16 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { Board } from '../board/Board';
 import { Square } from '../board/Square';
 import { hasLineOfSight } from '../board/los';
+import { Feature } from '../rules/Feature';
+
+// A concrete implementation of Feature for testing purposes
+class MockFeature extends Feature {
+  constructor(square: Square, private _blocksMove = false, private _blocksLOS = false) {
+    super(square);
+  }
+  blocksMove(): boolean { return this._blocksMove; }
+  blocksLOS(): boolean { return this._blocksLOS; }
+}
 
 describe('Geometry & LOS', () => {
   let board: Board;
@@ -56,7 +66,7 @@ describe('Geometry & LOS', () => {
         // Set blocker if one is specified for this test case
         if (blockerCoord) {
           const blocker = board.getSquare(blockerCoord[0], blockerCoord[1])!;
-          blocker.features.add('BLOCK_LOS');
+          blocker.features.add(new MockFeature(blocker, false, true));
         }
 
         const squareA = board.getSquare(aCoord[0], aCoord[1])!;

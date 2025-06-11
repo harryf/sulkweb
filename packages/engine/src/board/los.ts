@@ -65,8 +65,12 @@ export function hasLineOfSight(board: Board, a: Square, b: Square): boolean {
 
   for (const [x, y] of intermediatePoints) {
     const square = board.getSquare(x, y);
-    if (square?.features.has('BLOCK_LOS')) {
-      return false;
+    if (square) {
+      for (const feature of square.features) {
+        if (feature.blocksLOS()) {
+          return false;
+        }
+      }
     }
   }
 

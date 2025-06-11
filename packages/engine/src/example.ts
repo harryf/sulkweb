@@ -2,6 +2,7 @@ import { Board } from './board/Board';
 import { Piece } from './rules/Piece';
 import { Door } from './rules/Door';
 import { hasLineOfSight } from './board/los';
+import { GameCycle } from './GameCycle';
 
 // 1. Create a board
 const board = new Board(5, 5, []);
@@ -55,6 +56,18 @@ if (piece.move(moveTargetSquare)) {
 // 8. Show final state
 console.log(`Piece is now at (${piece.square.coord.join(',')}).`);
 console.log(`AP remaining: ${piece.apRemaining}`);
+
+// --- GameCycle Example ---
+console.log('\n\n--- Turn-Phase Machinery Example ---');
+const game = new GameCycle();
+
+console.log(`Initial Turn: ${game.turnNumber}, Phase: ${game.phase.name}`);
+
+for (let i = 0; i < 5; i++) {
+  game.step();
+  console.log(`→ New Turn: ${game.turnNumber}, Phase: ${game.phase.name}`);
+}
+// --- End GameCycle Example ---
 
 console.log('\nTo run this example:');
 console.log('1. Ensure ts-node is installed: pnpm add -D ts-node --filter ./packages/engine');

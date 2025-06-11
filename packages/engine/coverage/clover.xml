@@ -1,41 +1,78 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1749649780894" clover="3.2.0">
-  <project timestamp="1749649780894" name="All files">
-    <metrics statements="239" coveredstatements="212" conditionals="102" coveredconditionals="101" methods="29" coveredmethods="28" elements="370" coveredelements="341" complexity="0" loc="239" ncloc="239" packages="3" files="11" classes="11"/>
+<coverage generated="1749652542618" clover="3.2.0">
+  <project timestamp="1749652542618" name="All files">
+    <metrics statements="310" coveredstatements="262" conditionals="115" coveredconditionals="114" methods="42" coveredmethods="41" elements="467" coveredelements="417" complexity="0" loc="310" ncloc="310" packages="4" files="17" classes="17"/>
     <package name="src">
-      <metrics statements="34" coveredstatements="7" conditionals="1" coveredconditionals="0" methods="1" coveredmethods="0"/>
+      <metrics statements="74" coveredstatements="26" conditionals="4" coveredconditionals="3" methods="4" coveredmethods="3"/>
+      <file name="GameCycle.ts" path="/Users/harry/Code/sulk/sulkweb/packages/engine/src/GameCycle.ts">
+        <metrics statements="13" coveredstatements="13" conditionals="3" coveredconditionals="3" methods="3" coveredmethods="3"/>
+        <line num="2" count="1" type="stmt"/>
+        <line num="4" count="1" type="stmt"/>
+        <line num="6" count="1" type="cond" truecount="1" falsecount="0"/>
+        <line num="7" count="3" type="stmt"/>
+        <line num="9" count="1" type="cond" truecount="1" falsecount="0"/>
+        <line num="10" count="3" type="stmt"/>
+        <line num="11" count="3" type="stmt"/>
+        <line num="12" count="3" type="stmt"/>
+        <line num="15" count="1" type="cond" truecount="1" falsecount="0"/>
+        <line num="16" count="16" type="stmt"/>
+        <line num="17" count="16" type="stmt"/>
+        <line num="18" count="16" type="stmt"/>
+        <line num="19" count="1" type="stmt"/>
+      </file>
       <file name="example.ts" path="/Users/harry/Code/sulk/sulkweb/packages/engine/src/example.ts">
-        <metrics statements="27" coveredstatements="0" conditionals="1" coveredconditionals="0" methods="1" coveredmethods="0"/>
+        <metrics statements="48" coveredstatements="0" conditionals="1" coveredconditionals="0" methods="1" coveredmethods="0"/>
         <line num="1" count="0" type="cond" truecount="0" falsecount="1"/>
         <line num="2" count="0" type="stmt"/>
-        <line num="7" count="0" type="stmt"/>
+        <line num="3" count="0" type="stmt"/>
+        <line num="4" count="0" type="stmt"/>
+        <line num="5" count="0" type="stmt"/>
+        <line num="8" count="0" type="stmt"/>
         <line num="9" count="0" type="stmt"/>
         <line num="12" count="0" type="stmt"/>
         <line num="13" count="0" type="stmt"/>
-        <line num="15" count="0" type="stmt"/>
+        <line num="14" count="0" type="stmt"/>
         <line num="16" count="0" type="stmt"/>
         <line num="17" count="0" type="stmt"/>
         <line num="18" count="0" type="stmt"/>
-        <line num="20" count="0" type="stmt"/>
         <line num="21" count="0" type="stmt"/>
-        <line num="24" count="0" type="stmt"/>
+        <line num="22" count="0" type="stmt"/>
+        <line num="23" count="0" type="stmt"/>
         <line num="26" count="0" type="stmt"/>
         <line num="27" count="0" type="stmt"/>
         <line num="28" count="0" type="stmt"/>
         <line num="29" count="0" type="stmt"/>
         <line num="30" count="0" type="stmt"/>
         <line num="31" count="0" type="stmt"/>
-        <line num="32" count="0" type="stmt"/>
         <line num="33" count="0" type="stmt"/>
         <line num="34" count="0" type="stmt"/>
+        <line num="35" count="0" type="stmt"/>
+        <line num="36" count="0" type="stmt"/>
         <line num="37" count="0" type="stmt"/>
-        <line num="40" count="0" type="stmt"/>
+        <line num="41" count="0" type="stmt"/>
         <line num="42" count="0" type="stmt"/>
-        <line num="43" count="0" type="stmt"/>
-        <line num="44" count="0" type="stmt"/>
+        <line num="45" count="0" type="stmt"/>
+        <line num="46" count="0" type="stmt"/>
+        <line num="48" count="0" type="stmt"/>
+        <line num="49" count="0" type="stmt"/>
+        <line num="52" count="0" type="stmt"/>
+        <line num="53" count="0" type="stmt"/>
+        <line num="54" count="0" type="stmt"/>
+        <line num="57" count="0" type="stmt"/>
+        <line num="58" count="0" type="stmt"/>
+        <line num="61" count="0" type="stmt"/>
+        <line num="62" count="0" type="stmt"/>
+        <line num="64" count="0" type="stmt"/>
+        <line num="66" count="0" type="stmt"/>
+        <line num="67" count="0" type="stmt"/>
+        <line num="68" count="0" type="stmt"/>
+        <line num="69" count="0" type="stmt"/>
+        <line num="72" count="0" type="stmt"/>
+        <line num="73" count="0" type="stmt"/>
+        <line num="74" count="0" type="stmt"/>
       </file>
       <file name="index.ts" path="/Users/harry/Code/sulk/sulkweb/packages/engine/src/index.ts">
-        <metrics statements="7" coveredstatements="7" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <metrics statements="13" coveredstatements="13" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
         <line num="1" count="1" type="stmt"/>
         <line num="2" count="1" type="stmt"/>
         <line num="3" count="1" type="stmt"/>
@@ -43,6 +80,12 @@
         <line num="5" count="1" type="stmt"/>
         <line num="6" count="1" type="stmt"/>
         <line num="7" count="1" type="stmt"/>
+        <line num="9" count="1" type="stmt"/>
+        <line num="10" count="1" type="stmt"/>
+        <line num="11" count="1" type="stmt"/>
+        <line num="12" count="1" type="stmt"/>
+        <line num="13" count="1" type="stmt"/>
+        <line num="14" count="1" type="stmt"/>
       </file>
     </package>
     <package name="src.board">
@@ -186,6 +229,55 @@
         <line num="75" count="15" type="cond" truecount="1" falsecount="0"/>
         <line num="77" count="5" type="stmt"/>
         <line num="78" count="5" type="stmt"/>
+      </file>
+    </package>
+    <package name="src.phases">
+      <metrics statements="31" coveredstatements="31" conditionals="10" coveredconditionals="10" methods="10" coveredmethods="10"/>
+      <file name="ClockAndCP.ts" path="/Users/harry/Code/sulk/sulkweb/packages/engine/src/phases/ClockAndCP.ts">
+        <metrics statements="6" coveredstatements="6" conditionals="2" coveredconditionals="2" methods="2" coveredmethods="2"/>
+        <line num="1" count="1" type="stmt"/>
+        <line num="3" count="1" type="stmt"/>
+        <line num="5" count="1" type="stmt"/>
+        <line num="6" count="1" type="cond" truecount="1" falsecount="0"/>
+        <line num="7" count="1" type="cond" truecount="1" falsecount="0"/>
+        <line num="8" count="1" type="stmt"/>
+      </file>
+      <file name="EndPhase.ts" path="/Users/harry/Code/sulk/sulkweb/packages/engine/src/phases/EndPhase.ts">
+        <metrics statements="10" coveredstatements="10" conditionals="3" coveredconditionals="3" methods="3" coveredmethods="3"/>
+        <line num="1" count="1" type="stmt"/>
+        <line num="3" count="1" type="stmt"/>
+        <line num="5" count="1" type="stmt"/>
+        <line num="6" count="1" type="cond" truecount="1" falsecount="0"/>
+        <line num="7" count="1" type="cond" truecount="1" falsecount="0"/>
+        <line num="8" count="1" type="cond" truecount="1" falsecount="0"/>
+        <line num="9" count="4" type="stmt"/>
+        <line num="10" count="4" type="stmt"/>
+        <line num="11" count="4" type="stmt"/>
+        <line num="12" count="1" type="stmt"/>
+      </file>
+      <file name="MarineAction.ts" path="/Users/harry/Code/sulk/sulkweb/packages/engine/src/phases/MarineAction.ts">
+        <metrics statements="6" coveredstatements="6" conditionals="2" coveredconditionals="2" methods="2" coveredmethods="2"/>
+        <line num="1" count="1" type="stmt"/>
+        <line num="3" count="1" type="stmt"/>
+        <line num="5" count="1" type="stmt"/>
+        <line num="6" count="1" type="cond" truecount="1" falsecount="0"/>
+        <line num="7" count="1" type="cond" truecount="1" falsecount="0"/>
+        <line num="8" count="1" type="stmt"/>
+      </file>
+      <file name="Phase.ts" path="/Users/harry/Code/sulk/sulkweb/packages/engine/src/phases/Phase.ts">
+        <metrics statements="3" coveredstatements="3" conditionals="1" coveredconditionals="1" methods="1" coveredmethods="1"/>
+        <line num="7" count="1" type="stmt"/>
+        <line num="12" count="1" type="cond" truecount="1" falsecount="0"/>
+        <line num="19" count="1" type="stmt"/>
+      </file>
+      <file name="StealerAction.ts" path="/Users/harry/Code/sulk/sulkweb/packages/engine/src/phases/StealerAction.ts">
+        <metrics statements="6" coveredstatements="6" conditionals="2" coveredconditionals="2" methods="2" coveredmethods="2"/>
+        <line num="1" count="1" type="stmt"/>
+        <line num="3" count="1" type="stmt"/>
+        <line num="5" count="1" type="stmt"/>
+        <line num="6" count="1" type="cond" truecount="1" falsecount="0"/>
+        <line num="7" count="1" type="cond" truecount="1" falsecount="0"/>
+        <line num="8" count="1" type="stmt"/>
       </file>
     </package>
     <package name="src.rules">

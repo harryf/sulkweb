@@ -1,6 +1,8 @@
 # Sulk Web
 
-This project is a web-based port of the classic turn-based strategy game, Sulk, originally built with Pygame. It uses Phaser 3 and TypeScript for a modern, fast, and maintainable implementation.
+This project is a web-based port of the classic turn-based strategy game, [Sulk](https://sulk.sourceforge.net/), originally built with Pygame. It uses Phaser 3 and TypeScript for a modern, fast, and maintainable implementation.
+
+
 
 ## Project Structure
 
@@ -47,3 +49,11 @@ To get the client application running for development:
     ```
 
 This will start a local development server, and you can view the application in your browser at the URL provided (usually `http://localhost:5173`).
+
+### Run milestone 0
+
+```bash
+pnpm i
+pnpm --filter ./packages/client dev      # open localhost:5173
+pnpm --filter ./packages/client test     # unit
+pnpm --filter ./packages/client e2e      # browser integration

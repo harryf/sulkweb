@@ -50,10 +50,15 @@ To get the client application running for development:
 
 This will start a local development server, and you can view the application in your browser at the URL provided (usually `http://localhost:5173`).
 
-### Run milestone 0
+### Run milestone 0 - Hello Board
 
 ```bash
 pnpm i
 pnpm --filter ./packages/client dev      # open localhost:5173
 pnpm --filter ./packages/client test     # unit
 pnpm --filter ./packages/client e2e      # browser integration
+
+### Run milestone 1 - Geometry & LOS
+pnpm --filter ./packages/engine test     # unit
+pnpm --filter ./packages/engine example # cli example
+

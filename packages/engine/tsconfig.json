@@ -10,12 +10,6 @@
   "include": ["src/**/*.ts", "src/**/*.json", "src/custom.d.ts"],
   "exclude": [
     "src/__tests__/**/*.ts",
-    "src/tests/**/*.ts",
-    "src/example.ts",
-    "src/rules/**/*.ts",
-    "src/board/los.ts",
-    "src/board/Section.ts",
-    "src/phases/**/*.ts",
-    "src/GameCycle.ts"
+    "src/tests/**/*.ts"
   ]
 }

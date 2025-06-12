@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Board } from '../board/Board';
-import { Square } from '../board/Square';
+import { Board } from '../board/Board.js';
+import { Square } from '../board/Square.js';
 
 describe('Board and Square', () => {
   let board: Board;

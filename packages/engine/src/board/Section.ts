@@ -1,4 +1,4 @@
-import { Square } from './Square';
+import { Square } from './Square.js';
 
 /**
  * Represents a section of the board, like a room or a corridor.

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { GameCycle } from '../GameCycle'
+import { GameCycle } from '../GameCycle.js'
 
 /**
  * Helper to serialise phase names after N steps.

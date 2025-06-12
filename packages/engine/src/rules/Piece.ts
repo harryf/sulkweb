@@ -24,7 +24,8 @@ export class Piece {
     if (!this.square.isAdjacent(dest)) return
     const hdg = this.square.headingTo(dest)   // returns 'F','FL',etc.
     if (hdg === '') return; // Should not happen if isAdjacent is true
-    const cost = MOVE_COST[hdg];
+    // Add type assertion to ensure hdg is a valid key for MOVE_COST
+    const cost = MOVE_COST[hdg as keyof typeof MOVE_COST];
 
     
     for (const feature of dest.features) {

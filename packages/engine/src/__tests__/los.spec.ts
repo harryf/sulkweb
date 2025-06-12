@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Board } from '../board/Board';
-import { Square } from '../board/Square';
-import { hasLineOfSight } from '../board/los';
-import { Feature } from '../rules/Feature';
+import { Board } from '../board/Board.js';
+import { Square } from '../board/Square.js';
+import { hasLineOfSight } from '../board/los.js';
+import { Feature } from '../rules/Feature.js';
 
 // A concrete implementation of Feature for testing purposes
 class MockFeature extends Feature {

@@ -1,10 +1,5 @@
-import { Board } from './board/Board.js';
-import { Piece } from './rules/Piece.js';
-import { Door } from './rules/Door.js';
-import { hasLineOfSight } from './board/los.js';
-import { GameCycle } from './GameCycle.js';
-import { loadMission } from './missions/missionLoader.js';
-import { GameEngine } from './GameEngine.js';
+// Import everything from index.js
+import { Board, Square, hasLineOfSight, loadMission, GameEngine, Piece, Door, GameCycle } from './index.js';
 
 // 1. Create a board
 const board = new Board(5, 5, []);

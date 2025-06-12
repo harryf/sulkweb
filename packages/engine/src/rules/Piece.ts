@@ -22,7 +22,7 @@ export class Piece {
    */
   canMove(dest: Square): number | undefined {
     if (!this.square.isAdjacent(dest)) return
-    const hdg = this.square.headingTo(dest, this.facing)   // returns 'F','FL',etc.
+    const hdg = this.square.headingTo(dest)   // returns 'F','FL',etc.
     if (hdg === '') return; // Should not happen if isAdjacent is true
     const cost = MOVE_COST[hdg];
 

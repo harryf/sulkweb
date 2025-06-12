@@ -1,5 +1,5 @@
-import { Board } from './Board';
-import { Square } from './Square';
+import { Board } from './Board.js';
+import { Square } from './Square.js';
 
 /**
  * Checks if a straight-line Line of Sight (LOS) exists between two squares.

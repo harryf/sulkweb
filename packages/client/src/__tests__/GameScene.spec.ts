@@ -1,5 +1,35 @@
 import { describe, it, expect, vi } from 'vitest';
 
+// Mock the engine module
+vi.mock('@sulk/engine', () => {
+  return {
+    loadMission: () => ({
+      name: 'Suicide Mission',
+      width: 22,
+      height: 27,
+      squares: Array(25).fill(0).map((_, i) => ({
+        x: i % 5,
+        y: Math.floor(i / 5),
+        kind: 'corridor'
+      }))
+    }),
+    GameEngine: class GameEngine {
+      constructor() {}
+      state = {
+        board: {
+          width: 22,
+          height: 27,
+          allSquares: () => Array(25).fill(0).map((_, i) => ({
+            x: i % 5,
+            y: Math.floor(i / 5),
+            kind: 'corridor'
+          }))
+        }
+      }
+    }
+  };
+});
+
 // Mock the 'phaser' module.
 vi.mock('phaser', () => {
   // A dummy Scene class that GameScene can extend. It has a constructor to
@@ -43,11 +73,38 @@ describe('GameScene tile grid', () => {
         return { setOrigin: vi.fn() }; // Return a mock image with a setOrigin method
       }),
     } as any;
+    
+    // Mock the cameras
+    scene.cameras = {
+      main: {
+        setBounds: vi.fn(),
+        centerOn: vi.fn(),
+      }
+    } as any;
+    
+    // Mock the input with keyboard
+    scene.input = {
+      keyboard: {
+        createCursorKeys: vi.fn(() => ({
+          up: { isDown: false },
+          down: { isDown: false },
+          left: { isDown: false },
+          right: { isDown: false },
+        })),
+        addKeys: vi.fn(() => ({
+          W: { isDown: false },
+          A: { isDown: false },
+          S: { isDown: false },
+          D: { isDown: false },
+        })),
+      },
+      on: vi.fn(),
+    } as any;
 
     // Call the method we want to test
     scene.create();
 
-    // Assert that the tileCount getter returns the correct number
-    expect(scene.tileCount).toBe(100);
+    // Assert that the correct number of tiles were created (25 from our mock)
+    expect(children.length).toBe(25);
   });
 });

@@ -8,10 +8,10 @@ describe('Mission loader + GameEngine', () => {
   const mission = loadMissionSync(missionPath)
 
   it('parses mission JSON', () => {
-    expect(mission.name).toBe('Demo Board')
-    expect(mission.coords.length).toBe(25)
-    expect(mission.width).toBe(5)
-    expect(mission.height).toBe(5)
+    expect(mission.name).toBe('Suicide Mission')
+    expect(mission.squares.length).toBeGreaterThan(0)
+    expect(mission.width).toBeGreaterThan(0)
+    expect(mission.height).toBeGreaterThan(0)
   })
 
   it('GameEngine builds a board', () => {

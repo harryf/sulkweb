@@ -6,6 +6,12 @@ const TILE_SIZE = 40
 export default class GameScene extends Phaser.Scene {
   private readonly engine: GameEngine
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
+  private wasd!: {
+    W: Phaser.Input.Keyboard.Key
+    A: Phaser.Input.Keyboard.Key
+    S: Phaser.Input.Keyboard.Key
+    D: Phaser.Input.Keyboard.Key
+  }
 
   constructor() {
     super('GameScene')
@@ -28,6 +34,7 @@ export default class GameScene extends Phaser.Scene {
     })
 
     this.cursors = this.input.keyboard!.createCursorKeys()
+    this.wasd = this.input.keyboard!.addKeys('W,A,S,D') as any
     this.cameras.main.setBounds(0, 0, width * TILE_SIZE, height * TILE_SIZE)
     
     // Center the camera on the middle of the map
@@ -45,9 +52,11 @@ export default class GameScene extends Phaser.Scene {
 
   update() {
     const cam = this.cameras.main
-    if (this.cursors.left.isDown) cam.scrollX -= 5
-    if (this.cursors.right.isDown) cam.scrollX += 5
-    if (this.cursors.up.isDown) cam.scrollY -= 5
-    if (this.cursors.down.isDown) cam.scrollY += 5
+    const speed = 5
+
+    if (this.cursors.left.isDown || this.wasd.A.isDown) cam.scrollX -= speed
+    if (this.cursors.right.isDown || this.wasd.D.isDown) cam.scrollX += speed
+    if (this.cursors.up.isDown || this.wasd.W.isDown) cam.scrollY -= speed
+    if (this.cursors.down.isDown || this.wasd.S.isDown) cam.scrollY += speed
   }
 }

@@ -23,6 +23,9 @@ importers:
 
   packages/client:
     dependencies:
+      '@sulk/engine':
+        specifier: workspace:*
+        version: link:../engine
       phaser:
         specifier: ^3.90.0
         version: 3.90.0

@@ -3,7 +3,7 @@ import { Piece } from './rules/Piece.js';
 import { Door } from './rules/Door.js';
 import { hasLineOfSight } from './board/los.js';
 import { GameCycle } from './GameCycle.js';
-import { loadMissionSync } from './missions/missionLoader.js';
+import { loadMission } from './missions/missionLoader.js';
 import { GameEngine } from './GameEngine.js';
 
 // 1. Create a board
@@ -74,8 +74,7 @@ for (let i = 0; i < 5; i++) {
 // --- Mission Loader Example ---
 console.log('\n\n--- Mission Loader Example ---');
 
-const missionPath = new URL('./missions/sampleMission.json', import.meta.url).pathname;
-const mission = loadMissionSync(missionPath);
+const mission = loadMission('space_hulk_1');
 const engine = new GameEngine(mission);
 
 console.log(`Loaded mission: "${mission.name}"`);

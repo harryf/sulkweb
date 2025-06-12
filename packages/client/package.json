@@ -10,6 +10,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@sulk/engine": "workspace:*",
     "phaser": "^3.90.0"
   },
   "devDependencies": {

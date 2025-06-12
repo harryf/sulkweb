@@ -5,6 +5,20 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./missions/missionLoader.js": {
+      "import": "./dist/missions/missionLoader.js",
+      "types": "./dist/missions/missionLoader.d.ts"
+    },
+    "./board/Square.js": {
+      "import": "./dist/board/Square.js",
+      "types": "./dist/board/Square.d.ts"
+    }
+  },
   "scripts": {
     "example": "node --import ./scripts/register-ts-node.js src/example.ts",
     "build": "rimraf dist && tsc -b",

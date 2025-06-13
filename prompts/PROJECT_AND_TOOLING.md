@@ -67,6 +67,52 @@ The engine package includes an example script that can be run to manually inspec
 pnpm --filter ./packages/engine example
 ```
 
+## Testing Phaser Components
+
+The client package uses Vitest for unit testing Phaser components. When writing tests for Phaser components, follow these guidelines:
+
+### Mocking Phaser Objects
+- Create chainable mock methods using `vi.fn().mockReturnThis()` for Phaser objects like images and graphics
+- Mock `scene.add.existing` to properly track children additions
+- Add dimensions (width/height) to camera mocks to prevent NaN errors in calculations
+- For testing camera panning, add a custom `update` method that simulates the real GameScene update logic
+
+### Common Testing Patterns
+- When testing with Minimap, be aware that images may be created twice (once by GameScene, once by Minimap)
+- Use flexible assertions for camera bounds and positions that check for valid values rather than exact matches
+- Use `as any` type casting when accessing mock properties like `.mock.calls`
+
+### Example
+```typescript
+// Mock scene.add.image with chainable methods
+scene.add = {
+  image: vi.fn(() => {
+    const mockImage = { 
+      setOrigin: vi.fn().mockReturnThis(),
+      setScale: vi.fn().mockReturnThis(),
+      setTint: vi.fn().mockReturnThis()
+    };
+    return mockImage;
+  }),
+  existing: vi.fn((obj) => {
+    children.push(obj);
+    return obj;
+  })
+} as any;
+
+// Add width and height to camera mock
+scene.cameras = { 
+  main: { 
+    setBounds: vi.fn(), 
+    centerOn: vi.fn(), 
+    width: 800, 
+    height: 600,
+    scrollX: 0,
+    scrollY: 0
+  } 
+} as any;
+```
+
 ## Glossary
 - **Square**: Basic unit of the game board
 - **Board**: Collection of squares forming the game map

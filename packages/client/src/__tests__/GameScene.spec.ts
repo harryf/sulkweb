@@ -48,6 +48,16 @@ vi.mock('phaser', () => {
     setPosition(x: number, y: number) { return this; }
   };
   
+  // A dummy Image class for HighlightSprite to extend
+  const Image = class Image {
+    constructor(scene: any, x: number, y: number, texture: string) {}
+    setOrigin(x: number, y?: number) { return this; }
+    setDisplaySize(width: number, height: number) { return this; }
+    setDepth(depth: number) { return this; }
+    setPosition(x: number, y: number) { return this; }
+    setVisible(visible: boolean) { return this; }
+  };
+  
   return {
     // `import Phaser from 'phaser'` imports the default export.
     // Our mock needs to provide a default export containing the Scene class and GameObjects.
@@ -55,6 +65,7 @@ vi.mock('phaser', () => {
       Scene,
       GameObjects: {
         Container,
+        Image,
         Graphics: class Graphics {
           constructor(scene: any) {}
           clear() { return this; }

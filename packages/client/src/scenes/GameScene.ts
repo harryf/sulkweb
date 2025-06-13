@@ -1,6 +1,8 @@
 import Phaser from 'phaser'
 import { GameEngine, loadMission, Square } from "@sulk/engine/index.js";
-import { Minimap } from '../ui/Minimap';
+import { Minimap } from '../ui/Minimap.js';
+import { SelectionManager } from '../utils/SelectionManager.js'
+import { HighlightSprite } from '../ui/HighlightSprite.js'
 
 const TILE_SIZE = 40
 
@@ -14,6 +16,8 @@ export default class GameScene extends Phaser.Scene {
     S: Phaser.Input.Keyboard.Key
     D: Phaser.Input.Keyboard.Key
   }
+  private selection!: SelectionManager
+  private highlight!: HighlightSprite
 
   constructor() {
     super('GameScene')
@@ -25,6 +29,7 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('square_corridor', 'assets/themes/default/square_corridor.png');
     this.load.image('square_room', 'assets/themes/default/square_room.png');
     this.load.image('mini_square', 'assets/themes/default/mini_square.png');
+    this.load.image('select', 'assets/themes/default/select.png');
   }
 
   create() {
@@ -59,6 +64,34 @@ export default class GameScene extends Phaser.Scene {
     minimap.setPosition(this.cameras.main.width - 210, this.cameras.main.height - 210);
 
     this.events.on('update', () => minimap.updateCam(this.cameras.main));
+
+    // Set-up selection
+    this.selection = new SelectionManager()
+    this.highlight = new HighlightSprite(this, this.tileSize)
+    this.highlight.setVisible(false)
+    this.add.existing(this.highlight)
+
+    // Input handler
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.leftButtonDown()) {
+        const world = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2
+        const col = Math.floor(world.x / this.tileSize)
+        const row = Math.floor(world.y / this.tileSize)
+
+        // guard rails — stay inside board
+        if (col < 0 || row < 0 ||
+            col >= this.engine.state.board.width ||
+            row >= this.engine.state.board.height) return
+
+        const next = this.selection.toggle({ c: col, r: row })
+        if (next) {
+          this.highlight.moveTo(next, this.tileSize)
+          this.highlight.setVisible(true)
+        } else {
+          this.highlight.setVisible(false)
+        }
+      }
+    })
   }
 
   update() {

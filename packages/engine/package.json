@@ -21,6 +21,7 @@
   },
   "scripts": {
     "example": "node --import ./scripts/register-ts-node.js src/example.ts",
+    "example-build": "rimraf dist && tsc -b && node dist/example.js",
     "build": "rimraf dist && tsc -b",
     "test": "vitest run --coverage"
   },

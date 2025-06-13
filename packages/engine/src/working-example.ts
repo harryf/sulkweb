@@ -1,4 +1,4 @@
-// Import necessary components with explicit paths to avoid JSON module issues
+// Import basic components from the engine
 import { Board } from './board/Board.js';
 import { hasLineOfSight } from './board/los.js';
 import { Piece } from './rules/Piece.js';
@@ -6,6 +6,8 @@ import { Door } from './rules/Door.js';
 import { GameEngine } from './GameEngine.js';
 import { GameCycle } from './GameCycle.js';
 import type { CompiledMission, SquareJSON } from './missions/missionTypes.js';
+
+console.log('Working example starting...');
 
 // 1. Create a board
 const board = new Board(5, 5, []);
@@ -36,9 +38,8 @@ if (moveCost === undefined) {
 let losExists = hasLineOfSight(board, piece.square, losTargetSquare);
 console.log(`Has LOS to (${losTargetSquare.coord.join(',')})? ${losExists}`);
 if (!losExists) {
-    console.log('LOS blocked, as expected.');
+  console.log('LOS blocked, as expected.');
 }
-
 
 // 5. Open the door
 door.open();
@@ -70,12 +71,11 @@ for (let i = 0; i < 5; i++) {
   game.step();
   console.log(`→ New Turn: ${game.turnNumber}, Phase: ${game.phase.name}`);
 }
-// --- End GameCycle Example ---
 
-// --- Manual Mission Creation Example ---
-console.log('\n\n--- Manual Mission Creation Example ---');
+// --- Simple Mission Example ---
+console.log('\n\n--- Simple Manual Mission Example ---');
 
-// Create a simple mission manually without loading from JSON
+// Create a simple mission manually (avoiding JSON imports)
 const manualMission: CompiledMission = {
   name: "Test Mission",
   width: 10,
@@ -114,7 +114,4 @@ for (let y = 0; y < engine.state.board.height; y++) {
 }
 console.log(output);
 
-
-console.log('\nTo run this example:');
-console.log('1. Ensure ts-node is installed: pnpm add -D ts-node --filter ./packages/engine');
-console.log('2. Run: pnpm --filter ./packages/engine example');
+console.log('\nWorking example completed successfully!');

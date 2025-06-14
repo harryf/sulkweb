@@ -76,6 +76,9 @@ The client package uses Vitest for unit testing Phaser components. When writing 
 - Mock `scene.add.existing` to properly track children additions
 - Add dimensions (width/height) to camera mocks to prevent NaN errors in calculations
 - For testing camera panning, add a custom `update` method that simulates the real GameScene update logic
+- Ensure all required methods are mocked on Phaser objects (e.g., `setAlpha`, `setPosition`, `setRotation`, etc.)
+- Mock event handlers like `scene.input.keyboard.on` to handle keyboard event listeners
+- Include properties like `x`, `y`, `angle` on mock image objects to support calculations and transformations
 
 ### Common Testing Patterns
 - When testing with Minimap, be aware that images may be created twice (once by GameScene, once by Minimap)

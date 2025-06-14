@@ -12,6 +12,26 @@ vi.mock('@sulk/engine', () => {
       // Fallback for any other mission name, though not strictly needed if GameScene only loads one
       return { name: 'Default Mock Mission', width: 1, height: 1, squares: [{x:0, y:0, kind: 'corridor'}]};
     },
+    StormBolterMarine: class MockStormBolterMarine {
+      constructor(board: any, pos: any, facing: any) {
+        this.pos = pos;
+        this.facing = facing;
+        this.ap = 3; // Default AP
+      }
+      pos: any;
+      facing: any;
+      ap: number;
+      move = vi.fn();
+      turn = vi.fn();
+      // Add any other methods or properties that GameScene might use
+      static SPRITE_KEY = 'mock_marine_sprite';
+    },
+    Dir: {
+      N: 0,
+      E: 1,
+      S: 2,
+      W: 3,
+    },
     GameEngine: class GameEngine {
       constructor(missionData: any) { // GameEngine is constructed with missionData
         this.state.board.width = missionData.width;
@@ -56,6 +76,7 @@ vi.mock('phaser', () => {
     setDepth(depth: number) { return this; }
     setPosition(x: number, y: number) { return this; }
     setVisible(visible: boolean) { return this; }
+    setAlpha(alpha: number) { return this; } // Added setAlpha
   };
   
   return {
@@ -105,8 +126,14 @@ describe('GameScene rendering and setup', () => {
           setOrigin: vi.fn().mockReturnThis(),
           setScale: vi.fn().mockReturnThis(),
           setTint: vi.fn().mockReturnThis(),
-          width: 32, // Default width for scaling calculations
-          height: 32 // Default height
+          setDepth: vi.fn().mockReturnThis(), // Ensured setDepth is here and chainable
+          setPosition: vi.fn().mockReturnThis(), // Added setPosition
+          setRotation: vi.fn().mockReturnThis(), // Added setRotation
+          width: 32, 
+          height: 32, 
+          x: 0, // Added x
+          y: 0, // Added y
+          angle: 0 // Added angle
         };
         // For the GameScene test, we need to add the image to children here
         // since GameScene doesn't use this.add.existing for tiles
@@ -158,6 +185,16 @@ describe('GameScene rendering and setup', () => {
       on: vi.fn(),
     } as any;
 
+    // Mock input for keyboard events
+    scene.input = {
+      keyboard: {
+        createCursorKeys: vi.fn(() => ({ up: {}, down: {}, left: {}, right: {} })),
+        addKeys: vi.fn(() => ({ W: {}, A: {}, S: {}, D: {} })),
+        on: vi.fn(), // Added for keyboard event listener
+      },
+      on: vi.fn(),
+    } as any;
+    
     // Call the method we want to test
     scene.create();
 
@@ -166,8 +203,9 @@ describe('GameScene rendering and setup', () => {
     const imageCalls = (scene.add.image as any).mock.calls;
     
     // NOTE: The mock is being called twice for each square, once by the GameScene and once by the Minimap
+    // Plus one additional call for the marine sprite
     // This is expected behavior in the test environment
-    expect(imageCalls.length).toBe(spaceHulk1MissionData.squares.length * 2);
+    expect(imageCalls.length).toBe(spaceHulk1MissionData.squares.length * 2 + 1);
 
     // Assert correct textures were used for each tile
     // We've already verified the count above, no need to check again
@@ -216,8 +254,14 @@ describe('GameScene rendering and setup', () => {
         setOrigin: vi.fn().mockReturnThis(),
         setScale: vi.fn().mockReturnThis(),
         setTint: vi.fn().mockReturnThis(),
+        setDepth: vi.fn().mockReturnThis(),
+        setPosition: vi.fn().mockReturnThis(), // Added setPosition
+        setRotation: vi.fn().mockReturnThis(), // Added setRotation
         width: 32,
-        height: 32
+        height: 32,
+        x: 0,
+        y: 0,
+        angle: 0
       })),
       graphics: vi.fn(() => ({
         clear: vi.fn().mockReturnThis(),
@@ -256,6 +300,7 @@ describe('GameScene rendering and setup', () => {
       keyboard: {
         createCursorKeys: vi.fn(() => mockCursors),
         addKeys: vi.fn(() => mockWasd),
+        on: vi.fn(), // Added for keyboard event listener
       },
       on: vi.fn(),
     } as any;
@@ -315,8 +360,14 @@ describe('GameScene rendering and setup', () => {
         setOrigin: vi.fn().mockReturnThis(),
         setScale: vi.fn().mockReturnThis(),
         setTint: vi.fn().mockReturnThis(),
+        setDepth: vi.fn().mockReturnThis(),
+        setPosition: vi.fn().mockReturnThis(), // Added setPosition
+        setRotation: vi.fn().mockReturnThis(), // Added setRotation
         width: 32,
-        height: 32
+        height: 32,
+        x: 0,
+        y: 0,
+        angle: 0
       })),
       graphics: vi.fn(() => ({
         clear: vi.fn().mockReturnThis(),
@@ -355,6 +406,7 @@ describe('GameScene rendering and setup', () => {
       keyboard: {
         createCursorKeys: vi.fn(() => mockCursors),
         addKeys: vi.fn(() => mockWasd),
+        on: vi.fn(), // Added for keyboard event listener
       },
       on: vi.fn(),
     } as any;

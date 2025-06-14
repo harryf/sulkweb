@@ -3,7 +3,8 @@ export type SquareKind = 'corridor' | 'room'
 export class Square {
   public readonly coord: [number, number]
   public readonly features: Set<any> = new Set()
-  public readonly sectionId: number = -1
+  public readonly sectionId: number = -1;
+  public passable: boolean = true;
 
   constructor(
     public readonly x: number,
@@ -13,7 +14,9 @@ export class Square {
     this.coord = [x, y]
     // Handle legacy tests that pass a number as sectionId instead of SquareKind
     if (typeof kind === 'number') {
-      this.sectionId = kind
+      this.sectionId = kind;
+      // Potentially set passable based on kind or sectionId if rules existed
+      // For now, it defaults to true and can be overridden externally.
     }
   }
 

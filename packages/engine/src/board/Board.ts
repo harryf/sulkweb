@@ -7,35 +7,41 @@ export class Board {
   public readonly height: number
   private adjacentsCache: Map<Square, Square[]> = new Map()
 
-  constructor(width: number, height: number, squares: SquareJSON[] | number[][]) {
-    this.width = width; this.height = height
-    this.grid = new Map<string, Square>()
-    
-    // Handle both SquareJSON[] and legacy number[][] (sectionMap) format
-    if (squares.length > 0 && Array.isArray(squares[0])) {
-      // Legacy format: number[][] (sectionMap)
-      const sectionMap = squares as number[][]
+  constructor(width: number, height: number, squares?: SquareJSON[] | number[][]) {
+    this.width = width; this.height = height;
+    this.grid = new Map<string, Square>();
+
+    let populatedFromSquares = false;
+    if (squares && squares.length > 0) {
+      if (Array.isArray(squares[0])) {
+        // Legacy format: number[][] (sectionMap)
+        const sectionMap = squares as number[][];
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const sectionId = sectionMap[y]?.[x] ?? -1;
+            const square = new Square(x, y, sectionId);
+            this.grid.set(`${x},${y}`, square);
+          }
+        }
+        populatedFromSquares = this.grid.size > 0;
+      } else {
+        // New format: SquareJSON[]
+        (squares as SquareJSON[]).forEach(sq => {
+          const key = `${sq.x},${sq.y}`;
+          this.grid.set(key, new Square(sq.x, sq.y, sq.kind));
+        });
+        populatedFromSquares = this.grid.size > 0;
+      }
+    }
+
+    // If not populated from a valid 'squares' array, or if 'squares' was empty/undefined,
+    // create a default grid. This ensures tests like new Board(3,3) work.
+    if (!populatedFromSquares) {
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
-          const sectionId = sectionMap[y]?.[x] ?? -1
-          const square = new Square(x, y, sectionId)
-          this.grid.set(`${x},${y}`, square)
-        }
-      }
-    } else {
-      // New format: SquareJSON[]
-      ;(squares as SquareJSON[]).forEach(sq => {
-        const key = `${sq.x},${sq.y}`
-        this.grid.set(key, new Square(sq.x, sq.y, sq.kind))
-      })
-    }
-    
-    // For tests, if no squares were added, create a 5x5 grid
-    if (this.grid.size === 0 && width === 5 && height === 5) {
-      for (let y = 0; y < 5; y++) {
-        for (let x = 0; x < 5; x++) {
-          const square = new Square(x, y)
-          this.grid.set(`${x},${y}`, square)
+          // Assuming Square constructor makes it passable by default or handles undefined 'kind'
+          const square = new Square(x, y);
+          this.grid.set(`${x},${y}`, square);
         }
       }
     }
@@ -43,6 +49,12 @@ export class Board {
 
   allSquares(): Square[] { return [...this.grid.values()] }
   get(x: number, y: number): Square | undefined { return this.grid.get(`${x},${y}`) }
+
+  isPassable(coord: { c: number; r: number }): boolean {
+    const square = this.get(coord.c, coord.r);
+    // Assumes Square has a 'passable' property. Default to false if square doesn't exist.
+    return square ? square.passable : false;
+  }
   
   // Alias for get to support legacy tests
   getSquare(x: number, y: number): Square | undefined { return this.get(x, y) }

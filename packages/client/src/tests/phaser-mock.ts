@@ -31,6 +31,8 @@ export const Image = class Image {
   setDepth = mockReturnThis();
   setPosition = mockReturnThis();
   setVisible = mockReturnThis();
+  setAlpha = mockReturnThis();
+  setRotation = mockReturnThis();
 };
 
 // Mock the 'phaser' module

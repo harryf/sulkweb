@@ -78,6 +78,31 @@ The client package uses Vitest for unit testing Phaser components. When writing 
 - For testing camera panning, add a custom `update` method that simulates the real GameScene update logic
 - Ensure all required methods are mocked on Phaser objects (e.g., `setAlpha`, `setPosition`, `setRotation`, etc.)
 - Mock event handlers like `scene.input.keyboard.on` to handle keyboard event listeners
+
+#### Canonical Phaser.Image Mock Methods
+When mocking `scene.add.image`, ensure the returned mock object includes **all** chainable methods used in production code. At minimum, include:
+
+- `setOrigin`, `setScale`, `setTint`, `setDepth`, `setPosition`, `setRotation`, `setName`, `setInteractive`, `setVisible`, `setAlpha`, `setDisplaySize`
+
+Example:
+```typescript
+vi.fn(() => ({
+  setOrigin: vi.fn().mockReturnThis(),
+  setScale: vi.fn().mockReturnThis(),
+  setTint: vi.fn().mockReturnThis(),
+  setDepth: vi.fn().mockReturnThis(),
+  setPosition: vi.fn().mockReturnThis(),
+  setRotation: vi.fn().mockReturnThis(),
+  setName: vi.fn().mockReturnThis(),
+  setInteractive: vi.fn().mockReturnThis(),
+  setVisible: vi.fn().mockReturnThis(),
+  setAlpha: vi.fn().mockReturnThis(),
+  setDisplaySize: vi.fn().mockReturnThis(),
+  width: 32, height: 32, x: 0, y: 0, angle: 0
+}))
+```
+
+**Tip:** To avoid duplication and future errors, consider creating a helper function (e.g., `makeMockImage`) that returns a fully mocked Phaser image object for use in all tests.
 - Include properties like `x`, `y`, `angle` on mock image objects to support calculations and transformations
 
 ### Common Testing Patterns

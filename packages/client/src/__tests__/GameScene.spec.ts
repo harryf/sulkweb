@@ -1,29 +1,42 @@
 import { describe, it, expect, vi } from 'vitest';
+
+// Ensure TILE_SIZE is defined for the test environment
+const TILE_SIZE = 40;
+
 import spaceHulk1MissionData from '../../../engine/src/missions/space_hulk_1.json';
 
 // Mock the engine module
 vi.mock('@sulk/engine', () => {
   return {
     loadMission: (missionName: string) => {
-      // Ensure we're returning the full, real mission data for the relevant mission
       if (missionName === 'space_hulk_1') {
         return spaceHulk1MissionData;
       }
-      // Fallback for any other mission name, though not strictly needed if GameScene only loads one
       return { name: 'Default Mock Mission', width: 1, height: 1, squares: [{x:0, y:0, kind: 'corridor'}]};
     },
+    Board: class MockBoard {
+      squares: any[];
+      width: number;
+      height: number;
+      constructor(width: number, height: number, squares: any[]) {
+        this.squares = squares;
+        this.width = width;
+        this.height = height;
+      }
+      getSquare(_coord: any) { return { passable: true }; }
+      allSquares() { return this.squares; }
+    },
     StormBolterMarine: class MockStormBolterMarine {
-      constructor(board: any, pos: any, facing: any) {
-        this.pos = pos;
-        this.facing = facing;
-        this.ap = 3; // Default AP
+      constructor(_board: any, _pos: any, _facing: any) {
+        this.pos = _pos;
+        this.facing = _facing;
+        this.ap = 3;
       }
       pos: any;
       facing: any;
       ap: number;
       move = vi.fn();
       turn = vi.fn();
-      // Add any other methods or properties that GameScene might use
       static SPRITE_KEY = 'mock_marine_sprite';
     },
     Dir: {
@@ -33,17 +46,25 @@ vi.mock('@sulk/engine', () => {
       W: 3,
     },
     GameEngine: class GameEngine {
-      constructor(missionData: any) { // GameEngine is constructed with missionData
-        this.state.board.width = missionData.width;
-        this.state.board.height = missionData.height;
-        this.state.board.allSquares = () => missionData.squares;
+      public state: any;
+      constructor(_initialState: any) {
+        // Create a mock state with board and pieces
+        this.state = {
+          board: {
+            width: 10, // Ensure valid number
+            height: 10,
+            allSquares: () => spaceHulk1MissionData.squares
+          },
+          pieces: [{
+            id: 'mock-piece-1',
+            pos: { r: 1, c: 1 },
+            facing: 0,
+            ap: 4
+          }]
+        };
       }
-      state = {
-        board: {
-          width: spaceHulk1MissionData.width, // Initial default, overridden by constructor
-          height: spaceHulk1MissionData.height, // Initial default, overridden by constructor
-          allSquares: () => spaceHulk1MissionData.squares // Initial default, overridden by constructor
-        }
+      findPiece(id: string) {
+        return this.state.pieces.find((p: any) => p.id === id);
       }
     }
   };
@@ -62,21 +83,26 @@ vi.mock('phaser', () => {
   
   // A dummy Container class for Minimap to extend
   const Container = class Container {
-    constructor(scene: any) {}
-    add(child: any) { return this; }
-    setScrollFactor(factor: number) { return this; }
-    setPosition(x: number, y: number) { return this; }
+    constructor(_scene: any) {}
+    add(_child: any) { return this; }
+    setScrollFactor(_factor: number) { return this; }
+    setPosition(_x: number, _y: number) { return this; }
   };
   
   // A dummy Image class for HighlightSprite to extend
   const Image = class Image {
-    constructor(scene: any, x: number, y: number, texture: string) {}
-    setOrigin(x: number, y?: number) { return this; }
-    setDisplaySize(width: number, height: number) { return this; }
-    setDepth(depth: number) { return this; }
-    setPosition(x: number, y: number) { return this; }
-    setVisible(visible: boolean) { return this; }
-    setAlpha(alpha: number) { return this; } // Added setAlpha
+    constructor(_scene: any, _x: number, _y: number, _texture: string) {}
+    setOrigin(_x: number, _y?: number) { return this; }
+    setDisplaySize(_width: number, _height: number) { return this; }
+    setDepth(_depth: number) { return this; }
+    setPosition(_x: number, _y: number) { return this; }
+    setVisible(_visible: boolean) { return this; }
+    setAlpha(_alpha: number) { return this; }
+    setName(_name: string) { return this; }
+    setInteractive() { return this; }
+    setRotation(_rotation: number) { return this; }
+    setTint(_color: number) { return this; }
+    setScale(_scale: number) { return this; }
   };
   
   return {
@@ -88,10 +114,10 @@ vi.mock('phaser', () => {
         Container,
         Image,
         Graphics: class Graphics {
-          constructor(scene: any) {}
+          constructor(_scene: any) {}
           clear() { return this; }
-          lineStyle(width: number, color: number, alpha: number) { return this; }
-          strokeRect(x: number, y: number, width: number, height: number) { return this; }
+          lineStyle(_width: number, _color: number, _alpha: number) { return this; }
+          strokeRect(_x: number, _y: number, _width: number, _height: number) { return this; }
         }
       },
       Math: {
@@ -126,14 +152,19 @@ describe('GameScene rendering and setup', () => {
           setOrigin: vi.fn().mockReturnThis(),
           setScale: vi.fn().mockReturnThis(),
           setTint: vi.fn().mockReturnThis(),
-          setDepth: vi.fn().mockReturnThis(), // Ensured setDepth is here and chainable
-          setPosition: vi.fn().mockReturnThis(), // Added setPosition
-          setRotation: vi.fn().mockReturnThis(), // Added setRotation
+          setDepth: vi.fn().mockReturnThis(),
+          setPosition: vi.fn().mockReturnThis(),
+          setRotation: vi.fn().mockReturnThis(),
+          setName: vi.fn().mockReturnThis(),
+          setInteractive: vi.fn().mockReturnThis(),
+          setVisible: vi.fn().mockReturnThis(),
+          setAlpha: vi.fn().mockReturnThis(),
+          setDisplaySize: vi.fn().mockReturnThis(),
           width: 32, 
           height: 32, 
-          x: 0, // Added x
-          y: 0, // Added y
-          angle: 0 // Added angle
+          x: 0,
+          y: 0,
+          angle: 0
         };
         // For the GameScene test, we need to add the image to children here
         // since GameScene doesn't use this.add.existing for tiles
@@ -250,13 +281,18 @@ describe('GameScene rendering and setup', () => {
     // Basic scene setup mocks (simplified as rendering is tested elsewhere)
     scene.children = { get length() { return 0; } } as any;
     scene.add = { 
-      image: vi.fn(() => ({ 
+      image: vi.fn(() => ({
         setOrigin: vi.fn().mockReturnThis(),
         setScale: vi.fn().mockReturnThis(),
         setTint: vi.fn().mockReturnThis(),
         setDepth: vi.fn().mockReturnThis(),
-        setPosition: vi.fn().mockReturnThis(), // Added setPosition
-        setRotation: vi.fn().mockReturnThis(), // Added setRotation
+        setPosition: vi.fn().mockReturnThis(),
+        setRotation: vi.fn().mockReturnThis(),
+        setName: vi.fn().mockReturnThis(),
+        setInteractive: vi.fn().mockReturnThis(),
+        setVisible: vi.fn().mockReturnThis(),
+        setAlpha: vi.fn().mockReturnThis(),
+        setDisplaySize: vi.fn().mockReturnThis(),
         width: 32,
         height: 32,
         x: 0,
@@ -361,8 +397,13 @@ describe('GameScene rendering and setup', () => {
         setScale: vi.fn().mockReturnThis(),
         setTint: vi.fn().mockReturnThis(),
         setDepth: vi.fn().mockReturnThis(),
-        setPosition: vi.fn().mockReturnThis(), // Added setPosition
-        setRotation: vi.fn().mockReturnThis(), // Added setRotation
+        setPosition: vi.fn().mockReturnThis(),
+        setRotation: vi.fn().mockReturnThis(),
+        setName: vi.fn().mockReturnThis(),
+        setInteractive: vi.fn().mockReturnThis(),
+        setVisible: vi.fn().mockReturnThis(),
+        setAlpha: vi.fn().mockReturnThis(),
+        setDisplaySize: vi.fn().mockReturnThis(),
         width: 32,
         height: 32,
         x: 0,

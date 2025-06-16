@@ -5,12 +5,15 @@ import { MOVE_COST, TURN_COST, AP_PER_TURN } from '../core/CostTables.js';
 export type Coord = { c: number; r: number };
 
 export abstract class Piece {
+  private static nextId = 0;
+  readonly id: string;
   readonly board: Board;
   pos: Coord;
   facing: Dir;
   ap: number = AP_PER_TURN;
 
   protected constructor(board: Board, start: Coord, facing: Dir) {
+    this.id = `p_${Piece.nextId++}`;
     this.board = board;
     this.pos = start;
     this.facing = facing;

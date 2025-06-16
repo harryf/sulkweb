@@ -16,3 +16,4 @@ export { AP_PER_TURN, MOVE_COST, TURN_COST } from './core/CostTables.js';
 // export { Piece as OldPiece } from './rules/Piece.js'; // Example of renaming if needed
 export { Door } from './rules/Door.js';
 export { GameCycle } from './GameCycle.js';
+export { Selection } from './ui/Selection.js';

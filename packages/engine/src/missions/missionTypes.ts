@@ -27,6 +27,8 @@ export interface RawMissionJSON_v2 {
   initialBlips?: number
   /** Blip reinforcements per stealer reinforcement phase. */
   blipsPerTurn?: number
+  /** Total reinforcement budget (excluding initialBlips). Omit = unlimited. */
+  totalBlips?: number
   /** Victory rule for the marines. */
   objective?: 'exterminate' | 'reach-exit' | 'exterminate-or-exit'
 }

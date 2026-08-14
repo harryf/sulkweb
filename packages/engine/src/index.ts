@@ -30,3 +30,4 @@ export type { CombatResult } from './rules/combat.js';
 export type { PieceKind } from './pieces/Piece.js';
 export { Blip } from './pieces/Blip.js';
 export { runStealerActions, spawnBlips, convertRevealedBlips, squareSeenByMarine } from './ai/StealerAI.js';
+export { runMarineTurn, autoplay } from './ai/MarineAutopilot.js';

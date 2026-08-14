@@ -39,6 +39,7 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
 - Close combat: highest die, stealer 3d6 front / 2d6 flank, tie both survive
 - Blips: hidden 1–3 stealers, convert on being sighted, overflow lost
 - Turn cycle: CP roll (1d6), marine phase (2:00 timer), reinforcements, stealer AI, victory checks
+- Mission 1 carries a finite genestealer force (2 initial + 10 reinforcement blips): win by extermination or by reaching the exit; both outcomes verified (a pinned-seed autopilot win is part of the e2e suite)
 
 ## Development
 
@@ -73,3 +74,13 @@ packages/
   assault cannon, librarian, chain fist, sergeant/captain special rules, CAT,
   ambush counters, marine interrupts, additional missions
 - ✅ M8 (hygiene): clean build, e2e suite, truthful docs
+
+## Known gaps / residue
+
+- Balance is first-pass: the autopilot wins ~1-2% of random seeds; humans with
+  chokepoint overwatch should do far better, but difficulty is untuned.
+- Marine interrupt actions (CP spending during the stealer phase) not implemented.
+- FPS measurement deferred (needs a visible-tab recording session).
+- Cross-vendor code audit pending — revisit against tag `v0.1` when available.
+- `docs/` retains the original Sulk manual; edge rules (parry, autofire, psi)
+  are deliberately out of the v0.1 scope.

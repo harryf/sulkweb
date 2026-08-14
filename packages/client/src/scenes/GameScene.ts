@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { GameEngine, MARINE_PHASE_SECONDS, loadMission, Square, Piece, StormBolterMarine, Genestealer, Selection, PieceEvents, visibleSquares, canShoot, closeCombat, DIR_VEC } from "@sulk/engine/index.js";
+import { GameEngine, MARINE_PHASE_SECONDS, loadMission, Square, Piece, StormBolterMarine, Genestealer, Selection, PieceEvents, visibleSquares, canShoot, closeCombat, DIR_VEC, SeededRng, autoplay, runMarineTurn } from "@sulk/engine/index.js";
 import { Minimap } from '../ui/Minimap.js';
 import { HighlightSprite } from '../ui/HighlightSprite.js';
 import { HudPanel } from '../ui/HudPanel.js';
@@ -34,7 +34,7 @@ export default class GameScene extends Phaser.Scene {
     super('GameScene')
     // The engine builds the board, deploys the squad, and seeds the first blips
     this.engine = new GameEngine(loadMission('space_hulk_1'));
-    (window as any).sulk = { engine: this.engine, Selection, scene: this }; // dev/debug handle
+    (window as any).sulk = { engine: this.engine, Selection, scene: this, SeededRng, autoplay, runMarineTurn }; // dev/debug + autoplay handle
   }
 
   preload() {

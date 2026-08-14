@@ -27,6 +27,8 @@ export class GameEngine {
   phase: PhaseName = 'MarineAction'
   /** Command points — rolled 1d6 at the start of each marine turn. */
   cp = 0
+  /** Reinforcement blips already spawned (counts against mission.totalBlips). */
+  private blipsSpawned = 0
 
   constructor(mission: CompiledMission, extraPieces: Piece[] = []) {
     this.mission = mission
@@ -80,9 +82,13 @@ export class GameEngine {
     const board = this.state.board
     const entries = (this.mission.entryPoints ?? []).map(e => ({ c: e.x, r: e.y }))
 
-    // Reinforcement phase
+    // Reinforcement phase — bounded by the mission's total genestealer force
     if (entries.length && (this.mission.blipsPerTurn ?? 0) > 0) {
-      spawnBlips(board, entries, this.mission.blipsPerTurn!)
+      const budget = this.mission.totalBlips ?? Infinity
+      const count = Math.min(this.mission.blipsPerTurn!, Math.max(0, budget - this.blipsSpawned))
+      if (count > 0) {
+        this.blipsSpawned += spawnBlips(board, entries, count).length
+      }
     }
     convertRevealedBlips(board)
 

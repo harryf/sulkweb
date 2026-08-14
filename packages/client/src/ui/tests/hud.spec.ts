@@ -5,8 +5,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 vi.mock('phaser', () => {
   class Container {
     x = 0; y = 0; width = 0; height = 0
+    list: unknown[] = []
     constructor(_scene?: unknown, _x?: number, _y?: number) {}
-    add(_child: unknown) { return this }
+    add(child: unknown) { this.list.push(child); return this }
     setScrollFactor(_f: number) { return this }
     setPosition(x: number, y: number) { this.x = x; this.y = y; return this }
     setSize(w: number, h: number) { this.width = w; this.height = h; return this }

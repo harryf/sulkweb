@@ -5,7 +5,11 @@ import { PieceEvents } from '../events/PieceEvents.js';
 
 export type Coord = { c: number; r: number };
 
+export type PieceKind = 'marine' | 'stealer' | 'blip';
+
 export abstract class Piece {
+  abstract readonly kind: PieceKind;
+  alive = true;
   private static nextId = 0;
   readonly id: string;
   readonly board: Board;
@@ -44,6 +48,8 @@ export abstract class Piece {
 
     this.pos = dest;
     this.ap -= cost;
+    this.onActed('move');
+    PieceEvents.emit('pieceMoved', { pieceId: this.id, x: this.pos.c, y: this.pos.r, facing: this.facing });
     return true;
   }
 
@@ -88,8 +94,21 @@ export abstract class Piece {
     if (cost > this.ap) return false;
     this.facing = turn(this.facing, delta);
     this.ap -= cost;
+    this.onActed('turn');
+    PieceEvents.emit('pieceMoved', { pieceId: this.id, x: this.pos.c, y: this.pos.r, facing: this.facing });
     return true;
   }
+
+  /** Remove this piece from play. */
+  die(): void {
+    if (!this.alive) return;
+    this.alive = false;
+    this.board.removePiece(this);
+    PieceEvents.emit('pieceDied', { pieceId: this.id, kind: this.kind, x: this.pos.c, y: this.pos.r });
+  }
+
+  /** Hook fired after a successful move/turn — combat state reacts (sustained fire, overwatch). */
+  protected onActed(_action: 'move' | 'turn'): void {}
 
   /** Convenience helpers for UI */
   moveForward()   { return this.tryMove(...dirToDelta(this.facing)); }

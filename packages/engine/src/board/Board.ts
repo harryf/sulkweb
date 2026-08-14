@@ -1,6 +1,7 @@
 import { Square } from './Square.js'
 import type { SquareJSON } from '../missions/missionTypes.js'
 import { Door, DOOR_FACING } from '../rules/Door.js'
+import { SeededRng, type DiceSource } from '../core/Dice.js'
 
 /** Anything standing on squares — kept minimal to avoid circular imports. */
 export interface BoardPiece {
@@ -13,6 +14,8 @@ export class Board {
   public readonly width: number
   public readonly height: number
   public readonly pieces: BoardPiece[] = []
+  /** d6 source used for all combat on this board — tests inject a RollQueue. */
+  public dice: DiceSource = new SeededRng(Math.floor(Math.random() * 2147483647))
   private adjacentsCache: Map<Square, Square[]> = new Map()
 
   constructor(width: number, height: number, squares?: SquareJSON[] | number[][]) {

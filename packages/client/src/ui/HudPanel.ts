@@ -7,6 +7,9 @@ export class HudPanel extends Phaser.GameObjects.Container {
   private apText: Phaser.GameObjects.Text
   private miniMap: Phaser.GameObjects.Container
   private currentId: string | null = null
+  private casualtyText!: Phaser.GameObjects.Text
+  private kills = 0
+  private losses = 0
 
   constructor(scene: Phaser.Scene, miniMap: Phaser.GameObjects.Container) {
     super(scene, 0, 0)
@@ -45,6 +48,21 @@ export class HudPanel extends Phaser.GameObjects.Container {
       fixedWidth: HUD_WIDTH - 16
     })
     this.add(this.apText)
+
+    // Casualty counters
+    this.casualtyText = scene.add.text(header.x + 8, header.y + 70, 'Kills: 0   Losses: 0', {
+      fontFamily: 'Kanit',
+      fontSize: '15px',
+      color: HUD_TEXT_COLOR,
+      align: 'left',
+      fixedWidth: HUD_WIDTH - 16
+    })
+    this.add(this.casualtyText)
+    PieceEvents.on('pieceDied', ({ kind }) => {
+      if (kind === 'marine') this.losses += 1
+      else this.kills += 1
+      this.casualtyText.setText(`Kills: ${this.kills}   Losses: ${this.losses}`)
+    })
 
     // subscribe — payloads carry everything; the HUD never reaches into the engine
     PieceEvents.on('selected', ({ pieceId, ap }) => {

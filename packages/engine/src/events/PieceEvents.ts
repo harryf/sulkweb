@@ -5,6 +5,11 @@ export type PieceEventsType = {
   selected: { pieceId: string | null; ap?: ApInfo }
   apChanged: { pieceId: string } & ApInfo
   doorToggled: { x: number; y: number; open: boolean }
+  pieceMoved: { pieceId: string; x: number; y: number; facing: number }
+  shot: { shooterId: string; targetId: string; x: number; y: number; rolls: number[]; hit: boolean }
+  pieceDied: { pieceId: string; kind: string; x: number; y: number }
+  closeCombat: { attackerId: string; defenderId: string; attackerRolls: number[]; defenderRolls: number[]; outcome: 'attacker' | 'defender' | 'draw' }
+  overwatchChanged: { pieceId: string; on: boolean }
 }
 
 type Handler<T> = (payload: T) => void

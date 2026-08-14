@@ -4,7 +4,7 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: execute
-progress: 21/76
+progress: 35/76
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-14T15:20:00Z
@@ -75,25 +75,25 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - [x] ISC-17: Engine: piece can only toggle a door in the square directly ahead of its facing
 - [x] ISC-18: Client: door sprite renders closed/open texture matching engine state
 - [x] ISC-19: Client: door-use key/button toggles adjacent door and re-renders sprite
-- [ ] ISC-20: Engine: `overwatch` flag settable on a marine for 2 AP; cleared on move/turn/shoot
-- [ ] ISC-21: Engine: marine on overwatch auto-shoots (free, no sustained bonus, range 12) after each action by a stealer in LOS/fire-arc (unit test)
-- [ ] ISC-22: Engine: overwatch shot jams on any double; jam persists, 1 AP to clear, no shoot/overwatch while jammed (unit test)
-- [ ] ISC-23: Client: overwatch marker sprite appears on marine when overwatch set, disappears when cleared
+- [x] ISC-20: Engine: `overwatch` flag settable on a marine for 2 AP; cleared on move/turn/shoot
+- [x] ISC-21: Engine: marine on overwatch auto-shoots (free, no sustained bonus, range 12) after each action by a stealer in LOS/fire-arc (unit test)
+- [x] ISC-22: Engine: overwatch shot jams on any double; jam persists, 1 AP to clear, no shoot/overwatch while jammed (unit test)
+- [x] ISC-23: Client: overwatch marker sprite appears on marine when overwatch set, disappears when cleared
 - [x] ISC-24: Client: holding L with a piece selected highlights all squares in that piece's LOS
 - [x] ISC-25: Engine: `seeable()` respects facing arc rules used by original Sulk (unit test against truth table)
 
 ### M5 — Shooting, Close Combat, Death, Blips & AI0
 
-- [ ] ISC-26: Engine: deterministic seedable RNG service; same seed reproduces identical dice sequences (unit test)
-- [ ] ISC-27: Engine: storm bolter `shoot(target)` rolls 2d6, kills on any die ≥6, costs 1 AP
-- [ ] ISC-28: Engine: sustained fire — each consecutive miss at same target adds +1 to each die, max +3; bonus lost on move/turn/target-switch (unit test)
-- [ ] ISC-29: Engine: shooting requires target in LOS and front fire arc; out-of-LOS shot rejected (unit test)
-- [ ] ISC-30: Engine: close combat resolves marine 1d6 (+1 sergeant) vs stealer 3d6 front / 2d6 side-rear; highest single die wins, tie = both survive (unit test)
-- [ ] ISC-31: Engine: CC loser is destroyed; defender losing while not facing attacker instead turns to face for free (unit test)
-- [ ] ISC-32: Engine: dead piece removed from `state.pieces` and its square's occupancy cleared
-- [ ] ISC-33: Client: muzzle-flash sprite appears at shooter on shot and disappears ≤300ms later
-- [ ] ISC-34: Client: shot kill removes target sprite from scene
-- [ ] ISC-35: Client: casualty counter in HUD increments on stealer death and marine death separately
+- [x] ISC-26: Engine: deterministic seedable RNG service; same seed reproduces identical dice sequences (unit test)
+- [x] ISC-27: Engine: storm bolter `shoot(target)` rolls 2d6, kills on any die ≥6, costs 1 AP
+- [x] ISC-28: Engine: sustained fire — each consecutive miss at same target adds +1 to each die, max +3; bonus lost on move/turn/target-switch (unit test)
+- [x] ISC-29: Engine: shooting requires target in LOS and front fire arc; out-of-LOS shot rejected (unit test)
+- [x] ISC-30: Engine: close combat resolves marine 1d6 (+1 sergeant) vs stealer 3d6 front / 2d6 side-rear; highest single die wins, tie = both survive (unit test)
+- [x] ISC-31: Engine: CC loser is destroyed; defender losing while not facing attacker instead turns to face for free (unit test)
+- [x] ISC-32: Engine: dead piece removed from `state.pieces` and its square's occupancy cleared
+- [x] ISC-33: Client: muzzle-flash sprite appears at shooter on shot and disappears ≤300ms later
+- [x] ISC-34: Client: shot kill removes target sprite from scene
+- [x] ISC-35: Client: casualty counter in HUD increments on stealer death and marine death separately
 - [ ] ISC-36: Engine: `Blip` piece type with hidden stealer count (1-3), moves like a piece, no facing
 - [ ] ISC-37: Engine: blip converts to that many stealers when entering any marine's LOS (unit test)
 - [ ] ISC-38: Engine: blips enter play from mission-defined entry squares ("lurk" points)
@@ -218,4 +218,10 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - ISC-18/19: Browser — door bars render on mission squares; O key opened door, marine moved through onto door square
 - ISC-24: Browser screenshot — L overlay: green squares stop at closed door (also exposed+fixed walls-transparent LOS bug)
 - ISC-25: vitest vision.spec — 180° vision arc + 90° fire arc truth tables, walls block
+- ISC-20/21/22/23: vitest shooting.spec — overwatch 2AP/cleared-on-move, free reaction shot, jam on doubles incl. killing doubles, unjam 1AP; browser marker via overwatchChanged event
+- ISC-26: vitest — SeededRng same-seed identical 20-roll sequences
+- ISC-27/28/29: vitest — kill on 6, sustained +1/miss max +3 (scripted RollQueue), arc/LOS/range rejections spend no AP
+- ISC-30/31: vitest combat.spec — 3d6 front / 2d6 flank, tie both survive, blow-from-behind spins defender
+- ISC-32/34/35: browser — stealer killed via live engine: removed from state.pieces, sprite destroyed, HUD "Kills: 1"
+- ISC-33: code + browser — flash sprite spawned at muzzle, destroyed via 250ms delayedCall
 - ISC-12: Bash — `git rm --cached -r packages/engine/coverage`, .gitignore entry added

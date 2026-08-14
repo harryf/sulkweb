@@ -1,4 +1,4 @@
-import { Piece, type Coord, type PieceKind } from './Piece.js';
+import { Piece, type Coord } from './Piece.js';
 import { Board } from '../board/Board.js';
 import { Dir } from '../core/Direction.js';
 
@@ -7,13 +7,12 @@ import { Dir } from '../core/Direction.js';
  * (3 dice from the front, 2 from side/rear). Cannot shoot.
  */
 export class Genestealer extends Piece {
-  readonly kind: PieceKind = 'stealer';
 
   static readonly SPRITE_KEY = 'stealer';
   static readonly AP = 6;
 
   constructor(board: Board, start: Coord, facing: Dir = Dir.S) {
-    super(board, start, facing, Genestealer.AP);
+    super('stealer', board, start, facing, Genestealer.AP);
   }
 
   protected override moveCost(rel: { dc: number; dr: number }): number | undefined {

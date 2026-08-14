@@ -8,7 +8,10 @@ export type Coord = { c: number; r: number };
 export type PieceKind = 'marine' | 'stealer' | 'blip';
 
 export abstract class Piece {
-  abstract readonly kind: PieceKind;
+  // Assigned in the constructor (not a subclass field initializer): the base
+  // constructor calls board.addPiece(this), which emits pieceAdded — kind must
+  // already be set at emit time or every listener sees `undefined`.
+  readonly kind: PieceKind;
   alive = true;
   private static nextId = 0;
   readonly id: string;
@@ -17,7 +20,8 @@ export abstract class Piece {
   facing: Dir;
   ap: number;
 
-  protected constructor(board: Board, start: Coord, facing: Dir, apPerTurn: number = AP_PER_TURN) {
+  protected constructor(kind: PieceKind, board: Board, start: Coord, facing: Dir, apPerTurn: number = AP_PER_TURN) {
+    this.kind = kind;
     this.id = `p_${Piece.nextId++}`;
     this.board = board;
     this.pos = start;

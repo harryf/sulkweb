@@ -49,8 +49,9 @@ test('Mission 1 plays start-to-finish and reaches a result', async ({ page }) =>
   expect(afterDone).toBe(doneProbe.before + 1); // the real click ended the phase
 
   // Deterministic completion: autopilot (legal actions only) at pinned seed 3.
-  // (After the DONE-click turn above, this line wins on turn 26 with 2 marines.)
-  // Seed policy: rescan seeds if rules change dice-consumption order.
+  // With the BFS stealer AI (2026-08-14) every scanned seed completes within
+  // 60 turns; this one ends in a loss. Rescan seeds if rules change
+  // dice-consumption order.
   const result = await page.evaluate(() => {
     const { engine, scene, SeededRng, runMarineTurn } = (window as any).sulk;
     engine.state.board.dice = new SeededRng(3);

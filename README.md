@@ -77,8 +77,9 @@ packages/
 
 ## Known gaps / residue
 
-- Balance is first-pass: the autopilot wins ~1-2% of random seeds; humans with
-  chokepoint overwatch should do far better, but difficulty is untuned.
+- Balance is first-pass: with the BFS stealer AI (2026-08-14) the scripted
+  autopilot wins ~52% of random seeds (62/120 scanned) and every game reaches a
+  decisive result; difficulty is playable but untuned.
 - Marine interrupt actions (CP spending during the stealer phase) not implemented.
 - FPS measurement deferred (needs a visible-tab recording session).
 - Cross-vendor code audit pending — revisit against tag `v0.1` when available.

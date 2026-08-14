@@ -44,10 +44,18 @@ test('a full engine turn runs through the UI without errors', async ({ page }) =
     Selection.toggle(marine.id);
     marine.moveForward();
     engine.endMarinePhase();
-    return { turn: engine.turnNumber, enemies: engine.stealerSide.length, result: engine.state.result };
+    // Regression (2026-08-14): pieces added after boot must render with their
+    // own texture, never the marine fallback ("DONE spawns marines" bug).
+    const scene = (window as any).sulk.scene;
+    const impostors = engine.state.board.pieces
+      .filter((p: any) => p.kind !== 'marine')
+      .filter((p: any) => scene.pieceSprites[p.id]?.texture?.key === 'terminator_storm_bolter')
+      .map((p: any) => p.id);
+    return { turn: engine.turnNumber, enemies: engine.stealerSide.length, result: engine.state.result, impostors };
   });
   expect(after.turn).toBe(2);
   expect(after.enemies).toBeGreaterThan(2); // reinforcements arrived
+  expect(after.impostors).toEqual([]); // no non-marine wears the marine texture
   expect(after.result).toBe('ongoing');
   expect(errors).toHaveLength(0);
 });

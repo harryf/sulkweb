@@ -4,10 +4,10 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 75/76 (ISC-71 deferred)
+progress: 84/85 (ISC-71 deferred; playtest bug sweep ISC-77..85 all verified)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-14T15:20:00Z
+updated: 2026-08-14T18:15:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -151,7 +151,17 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - [x] ISC-75: Anti: working tree never left with failing tests at end of a work session
 - [x] ISC-76: Anti: no Python/Pygame code copied verbatim — rules re-expressed in TypeScript with tests
 
-## Test Strategy
+### Playtest bug sweep (2026-08-14, user-reported: "blips never move/convert, DONE spawns marines")
+
+- [x] ISC-77: `pieceAdded` event payload carries the correct piece `kind` at emit time for every subclass (vitest)
+- [x] ISC-78: In-browser: reinforcement blips spawned by DONE render with the blip texture, not marine (browser probe: texture key diff)
+- [x] ISC-79: In-browser: blips converting to genestealers render with the stealer texture (browser probe)
+- [x] ISC-80: A blip in a concave room pocket (no distance-reducing neighbor) paths out and continues toward marines (vitest, BFS regression)
+- [x] ISC-81: In-browser: every live blip/stealer advances or acts each stealer phase across 5+ consecutive DONE turns unless boxed in by occupancy (browser probe: per-turn position diff)
+- [x] ISC-82: A stealer diagonally adjacent to a marine lines up orthogonally and attacks within one activation (vitest)
+- [x] ISC-83: Anti: marine piece-count never increases after any DONE click (browser probe over multi-turn playthrough)
+- [x] ISC-84: Full engine suite + client units + Playwright e2e green after fixes, pinned seeds re-scanned if dice order changed (Bash)
+- [x] ISC-85: Anti: a stealer-side piece queued behind a friend never opens an off-path door while waiting (vitest, advisor finding)
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
@@ -199,6 +209,10 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 
 - 2026-08-14: Cato cross-vendor audit (Rule 2a, E4-mandatory) DEFERRED — codex CLI not installed on this machine. Follow-up: run audit against tag v0.1 when codex is available. Advisor final call ran instead; its two blocking findings (no observed win; residue not in README) were both fixed this session.
 
+- 2026-08-14 (playtest sweep): User play-test reports reproduced in real browser (claude-in-chrome; Interceptor extension still disconnected). Root causes: (1) `Piece` base constructor calls `board.addPiece(this)` → emits `pieceAdded` before subclass field initializer sets `kind`; client `createPieceSprite` reads `kind === undefined` → marine-texture fallback. Every post-boot piece (reinforcement blips, converted stealers) rendered as a marine — perceived as "DONE spawns marines" and "blips never convert". (2) Greedy Chebyshev `stepToward` has no escape from concave pockets: blips entering mission-1 side rooms reach a local optimum and stall forever ("blips never move"). Fix: assign `kind` via base-constructor parameter before `addPiece`; replace greedy stepping with BFS shortest-path (8-connected, closed-door squares traversable + opened on contact, goal = orthogonal adjacency to nearest marine).
+- 2026-08-14 (playtest sweep): Arrow-key camera pan investigated as third suspect — polling-based (`cursors.*.isDown` in update()); synthetic CDP key events complete within one frame so automation shows no pan, but a held physical key works. Not a bug; drag-pan verified working. No code change.
+- 2026-08-14 (playtest sweep): Delegation floor (soft, ≥2) relaxed — show-your-math: Forge/Cato require codex CLI (`which codex` → not found); both defect files already read and root-caused directly, so Explore/general delegation adds hand-off cost with zero information gain.
+
 ## Changelog
 
 - **Conjectured:** heavily-mocked Phaser unit tests would keep client development safe (implicit in M0–M3 process).
@@ -210,6 +224,16 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
   **Refuted by:** 400-seed autopilot scan — zero wins; unlimited spawns make the exterminate-or-exit objective mathematically unreachable.
   **Learned:** mission difficulty needs a finite force budget; "winnable" is a testable property, and a scripted legal-actions autopilot is the probe for it.
   **Criterion now:** ISC-59 verified via pinned-seed autopilot win (MISSION COMPLETE overlay) and deterministic loss/win playthrough e2e; totalBlips=10 in Mission 1 schema.
+
+- **Conjectured:** the v0.1 e2e suite (boot, full turn, death counter, pinned-seed win/loss) plus 92 engine tests proved the game "plays according to the rules."
+  **Refuted by:** first human play-test (2026-08-14): every post-boot piece rendered as a marine (pieceAdded fired from the base Piece constructor before subclass `kind` initializers ran — JS field-initializer ordering), and blips stalled permanently in concave room pockets (greedy Chebyshev stepping has no escape from local optima; the e2e autopilot won via shooting before the stall ever mattered to an assertion).
+  **Learned:** event emission from a base-class constructor is a footgun whenever subclass fields carry the payload — assign discriminants via constructor parameter before any emit; and greedy pathing needs an adversarial-map test (concave pockets), not just open-corridor tests. Test suites verify what they assert, not "the game" — visual identity of pieces and multi-turn AI liveness were never asserted anywhere.
+  **Criterion now:** ISC-77 (emit-time kind), ISC-80 (pocket escape), ISC-81 (per-turn liveness), ISC-83 (marine-count anti), ISC-85 (no door-flapping while queued); e2e impostor-texture assertion in game.spec.
+
+- **Conjectured:** (advisor, 2026-08-14) the 1–2%→52% autopilot win-rate jump might be a stealth AI nerf wearing a bug-fix label.
+  **Refuted by:** playtest traces — the BFS horde is strictly deadlier (idle squad wiped by turn 7 vs stragglers never arriving), and the win-rate rise is explained by stalled blips previously making the exterminate objective unreachable (hidden pieces parked in pockets forever → 'ongoing' stalemates, 0/120 seeds stalemate now).
+  **Learned:** when a bug fix moves a balance metric, trace the mechanism (which side gained capability) before accepting either "restored intended balance" or "regression" — win-rate alone cannot distinguish them.
+  **Criterion now:** ISC-84 records the seed-scan (62W/58L/0 stalemate) as the balance baseline; fixtures (seeds 29/3) are labeled determinism regressions, not balance evidence.
 
 ## Verification
 
@@ -255,3 +279,15 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - ISC-74/75: README milestone claims match ISA; tree committed green at session end
 - ISC-71: DEFERRED-VERIFY — FPS probe needs visible-tab recording; follow-up task in Decisions
 - ISC-12: Bash — `git rm --cached -r packages/engine/coverage`, .gitignore entry added
+
+### Playtest bug sweep (2026-08-14)
+
+- ISC-77: vitest — `pieceAdded.spec.ts` 3/3 pass: payload kind and live piece.kind correct for marine/stealer/blip at emit time
+- ISC-78: browser probe — after real DONE click, turn-2 reinforcement blips p_7/p_8 texture `blip` (pre-fix: `terminator_storm_bolter`)
+- ISC-79: browser probe — turn-3 conversion produced stealers p_11/p_12/p_13 all texture `stealer`
+- ISC-80: vitest — ai_pathing "concave side-room pocket" test: blip escapes (6,12), closes Chebyshev distance over 3 activations
+- ISC-81: browser probe — turns 2–5 per-turn position diff: `stuck: []` every turn; horde queued through the (10,5) door choke
+- ISC-82: vitest — diagonal stealer at (11,5) ends orthogonally adjacent or marine dead within one activation
+- ISC-83: browser probe — marine count 5→5→5→5 across DONE clicks turns 1–4, then only decreases via deaths (loss at turn 7: SQUAD WIPED OUT screenshot)
+- ISC-84: Bash — engine 98/98, client units 6/6, e2e 6/6 (incl. new impostor-texture assertion), `pnpm build` clean; seeds re-scanned (120): 62 win / 58 loss / 0 stalemate; pins: win.spec seed 29 (MISSION COMPLETE screenshot artifact, Kills 20/Losses 3, turn 17), playthrough.spec seed 3 (loss turn 13)
+- ISC-85: vitest — queued stealer with adjacent side door: door stays shut, position and AP unchanged

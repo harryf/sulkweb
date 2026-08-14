@@ -51,35 +51,84 @@ function facingToward(from: Coord, to: Coord): Dir {
   return dr > 0 ? Dir.S : Dir.N;
 }
 
-/** One greedy step toward the target; returns true if the piece moved. */
-function stepToward(board: Board, piece: Piece, target: Coord): boolean {
-  const options: { coord: Coord; d: number; e: number }[] = [];
-  for (let dr = -1; dr <= 1; dr++) {
-    for (let dc = -1; dc <= 1; dc++) {
-      if (dc === 0 && dr === 0) continue;
-      const coord = { c: piece.pos.c + dc, r: piece.pos.r + dr };
-      if (!board.isPassable(coord) || board.isOccupied(coord)) continue;
-      options.push({ coord, d: chebyshev(coord, target), e: Math.hypot(coord.c - target.c, coord.r - target.r) });
+/**
+ * BFS over the board graph (8-connected). Closed-door squares count as
+ * traversable — the AI walks up and opens them on contact. Occupied squares
+ * block (other pieces are solid); goal squares are given by `isGoal`.
+ * Returns the FIRST step of a shortest path from `from`, or undefined when
+ * no goal is reachable. (Greedy stepping was refuted in playtest: it dead-ends
+ * permanently in concave room pockets — see ISA Changelog 2026-08-14.)
+ */
+function nextStepOnPath(board: Board, from: Coord, isGoal: (c: Coord) => boolean): Coord | undefined {
+  const traversable = (c: Coord) => board.isPassable(c) || board.doorAt(c) !== undefined;
+  // Friendly stealer-side pieces are transparent for PATHING (the horde queues
+  // through chokepoints instead of idling when a friend holds the only goal
+  // square); marines are solid obstacles. The caller refuses to actually STEP
+  // onto any occupied square — a blocked first step just means "wait in line".
+  const marineAt = (c: Coord) => {
+    const occupant = board.pieceAt(c) as Piece | undefined;
+    return occupant?.kind === 'marine';
+  };
+  const key = (c: Coord) => `${c.c},${c.r}`;
+  const prev = new Map<string, Coord | null>();
+  prev.set(key(from), null);
+  const queue: Coord[] = [from];
+  while (queue.length > 0) {
+    const cur = queue.shift()!;
+    if (isGoal(cur) && !(cur.c === from.c && cur.r === from.r)) {
+      // walk back to the step right after `from`
+      let step = cur;
+      for (;;) {
+        const back = prev.get(key(step));
+        if (back === null || back === undefined) return step;
+        if (back.c === from.c && back.r === from.r) return step;
+        step = back;
+      }
+    }
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (dc === 0 && dr === 0) continue;
+        const nxt = { c: cur.c + dc, r: cur.r + dr };
+        if (prev.has(key(nxt))) continue;
+        if (!traversable(nxt) || marineAt(nxt)) continue;
+        prev.set(key(nxt), cur);
+        queue.push(nxt);
+      }
     }
   }
-  // Chebyshev decides progress; Euclidean tie-break keeps the path straight
-  options.sort((a, b) => a.d - b.d || a.e - b.e);
-  const here = chebyshev(piece.pos, target);
-  const hereE = Math.hypot(piece.pos.c - target.c, piece.pos.r - target.r);
-  for (const opt of options) {
-    // Progress = smaller Chebyshev, or equal Chebyshev with strictly smaller
-    // Euclidean (walks the diagonal plateau where max(dx,dy) stays constant).
-    const progress = opt.d < here || (opt.d === here && opt.e < hereE - 1e-9);
-    if (!progress && !(here === 1 && opt.d === 1)) break;
-    // Face the direction of travel first (free/cheap for stealers), then move
-    const dir = facingToward(piece.pos, opt.coord);
-    if (piece.facing !== dir && piece.kind === 'stealer') {
-      const delta = ((dir - piece.facing + 4) % 4);
-      piece.tryTurn(delta === 1 ? 1 : delta === 3 ? -1 : 2);
-    }
-    if (piece.tryMove(opt.coord.c - piece.pos.c, opt.coord.r - piece.pos.r)) return true;
+  return undefined;
+}
+
+/** One step along a real shortest path toward a close-combat lineup square
+ * (orthogonally adjacent to ANY marine — the nearest marine's own adjacency can
+ * be fully blocked by its squad-mates).
+ * 'acted' = moved or opened a door on the path; 'wait' = path exists but the
+ * next square is held by a friend (queue in place, do NOT open side doors);
+ * 'none' = no path at all. */
+function stepToward(board: Board, piece: Piece, targets: Coord[]): 'acted' | 'wait' | 'none' {
+  const orthoAdjacent = (c: Coord) => targets.some(t => Math.abs(c.c - t.c) + Math.abs(c.r - t.r) === 1);
+  const anyAdjacent = (c: Coord) => targets.some(t => chebyshev(c, t) === 1);
+  const next = nextStepOnPath(board, piece.pos, orthoAdjacent)
+    ?? nextStepOnPath(board, piece.pos, anyAdjacent);
+  if (!next) return 'none';
+  if (board.isOccupied(next)) return 'wait'; // a friend holds the next square — wait in line
+
+  const door = board.doorAt(next);
+  if (door && !door.isOpen) {
+    if (piece.ap < 1) return 'wait';
+    door.open();
+    piece.ap -= 1;
+    PieceEvents.emit('doorToggled', { x: door.square.x, y: door.square.y, open: true });
+    return 'acted';
   }
-  return false;
+
+  // Face the direction of travel first (free/cheap for stealers), then move
+  const dir = facingToward(piece.pos, next);
+  if (piece.facing !== dir && piece.kind === 'stealer') {
+    const delta = ((dir - piece.facing + 4) % 4);
+    piece.tryTurn(delta === 1 ? 1 : delta === 3 ? -1 : 2);
+  }
+  return piece.tryMove(next.c - piece.pos.c, next.r - piece.pos.r) ? 'acted' : 'wait';
 }
 
 import { PieceEvents } from '../events/PieceEvents.js';
@@ -116,8 +165,13 @@ export function runStealerActions(board: Board): void {
 
     let guard = 0;
     while (p.alive && p.ap > 0 && guard++ < 20) {
-      const marine = nearestMarine(board, p.pos);
-      if (!marine) return;
+      const squad = marines(board);
+      if (squad.length === 0) return;
+      // Attack any adjacent marine (orthogonal first — that's the CC lineup),
+      // not just the array-order "nearest" one.
+      const marine = squad.find(m => Math.abs(m.pos.c - p.pos.c) + Math.abs(m.pos.r - p.pos.r) === 1)
+        ?? squad.find(m => chebyshev(m.pos, p.pos) === 1)
+        ?? nearestMarine(board, p.pos)!;
 
       if (p.kind === 'stealer' && chebyshev(p.pos, marine.pos) === 1) {
         // Face the marine, then rend
@@ -136,11 +190,11 @@ export function runStealerActions(board: Board): void {
         }
       }
 
-      let moved = stepToward(board, p, marine.pos);
-      if (!moved) {
-        // Blocked — likely a closed door on the path. Any adjacent door: open it.
-        moved = openAdjacentDoor(board, p);
-        if (!moved) break;
+      const step = stepToward(board, p, marines(board).map(m => m.pos));
+      if (step === 'wait') break; // queued behind a friend — hold, don't burn AP or flap doors
+      if (step === 'none') {
+        // No path at all — last-resort safety net: open any adjacent door.
+        if (!openAdjacentDoor(board, p)) break;
         continue; // door opened; try stepping again next iteration
       }
       overwatchReactions(board, p);

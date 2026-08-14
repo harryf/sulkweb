@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">45% </span>
+                <span class="strong">75% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>9/20</span>
+                <span class='fraction'>15/20</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">66.66% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>2/3</span>
+                <span class='fraction'>5/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50% </span>
+                <span class="strong">75% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>2/4</span>
+                <span class='fraction'>3/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">45% </span>
+                <span class="strong">75% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>9/20</span>
+                <span class='fraction'>15/20</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -132,27 +132,27 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">14x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">14x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">14x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">13x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">13x</span>
-<span class="cline-any cline-yes">533x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-yes">533x</span>
-<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">14x</span>
+<span class="cline-any cline-yes">556x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">556x</span>
+<span class="cline-any cline-yes">14x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">export type ApInfo = { apRemaining: number; apInitial: number }
@@ -180,11 +180,11 @@ type Handler&lt;T&gt; = (payload: T) =&gt; void
 class Emitter&lt;Events extends Record&lt;string, unknown&gt;&gt; {
   readonly all = new Map&lt;keyof Events, Handler&lt;never&gt;[]&gt;()
 &nbsp;
-<span class="fstat-no" title="function not covered" >  on&lt;K extends keyof Events&gt;(type: K, handler: Handler&lt;Events[K]&gt;): void {</span>
-<span class="cstat-no" title="statement not covered" >    const list = this.all.get(type) ?? []</span>
-<span class="cstat-no" title="statement not covered" >    list.push(handler as Handler&lt;never&gt;)</span>
-<span class="cstat-no" title="statement not covered" >    this.all.set(type, list)</span>
-<span class="cstat-no" title="statement not covered" >  }</span>
+  on&lt;K extends keyof Events&gt;(type: K, handler: Handler&lt;Events[K]&gt;): void {
+    const list = this.all.get(type) ?? []
+    list.push(handler as Handler&lt;never&gt;)
+    this.all.set(type, list)
+  }
 &nbsp;
 <span class="fstat-no" title="function not covered" >  off&lt;K extends keyof Events&gt;(type: K, handler: Handler&lt;Events[K]&gt;): void {</span>
 <span class="cstat-no" title="statement not covered" >    const list = this.all.get(type)</span>
@@ -194,9 +194,9 @@ class Emitter&lt;Events extends Record&lt;string, unknown&gt;&gt; {
 <span class="cstat-no" title="statement not covered" >  }</span>
 &nbsp;
   emit&lt;K extends keyof Events&gt;(type: K, payload: Events[K]): void {
-    for (const handler of [...(this.all.get(type) ?? [])]) <span class="branch-0 cbranch-no" title="branch not covered" >{</span>
-<span class="cstat-no" title="statement not covered" >      (handler as Handler&lt;Events[K]&gt;)(payload)</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
+    for (const handler of [...(this.all.get(type) ?? [])]) {
+      (handler as Handler&lt;Events[K]&gt;)(payload)
+    }
   }
 }
 &nbsp;
@@ -208,7 +208,7 @@ export const PieceEvents = new Emitter&lt;PieceEventsType&gt;()
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-08-14T14:25:29.230Z
+                at 2026-08-14T16:21:16.092Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

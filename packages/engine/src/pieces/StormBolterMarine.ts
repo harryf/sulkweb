@@ -1,11 +1,10 @@
-import { Piece, type Coord, type PieceKind } from './Piece.js';
+import { Piece, type Coord } from './Piece.js';
 import { Board } from '../board/Board.js';
 import { Dir } from '../core/Direction.js';
 import { canShoot } from '../board/vision.js';
 import { PieceEvents } from '../events/PieceEvents.js';
 
 export class StormBolterMarine extends Piece {
-  readonly kind: PieceKind = 'marine';
 
   /** texture name for Phaser render-layer */
   static readonly SPRITE_KEY = 'terminator_storm_bolter';
@@ -18,7 +17,7 @@ export class StormBolterMarine extends Piece {
   private sustainedBonus = 0;
 
   constructor(board: Board, start: Coord, facing: Dir = Dir.N) {
-    super(board, start, facing);
+    super('marine', board, start, facing);
   }
 
   /**

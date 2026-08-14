@@ -1,4 +1,4 @@
-import { Piece, type Coord, type PieceKind } from './Piece.js';
+import { Piece, type Coord } from './Piece.js';
 import { Board } from '../board/Board.js';
 import { Dir } from '../core/Direction.js';
 import { Genestealer } from './Genestealer.js';
@@ -9,7 +9,6 @@ import { PieceEvents } from '../events/PieceEvents.js';
  * for 1 AP, no facing, cannot fight. Converts to genestealers when revealed.
  */
 export class Blip extends Piece {
-  readonly kind: PieceKind = 'blip';
 
   static readonly SPRITE_KEY = 'blip';
 
@@ -17,7 +16,7 @@ export class Blip extends Piece {
   readonly value: number;
 
   constructor(board: Board, start: Coord, value?: number) {
-    super(board, start, Dir.S, 6);
+    super('blip', board, start, Dir.S, 6);
     this.value = value ?? Math.ceil(board.dice.roll() / 2); // d6 → 1-3 stealers
   }
 

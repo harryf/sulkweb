@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * Deterministic victory: seed 1 with the marine autopilot (legal actions only)
- * wins Mission 1 on turn 18 with 4 marines alive. Pinning the seed makes this
- * a stable regression test for the whole win path, overlay included.
- * Seed policy: found by scanning seeds 1-400 offline; re-scan if rules change
- * dice consumption order.
+ * Deterministic victory: a pinned seed with the marine autopilot (legal actions
+ * only) wins Mission 1. Pinning the seed makes this a stable regression test
+ * for the whole win path, overlay included.
+ * Seed policy: found by scanning seeds offline (BFS-AI scan 2026-08-14: wins at
+ * 29,42,44,56,70,…); re-scan if rules change dice consumption order.
  */
 test('Mission 1 is winnable — pinned seed reaches MISSION COMPLETE', async ({ page }) => {
   test.setTimeout(120000);
@@ -17,8 +17,8 @@ test('Mission 1 is winnable — pinned seed reaches MISSION COMPLETE', async ({ 
 
   const result = await page.evaluate(() => {
     const { engine, SeededRng, autoplay } = (window as any).sulk;
-    engine.state.board.dice = new SeededRng(1);
-    autoplay(engine, 30);
+    engine.state.board.dice = new SeededRng(29);
+    autoplay(engine, 60);
     return { result: engine.state.result, turn: engine.turnNumber, marines: engine.marines.length };
   });
   expect(result.result).toBe('win');

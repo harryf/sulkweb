@@ -26,6 +26,24 @@ class Emitter<Events extends Record<string, unknown>> {
   readonly all = new Map<keyof Events, Handler<never>[]>()
   private capturing: CapturedEvent<Events>[] | null = null
 
+  /**
+   * True while a captured stream is being re-emitted for animation. Replayed
+   * events describe PAST state — engine handlers that MUTATE state on events
+   * (e.g. sight-conversion) must ignore them or they re-run rules against the
+   * final board mid-replay. View handlers ignore this flag.
+   */
+  replaying = false
+
+  /** Re-emit a captured event, marked as replay so state-mutating handlers skip it. */
+  replay(ev: CapturedEvent<Events>): void {
+    this.replaying = true
+    try {
+      this.emit(ev.type as never, ev.payload as never)
+    } finally {
+      this.replaying = false
+    }
+  }
+
   on<K extends keyof Events>(type: K, handler: Handler<Events[K]>): void {
     const list = this.all.get(type) ?? []
     list.push(handler as Handler<never>)

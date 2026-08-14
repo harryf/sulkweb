@@ -361,7 +361,7 @@ export default class GameScene extends Phaser.Scene {
 
   /** ESC: pause stops the timer and ignores all game input until resumed. */
   private togglePause(): void {
-    if (this.engine.state.result !== 'ongoing') return;
+    if (this.engine.state.result !== 'ongoing' || this.animating) return;
     this.paused = !this.paused;
     if (this.paused) {
       const cam = this.cameras.main;
@@ -390,13 +390,19 @@ export default class GameScene extends Phaser.Scene {
   private endTurn(): void {
     if (this.engine.state.result !== 'ongoing' || this.paused || this.animating) return;
     const stream = PieceEvents.capture(() => this.engine.endMarinePhase());
-    this.animating = true;
     Selection.clear();
     this.updateHighlight();
     PieceEvents.emit('selected', { pieceId: null });
+    // Accessibility: with prefers-reduced-motion, skip the timeline entirely
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      for (const ev of stream) PieceEvents.replay(ev);
+      this.finishReplay();
+      return;
+    }
+    this.animating = true;
     let at = 80;
     for (const ev of stream) {
-      this.time.delayedCall(at, () => PieceEvents.emit(ev.type as any, ev.payload as any));
+      this.time.delayedCall(at, () => PieceEvents.replay(ev));
       at += GameScene.REPLAY_DELAY[ev.type as string] ?? 0;
     }
     this.time.delayedCall(at + 150, () => this.finishReplay());

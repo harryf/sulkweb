@@ -4,10 +4,10 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 84/85 (ISC-71 deferred; playtest bug sweep ISC-77..85 all verified)
+progress: 94/95 (ISC-71 deferred; ISC-77..95 bug sweep + animated stealer phase all verified)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-14T18:15:00Z
+updated: 2026-08-14T19:30:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -163,6 +163,19 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - [x] ISC-84: Full engine suite + client units + Playwright e2e green after fixes, pinned seeds re-scanned if dice order changed (Bash)
 - [x] ISC-85: Anti: a stealer-side piece queued behind a friend never opens an off-path door while waiting (vitest, advisor finding)
 
+### Animated stealer phase + rules/UX sweep (2026-08-14, second user pass)
+
+- [x] ISC-86: Stealer phase replays as visible step-by-step animation after DONE — sampled sprite positions change over time (Playwright)
+- [x] ISC-87: `scene.animating` true during replay; keyboard/selection/pause/DONE input ignored until it ends (Playwright + code gates)
+- [x] ISC-88: A blip converts the moment a marine's move/turn/door-toggle brings it into sight — no endMarinePhase needed (vitest ×2)
+- [x] ISC-89: Conversion spawns all `value` (1–3) stealers on origin+adjacent free squares; overflow lost (vitest: value-2 blip → 2 stealers)
+- [x] ISC-90: Stealer entry squares marked purple, exit square marked green with EXIT label, deployment squares outlined blue (Playwright + screenshot)
+- [x] ISC-91: HUD shows the mission objective text and a map-marker legend (Playwright)
+- [x] ISC-92: Anti: after replay ends every sprite matches engine position and kind-texture exactly — zero drift (Playwright)
+- [x] ISC-93: Anti: endTurn during replay is ignored — turn number cannot double-advance (Playwright)
+- [x] ISC-94: Pinned e2e games are fully deterministic: dice installed at engine construction via `?seed=N` (blip values + CP roll included); seeds re-scanned (Bash)
+- [x] ISC-95: Anti: REPLAYED events never mutate engine state — sight-conversion ignores `PieceEvents.replaying` (vitest, advisor finding)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
@@ -213,6 +226,10 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - 2026-08-14 (playtest sweep): Arrow-key camera pan investigated as third suspect — polling-based (`cursors.*.isDown` in update()); synthetic CDP key events complete within one frame so automation shows no pan, but a held physical key works. Not a bug; drag-pan verified working. No code change.
 - 2026-08-14 (playtest sweep): Delegation floor (soft, ≥2) relaxed — show-your-math: Forge/Cato require codex CLI (`which codex` → not found); both defect files already read and root-caused directly, so Explore/general delegation adds hand-off cost with zero information gain.
 
+- 2026-08-14 (animated stealer phase): Design — engine stays synchronous/pure; `PieceEvents.capture()` buffers the endMarinePhase event stream and the client re-emits it on a timed timeline (`PieceEvents.replay()`, tweens, input+timer locked, `finishReplay()` reconciles every sprite against engine truth). Handlers are payload-driven so replay never reads mid-phase state off the final board. Constraint documented on `capture()`: engine logic must not depend on event delivery inside the captured section.
+- 2026-08-14 (animated stealer phase): Advisor final-call adjudication — ADOPTED: replay-mutation guard (`PieceEvents.replaying` skipped by sight-conversion handlers; ISC-95), ESC-pause gated during replay, `prefers-reduced-motion` skips the timeline. REFUTED with evidence: timer leak (delayedCalls are scene-owned, die with scene; no in-app New Game exists — restart is a page reload); input-lockout breadth (all turn entry points funnel through guarded endTurn; keydown/pointerdown/pause gated; camera pan deliberately allowed so the player can follow the action); two-engines-one-process conversion (conversion_on_sight.spec constructs sequential engines in one worker — second converts); objective wired (reach-exit victory is engine-tested, not presentation-only). LOGGED as follow-ups: GameEngine.dispose() to unsubscribe global-emitter handlers if in-app restart ever ships; click-to-skip replay; camera-follow for off-screen action; wall-clock sampling in animation.spec could flake on loaded CI (consider Playwright clock API).
+- 2026-08-14 (animated stealer phase): Determinism root-fix — blip values + first CP roll consume dice at CONSTRUCTION, before test pins previously landed; all prior "pinned" seeds (and scans) were value-randomized. GameEngine now accepts a dice source at construction; client reads `?seed=N`. Deterministic rescan: 62W/58L/0 over 120; pins ?seed=1 (win) / ?seed=5 (loss).
+
 ## Changelog
 
 - **Conjectured:** heavily-mocked Phaser unit tests would keep client development safe (implicit in M0–M3 process).
@@ -229,6 +246,11 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
   **Refuted by:** first human play-test (2026-08-14): every post-boot piece rendered as a marine (pieceAdded fired from the base Piece constructor before subclass `kind` initializers ran — JS field-initializer ordering), and blips stalled permanently in concave room pockets (greedy Chebyshev stepping has no escape from local optima; the e2e autopilot won via shooting before the stall ever mattered to an assertion).
   **Learned:** event emission from a base-class constructor is a footgun whenever subclass fields carry the payload — assign discriminants via constructor parameter before any emit; and greedy pathing needs an adversarial-map test (concave pockets), not just open-corridor tests. Test suites verify what they assert, not "the game" — visual identity of pieces and multi-turn AI liveness were never asserted anywhere.
   **Criterion now:** ISC-77 (emit-time kind), ISC-80 (pocket escape), ISC-81 (per-turn liveness), ISC-83 (marine-count anti), ISC-85 (no door-flapping while queued); e2e impostor-texture assertion in game.spec.
+
+- **Conjectured:** setting `board.dice = new SeededRng(n)` inside a test pins the whole game (win.spec/playthrough.spec relied on this since v0.1).
+  **Refuted by:** win.spec(seed 1) failing in-browser while the engine scan called seed 1 a win — initial blip values and the first CP roll are consumed at ENGINE CONSTRUCTION from the default randomly-seeded dice, before any test-side swap lands; every prior pin and scan carried hidden variance.
+  **Learned:** determinism claims must cover the full lifetime of the RNG consumer — audit WHEN the first roll happens, not just who rolls; "replace the RNG in the test" silently misses construction-time consumption.
+  **Criterion now:** ISC-94 — dice source injectable at GameEngine construction, e2e pins via `?seed=N` URL, scans construct with the seed.
 
 - **Conjectured:** (advisor, 2026-08-14) the 1–2%→52% autopilot win-rate jump might be a stealth AI nerf wearing a bug-fix label.
   **Refuted by:** playtest traces — the BFS horde is strictly deadlier (idle squad wiped by turn 7 vs stragglers never arriving), and the win-rate rise is explained by stalled blips previously making the exterminate objective unreachable (hidden pieces parked in pockets forever → 'ongoing' stalemates, 0/120 seeds stalemate now).
@@ -291,3 +313,15 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - ISC-83: browser probe — marine count 5→5→5→5 across DONE clicks turns 1–4, then only decreases via deaths (loss at turn 7: SQUAD WIPED OUT screenshot)
 - ISC-84: Bash — engine 98/98, client units 6/6, e2e 6/6 (incl. new impostor-texture assertion), `pnpm build` clean; seeds re-scanned (120): 62 win / 58 loss / 0 stalemate; pins: win.spec seed 29 (MISSION COMPLETE screenshot artifact, Kills 20/Losses 3, turn 17), playthrough.spec seed 3 (loss turn 13)
 - ISC-85: vitest — queued stealer with adjacent side door: door stays shut, position and AP unchanged
+
+### Animated stealer phase + rules/UX sweep (2026-08-14, second user pass)
+
+- ISC-86: Playwright animation.spec — 8 samples @120ms of blip sprite: >1 distinct position; mid-animation screenshot `test-results/stealer-phase-mid-animation.png` (HUD "Turn 1 — Stealers", blips mid-corridor)
+- ISC-87: animation.spec — `animating: true` right after endTurn; gates verified in code (keydown, pointerdown, togglePause, timer callback, endTurn)
+- ISC-88: conversion_on_sight.spec — about-face reveals blip → converts instantly (2 stealers); door-open reveals blip → converts instantly
+- ISC-89: same spec — value-2 blip spawns exactly 2 stealers; engine blips_ai overflow tests pre-existing
+- ISC-90/91: animation.spec — EXIT text object present, `hud.objectiveText` contains "Objective"; screenshot `markers-and-objective.png` shows purple entries, gold objective, legend
+- ISC-92: animation.spec — post-replay position+texture diff vs engine: `[]`
+- ISC-93: animation.spec — second endTurn mid-replay: turnNumber unchanged
+- ISC-94: deterministic scan (dice at construction) 120 seeds: 62 win / 58 loss / 0 ongoing; pins ?seed=1 (win, MISSION COMPLETE overlay) / ?seed=5 (loss); full suites: engine 101/101, client 6/6, e2e 7/7, build clean
+- ISC-95: conversion_on_sight.spec — `PieceEvents.replay(doorToggled)` leaves visible blip alive; identical live emit converts it

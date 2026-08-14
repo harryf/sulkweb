@@ -58,11 +58,12 @@ export class GameEngine {
     // (e.g. events from another engine instance in tests) are harmless; the
     // marine-id guard keeps the common path cheap.
     PieceEvents.on('pieceMoved', ({ pieceId }) => {
-      if (this.state.result !== 'ongoing') return
+      if (PieceEvents.replaying || this.state.result !== 'ongoing') return
       const mover = this.findPiece(pieceId)
       if (mover?.kind === 'marine') convertRevealedBlips(this.state.board)
     })
     PieceEvents.on('doorToggled', () => {
+      if (PieceEvents.replaying) return // animation replays past events — not new sight lines
       if (this.state.result === 'ongoing') convertRevealedBlips(this.state.board)
     })
   }

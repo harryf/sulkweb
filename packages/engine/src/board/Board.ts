@@ -83,7 +83,8 @@ export class Board {
     if (this.pieces.includes(piece)) return;
     this.pieces.push(piece);
     const kind = (piece as { kind?: string }).kind ?? 'piece';
-    PieceEvents.emit('pieceAdded', { pieceId: piece.id, kind, x: piece.pos.c, y: piece.pos.r });
+    const facing = (piece as { facing?: number }).facing ?? 0;
+    PieceEvents.emit('pieceAdded', { pieceId: piece.id, kind, x: piece.pos.c, y: piece.pos.r, facing });
   }
 
   removePiece(piece: BoardPiece): void {

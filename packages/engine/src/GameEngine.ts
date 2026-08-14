@@ -5,6 +5,7 @@ import type { CompiledMission } from './missions/missionTypes.js'
 import { Dir } from './core/Direction.js';
 import { runStealerActions, spawnBlips, convertRevealedBlips } from './ai/StealerAI.js';
 import { PieceEvents } from './events/PieceEvents.js';
+import type { DiceSource } from './core/Dice.js';
 
 export type GameResult = 'ongoing' | 'win' | 'loss';
 export type PhaseName = 'MarineAction' | 'StealerAction';
@@ -30,9 +31,13 @@ export class GameEngine {
   /** Reinforcement blips already spawned (counts against mission.totalBlips). */
   private blipsSpawned = 0
 
-  constructor(mission: CompiledMission, extraPieces: Piece[] = []) {
+  constructor(mission: CompiledMission, extraPieces: Piece[] = [], dice?: DiceSource) {
     this.mission = mission
     const board = new Board(mission.width, mission.height, mission.squares)
+    // A pinned dice source must be installed BEFORE deployment: initial blip
+    // values and the first CP roll consume dice at construction time —
+    // swapping the source afterwards leaves those rolls nondeterministic.
+    if (dice) board.dice = dice
     this.state = { board, pieces: board.pieces as Piece[], result: 'ongoing' }
     for (const p of extraPieces) board.addPiece(p)
 
@@ -46,6 +51,20 @@ export class GameEngine {
       spawnBlips(board, entries, mission.initialBlips!)
     }
     this.rollCommandPoints()
+
+    // Sulk rule: a blip converts the moment ANY marine sees it — not just at
+    // phase boundaries. Marine moves/turns and door toggles change vision, so
+    // re-check on those events. The rule is idempotent, so spurious triggers
+    // (e.g. events from another engine instance in tests) are harmless; the
+    // marine-id guard keeps the common path cheap.
+    PieceEvents.on('pieceMoved', ({ pieceId }) => {
+      if (this.state.result !== 'ongoing') return
+      const mover = this.findPiece(pieceId)
+      if (mover?.kind === 'marine') convertRevealedBlips(this.state.board)
+    })
+    PieceEvents.on('doorToggled', () => {
+      if (this.state.result === 'ongoing') convertRevealedBlips(this.state.board)
+    })
   }
 
   findPiece(id: string): Piece | undefined {

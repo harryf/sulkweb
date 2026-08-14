@@ -6,6 +6,7 @@ import { Board } from '../board/Board.js';
 import { StormBolterMarine } from '../pieces/StormBolterMarine.js';
 import { loadMission } from '../missions/missionLoader.js';
 import { runStealerActions } from '../ai/StealerAI.js';
+import { RollQueue } from '../core/Dice.js';
 
 describe('AI pathing on the real mission map', () => {
   it('east-arm blip walks the Chebyshev plateau toward the squad', () => {
@@ -62,6 +63,7 @@ describe('AI pathing on the real mission map', () => {
       { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 4, y: 1 },
       { x: 2, y: 0, doorFacing: 'down' },
     ] as any);
+    board.dice = new RollQueue(new Array(60).fill(1)); // every CC is a draw — the queue never advances
     new StormBolterMarine(board, { c: 0, r: 1 });
     new Genestealer(board, { c: 1, r: 1 }); // front of the queue, holds the CC slot
     const queued = new Genestealer(board, { c: 2, r: 1 });

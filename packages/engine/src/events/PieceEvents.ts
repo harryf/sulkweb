@@ -11,7 +11,7 @@ export type PieceEventsType = {
   closeCombat: { attackerId: string; defenderId: string; attackerRolls: number[]; defenderRolls: number[]; outcome: 'attacker' | 'defender' | 'draw' }
   overwatchChanged: { pieceId: string; on: boolean }
   blipConverted: { blipId: string; x: number; y: number; stealerIds: string[]; lost: number }
-  pieceAdded: { pieceId: string; kind: string; x: number; y: number }
+  pieceAdded: { pieceId: string; kind: string; x: number; y: number; facing: number }
   phaseChanged: { phase: string; turn: number }
   cpChanged: { cp: number }
   gameOver: { result: string }
@@ -19,9 +19,12 @@ export type PieceEventsType = {
 
 type Handler<T> = (payload: T) => void
 
+export type CapturedEvent<Events> = { type: keyof Events; payload: Events[keyof Events] }
+
 /** Minimal typed pub/sub — mitt-compatible surface, no dependency. */
 class Emitter<Events extends Record<string, unknown>> {
   readonly all = new Map<keyof Events, Handler<never>[]>()
+  private capturing: CapturedEvent<Events>[] | null = null
 
   on<K extends keyof Events>(type: K, handler: Handler<Events[K]>): void {
     const list = this.all.get(type) ?? []
@@ -37,9 +40,28 @@ class Emitter<Events extends Record<string, unknown>> {
   }
 
   emit<K extends keyof Events>(type: K, payload: Events[K]): void {
+    if (this.capturing) {
+      this.capturing.push({ type, payload })
+      return
+    }
     for (const handler of [...(this.all.get(type) ?? [])]) {
       (handler as Handler<Events[K]>)(payload)
     }
+  }
+
+  /**
+   * Run `fn` with every emission buffered instead of delivered; returns the
+   * ordered stream for the caller to re-emit on its own timeline (the client
+   * uses this to animate the stealer phase). CAUTION: handlers do NOT run
+   * during capture — engine logic must not depend on event delivery for
+   * anything that happens inside the captured section.
+   */
+  capture(fn: () => void): CapturedEvent<Events>[] {
+    const buffer: CapturedEvent<Events>[] = []
+    const prev = this.capturing
+    this.capturing = buffer
+    try { fn() } finally { this.capturing = prev }
+    return buffer
   }
 }
 

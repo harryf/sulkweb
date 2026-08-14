@@ -4,20 +4,21 @@ import { test, expect } from '@playwright/test';
  * Deterministic victory: a pinned seed with the marine autopilot (legal actions
  * only) wins Mission 1. Pinning the seed makes this a stable regression test
  * for the whole win path, overlay included.
- * Seed policy: found by scanning seeds offline (BFS-AI scan 2026-08-14: wins at
- * 29,42,44,56,70,…); re-scan if rules change dice consumption order.
+ * Seed policy: found by scanning seeds offline (2026-08-14 scan with BFS AI +
+ * immediate sight-conversion: wins at 1,4,5,6,8,…); re-scan if rules change
+ * dice consumption order.
  */
 test('Mission 1 is winnable — pinned seed reaches MISSION COMPLETE', async ({ page }) => {
   test.setTimeout(120000);
   const errors: string[] = [];
   page.on('pageerror', (err: Error) => errors.push(err.message));
-  await page.goto('/');
+  // ?seed pins the WHOLE game — construction rolls (blip values, CP) included
+  await page.goto('/?seed=1');
   await expect(page.locator('canvas')).toBeVisible();
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
 
   const result = await page.evaluate(() => {
-    const { engine, SeededRng, autoplay } = (window as any).sulk;
-    engine.state.board.dice = new SeededRng(29);
+    const { engine, autoplay } = (window as any).sulk;
     autoplay(engine, 60);
     return { result: engine.state.result, turn: engine.turnNumber, marines: engine.marines.length };
   });

@@ -7,7 +7,8 @@ import { test, expect, type Page } from '@playwright/test';
  */
 
 async function waitForGame(page: Page) {
-  await page.goto('/');
+  // ?seed pins the whole game from construction — deterministic playthrough
+  await page.goto('/?seed=5');
   await expect(page.locator('canvas')).toBeVisible();
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
 }
@@ -48,13 +49,12 @@ test('Mission 1 plays start-to-finish and reaches a result', async ({ page }) =>
   const afterDone = await page.evaluate(() => (window as any).sulk.engine.turnNumber);
   expect(afterDone).toBe(doneProbe.before + 1); // the real click ended the phase
 
-  // Deterministic completion: autopilot (legal actions only) at pinned seed 3.
-  // With the BFS stealer AI (2026-08-14) every scanned seed completes within
-  // 60 turns; this one ends in a loss. Rescan seeds if rules change
-  // dice-consumption order.
+  // Deterministic completion: autopilot (legal actions only) at pinned seed 5
+  // (set at page load via ?seed — construction rolls included). Every scanned
+  // seed completes within 60 turns; this one ends in a loss. Rescan seeds if
+  // rules change dice-consumption order.
   const result = await page.evaluate(() => {
-    const { engine, scene, SeededRng, runMarineTurn } = (window as any).sulk;
-    engine.state.board.dice = new SeededRng(3);
+    const { engine, scene, runMarineTurn } = (window as any).sulk;
     let guard = 0;
     while (engine.state.result === 'ongoing' && guard++ < 40) {
       runMarineTurn(engine);

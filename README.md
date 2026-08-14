@@ -78,7 +78,7 @@ packages/
 ## Known gaps / residue
 
 - Balance is first-pass: with the BFS stealer AI (2026-08-14) the scripted
-  autopilot wins ~52% of random seeds (62/120 scanned) and every game reaches a
+  autopilot wins ~52% of seeds (62/120, fully deterministic scan) and every game reaches a
   decisive result; difficulty is playable but untuned.
 - Marine interrupt actions (CP spending during the stealer phase) not implemented.
 - FPS measurement deferred (needs a visible-tab recording session).

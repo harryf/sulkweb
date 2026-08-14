@@ -26,14 +26,20 @@ export default class GameScene extends Phaser.Scene {
   private timerRemaining = MARINE_PHASE_SECONDS;
   private timerEvent?: Phaser.Time.TimerEvent;
   private paused = false;
+  /** True while the captured stealer-phase event stream is being replayed. */
+  private animating = false;
   private pauseOverlay?: Phaser.GameObjects.Container;
   private losOverlay!: Phaser.GameObjects.Graphics;
   private losVisible = false;
 
   constructor() {
     super('GameScene')
-    // The engine builds the board, deploys the squad, and seeds the first blips
-    this.engine = new GameEngine(loadMission('space_hulk_1'));
+    // The engine builds the board, deploys the squad, and seeds the first blips.
+    // `?seed=N` pins the WHOLE game (blip values + CP roll included) — used by
+    // the deterministic e2e suite and handy for bug reports.
+    const seedParam = new URLSearchParams(window.location.search).get('seed');
+    const dice = seedParam ? new SeededRng(Number(seedParam)) : undefined;
+    this.engine = new GameEngine(loadMission('space_hulk_1'), [], dice);
     (window as any).sulk = { engine: this.engine, Selection, scene: this, SeededRng, autoplay, runMarineTurn }; // dev/debug + autoplay handle
   }
 
@@ -79,15 +85,39 @@ export default class GameScene extends Phaser.Scene {
       this.doorSprites[`${x},${y}`]?.setTexture(open ? 'door_open' : 'door_closed');
     });
 
-    // Render-side combat reactions: engine events drive all sprite state
-    PieceEvents.on('pieceMoved', ({ pieceId }) => {
-      const moved = this.engine.findPiece(pieceId);
-      if (moved) this.refreshPieceSprite(moved);
-      this.owMarkers[pieceId]?.setPosition(
-        this.pieceSprites[pieceId]?.x ?? 0, (this.pieceSprites[pieceId]?.y ?? 0) - 12);
+    // Mission markers: stealer entry points (purple), exit objective (green),
+    // marine deployment (blue outline). Drawn under pieces, over squares.
+    const markers = this.add.graphics().setDepth(0.4);
+    const mission = this.engine.mission;
+    const T = this.tileSize;
+    for (const e of mission.entryPoints ?? []) {
+      markers.fillStyle(0x9932cc, 0.30).fillRect(e.x * T, e.y * T, T, T);
+      markers.lineStyle(2, 0x9932cc, 0.9).strokeRect(e.x * T + 1, e.y * T + 1, T - 2, T - 2);
+    }
+    for (const e of mission.exitPoints ?? []) {
+      markers.fillStyle(0x00cc44, 0.35).fillRect(e.x * T, e.y * T, T, T);
+      markers.lineStyle(2, 0x00ff55, 1).strokeRect(e.x * T + 1, e.y * T + 1, T - 2, T - 2);
+      this.add.text(e.x * T + T / 2, e.y * T + T / 2, 'EXIT', {
+        fontFamily: 'Kanit', fontSize: '11px', color: '#00ff55', fontStyle: 'bold'
+      }).setOrigin(0.5).setDepth(0.45);
+    }
+    for (const d of mission.marineDeployment ?? []) {
+      markers.lineStyle(2, 0x3b82f6, 0.7).strokeRect(d.x * T + 3, d.y * T + 3, T - 6, T - 6);
+    }
+
+    // Render-side combat reactions: engine events drive all sprite state.
+    // Handlers read the event PAYLOAD, never the engine — during stealer-phase
+    // replay the engine already holds the final state, so payload coords are
+    // the only truthful intermediate positions.
+    PieceEvents.on('pieceMoved', ({ pieceId, x, y, facing }) => {
+      this.moveSprite(pieceId, x, y, facing);
     });
     PieceEvents.on('pieceDied', ({ pieceId }) => {
-      this.pieceSprites[pieceId]?.destroy();
+      const sprite = this.pieceSprites[pieceId];
+      if (sprite) {
+        this.tweens.killTweensOf(sprite);
+        this.tweens.add({ targets: sprite, alpha: 0, duration: this.animating ? 160 : 80, onComplete: () => sprite.destroy() });
+      }
       delete this.pieceSprites[pieceId];
       this.owMarkers[pieceId]?.destroy();
       delete this.owMarkers[pieceId];
@@ -118,10 +148,9 @@ export default class GameScene extends Phaser.Scene {
         delete this.owMarkers[pieceId];
       }
     });
-    PieceEvents.on('pieceAdded', ({ pieceId }) => {
+    PieceEvents.on('pieceAdded', ({ pieceId, kind, x, y, facing }) => {
       if (this.pieceSprites[pieceId]) return;
-      const added = this.engine.findPiece(pieceId);
-      if (added) this.createPieceSprite(added);
+      this.createSprite(pieceId, kind, x, y, facing);
     });
     PieceEvents.on('blipConverted', ({ blipId }) => {
       this.pieceSprites[blipId]?.destroy();
@@ -171,6 +200,13 @@ export default class GameScene extends Phaser.Scene {
     this.hud.setDepth(10);
     this.add.existing(this.hud);
 
+    const objectiveLabel: Record<string, string> = {
+      'exterminate': 'Objective: kill every genestealer',
+      'reach-exit': 'Objective: reach the green EXIT',
+      'exterminate-or-exit': 'Objective: kill all stealers\nOR reach the green EXIT',
+    };
+    this.hud.setObjective(objectiveLabel[this.engine.mission.objective ?? 'exterminate-or-exit'] ?? '');
+
     PieceEvents.emit('cpChanged', { cp: this.engine.cp }); // HUD subscribed after the initial roll
 
     // Marine-phase turn timer
@@ -178,7 +214,7 @@ export default class GameScene extends Phaser.Scene {
     this.hud.setTimer(this.timerRemaining);
     this.timerEvent = this.time.addEvent({
       delay: 1000, loop: true, callback: () => {
-        if (this.paused || this.engine.state.result !== 'ongoing' || this.engine.phase !== 'MarineAction') return;
+        if (this.paused || this.animating || this.engine.state.result !== 'ongoing' || this.engine.phase !== 'MarineAction') return;
         this.timerRemaining -= 1;
         this.hud.setTimer(this.timerRemaining);
         if (this.timerRemaining <= 0) this.endTurn();
@@ -194,7 +230,8 @@ export default class GameScene extends Phaser.Scene {
 
     // Input handler for piece selection
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
-      const hit = this.children.list.find(obj => 
+      if (this.animating) return;
+      const hit = this.children.list.find(obj =>
         obj.name === 'piece' && (obj as Phaser.GameObjects.Image).getBounds().contains(p.worldX, p.worldY)
       );
 
@@ -226,7 +263,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Keyboard handler for piece movement
     this.input.keyboard!.on('keydown', (_event: KeyboardEvent) => {
-      if (this.paused || this.engine.state.result !== 'ongoing') return;
+      if (this.paused || this.animating || this.engine.state.result !== 'ongoing') return;
       const selectedId = Selection.get();
       if (!selectedId) return;
 
@@ -276,29 +313,50 @@ export default class GameScene extends Phaser.Scene {
     cam.scrollY = Phaser.Math.Clamp(cam.scrollY, 0, worldH - cam.height);
   }
 
-  private createPieceSprite(piece: Piece) {
-    const texture = piece.kind === 'stealer' ? Genestealer.SPRITE_KEY
-      : piece.kind === 'blip' ? 'blip'
+  private createSprite(pieceId: string, kind: string, x: number, y: number, facing: number) {
+    const texture = kind === 'stealer' ? Genestealer.SPRITE_KEY
+      : kind === 'blip' ? 'blip'
       : StormBolterMarine.SPRITE_KEY;
-    const sprite = this.add.image(0, 0, texture)
+    const sprite = this.add.image(
+      x * this.tileSize + this.tileSize / 2,
+      y * this.tileSize + this.tileSize / 2,
+      texture)
       .setOrigin(0.5, 0.5)
       .setDepth(1)
+      .setRotation(facing * Math.PI / 2)
       .setName('piece')
       .setInteractive();
-    (sprite as any).pieceId = piece.id;
-    this.pieceSprites[piece.id] = sprite;
-    this.refreshPieceSprite(piece);
+    (sprite as any).pieceId = pieceId;
+    this.pieceSprites[pieceId] = sprite;
+  }
+
+  private createPieceSprite(piece: Piece) {
+    this.createSprite(piece.id, piece.kind, piece.pos.c, piece.pos.r, piece.facing);
+  }
+
+  /** Position/rotate a sprite from event-payload data. Tweens while a stealer
+   * phase is being replayed; snaps during interactive marine actions. */
+  private moveSprite(pieceId: string, x: number, y: number, facing: number) {
+    const sprite = this.pieceSprites[pieceId];
+    if (!sprite || !sprite.active) return;
+    const tx = x * this.tileSize + this.tileSize / 2;
+    const ty = y * this.tileSize + this.tileSize / 2;
+    sprite.setRotation(facing * Math.PI / 2);
+    this.tweens.killTweensOf(sprite);
+    if (this.animating) {
+      this.tweens.add({
+        targets: sprite, x: tx, y: ty, duration: 100, ease: 'Linear',
+        onUpdate: () => this.owMarkers[pieceId]?.setPosition(sprite.x, sprite.y - 12),
+      });
+    } else {
+      sprite.setPosition(tx, ty);
+    }
+    this.owMarkers[pieceId]?.setPosition(tx, ty - 12);
+    if (Selection.get() === pieceId) this.updateHighlight();
   }
 
   private refreshPieceSprite(piece: Piece) {
-    const sprite = this.pieceSprites[piece.id];
-    if (!sprite) return;
-
-    const targetWorldX = (piece.pos.c * this.tileSize) + (this.tileSize / 2);
-    const targetWorldY = (piece.pos.r * this.tileSize) + (this.tileSize / 2);
-
-    sprite.setPosition(targetWorldX, targetWorldY);
-    sprite.setRotation(piece.facing * Math.PI / 2);
+    this.moveSprite(piece.id, piece.pos.c, piece.pos.r, piece.facing);
   }
 
   /** ESC: pause stops the timer and ignores all game input until resumed. */
@@ -318,12 +376,51 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Done button / Enter / timer expiry: hand the turn to the stealers. */
+  /** Per-event replay pacing (ms added AFTER the event fires). */
+  private static readonly REPLAY_DELAY: Record<string, number> = {
+    pieceMoved: 110, doorToggled: 200, shot: 230, closeCombat: 260,
+    pieceDied: 200, blipConverted: 170, pieceAdded: 90,
+  };
+
+  /**
+   * Done button / Enter / timer expiry: hand the turn to the stealers.
+   * The engine resolves the whole phase synchronously; we capture its event
+   * stream and re-emit it on a timeline so the player SEES the stealers act.
+   */
   private endTurn(): void {
-    if (this.engine.state.result !== 'ongoing' || this.paused) return;
-    this.engine.endMarinePhase();
+    if (this.engine.state.result !== 'ongoing' || this.paused || this.animating) return;
+    const stream = PieceEvents.capture(() => this.engine.endMarinePhase());
+    this.animating = true;
+    Selection.clear();
+    this.updateHighlight();
+    PieceEvents.emit('selected', { pieceId: null });
+    let at = 80;
+    for (const ev of stream) {
+      this.time.delayedCall(at, () => PieceEvents.emit(ev.type as any, ev.payload as any));
+      at += GameScene.REPLAY_DELAY[ev.type as string] ?? 0;
+    }
+    this.time.delayedCall(at + 150, () => this.finishReplay());
+  }
+
+  /** Replay done: engine truth wins. Reconcile every sprite, restart the clock. */
+  private finishReplay(): void {
+    this.animating = false;
+    const live = new Set(this.engine.state.pieces.map(p => p.id));
+    for (const p of this.engine.state.pieces) {
+      if (!this.pieceSprites[p.id]) this.createPieceSprite(p as Piece);
+      else this.refreshPieceSprite(p as Piece);
+    }
+    for (const id of Object.keys(this.pieceSprites)) {
+      if (!live.has(id)) {
+        this.pieceSprites[id].destroy();
+        delete this.pieceSprites[id];
+        this.owMarkers[id]?.destroy();
+        delete this.owMarkers[id];
+      }
+    }
     this.timerRemaining = MARINE_PHASE_SECONDS;
     this.hud.setTimer(this.timerRemaining);
+    this.updateHighlight();
   }
 
   /** F key: shoot the nearest enemy in fire arc + LOS. */

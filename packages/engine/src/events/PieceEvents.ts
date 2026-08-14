@@ -10,6 +10,11 @@ export type PieceEventsType = {
   pieceDied: { pieceId: string; kind: string; x: number; y: number }
   closeCombat: { attackerId: string; defenderId: string; attackerRolls: number[]; defenderRolls: number[]; outcome: 'attacker' | 'defender' | 'draw' }
   overwatchChanged: { pieceId: string; on: boolean }
+  blipConverted: { blipId: string; x: number; y: number; stealerIds: string[]; lost: number }
+  pieceAdded: { pieceId: string; kind: string; x: number; y: number }
+  phaseChanged: { phase: string; turn: number }
+  cpChanged: { cp: number }
+  gameOver: { result: string }
 }
 
 type Handler<T> = (payload: T) => void

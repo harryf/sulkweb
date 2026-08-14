@@ -39,6 +39,7 @@ export abstract class Piece {
    * by the delta *relative to the piece's facing* (forward 1, back/side 2).
    */
   tryMove(dc: number, dr: number): boolean {
+    if (this.board.locked) return false;
     const rel = toRelative(this.facing, dc, dr);
     const cost = this.moveCost(rel);
     if (cost === undefined || cost > this.ap) return false;
@@ -89,6 +90,7 @@ export abstract class Piece {
 
   /** Attempt turn: -1 = left, 1 = right, 2 = about-face */
   tryTurn(delta: -1 | 1 | 2): boolean {
+    if (this.board.locked) return false;
     const key = delta === 2 ? 'ABOUT' : delta === -1 ? 'LEFT' : 'RIGHT';
     const cost = this.turnCost(key);
     if (cost > this.ap) return false;

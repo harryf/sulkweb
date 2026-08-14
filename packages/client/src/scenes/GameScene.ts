@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { GameEngine, loadMission, Square, Piece, StormBolterMarine, Genestealer, Dir, Selection, Board, PieceEvents, visibleSquares, canShoot, closeCombat, DIR_VEC } from "@sulk/engine/index.js";
+import { GameEngine, MARINE_PHASE_SECONDS, loadMission, Square, Piece, StormBolterMarine, Genestealer, Selection, PieceEvents, visibleSquares, canShoot, closeCombat, DIR_VEC } from "@sulk/engine/index.js";
 import { Minimap } from '../ui/Minimap.js';
 import { HighlightSprite } from '../ui/HighlightSprite.js';
 import { HudPanel } from '../ui/HudPanel.js';
@@ -23,21 +23,15 @@ export default class GameScene extends Phaser.Scene {
   private pieceSprites: { [id: string]: Phaser.GameObjects.Image } = {};
   private doorSprites: { [coord: string]: Phaser.GameObjects.Image } = {};
   private owMarkers: { [id: string]: Phaser.GameObjects.Image } = {};
+  private timerRemaining = MARINE_PHASE_SECONDS;
+  private timerEvent?: Phaser.Time.TimerEvent;
   private losOverlay!: Phaser.GameObjects.Graphics;
   private losVisible = false;
 
   constructor() {
     super('GameScene')
-    const mission = loadMission('space_hulk_1');
-    const board = new Board(mission.width, mission.height, mission.squares);
-    // Create pieces
-    // Dev spawns near the first door — replaced by mission deployment zones in M7
-    const marine = new StormBolterMarine(board, { c: 10, r: 3 }, Dir.S);
-    new Genestealer(board, { c: 10, r: 7 }, Dir.N);
-    this.engine = new GameEngine(mission, [marine]);
-    // Manually assign the created board to the engine's state, as the engine creates its own instance.
-    this.engine.state.board = board;
-    this.engine.state.pieces = board.pieces as Piece[];
+    // The engine builds the board, deploys the squad, and seeds the first blips
+    this.engine = new GameEngine(loadMission('space_hulk_1'));
     (window as any).sulk = { engine: this.engine, Selection, scene: this }; // dev/debug handle
   }
 
@@ -50,6 +44,7 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('door_open', 'assets/themes/default/door_open.png');
     this.load.image(StormBolterMarine.SPRITE_KEY, 'assets/themes/default/terminator_storm_bolter.png');
     this.load.image(Genestealer.SPRITE_KEY, 'assets/themes/default/stealer.png');
+    this.load.image('blip', 'assets/themes/default/blip.png');
     this.load.image('flash_storm_bolter', 'assets/themes/default/flash_storm_bolter.png');
     this.load.image('marker_overwatch', 'assets/themes/default/marker_overwatch.png');
   }
@@ -121,11 +116,33 @@ export default class GameScene extends Phaser.Scene {
         delete this.owMarkers[pieceId];
       }
     });
+    PieceEvents.on('pieceAdded', ({ pieceId }) => {
+      if (this.pieceSprites[pieceId]) return;
+      const added = this.engine.findPiece(pieceId);
+      if (added) this.createPieceSprite(added);
+    });
+    PieceEvents.on('blipConverted', ({ blipId }) => {
+      this.pieceSprites[blipId]?.destroy();
+      delete this.pieceSprites[blipId];
+    });
+    PieceEvents.on('gameOver', ({ result }) => {
+      this.timerEvent?.remove();
+      const cam = this.cameras.main;
+      const msg = result === 'win' ? 'MISSION COMPLETE' : 'SQUAD WIPED OUT';
+      const color = result === 'win' ? '#7CFC00' : '#ff4040';
+      this.add.rectangle(0, 0, cam.width, cam.height, 0x000000, 0.6)
+        .setOrigin(0).setScrollFactor(0).setDepth(99);
+      this.add.text(cam.width / 2, cam.height / 2, msg, {
+        fontFamily: 'Kanit', fontSize: '48px', color, fontStyle: 'bold'
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
+    });
+
 
     pieces.forEach(p => this.createPieceSprite(p));
 
     this.cursors = this.input.keyboard!.createCursorKeys()
-    this.wasd = this.input.keyboard!.addKeys('W,A,S,D,O,F,C,V,U') as any
+    this.wasd = this.input.keyboard!.addKeys('W,A,S,D,O,F,C,V,U,P') as any
+    this.input.keyboard!.on('keydown-ENTER', () => this.endTurn());
     // Camera bounds to exclude HUD area
     this.cameras.main.setBounds(0, 0, width * TILE_SIZE, height * TILE_SIZE)
 
@@ -146,10 +163,24 @@ export default class GameScene extends Phaser.Scene {
     minimap.setScrollFactor(0); // fixed to screen
 
     // Create HUD panel (right-hand strip) and re-parent minimap into it
-    this.hud = new HudPanel(this, minimap);
+    this.hud = new HudPanel(this, minimap, () => this.endTurn());
     this.hud.setPosition(this.scale.width - HUD_WIDTH, 0);
     this.hud.setDepth(10);
     this.add.existing(this.hud);
+
+    PieceEvents.emit('cpChanged', { cp: this.engine.cp }); // HUD subscribed after the initial roll
+
+    // Marine-phase turn timer
+    this.timerRemaining = MARINE_PHASE_SECONDS;
+    this.hud.setTimer(this.timerRemaining);
+    this.timerEvent = this.time.addEvent({
+      delay: 1000, loop: true, callback: () => {
+        if (this.engine.state.result !== 'ongoing' || this.engine.phase !== 'MarineAction') return;
+        this.timerRemaining -= 1;
+        this.hud.setTimer(this.timerRemaining);
+        if (this.timerRemaining <= 0) this.endTurn();
+      }
+    });
 
     // Listen for camera updates for minimap
     this.events.on('update', () => minimap.updateCam(this.cameras.main));
@@ -212,7 +243,9 @@ export default class GameScene extends Phaser.Scene {
         else acted = marine.overwatchOn?.() ?? false;
       }
       else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).U)) acted = (piece as StormBolterMarine).unjam?.() ?? false;
+      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).P)) acted = this.engine.spendCP(piece);
 
+      if (acted) this.engine.checkVictory(); // e.g. marine stepped onto the exit
       if (this.losVisible) this.drawLosOverlay(); // keep overlay in sync while held
 
       if (acted) {
@@ -262,6 +295,14 @@ export default class GameScene extends Phaser.Scene {
 
     sprite.setPosition(targetWorldX, targetWorldY);
     sprite.setRotation(piece.facing * Math.PI / 2);
+  }
+
+  /** Done button / Enter / timer expiry: hand the turn to the stealers. */
+  private endTurn(): void {
+    if (this.engine.state.result !== 'ongoing') return;
+    this.engine.endMarinePhase();
+    this.timerRemaining = MARINE_PHASE_SECONDS;
+    this.hud.setTimer(this.timerRemaining);
   }
 
   /** F key: shoot the nearest enemy in fire arc + LOS. */

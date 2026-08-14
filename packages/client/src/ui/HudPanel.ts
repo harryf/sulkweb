@@ -8,10 +8,19 @@ export class HudPanel extends Phaser.GameObjects.Container {
   private miniMap: Phaser.GameObjects.Container
   private currentId: string | null = null
   private casualtyText!: Phaser.GameObjects.Text
+  private phaseText!: Phaser.GameObjects.Text
+  private cpText!: Phaser.GameObjects.Text
+  private timerText!: Phaser.GameObjects.Text
   private kills = 0
   private losses = 0
 
-  constructor(scene: Phaser.Scene, miniMap: Phaser.GameObjects.Container) {
+  setTimer(seconds: number) {
+    const m = Math.max(0, Math.floor(seconds / 60))
+    const s = Math.max(0, seconds % 60)
+    this.timerText.setText(`${m}:${String(s).padStart(2, '0')}`)
+  }
+
+  constructor(scene: Phaser.Scene, miniMap: Phaser.GameObjects.Container, onDone?: () => void) {
     super(scene, 0, 0)
     this.setScrollFactor(0) // stick to camera
 
@@ -48,6 +57,38 @@ export class HudPanel extends Phaser.GameObjects.Container {
       fixedWidth: HUD_WIDTH - 16
     })
     this.add(this.apText)
+
+    // Phase / turn / CP / timer block
+    const statusY = header.y + 96
+    this.phaseText = scene.add.text(header.x + 8, statusY, 'Turn 1 — Marines', {
+      fontFamily: 'Kanit', fontSize: '15px', color: HUD_TEXT_COLOR, fixedWidth: HUD_WIDTH - 16
+    })
+    this.add(this.phaseText)
+    this.cpText = scene.add.text(header.x + 8, statusY + 22, 'CP: -', {
+      fontFamily: 'Kanit', fontSize: '15px', color: HUD_TEXT_COLOR, fixedWidth: HUD_WIDTH - 16
+    })
+    this.add(this.cpText)
+    this.timerText = scene.add.text(header.x + 8, statusY + 44, '2:00', {
+      fontFamily: 'Kanit', fontSize: '22px', color: '#e8c840', fixedWidth: HUD_WIDTH - 16
+    })
+    this.add(this.timerText)
+
+    // Done button
+    const doneY = statusY + 84
+    const doneBtn = scene.add.rectangle(8, doneY, HUD_WIDTH - 16, 34, 0x333333)
+      .setOrigin(0)
+      .setInteractive({ useHandCursor: true })
+    doneBtn.on('pointerdown', () => onDone?.())
+    this.add(doneBtn)
+    const doneLabel = scene.add.text(8, doneY + 6, 'DONE  ⏎', {
+      fontFamily: 'Kanit', fontSize: '17px', color: '#ffffff', align: 'center', fixedWidth: HUD_WIDTH - 16
+    })
+    this.add(doneLabel)
+
+    PieceEvents.on('phaseChanged', ({ phase, turn }) => {
+      this.phaseText.setText(`Turn ${turn} — ${phase === 'MarineAction' ? 'Marines' : 'Stealers'}`)
+    })
+    PieceEvents.on('cpChanged', ({ cp }) => this.cpText.setText(`CP: ${cp}`))
 
     // Casualty counters
     this.casualtyText = scene.add.text(header.x + 8, header.y + 70, 'Kills: 0   Losses: 0', {

@@ -27,7 +27,7 @@ export class StormBolterMarine extends Piece {
    * the bonus is lost on move, turn, or target switch.
    */
   shoot(target: Piece): boolean {
-    if (this.jammed || this.ap < 1 || !target.alive) return false;
+    if (this.board.locked || this.jammed || this.ap < 1 || !target.alive) return false;
     const targetSquare = this.board.get(target.pos.c, target.pos.r);
     if (!targetSquare || !canShoot(this.board, this, targetSquare, StormBolterMarine.RANGE)) return false;
 

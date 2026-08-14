@@ -4,7 +4,7 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: execute
-progress: 35/76
+progress: 52/76
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-14T15:20:00Z
@@ -94,27 +94,27 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - [x] ISC-33: Client: muzzle-flash sprite appears at shooter on shot and disappears ≤300ms later
 - [x] ISC-34: Client: shot kill removes target sprite from scene
 - [x] ISC-35: Client: casualty counter in HUD increments on stealer death and marine death separately
-- [ ] ISC-36: Engine: `Blip` piece type with hidden stealer count (1-3), moves like a piece, no facing
-- [ ] ISC-37: Engine: blip converts to that many stealers when entering any marine's LOS (unit test)
-- [ ] ISC-38: Engine: blips enter play from mission-defined entry squares ("lurk" points)
-- [ ] ISC-39: Engine: AI0 — stealer/blip pieces move toward nearest marine each stealer phase (greedy step, unit test)
-- [ ] ISC-40: Engine: AI0 stealer adjacent to marine initiates close combat instead of moving
-- [ ] ISC-41: Client: blip renders blip sprite; conversion swaps in stealer sprites in the browser
-- [ ] ISC-42: Client: playthrough probe — stealer visibly moves toward marines and attacks without player input during stealer phase
+- [x] ISC-36: Engine: `Blip` piece type with hidden stealer count (1-3), moves like a piece, no facing
+- [x] ISC-37: Engine: blip converts to that many stealers when entering any marine's LOS (unit test)
+- [x] ISC-38: Engine: blips enter play from mission-defined entry squares ("lurk" points)
+- [x] ISC-39: Engine: AI0 — stealer/blip pieces move toward nearest marine each stealer phase (greedy step, unit test)
+- [x] ISC-40: Engine: AI0 stealer adjacent to marine initiates close combat instead of moving
+- [x] ISC-41: Client: blip renders blip sprite; conversion swaps in stealer sprites in the browser
+- [x] ISC-42: Client: playthrough probe — stealer visibly moves toward marines and attacks without player input during stealer phase
 
 ### M6 — Phase Cycle, Timer, Victory
 
-- [ ] ISC-43: Engine: full phase chain cycles ClockAndCP → MarineAction → StealerAction → EndPhase → next turn (unit test)
-- [ ] ISC-44: Engine: AP pools reset each turn (marine 4, stealer 6, blip 6); CP rolled 1d6 per turn at ClockAndCP (unit test)
-- [ ] ISC-45: Engine: CP spendable as extra AP on marines during marine phase, including reactivating a used piece (unit test)
-- [ ] ISC-46: Engine: turn timer value exposed by engine; expiry force-ends marine phase
-- [ ] ISC-47: Client: HUD shows current phase name and turn number, updates each transition
-- [ ] ISC-48: Client: HUD turn-timer counts down in marine phase; hits zero → stealer phase begins
+- [x] ISC-43: Engine: full phase chain cycles ClockAndCP → MarineAction → StealerAction → EndPhase → next turn (unit test)
+- [x] ISC-44: Engine: AP pools reset each turn (marine 4, stealer 6, blip 6); CP rolled 1d6 per turn at ClockAndCP (unit test)
+- [x] ISC-45: Engine: CP spendable as extra AP on marines during marine phase, including reactivating a used piece (unit test)
+- [x] ISC-46: Engine: turn timer value exposed by engine; expiry force-ends marine phase
+- [x] ISC-47: Client: HUD shows current phase name and turn number, updates each transition
+- [x] ISC-48: Client: HUD turn-timer counts down in marine phase; hits zero → stealer phase begins
 - [ ] ISC-49: Client: Done button ends marine phase early
-- [ ] ISC-50: Engine: victory check — mission objective met → `state.result = 'win'` (unit test)
-- [ ] ISC-51: Engine: defeat check — all marines dead → `state.result = 'loss'` (unit test)
-- [ ] ISC-52: Client: post-game overlay displays WIN or DEFEAT and blocks further input
-- [ ] ISC-53: Engine: after `state.result` set, further actions rejected (unit test)
+- [x] ISC-50: Engine: victory check — mission objective met → `state.result = 'win'` (unit test)
+- [x] ISC-51: Engine: defeat check — all marines dead → `state.result = 'loss'` (unit test)
+- [x] ISC-52: Client: post-game overlay displays WIN or DEFEAT and blocks further input
+- [x] ISC-53: Engine: after `state.result` set, further actions rejected (unit test)
 
 ### M7 — Mission 1 complete experience (scoped alpha)
 
@@ -224,4 +224,10 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - ISC-30/31: vitest combat.spec — 3d6 front / 2d6 flank, tie both survive, blow-from-behind spins defender
 - ISC-32/34/35: browser — stealer killed via live engine: removed from state.pieces, sprite destroyed, HUD "Kills: 1"
 - ISC-33: code + browser — flash sprite spawned at muzzle, destroyed via 250ms delayedCall
+- ISC-36/37/38: vitest blips_ai.spec — blip 6AP any-dir 1AP, d6→1-3 value, convert around origin, lost-if-no-room, entry spawns
+- ISC-39/40: vitest ai_pathing + blips_ai — greedy approach with Chebyshev-plateau fix (Euclidean tiebreak), CC when lined up, AI opens doors
+- ISC-41/42: browser screenshots — blips render green, converted stealers swarm map, marines attacked over 7 idle turns without player input
+- ISC-43..47: vitest gameflow.spec + browser HUD — turn cycle, AP reset, CP 1d6, spendCP, phase/turn display "Turn 7 — Stealers"
+- ISC-48: browser — timer counts down (1:56 observed); expiry path shares endTurn with Done
+- ISC-50..53: vitest — exit-win, exterminate-win, all-dead loss, post-result action rejection; browser "SQUAD WIPED OUT" overlay with dimmed board
 - ISC-12: Bash — `git rm --cached -r packages/engine/coverage`, .gitignore entry added

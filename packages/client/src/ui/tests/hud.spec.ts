@@ -22,7 +22,7 @@ function makeSceneStub() {
   return {
     scale: { height: 720 },
     add: {
-      rectangle: () => ({ x: 0, y: 0, setOrigin() { return this } }),
+      rectangle: () => ({ x: 0, y: 0, setOrigin() { return this }, setInteractive() { return this }, on() { return this } }),
       text: (_x: number, _y: number, content: string) => ({
         text: content,
         setText(next: string) { this.text = next; return this }

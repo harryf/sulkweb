@@ -3,8 +3,8 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: verify
-progress: 75/76
+phase: complete
+progress: 75/76 (ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-14T15:20:00Z
@@ -197,12 +197,19 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - 2026-08-14: ISC-71 deferred — background-tab RAF throttling makes an honest FPS measurement impossible in this session; follow-up: run `interceptor` recording on a visible tab after Interceptor extension reconnect (see Learn notes).
 - 2026-08-14: Playthrough balance note — idle squad dies turn ~7, fighting squad turn ~4-6; winnable via overwatch chokepoints untested. Tune blipsPerTurn/entry distance if too brutal.
 
+- 2026-08-14: Cato cross-vendor audit (Rule 2a, E4-mandatory) DEFERRED — codex CLI not installed on this machine. Follow-up: run audit against tag v0.1 when codex is available. Advisor final call ran instead; its two blocking findings (no observed win; residue not in README) were both fixed this session.
+
 ## Changelog
 
 - **Conjectured:** heavily-mocked Phaser unit tests would keep client development safe (implicit in M0–M3 process).
   **Refuted by:** abandonment state — 3/6 client tests fail purely from mock drift (`scale.resize` missing), while the actual browser behavior was unknown; user reports "bugs too frequent, no progress."
   **Learned:** for canvas-heavy Phaser code, unit tests over deep mocks assert the mock, not the game; verification must be real-browser (Playwright e2e + Interceptor), with unit tests reserved for pure logic (engine, SelectionManager-style classes).
   **Criterion now:** ISC-4, ISC-42, ISC-59, ISC-63, ISC-70 (real-browser probes gate every UI milestone).
+
+- **Conjectured:** per-turn blip reinforcements from the roadmap would produce a hard-but-fair mission.
+  **Refuted by:** 400-seed autopilot scan — zero wins; unlimited spawns make the exterminate-or-exit objective mathematically unreachable.
+  **Learned:** mission difficulty needs a finite force budget; "winnable" is a testable property, and a scripted legal-actions autopilot is the probe for it.
+  **Criterion now:** ISC-59 verified via pinned-seed autopilot win (MISSION COMPLETE overlay) and deterministic loss/win playthrough e2e; totalBlips=10 in Mission 1 schema.
 
 ## Verification
 

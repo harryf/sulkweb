@@ -1,120 +1,35 @@
-// Import necessary components with explicit paths to avoid JSON module issues
+// Quick engine smoke tour: board, doors, movement, vision, phase cycle.
+// Run with: pnpm --filter ./packages/engine example
 import { Board } from './board/Board.js';
-import { hasLineOfSight } from './board/los.js';
-import { Piece } from './rules/Piece.js';
 import { Door } from './rules/Door.js';
-import { GameEngine } from './GameEngine.js';
+import { StormBolterMarine } from './pieces/StormBolterMarine.js';
+import { Dir } from './core/Direction.js';
+import { canSee, visibleSquares } from './board/vision.js';
 import { GameCycle } from './GameCycle.js';
-import type { CompiledMission, SquareJSON } from './missions/missionTypes.js';
+import { loadMission } from './missions/missionLoader.js';
 
-// 1. Create a board
-const board = new Board(5, 5, []);
-console.log('Created a 5x5 board.');
+const board = new Board(5, 5);
+const marine = new StormBolterMarine(board, { c: 2, r: 3 }, Dir.N);
+console.log(`Marine at (${marine.pos.c},${marine.pos.r}) facing N, AP ${marine.ap}/${marine.apInitial}`);
 
-// 2. Create a piece and define target squares
-const startSquare = board.getSquare(2, 2)!;
-const moveTargetSquare = board.getSquare(2, 1)!; // One square north for movement
-const losTargetSquare = board.getSquare(2, 0)!;  // Two squares north for LOS check
+const doorSquare = board.get(2, 2)!;
+doorSquare.features.add(new Door(doorSquare, Dir.N));
+console.log(`Closed door ahead — forward move allowed? ${marine.moveForward()}`);
+console.log(`Sees beyond the door? ${canSee(board, marine, board.get(2, 0)!)}`);
 
-const piece = new Piece(board, startSquare, 0); // Facing North
-console.log(`Piece created at (${startSquare.coord.join(',')}), facing North.`);
-console.log(`Initial AP: ${piece.apRemaining}`);
+console.log(`Use door: ${marine.useDoor()} (AP now ${marine.ap})`);
+console.log(`Forward through open door: ${marine.moveForward()} → (${marine.pos.c},${marine.pos.r}), AP ${marine.ap}`);
+console.log(`Visible squares: ${visibleSquares(board, marine).length}`);
 
-// 3. Add a closed door on the movement target square
-const door = new Door(moveTargetSquare, 0);
-moveTargetSquare.features.add(door);
-console.log(`\nAdded a closed door at (${moveTargetSquare.coord.join(',')}).`);
-
-// 4. Check movement and LOS with the closed door
-console.log('--- With Closed Door ---');
-let moveCost = piece.canMove(moveTargetSquare);
-console.log(`Can move to (${moveTargetSquare.coord.join(',')})? Cost: ${moveCost}`);
-if (moveCost === undefined) {
-  console.log('Move blocked, as expected.');
-}
-
-let losExists = hasLineOfSight(board, piece.square, losTargetSquare);
-console.log(`Has LOS to (${losTargetSquare.coord.join(',')})? ${losExists}`);
-if (!losExists) {
-    console.log('LOS blocked, as expected.');
-}
-
-
-// 5. Open the door
-door.open();
-console.log('\n--- Opened the Door ---');
-
-// 6. Check movement and LOS again
-moveCost = piece.canMove(moveTargetSquare);
-console.log(`Can move to (${moveTargetSquare.coord.join(',')})? Cost: ${moveCost}`);
-
-losExists = hasLineOfSight(board, piece.square, losTargetSquare);
-console.log(`Has LOS to (${losTargetSquare.coord.join(',')})? ${losExists}`);
-
-// 7. Move the piece
-if (piece.move(moveTargetSquare)) {
-  console.log('\nMove successful!');
-}
-
-// 8. Show final state
-console.log(`Piece is now at (${piece.square.coord.join(',')}).`);
-console.log(`AP remaining: ${piece.apRemaining}`);
-
-// --- GameCycle Example ---
-console.log('\n\n--- Turn-Phase Machinery Example ---');
-const game = new GameCycle();
-
-console.log(`Initial Turn: ${game.turnNumber}, Phase: ${game.phase.name}`);
-
+const cycle = new GameCycle();
+console.log(`\nPhase chain from turn ${cycle.turnNumber}:`);
 for (let i = 0; i < 5; i++) {
-  game.step();
-  console.log(`→ New Turn: ${game.turnNumber}, Phase: ${game.phase.name}`);
+  console.log(`  ${cycle.phase.name}`);
+  cycle.step();
 }
-// --- End GameCycle Example ---
 
-// --- Manual Mission Creation Example ---
-console.log('\n\n--- Manual Mission Creation Example ---');
-
-// Create a simple mission manually without loading from JSON
-const manualMission: CompiledMission = {
-  name: "Test Mission",
-  width: 10,
-  height: 10,
-  squares: [
-    // Create a simple corridor
-    { x: 3, y: 0, kind: 'corridor' } as SquareJSON,
-    { x: 3, y: 1, kind: 'corridor' } as SquareJSON,
-    { x: 3, y: 2, kind: 'corridor' } as SquareJSON,
-    { x: 3, y: 3, kind: 'corridor' } as SquareJSON,
-    { x: 3, y: 4, kind: 'corridor' } as SquareJSON,
-    { x: 4, y: 4, kind: 'corridor' } as SquareJSON,
-    { x: 5, y: 4, kind: 'corridor' } as SquareJSON,
-    { x: 6, y: 4, kind: 'corridor' } as SquareJSON,
-    // Create a simple room
-    { x: 5, y: 5, kind: 'room', section: 1 } as SquareJSON,
-    { x: 6, y: 5, kind: 'room', section: 1 } as SquareJSON,
-    { x: 5, y: 6, kind: 'room', section: 1 } as SquareJSON,
-    { x: 6, y: 6, kind: 'room', section: 1 } as SquareJSON
-  ]
-};
-
-const engine = new GameEngine(manualMission);
-
-console.log(`Created mission: "${manualMission.name}"`);
-console.log('Board layout:');
-
-let output = '';
-for (let y = 0; y < engine.state.board.height; y++) {
-  let row = '';
-  for (let x = 0; x < engine.state.board.width; x++) {
-    const square = engine.state.board.getSquare(x, y);
-    row += square && square.sectionId !== -1 ? ' ■' : '  ';
-  }
-  output += row + '\n';
-}
-console.log(output);
-
-
-console.log('\nTo run this example:');
-console.log('1. Ensure ts-node is installed: pnpm add -D ts-node --filter ./packages/engine');
-console.log('2. Run: pnpm --filter ./packages/engine example');
+const mission = loadMission('space_hulk_1');
+console.log(`\nLoaded mission "${mission.name}" (${mission.width}×${mission.height}, ${mission.squares.length} squares)`);
+const missionBoard = new Board(mission.width, mission.height, mission.squares);
+const doors = missionBoard.allSquares().filter(sq => missionBoard.doorAt({ c: sq.x, r: sq.y }));
+console.log(`Doors on board: ${doors.length}`);

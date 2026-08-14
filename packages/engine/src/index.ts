@@ -13,8 +13,12 @@ export { Dir } from './core/Direction.js';
 export { AP_PER_TURN, MOVE_COST, TURN_COST } from './core/CostTables.js';
 
 // Old exports, potentially for example.ts or legacy code - review if still needed
-// export { Piece as OldPiece } from './rules/Piece.js'; // Example of renaming if needed
+
 export { Door } from './rules/Door.js';
 export { GameCycle } from './GameCycle.js';
 export { Selection } from './ui/Selection.js';
 export * from './events/PieceEvents.js';
+export { Feature } from './rules/Feature.js';
+export { DOOR_FACING } from './rules/Door.js';
+export { canSee, canShoot, inVisionArc, inFireArc, visibleSquares } from './board/vision.js';
+export { toRelative, turn, DIR_VEC } from './core/Direction.js';

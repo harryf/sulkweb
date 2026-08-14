@@ -1,10 +1,18 @@
 import { Square } from './Square.js'
 import type { SquareJSON } from '../missions/missionTypes.js'
+import { Door, DOOR_FACING } from '../rules/Door.js'
+
+/** Anything standing on squares — kept minimal to avoid circular imports. */
+export interface BoardPiece {
+  readonly id: string
+  pos: { c: number; r: number }
+}
 
 export class Board {
   public readonly grid: Map<string, Square>
   public readonly width: number
   public readonly height: number
+  public readonly pieces: BoardPiece[] = []
   private adjacentsCache: Map<Square, Square[]> = new Map()
 
   constructor(width: number, height: number, squares?: SquareJSON[] | number[][]) {
@@ -28,7 +36,11 @@ export class Board {
         // New format: SquareJSON[]
         (squares as SquareJSON[]).forEach(sq => {
           const key = `${sq.x},${sq.y}`;
-          this.grid.set(key, new Square(sq.x, sq.y, sq.kind));
+          const square = new Square(sq.x, sq.y, sq.kind);
+          if (sq.doorFacing) {
+            square.features.add(new Door(square, DOOR_FACING[sq.doorFacing]));
+          }
+          this.grid.set(key, square);
         });
         populatedFromSquares = this.grid.size > 0;
       }
@@ -52,8 +64,40 @@ export class Board {
 
   isPassable(coord: { c: number; r: number }): boolean {
     const square = this.get(coord.c, coord.r);
-    // Assumes Square has a 'passable' property. Default to false if square doesn't exist.
-    return square ? square.passable : false;
+    if (!square || !square.passable) return false;
+    for (const feature of square.features) {
+      if (feature.blocksMove?.()) return false;
+    }
+    return true;
+  }
+
+  // ---- piece registry (occupancy) ----
+
+  addPiece(piece: BoardPiece): void {
+    if (!this.pieces.includes(piece)) this.pieces.push(piece);
+  }
+
+  removePiece(piece: BoardPiece): void {
+    const i = this.pieces.indexOf(piece);
+    if (i >= 0) this.pieces.splice(i, 1);
+  }
+
+  pieceAt(coord: { c: number; r: number }): BoardPiece | undefined {
+    return this.pieces.find(p => p.pos.c === coord.c && p.pos.r === coord.r);
+  }
+
+  isOccupied(coord: { c: number; r: number }): boolean {
+    return this.pieceAt(coord) !== undefined;
+  }
+
+  /** First door feature on the square at coord, if any. */
+  doorAt(coord: { c: number; r: number }): Door | undefined {
+    const square = this.get(coord.c, coord.r);
+    if (!square) return undefined;
+    for (const feature of square.features) {
+      if (feature instanceof Door) return feature;
+    }
+    return undefined;
   }
   
   // Alias for get to support legacy tests

@@ -1,6 +1,7 @@
 import { Board } from '../board/Board.js';
-import { Dir, DIR_VEC, turn } from '../core/Direction.js';
+import { Dir, DIR_VEC, turn, toRelative } from '../core/Direction.js';
 import { MOVE_COST, TURN_COST, AP_PER_TURN } from '../core/CostTables.js';
+import { PieceEvents } from '../events/PieceEvents.js';
 
 export type Coord = { c: number; r: number };
 
@@ -19,6 +20,7 @@ export abstract class Piece {
     this.facing = facing;
     this.apInitial = apPerTurn;
     this.ap = apPerTurn;
+    board.addPiece(this);
   }
 
   /** Full AP pool at the start of each turn. */
@@ -33,16 +35,50 @@ export abstract class Piece {
    * by the delta *relative to the piece's facing* (forward 1, back/side 2).
    */
   tryMove(dc: number, dr: number): boolean {
-    const rel = this.toRelative(dc, dr);
+    const rel = toRelative(this.facing, dc, dr);
     const cost = this.moveCost(rel);
     if (cost === undefined || cost > this.ap) return false;
 
     const dest = { c: this.pos.c + dc, r: this.pos.r + dr };
-    if (!this.board.isPassable(dest)) return false;
+    if (!this.board.isPassable(dest) || this.board.isOccupied(dest)) return false;
 
     this.pos = dest;
     this.ap -= cost;
     return true;
+  }
+
+  /**
+   * Toggle a door in one of the three squares ahead (straight, front-left,
+   * front-right — per the Sulk manual). Straight ahead wins if several exist.
+   * Costs 1 AP.
+   */
+  useDoor(): boolean {
+    if (this.ap < 1) return false;
+    const door = this.findAdjacentDoor();
+    if (!door) return false;
+    // A door under a piece cannot close on it
+    if (door.isOpen && this.board.isOccupied({ c: door.square.x, r: door.square.y })) return false;
+    door.toggle();
+    this.ap -= 1;
+    PieceEvents.emit('doorToggled', { x: door.square.x, y: door.square.y, open: door.isOpen });
+    return true;
+  }
+
+  /** The door this piece could operate, if any (front 3 squares). */
+  findAdjacentDoor() {
+    const fwd = DIR_VEC[this.facing];
+    const left = DIR_VEC[turn(this.facing, -1)];
+    const right = DIR_VEC[turn(this.facing, 1)];
+    const candidates = [
+      { c: this.pos.c + fwd.dc, r: this.pos.r + fwd.dr },
+      { c: this.pos.c + fwd.dc + left.dc, r: this.pos.r + fwd.dr + left.dr },
+      { c: this.pos.c + fwd.dc + right.dc, r: this.pos.r + fwd.dr + right.dr },
+    ];
+    for (const coord of candidates) {
+      const door = this.board.doorAt(coord);
+      if (door) return door;
+    }
+    return undefined;
   }
 
   /** Attempt turn: -1 = left, 1 = right, 2 = about-face */
@@ -73,19 +109,6 @@ export abstract class Piece {
     return TURN_COST[key];
   }
 
-  /**
-   * Rotate a world-space delta into the piece's facing-relative frame,
-   * so that "straight ahead" is always (0,-1) regardless of facing.
-   */
-  private toRelative(dc: number, dr: number): { dc: number; dr: number } {
-    let rc = dc, rr = dr;
-    for (let i = 0; i < this.facing; i++) {
-      const t = rc;
-      rc = rr;
-      rr = -t;
-    }
-    return { dc: rc, dr: rr };
-  }
 }
 
 /** Convert facing dir to (dc,dr) pointing straight forward */

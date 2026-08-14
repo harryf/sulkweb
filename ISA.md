@@ -4,7 +4,7 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: execute
-progress: 11/76
+progress: 21/76
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-14T15:20:00Z
@@ -63,24 +63,24 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - [x] ISC-8: Moving a marine decrements HUD AP display in the browser
 - [x] ISC-9: Deselecting (click empty square) resets HUD AP display to `AP: --/--`
 - [x] ISC-10: Board camera pan (arrows/WASD/drag) never scrolls the HUD layer
-- [ ] ISC-11: Working tree committed at M3 boundary; `git status --short` clean
+- [x] ISC-11: Working tree committed at M3 boundary; `git status --short` clean
 - [x] ISC-12: Stale `packages/engine/coverage/` artifacts removed from git tracking and ignored
 
 ### M4 — Doors, Overwatch, LOS
 
-- [ ] ISC-13: Engine: `Door.toggle()` flips open/closed and costs the acting piece 1 AP
-- [ ] ISC-14: Engine: closed door blocks LOS through its square (unit test)
-- [ ] ISC-15: Engine: open door does not block LOS (unit test)
-- [ ] ISC-16: Engine: closed door blocks movement into/through its square; open door allows it
-- [ ] ISC-17: Engine: piece can only toggle a door in the square directly ahead of its facing
-- [ ] ISC-18: Client: door sprite renders closed/open texture matching engine state
-- [ ] ISC-19: Client: door-use key/button toggles adjacent door and re-renders sprite
+- [x] ISC-13: Engine: `Door.toggle()` flips open/closed and costs the acting piece 1 AP
+- [x] ISC-14: Engine: closed door blocks LOS through its square (unit test)
+- [x] ISC-15: Engine: open door does not block LOS (unit test)
+- [x] ISC-16: Engine: closed door blocks movement into/through its square; open door allows it
+- [x] ISC-17: Engine: piece can only toggle a door in the square directly ahead of its facing
+- [x] ISC-18: Client: door sprite renders closed/open texture matching engine state
+- [x] ISC-19: Client: door-use key/button toggles adjacent door and re-renders sprite
 - [ ] ISC-20: Engine: `overwatch` flag settable on a marine for 2 AP; cleared on move/turn/shoot
 - [ ] ISC-21: Engine: marine on overwatch auto-shoots (free, no sustained bonus, range 12) after each action by a stealer in LOS/fire-arc (unit test)
 - [ ] ISC-22: Engine: overwatch shot jams on any double; jam persists, 1 AP to clear, no shoot/overwatch while jammed (unit test)
 - [ ] ISC-23: Client: overwatch marker sprite appears on marine when overwatch set, disappears when cleared
-- [ ] ISC-24: Client: holding L with a piece selected highlights all squares in that piece's LOS
-- [ ] ISC-25: Engine: `seeable()` respects facing arc rules used by original Sulk (unit test against truth table)
+- [x] ISC-24: Client: holding L with a piece selected highlights all squares in that piece's LOS
+- [x] ISC-25: Engine: `seeable()` respects facing arc rules used by original Sulk (unit test against truth table)
 
 ### M5 — Shooting, Close Combat, Death, Blips & AI0
 
@@ -213,4 +213,9 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - ISC-8: Browser — dispatch S key → marine moves back 1 square, HUD "AP: 2/4" (backward=2AP per rules)
 - ISC-9: Browser zoom screenshot — click empty square → "AP: --/--"
 - ISC-10: Browser screenshots across drag-pan — HUD pixels unmoved while board scrolls
+- ISC-13/16/17: vitest doors.spec — toggle 1 AP, front-3 reach, blocked/allowed movement (50→51 tests green)
+- ISC-14/15: vitest doors.spec + vision.spec — closed blocks LOS, open restores
+- ISC-18/19: Browser — door bars render on mission squares; O key opened door, marine moved through onto door square
+- ISC-24: Browser screenshot — L overlay: green squares stop at closed door (also exposed+fixed walls-transparent LOS bug)
+- ISC-25: vitest vision.spec — 180° vision arc + 90° fire arc truth tables, walls block
 - ISC-12: Bash — `git rm --cached -r packages/engine/coverage`, .gitignore entry added

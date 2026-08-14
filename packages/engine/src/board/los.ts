@@ -19,7 +19,12 @@ import { Square } from './Square.js';
  * @param b The destination square.
  * @returns `true` if a clear line of sight exists, `false` otherwise.
  */
-export function hasLineOfSight(board: Board, a: Square, b: Square): boolean {
+export interface LosOptions {
+  /** When true, an intermediate square occupied by any piece blocks LOS. */
+  piecesBlock?: boolean;
+}
+
+export function hasLineOfSight(board: Board, a: Square, b: Square, opts: LosOptions = {}): boolean {
   const [x0, y0] = a.coord;
   const [x1, y1] = b.coord;
 
@@ -65,12 +70,17 @@ export function hasLineOfSight(board: Board, a: Square, b: Square): boolean {
 
   for (const [x, y] of intermediatePoints) {
     const square = board.getSquare(x, y);
-    if (square) {
-      for (const feature of square.features) {
-        if (feature.blocksLOS()) {
-          return false;
-        }
+    // A missing or impassable square is solid rock — sight never crosses it.
+    if (!square || !square.passable) {
+      return false;
+    }
+    for (const feature of square.features) {
+      if (feature.blocksLOS()) {
+        return false;
       }
+    }
+    if (opts.piecesBlock && board.isOccupied({ c: x, r: y })) {
+      return false;
     }
   }
 

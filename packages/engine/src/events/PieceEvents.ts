@@ -4,6 +4,7 @@ export type PieceEventsType = {
   /** Selection changed. `ap` is present when a piece is selected. */
   selected: { pieceId: string | null; ap?: ApInfo }
   apChanged: { pieceId: string } & ApInfo
+  doorToggled: { x: number; y: number; open: boolean }
 }
 
 type Handler<T> = (payload: T) => void

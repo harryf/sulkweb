@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { GameEngine, loadMission, Square, Piece, StormBolterMarine, Dir, Selection, Board, PieceEvents } from "@sulk/engine/index.js";
+import { GameEngine, loadMission, Square, Piece, StormBolterMarine, Dir, Selection, Board, PieceEvents, visibleSquares } from "@sulk/engine/index.js";
 import { Minimap } from '../ui/Minimap.js';
 import { HighlightSprite } from '../ui/HighlightSprite.js';
 import { HudPanel } from '../ui/HudPanel.js';
@@ -21,13 +21,17 @@ export default class GameScene extends Phaser.Scene {
   }
   private highlight!: HighlightSprite;
   private pieceSprites: { [id: string]: Phaser.GameObjects.Image } = {};
+  private doorSprites: { [coord: string]: Phaser.GameObjects.Image } = {};
+  private losOverlay!: Phaser.GameObjects.Graphics;
+  private losVisible = false;
 
   constructor() {
     super('GameScene')
     const mission = loadMission('space_hulk_1');
     const board = new Board(mission.width, mission.height, mission.squares);
     // Create pieces
-    const marine = new StormBolterMarine(board, { c: 10, r: 0 }, Dir.N);
+    // Dev spawn near the first door — replaced by mission deployment zones in M7
+    const marine = new StormBolterMarine(board, { c: 10, r: 3 }, Dir.S);
     const pieces = [marine];
     this.engine = new GameEngine(mission, pieces);
     // Manually assign the created board to the engine's state, as the engine creates its own instance.
@@ -39,8 +43,9 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('square_room', 'assets/themes/default/square_room.png');
     this.load.image('mini_square', 'assets/themes/default/mini_square.png');
     this.load.image('select', 'assets/themes/default/select.png');
+    this.load.image('door_closed', 'assets/themes/default/door_closed.png');
+    this.load.image('door_open', 'assets/themes/default/door_open.png');
     this.load.image(StormBolterMarine.SPRITE_KEY, 'assets/themes/default/terminator_storm_bolter.png');
-
   }
 
   create() {
@@ -57,10 +62,24 @@ export default class GameScene extends Phaser.Scene {
       this.add.image(sq.x * TILE_SIZE, sq.y * TILE_SIZE, texture).setOrigin(0)
     });
 
+    // Door sprites, keyed by square, updated via engine doorToggled events
+    board.allSquares().forEach((sq: Square) => {
+      const door = board.doorAt({ c: sq.x, r: sq.y });
+      if (!door) return;
+      const sprite = this.add.image(sq.x * TILE_SIZE + TILE_SIZE / 2, sq.y * TILE_SIZE + TILE_SIZE / 2, 'door_closed')
+        .setOrigin(0.5)
+        .setDepth(0.5)
+        .setRotation(door.facing % 2 === 0 ? 0 : Math.PI / 2);
+      this.doorSprites[`${sq.x},${sq.y}`] = sprite;
+    });
+    PieceEvents.on('doorToggled', ({ x, y, open }) => {
+      this.doorSprites[`${x},${y}`]?.setTexture(open ? 'door_open' : 'door_closed');
+    });
+
     pieces.forEach(p => this.createPieceSprite(p));
 
     this.cursors = this.input.keyboard!.createCursorKeys()
-    this.wasd = this.input.keyboard!.addKeys('W,A,S,D') as any
+    this.wasd = this.input.keyboard!.addKeys('W,A,S,D,O') as any
     // Camera bounds to exclude HUD area
     this.cameras.main.setBounds(0, 0, width * TILE_SIZE, height * TILE_SIZE)
 
@@ -114,6 +133,17 @@ export default class GameScene extends Phaser.Scene {
       });
     });
 
+    // LOS debug overlay — hold L with a piece selected
+    this.losOverlay = this.add.graphics().setDepth(0.8);
+    this.input.keyboard!.on('keydown-L', () => {
+      this.losVisible = true;
+      this.drawLosOverlay();
+    });
+    this.input.keyboard!.on('keyup-L', () => {
+      this.losVisible = false;
+      this.losOverlay.clear();
+    });
+
     // Keyboard handler for piece movement
     this.input.keyboard!.on('keydown', (_event: KeyboardEvent) => {
       const selectedId = Selection.get();
@@ -127,6 +157,9 @@ export default class GameScene extends Phaser.Scene {
       else if (Phaser.Input.Keyboard.JustDown(this.wasd.S)) acted = piece.moveBackward();
       else if (Phaser.Input.Keyboard.JustDown(this.wasd.A)) acted = piece.tryTurn(-1);
       else if (Phaser.Input.Keyboard.JustDown(this.wasd.D)) acted = piece.tryTurn(1);
+      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).O)) acted = piece.useDoor();
+
+      if (this.losVisible) this.drawLosOverlay(); // keep overlay in sync while held
 
       if (acted) {
         this.refreshPieceSprite(piece);
@@ -172,6 +205,18 @@ export default class GameScene extends Phaser.Scene {
 
     sprite.setPosition(targetWorldX, targetWorldY);
     sprite.setRotation(piece.facing * Math.PI / 2);
+  }
+
+  private drawLosOverlay() {
+    this.losOverlay.clear();
+    const selectedId = Selection.get();
+    if (!selectedId) return;
+    const piece = this.engine.findPiece(selectedId);
+    if (!piece) return;
+    this.losOverlay.fillStyle(0x00ff00, 0.25);
+    for (const sq of visibleSquares(this.engine.state.board, piece)) {
+      this.losOverlay.fillRect(sq.x * this.tileSize, sq.y * this.tileSize, this.tileSize, this.tileSize);
+    }
   }
 
   private updateHighlight() {

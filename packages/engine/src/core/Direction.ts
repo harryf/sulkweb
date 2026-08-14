@@ -13,3 +13,17 @@ export const DIR_VEC: Record<Dir, { dc: number; dr: number }> = {
 export function turn(facing: Dir, delta: -1 | 1 | 2): Dir {
   return ((facing + (delta === -1 ? 3 : delta)) % 4) as Dir
 }
+
+/**
+ * Rotate a world-space delta into a facing-relative frame, so that
+ * "straight ahead" is always (0,-1) regardless of facing.
+ */
+export function toRelative(facing: Dir, dc: number, dr: number): { dc: number; dr: number } {
+  let rc = dc, rr = dr;
+  for (let i = 0; i < facing; i++) {
+    const t = rc;
+    rc = rr;
+    rr = -t;
+  }
+  return { dc: rc, dr: rr };
+}

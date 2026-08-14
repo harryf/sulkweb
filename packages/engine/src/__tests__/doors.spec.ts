@@ -129,6 +129,40 @@ describe('Piece.useDoor (edge model)', () => {
   });
 });
 
+describe('LOS symmetry across door edges (property)', () => {
+  it('hasLineOfSight(a,b) === hasLineOfSight(b,a) for every pair, doors in all four orientations', () => {
+    // Advisor finding: segment-intersection LOS is exactly where visibility
+    // asymmetry creeps in. Brute-force every ordered pair on a fixture with a
+    // door edge in each orientation.
+    const board = new Board(5, 5);
+    addDoor(board, 2, 1, Dir.S); // edge (2,1)-(2,2)
+    addDoor(board, 1, 2, Dir.E); // edge (1,2)-(2,2)
+    addDoor(board, 2, 3, Dir.N); // edge (2,3)-(2,2)
+    addDoor(board, 3, 2, Dir.W); // edge (3,2)-(2,2)
+    const squares = board.allSquares();
+    for (const a of squares) {
+      for (const b of squares) {
+        expect(hasLineOfSight(board, a, b)).toBe(hasLineOfSight(board, b, a));
+      }
+    }
+  });
+});
+
+describe('Door map validation', () => {
+  it('rejects a door edge pointing into rock', () => {
+    expect(() => new Board(3, 3, [
+      { x: 1, y: 1, kind: 'corridor', doorFacing: 'up' }, // (1,0) does not exist
+    ])).toThrow(/faces into rock/);
+  });
+
+  it('rejects the same edge authored from both sides', () => {
+    expect(() => new Board(3, 3, [
+      { x: 1, y: 0, kind: 'corridor', doorFacing: 'down' },
+      { x: 1, y: 1, kind: 'corridor', doorFacing: 'up' }, // same boundary, inverse anchor
+    ])).toThrow(/Duplicate door/);
+  });
+});
+
 describe('Occupancy', () => {
   it('a piece cannot move onto an occupied square', () => {
     const board = new Board(5, 5);

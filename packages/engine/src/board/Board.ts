@@ -63,6 +63,31 @@ export class Board {
         }
       }
     }
+
+    this.validateDoors();
+  }
+
+  /**
+   * Edge-model map validation (advisor finding 2026-08-14): one physical
+   * boundary can be authored from either side — reject inverse duplicates
+   * (two Door entities with independent state on one edge), and reject edges
+   * pointing into rock (an invisible, unopenable door).
+   */
+  private validateDoors(): void {
+    const seen = new Map<string, Door>();
+    for (const door of this.allDoors()) {
+      const a = { c: door.square.x, r: door.square.y };
+      const b = door.otherSide();
+      if (!this.get(b.c, b.r)?.passable) {
+        throw new Error(`Door at (${a.c},${a.r}) faces into rock at (${b.c},${b.r}) — unreachable edge`);
+      }
+      const key = [a, b].map(p => `${p.c},${p.r}`).sort().join('|');
+      const dup = seen.get(key);
+      if (dup) {
+        throw new Error(`Duplicate door on the edge (${a.c},${a.r})↔(${b.c},${b.r}) — authored from both sides`);
+      }
+      seen.set(key, door);
+    }
   }
 
   allSquares(): Square[] { return [...this.grid.values()] }

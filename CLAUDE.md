@@ -76,6 +76,14 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
 - **Never emit events from a base-class constructor when subclass fields carry the payload:**
   JS runs subclass field initializers AFTER super() returns. `Piece.kind` is a base-constructor
   parameter for exactly this reason (the "every new piece renders as a marine" bug).
+- **Stealer-phase animation = event replay:** `PieceEvents.capture()` buffers the
+  endMarinePhase stream; the scene re-emits it via `PieceEvents.replay()` on a timeline.
+  Two invariants: engine logic must not depend on event delivery inside the captured
+  section, and state-mutating handlers (sight-conversion) must skip `PieceEvents.replaying`
+  — replayed events describe PAST board states.
+- **Determinism covers the RNG's whole lifetime:** blip values + first CP roll consume dice
+  at engine CONSTRUCTION — swapping `board.dice` afterwards leaves them random. Pin with
+  `?seed=N` (installs the source at construction), never a post-hoc dice swap.
 - Root `package.json` has `build`/`test` scripts; engine coverage artifacts are gitignored.
 
 ## Where work would continue (see README "Known gaps")

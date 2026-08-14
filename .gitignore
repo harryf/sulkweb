@@ -8,4 +8,7 @@ dist/
 # Playwright
 test-results/
 playwright-report/
-playwright/.cache/packages/engine/coverage/
+playwright/.cache/
+
+# Coverage artifacts
+packages/engine/coverage/

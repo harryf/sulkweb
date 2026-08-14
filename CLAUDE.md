@@ -20,7 +20,7 @@ Resuming work = extend `ISA.md` (new ISCs, decisions, changelog) — don't inven
 ```bash
 pnpm install
 pnpm --filter ./packages/client dev      # play at localhost:5173
-pnpm --filter ./packages/engine test     # 92 unit tests + coverage (94.6% lines)
+pnpm --filter ./packages/engine test     # 98 unit tests + coverage (~95% lines)
 pnpm --filter ./packages/client test     # HUD/minimap units (vitest, --dir src only)
 pnpm --filter ./packages/client e2e      # Playwright no-mock suite (6 tests, incl. win+loss playthroughs)
 pnpm build                               # engine tsc -b + client vite build
@@ -49,7 +49,9 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
    never assertions against seeds. `SeededRng` is for gameplay/e2e determinism only.
 2. **Anything visual/interactive → real browser** (Playwright in `packages/client/tests/`,
    which is e2e-only — never put vitest specs there, the runners conflict).
-3. Pinned-seed e2e: win.spec (seed 1 → MISSION COMPLETE) and playthrough.spec (seed 3).
+3. Pinned-seed e2e: win.spec (seed 29 → MISSION COMPLETE) and playthrough.spec (seed 3 → loss).
+   These are determinism fixtures, NOT balance evidence; balance = unpinned seed sweep
+   (2026-08-14 baseline: 62 win / 58 loss / 0 stalemate over 120 seeds).
    If a rules change alters dice-consumption order, re-scan seeds (autopilot loop over
    `new SeededRng(n)`, see ISA Decisions) and re-pin.
 4. `window.sulk` in the client exposes `{ engine, Selection, scene, SeededRng, autoplay,
@@ -67,8 +69,13 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
   with the camera until `HudPanel` set it per child).
 - **LOS:** missing squares are solid rock and block sight (fixed bug); pieces block LOS;
   vision arc is 180°, fire arc 90° with 45° edges shootable (`board/vision.ts`).
-- **AI pathing:** greedy Chebyshev with Euclidean tie-break — plain Chebyshev plateaus on
-  diagonals and pieces stall (regression tests in `ai_pathing.spec.ts`).
+- **AI pathing:** BFS shortest-path (8-connected; door squares traversable and opened on
+  contact; friendly pieces transparent for pathing so the horde queues through chokepoints,
+  but a piece never steps onto an occupied square). Greedy stepping was removed — it stalls
+  permanently in concave room pockets (regression tests in `ai_pathing.spec.ts`).
+- **Never emit events from a base-class constructor when subclass fields carry the payload:**
+  JS runs subclass field initializers AFTER super() returns. `Piece.kind` is a base-constructor
+  parameter for exactly this reason (the "every new piece renders as a marine" bug).
 - Root `package.json` has `build`/`test` scripts; engine coverage artifacts are gitignored.
 
 ## Where work would continue (see README "Known gaps")

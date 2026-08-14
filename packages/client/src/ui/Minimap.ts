@@ -50,6 +50,9 @@ export class Minimap extends Phaser.GameObjects.Container {
     // Create viewport box
     this.viewportBox = scene.add.graphics();
     this.add(this.viewportBox);
+
+    // Containers have no intrinsic size — set it so layout code can read .width/.height
+    this.setSize(this.miniMapWidth, this.miniMapHeight);
   }
 
   updateCam(cam: Phaser.Cameras.Scene2D.Camera): void {

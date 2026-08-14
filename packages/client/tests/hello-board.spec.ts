@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 test('loads Sulk board without console errors', async ({ page }: { page: Page }) => {
   const errors: string[] = []

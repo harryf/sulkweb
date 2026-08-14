@@ -1,4 +1,4 @@
-import { Piece, Coord } from './Piece.js';
+import { Piece, type Coord } from './Piece.js';
 import { Board } from '../board/Board.js';
 import { Dir } from '../core/Direction.js';
 

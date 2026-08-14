@@ -1,7 +1,7 @@
 
 import { Feature } from './Feature.js';
 import { Square } from '../board/Square.js';
-import { Dir } from './directions.js'
+import type { Dir } from './directions.js'
 
 export class Door extends Feature {
   private closed = true

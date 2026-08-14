@@ -1,4 +1,3 @@
-import { Dir } from './Direction.js';
 
 /** Movement cost by delta column & delta row (-1…1) */
 export const MOVE_COST: Record<string, number> = {

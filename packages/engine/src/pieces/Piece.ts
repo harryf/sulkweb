@@ -10,28 +10,32 @@ export abstract class Piece {
   readonly board: Board;
   pos: Coord;
   facing: Dir;
-  ap: number = AP_PER_TURN;
+  ap: number;
 
-  protected constructor(board: Board, start: Coord, facing: Dir) {
+  protected constructor(board: Board, start: Coord, facing: Dir, apPerTurn: number = AP_PER_TURN) {
     this.id = `p_${Piece.nextId++}`;
     this.board = board;
     this.pos = start;
     this.facing = facing;
+    this.apInitial = apPerTurn;
+    this.ap = apPerTurn;
   }
 
-  // ---------- public API invoked by UI -----------
-  /** Attempt forward/backward/side/diag move relative to current facing. */
-  tryMove(dc: number, dr: number): boolean {
-    const cost = MOVE_COST[`${dc},${dr}`];
-    if (cost === undefined || cost > this.ap) return false;
+  /** Full AP pool at the start of each turn. */
+  readonly apInitial: number;
 
-    // Resolve relative dc, dr to absolute board coordinates based on facing
-    // This part seems to be missing from the user's provided code for tryMove.
-    // The user's tryMove directly uses dc, dr as if they are already world-relative.
-    // However, the comment says "relative to current facing".
-    // For now, I will implement it as provided, assuming dc, dr are world-relative for tryMove.
-    // If they are meant to be piece-relative, this logic needs adjustment.
-    // The moveForward/moveBackward methods correctly transform to world-relative.
+  /** AP left this turn — alias kept in sync with `ap` for UI consumers. */
+  get apRemaining(): number { return this.ap; }
+
+  // ---------- public API invoked by UI -----------
+  /**
+   * Attempt a move by world-space delta (dc, dr). The AP cost is determined
+   * by the delta *relative to the piece's facing* (forward 1, back/side 2).
+   */
+  tryMove(dc: number, dr: number): boolean {
+    const rel = this.toRelative(dc, dr);
+    const cost = this.moveCost(rel);
+    if (cost === undefined || cost > this.ap) return false;
 
     const dest = { c: this.pos.c + dc, r: this.pos.r + dr };
     if (!this.board.isPassable(dest)) return false;
@@ -44,7 +48,7 @@ export abstract class Piece {
   /** Attempt turn: -1 = left, 1 = right, 2 = about-face */
   tryTurn(delta: -1 | 1 | 2): boolean {
     const key = delta === 2 ? 'ABOUT' : delta === -1 ? 'LEFT' : 'RIGHT';
-    const cost = TURN_COST[key];
+    const cost = this.turnCost(key);
     if (cost > this.ap) return false;
     this.facing = turn(this.facing, delta);
     this.ap -= cost;
@@ -54,8 +58,34 @@ export abstract class Piece {
   /** Convenience helpers for UI */
   moveForward()   { return this.tryMove(...dirToDelta(this.facing)); }
   moveBackward()  { return this.tryMove(...dirToDelta(turn(this.facing, 2))); }
+  stepLeft()      { return this.tryMove(...dirToDelta(turn(this.facing, -1))); }
+  stepRight()     { return this.tryMove(...dirToDelta(turn(this.facing, 1))); }
 
-  resetAP() { this.ap = AP_PER_TURN; }
+  resetAP() { this.ap = this.apInitial; }
+
+  /** Movement cost for a facing-relative delta — subclasses override (e.g. blips). */
+  protected moveCost(rel: { dc: number; dr: number }): number | undefined {
+    return MOVE_COST[`${rel.dc},${rel.dr}`];
+  }
+
+  /** Turning cost — subclasses override (e.g. genestealers turn free). */
+  protected turnCost(key: 'LEFT' | 'RIGHT' | 'ABOUT'): number {
+    return TURN_COST[key];
+  }
+
+  /**
+   * Rotate a world-space delta into the piece's facing-relative frame,
+   * so that "straight ahead" is always (0,-1) regardless of facing.
+   */
+  private toRelative(dc: number, dr: number): { dc: number; dr: number } {
+    let rc = dc, rr = dr;
+    for (let i = 0; i < this.facing; i++) {
+      const t = rc;
+      rc = rr;
+      rr = -t;
+    }
+    return { dc: rc, dr: rr };
+  }
 }
 
 /** Convert facing dir to (dc,dr) pointing straight forward */

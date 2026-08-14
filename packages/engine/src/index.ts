@@ -17,3 +17,4 @@ export { AP_PER_TURN, MOVE_COST, TURN_COST } from './core/CostTables.js';
 export { Door } from './rules/Door.js';
 export { GameCycle } from './GameCycle.js';
 export { Selection } from './ui/Selection.js';
+export * from './events/PieceEvents.js';

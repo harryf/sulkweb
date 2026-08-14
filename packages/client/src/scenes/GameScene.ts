@@ -1,11 +1,15 @@
 import Phaser from 'phaser'
-import { GameEngine, loadMission, Square, Piece, StormBolterMarine, Dir, Selection, Board } from "@sulk/engine/index.js";
+import { GameEngine, loadMission, Square, Piece, StormBolterMarine, Dir, Selection, Board, PieceEvents } from "@sulk/engine/index.js";
 import { Minimap } from '../ui/Minimap.js';
 import { HighlightSprite } from '../ui/HighlightSprite.js';
+import { HudPanel } from '../ui/HudPanel.js';
+import { HUD_WIDTH } from '../config.js';
 
 const TILE_SIZE = 40
 
 export default class GameScene extends Phaser.Scene {
+  private hud!: import('../ui/HudPanel.js').HudPanel;
+
   private tileSize: number = TILE_SIZE;
   private readonly engine: GameEngine
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
@@ -36,11 +40,17 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('mini_square', 'assets/themes/default/mini_square.png');
     this.load.image('select', 'assets/themes/default/select.png');
     this.load.image(StormBolterMarine.SPRITE_KEY, 'assets/themes/default/terminator_storm_bolter.png');
+
   }
 
   create() {
     const { board, pieces } = this.engine.state
     const { width, height } = board
+
+    // Canvas: board viewport (capped so it fits a normal window) + HUD strip on the right
+    const viewW = Math.min(width * TILE_SIZE, 880)
+    const viewH = Math.min(height * TILE_SIZE, 720)
+    this.scale.resize(viewW + HUD_WIDTH, viewH)
 
     board.allSquares().forEach((sq: Square) => {
       const texture = sq.kind === 'corridor' ? 'square_corridor' : 'square_room'
@@ -51,24 +61,32 @@ export default class GameScene extends Phaser.Scene {
 
     this.cursors = this.input.keyboard!.createCursorKeys()
     this.wasd = this.input.keyboard!.addKeys('W,A,S,D') as any
+    // Camera bounds to exclude HUD area
     this.cameras.main.setBounds(0, 0, width * TILE_SIZE, height * TILE_SIZE)
-    
+
     const centerX = Math.floor(width / 2) * TILE_SIZE
     const centerY = Math.floor(height / 2) * TILE_SIZE
     this.cameras.main.centerOn(centerX, centerY);
 
-    // Enable drag-to-pan
+    // Enable drag-to-pan (ignore drags that start over the right-hand HUD)
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
-      if (!p.isDown) return
+      if (!p.isDown) return;
+      if (p.x > this.scale.width - HUD_WIDTH) return;
       this.cameras.main.scrollX -= (p.x - p.prevPosition.x) / this.cameras.main.zoom;
       this.cameras.main.scrollY -= (p.y - p.prevPosition.y) / this.cameras.main.zoom;
     });
 
-    // Create Minimap
-    const minimap = new Minimap(this, this.engine, { tile: this.tileSize, width: 200 });
-    this.add.existing(minimap);
+    // Create Minimap (sized to fit inside the HUD panel)
+    const minimap = new Minimap(this, this.engine, { tile: this.tileSize, width: HUD_WIDTH - 2 * 8 });
     minimap.setScrollFactor(0); // fixed to screen
-    minimap.setPosition(this.cameras.main.width - 210, this.cameras.main.height - 210);
+
+    // Create HUD panel (right-hand strip) and re-parent minimap into it
+    this.hud = new HudPanel(this, minimap);
+    this.hud.setPosition(this.scale.width - HUD_WIDTH, 0);
+    this.hud.setDepth(10);
+    this.add.existing(this.hud);
+
+    // Listen for camera updates for minimap
     this.events.on('update', () => minimap.updateCam(this.cameras.main));
 
     // Set-up selection
@@ -82,10 +100,18 @@ export default class GameScene extends Phaser.Scene {
       );
 
       if (hit) {
-        const id = (hit as any).pieceId;
-        Selection.toggle(id);
-        this.updateHighlight();
+        Selection.toggle((hit as any).pieceId);
+      } else {
+        Selection.clear();
       }
+      this.updateHighlight();
+
+      const selectedId = Selection.get();
+      const piece = selectedId ? this.engine.findPiece(selectedId) : undefined;
+      PieceEvents.emit('selected', {
+        pieceId: piece?.id ?? null,
+        ap: piece ? { apRemaining: piece.apRemaining, apInitial: piece.apInitial } : undefined
+      });
     });
 
     // Keyboard handler for piece movement
@@ -105,6 +131,7 @@ export default class GameScene extends Phaser.Scene {
       if (acted) {
         this.refreshPieceSprite(piece);
         this.updateHighlight();
+        PieceEvents.emit('apChanged', { pieceId: piece.id, apRemaining: piece.apRemaining, apInitial: piece.apInitial });
       }
     });
   }
@@ -120,7 +147,8 @@ export default class GameScene extends Phaser.Scene {
 
     const worldW = this.engine.state.board.width * this.tileSize;
     const worldH = this.engine.state.board.height * this.tileSize;
-    cam.scrollX = Phaser.Math.Clamp(cam.scrollX, 0, worldW - cam.width);
+    // Clamp so left edge never goes past HUD
+    cam.scrollX = Phaser.Math.Clamp(cam.scrollX, 0, worldW - cam.width + HUD_WIDTH);
     cam.scrollY = Phaser.Math.Clamp(cam.scrollY, 0, worldH - cam.height);
   }
 

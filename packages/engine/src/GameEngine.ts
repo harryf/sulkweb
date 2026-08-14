@@ -1,6 +1,6 @@
-import { Piece } from './pieces/Piece.js';
+import type { Piece } from './pieces/Piece.js';
 import { Board } from './board/Board.js'
-import { CompiledMission } from './missions/missionTypes.js'
+import type { CompiledMission } from './missions/missionTypes.js'
 
 export interface EngineState {
   board: Board;

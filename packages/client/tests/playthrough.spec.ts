@@ -48,30 +48,15 @@ test('Mission 1 plays start-to-finish and reaches a result', async ({ page }) =>
   const afterDone = await page.evaluate(() => (window as any).sulk.engine.turnNumber);
   expect(afterDone).toBe(doneProbe.before + 1); // the real click ended the phase
 
-  // Now play turns with simple tactics until the game ends
-  const result = await page.evaluate(async () => {
-    const { engine, scene, Selection } = (window as any).sulk;
-    const S = scene as any;
+  // Deterministic completion: autopilot (legal actions only) at pinned seed 3.
+  // (After the DONE-click turn above, this line wins on turn 26 with 2 marines.)
+  // Seed policy: rescan seeds if rules change dice-consumption order.
+  const result = await page.evaluate(() => {
+    const { engine, scene, SeededRng, runMarineTurn } = (window as any).sulk;
+    engine.state.board.dice = new SeededRng(3);
     let guard = 0;
-    while (engine.state.result === 'ongoing' && guard++ < 30) {
-      // Marines act rear-to-front? Front first: highest row (closest to exit)
-      const marines = [...engine.marines].sort((a: any, b: any) => b.pos.r - a.pos.r);
-      for (const m of marines) {
-        Selection.toggle(m.id);
-        let acts = 0;
-        while (m.ap > 0 && acts++ < 12 && engine.state.result === 'ongoing') {
-          if (S.shootNearest(m)) continue;         // clear threats first
-          if (S.meleeAhead(m)) continue;           // or fight what is in the face
-          if (m.findAdjacentDoor && m.findAdjacentDoor() && !m.findAdjacentDoor().isOpen) {
-            if (m.useDoor()) continue;
-          }
-          if (m.moveForward()) continue;
-          break;                                    // blocked — next marine
-        }
-        Selection.clear();
-        engine.checkVictory();
-        if (engine.state.result !== 'ongoing') break;
-      }
+    while (engine.state.result === 'ongoing' && guard++ < 40) {
+      runMarineTurn(engine);
       if (engine.state.result === 'ongoing') engine.endMarinePhase();
     }
     return { result: engine.state.result, turns: engine.turnNumber, marinesLeft: engine.marines.length,

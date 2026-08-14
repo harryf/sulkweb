@@ -1,64 +1,75 @@
 # Sulk Web
 
-This project is a web-based port of the classic turn-based strategy game, [Sulk](https://sulk.sourceforge.net/), originally built with Pygame. It uses Phaser 3 and TypeScript for a modern, fast, and maintainable implementation.
+A web-based port of the classic turn-based strategy game [Sulk](https://sulk.sourceforge.net/) (a Space Hulk clone, originally Pygame), built with **Phaser 3 + TypeScript** on the client and a **pure-TypeScript rules engine** with no rendering dependencies.
 
+**Status: playable v0.1 slice.** Mission 1 ("Suicide Mission") boots with a five-marine squad, genestealer blips enter from mission entry points, the stealer AI hunts the squad, and the game ends in victory (reach the exit or exterminate) or defeat (squad wiped).
 
-
-## Project Structure
-
-The repository is organized as a monorepo with the following high-level structure:
-
-```
-/sulk-web/
-├─ packages/
-│  ├─ engine/          # Pure rules & AI (no Phaser)
-│  └─ client/          # Phaser front-end (Vite + TypeScript)
-├─ assets/             # Game assets (images, sounds, fonts, themes)
-├─ missions/           # JSON/YAML mission files
-└─ docs/               # Original game documentation & design notes
-```
-
--   **`packages/client`**: This is the main front-end application built with [Phaser 3](https://phaser.io/). It handles rendering, user input, and communication with the game engine. It's set up with [Vite](https://vitejs.dev/) for a fast development experience.
-
--   **`packages/engine`**: This package contains the core game logic, including rules, piece definitions, AI, and state management. It is written in pure TypeScript to remain decoupled from the presentation layer, which allows it to be run in different environments (browser, server, etc.).
-
--   **`assets`**: Contains all static game assets. The `themes/` subdirectory allows for easy skinning of the game's appearance.
-
--   **`missions`**: Will contain the game's mission files, converted from their original Python format to JSON or YAML for easy parsing by the engine.
-
--   **`docs`**: Contains the original design documents and manuals for the game.
-
-## Getting Started
-
-To get the client application running for development:
-
-1.  **Navigate to the client directory:**
-    ```bash
-    cd packages/client
-    ```
-
-2.  **Install dependencies:**
-    This project uses `pnpm` for package management.
-    ```bash
-    pnpm install
-    ```
-
-3.  **Run the development server:**
-    ```bash
-    pnpm run dev
-    ```
-
-This will start a local development server, and you can view the application in your browser at the URL provided (usually `http://localhost:5173`).
-
-### Run milestone 0 - Hello Board
+## Play
 
 ```bash
-pnpm i
-pnpm --filter ./packages/client dev      # open localhost:5173
-pnpm --filter ./packages/client test     # unit
-pnpm --filter ./packages/client e2e      # browser integration
+pnpm install
+pnpm --filter ./packages/client dev   # open http://localhost:5173
+```
 
-### Run milestone 1 - Geometry & LOS
-pnpm --filter ./packages/engine test     # unit
-pnpm --filter ./packages/engine example # cli example
+### Controls
 
+| Input | Action |
+|-------|--------|
+| Click marine | Select |
+| `W` / `S` | Move forward / backward |
+| `A` / `D` | Turn left / right |
+| `O` | Open/close door ahead |
+| `F` | Fire storm bolter at nearest target |
+| `C` | Close combat (enemy directly ahead) |
+| `V` | Overwatch on/off (2 AP) |
+| `U` | Unjam bolter |
+| `P` | Spend a Command Point (+1 AP) |
+| `L` (hold) | Show line of sight |
+| `Enter` / DONE | End marine phase |
+| `Esc` | Pause |
+| Arrows / drag | Pan camera |
+
+## Rules implemented (per the original Sulk manual in `docs/`)
+
+- AP economy: marines 4 AP, stealers 6 AP (free 90° turns), blips 6 AP omnidirectional
+- Facing-relative move costs; occupancy; doors (front-3 operate, block move + LOS)
+- Vision 180° / fire 90° arcs, walls and pieces block LOS
+- Storm bolter: 2d6 kill-on-6, sustained fire (+1 per miss, max +3), range 12
+- Overwatch reaction fire, jams on doubles, 1 AP unjam
+- Close combat: highest die, stealer 3d6 front / 2d6 flank, tie both survive
+- Blips: hidden 1–3 stealers, convert on being sighted, overflow lost
+- Turn cycle: CP roll (1d6), marine phase (2:00 timer), reinforcements, stealer AI, victory checks
+
+## Development
+
+```bash
+pnpm --filter ./packages/engine test   # 92 unit tests (rules, AI, game flow)
+pnpm --filter ./packages/client test   # HUD + minimap unit tests
+pnpm --filter ./packages/client e2e    # Playwright smoke: real browser, no mocks
+pnpm build                             # engine tsc + client vite build
+pnpm --filter ./packages/engine example  # CLI engine tour
+```
+
+The project ISA (`ISA.md`) is the system of record: goals, verified criteria, decisions, and changelog.
+
+## Structure
+
+```
+packages/
+├─ engine/   # Pure rules & AI — no Phaser imports (enforced by test greps)
+│  └─ src/{board,core,pieces,rules,ai,phases,missions,events}
+└─ client/   # Phaser 3 + Vite front-end
+   └─ src/{scenes,ui,utils}
+```
+
+## Roadmap state (original M0–M8 plan in `prompts/`)
+
+- ✅ M0–M2: board, engine geometry/LOS, mission render, camera, selection
+- ✅ M3: HUD panel, AP counter, minimap
+- ✅ M4: doors, overwatch, LOS overlay
+- ✅ M5: shooting, close combat, death, blips, AI0
+- ✅ M6: phase cycle, CP, turn timer, victory/defeat
+- 🔶 M7 (scoped): Mission 1 playable with storm-bolter squad; deferred: flamer,
+  assault cannon, librarian, chain fist, sergeant/captain special rules, CAT,
+  ambush counters, marine interrupts, additional missions
+- ✅ M8 (hygiene): clean build, e2e suite, truthful docs

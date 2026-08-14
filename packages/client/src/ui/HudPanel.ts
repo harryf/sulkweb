@@ -105,6 +105,12 @@ export class HudPanel extends Phaser.GameObjects.Container {
       this.casualtyText.setText(`Kills: ${this.kills}   Losses: ${this.losses}`)
     })
 
+    // Controls reference
+    const controls = scene.add.text(8, doneY + 52,
+      'Click marine to select\nW/S move · A/D turn\nO door · F fire · C melee\nV overwatch · U unjam\nP spend CP · L show LOS\nEnter end turn · Esc pause',
+      { fontFamily: 'Kanit', fontSize: '12px', color: '#8a8a8a', lineSpacing: 3, fixedWidth: HUD_WIDTH - 16 })
+    this.add(controls)
+
     // subscribe — payloads carry everything; the HUD never reaches into the engine
     PieceEvents.on('selected', ({ pieceId, ap }) => {
       this.currentId = pieceId
@@ -117,6 +123,11 @@ export class HudPanel extends Phaser.GameObjects.Container {
     PieceEvents.on('apChanged', ({ pieceId, apRemaining, apInitial }) => {
       if (pieceId === this.currentId) this.setAP(apRemaining, apInitial)
     })
+
+    // Children default to scrollFactor 1: rendering follows the container (0),
+    // but Phaser's input hit-test uses the child's own factor — set each child,
+    // or the DONE button's clickable area drifts with the camera.
+    this.list.forEach((child) => (child as Phaser.GameObjects.Components.ScrollFactor & typeof child).setScrollFactor?.(0))
   }
 
   private setAP(rem: number, init: number) {

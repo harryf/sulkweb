@@ -25,6 +25,8 @@ export default class GameScene extends Phaser.Scene {
   private owMarkers: { [id: string]: Phaser.GameObjects.Image } = {};
   private timerRemaining = MARINE_PHASE_SECONDS;
   private timerEvent?: Phaser.Time.TimerEvent;
+  private paused = false;
+  private pauseOverlay?: Phaser.GameObjects.Container;
   private losOverlay!: Phaser.GameObjects.Graphics;
   private losVisible = false;
 
@@ -143,6 +145,7 @@ export default class GameScene extends Phaser.Scene {
     this.cursors = this.input.keyboard!.createCursorKeys()
     this.wasd = this.input.keyboard!.addKeys('W,A,S,D,O,F,C,V,U,P') as any
     this.input.keyboard!.on('keydown-ENTER', () => this.endTurn());
+    this.input.keyboard!.on('keydown-ESC', () => this.togglePause());
     // Camera bounds to exclude HUD area
     this.cameras.main.setBounds(0, 0, width * TILE_SIZE, height * TILE_SIZE)
 
@@ -175,7 +178,7 @@ export default class GameScene extends Phaser.Scene {
     this.hud.setTimer(this.timerRemaining);
     this.timerEvent = this.time.addEvent({
       delay: 1000, loop: true, callback: () => {
-        if (this.engine.state.result !== 'ongoing' || this.engine.phase !== 'MarineAction') return;
+        if (this.paused || this.engine.state.result !== 'ongoing' || this.engine.phase !== 'MarineAction') return;
         this.timerRemaining -= 1;
         this.hud.setTimer(this.timerRemaining);
         if (this.timerRemaining <= 0) this.endTurn();
@@ -223,6 +226,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Keyboard handler for piece movement
     this.input.keyboard!.on('keydown', (_event: KeyboardEvent) => {
+      if (this.paused || this.engine.state.result !== 'ongoing') return;
       const selectedId = Selection.get();
       if (!selectedId) return;
 
@@ -297,9 +301,26 @@ export default class GameScene extends Phaser.Scene {
     sprite.setRotation(piece.facing * Math.PI / 2);
   }
 
+  /** ESC: pause stops the timer and ignores all game input until resumed. */
+  private togglePause(): void {
+    if (this.engine.state.result !== 'ongoing') return;
+    this.paused = !this.paused;
+    if (this.paused) {
+      const cam = this.cameras.main;
+      const box = this.add.rectangle(0, 0, cam.width, cam.height, 0x000000, 0.5).setOrigin(0);
+      const label = this.add.text(cam.width / 2, cam.height / 2, 'PAUSED', {
+        fontFamily: 'Kanit', fontSize: '42px', color: '#ffffff', fontStyle: 'bold'
+      }).setOrigin(0.5);
+      this.pauseOverlay = this.add.container(0, 0, [box, label]).setScrollFactor(0).setDepth(90);
+    } else {
+      this.pauseOverlay?.destroy();
+      this.pauseOverlay = undefined;
+    }
+  }
+
   /** Done button / Enter / timer expiry: hand the turn to the stealers. */
   private endTurn(): void {
-    if (this.engine.state.result !== 'ongoing') return;
+    if (this.engine.state.result !== 'ongoing' || this.paused) return;
     this.engine.endMarinePhase();
     this.timerRemaining = MARINE_PHASE_SECONDS;
     this.hud.setTimer(this.timerRemaining);

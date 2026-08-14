@@ -100,12 +100,43 @@ export class Board {
     return this.pieceAt(coord) !== undefined;
   }
 
-  /** First door feature on the square at coord, if any. */
+  /** First door anchored on the square at coord, if any. */
   doorAt(coord: { c: number; r: number }): Door | undefined {
+    return this.doorsAt(coord)[0];
+  }
+
+  /** All doors anchored on the square at coord. */
+  doorsAt(coord: { c: number; r: number }): Door[] {
     const square = this.get(coord.c, coord.r);
-    if (!square) return undefined;
+    if (!square) return [];
+    const doors: Door[] = [];
     for (const feature of square.features) {
-      if (feature instanceof Door) return feature;
+      if (feature instanceof Door) doors.push(feature);
+    }
+    return doors;
+  }
+
+  /** Every door on the board (edge-model: each sits between two squares). */
+  allDoors(): Door[] {
+    const doors: Door[] = [];
+    for (const square of this.grid.values()) {
+      for (const feature of square.features) {
+        if (feature instanceof Door) doors.push(feature);
+      }
+    }
+    return doors;
+  }
+
+  /** The door on the edge between two orthogonally-adjacent squares, if any. */
+  doorBetween(a: { c: number; r: number }, b: { c: number; r: number }): Door | undefined {
+    if (Math.abs(a.c - b.c) + Math.abs(a.r - b.r) !== 1) return undefined;
+    for (const door of this.doorsAt(a)) {
+      const far = door.otherSide();
+      if (far.c === b.c && far.r === b.r) return door;
+    }
+    for (const door of this.doorsAt(b)) {
+      const far = door.otherSide();
+      if (far.c === a.c && far.r === a.r) return door;
     }
     return undefined;
   }

@@ -1,5 +1,34 @@
 import { Board } from './Board.js';
 import { Square } from './Square.js';
+import type { Door } from '../rules/Door.js';
+import { DIR_VEC } from '../core/Direction.js';
+
+/** A door edge as a segment in grid units (square (x,y) spans x..x+1, y..y+1). */
+function doorSegment(door: Door): [number, number, number, number] {
+  const { x, y } = door.square;
+  const v = DIR_VEC[door.facing];
+  if (v.dr === -1) return [x, y, x + 1, y];             // boundary above the anchor
+  if (v.dr === 1) return [x, y + 1, x + 1, y + 1];      // below
+  if (v.dc === -1) return [x, y, x, y + 1];             // left
+  return [x + 1, y, x + 1, y + 1];                      // right
+}
+
+const EPS = 1e-9;
+const cross = (ox: number, oy: number, ax: number, ay: number, bx: number, by: number) =>
+  (ax - ox) * (by - oy) - (ay - oy) * (bx - ox);
+
+/** Proper (interior) intersection of segments AB and CD — endpoint grazing does not count. */
+function segmentsCross(
+  ax: number, ay: number, bx: number, by: number,
+  cx: number, cy: number, dx: number, dy: number,
+): boolean {
+  const d1 = cross(ax, ay, bx, by, cx, cy);
+  const d2 = cross(ax, ay, bx, by, dx, dy);
+  const d3 = cross(cx, cy, dx, dy, ax, ay);
+  const d4 = cross(cx, cy, dx, dy, bx, by);
+  return ((d1 > EPS && d2 < -EPS) || (d1 < -EPS && d2 > EPS))
+    && ((d3 > EPS && d4 < -EPS) || (d3 < -EPS && d4 > EPS));
+}
 
 /**
  * Checks if a straight-line Line of Sight (LOS) exists between two squares.
@@ -30,6 +59,15 @@ export function hasLineOfSight(board: Board, a: Square, b: Square, opts: LosOpti
 
   if (x0 === x1 && y0 === y1) {
     return true;
+  }
+
+  // Edge-model doors: a CLOSED door blocks any sight line that crosses its
+  // boundary segment — including sight into the square directly behind it.
+  const sx = x0 + 0.5, sy = y0 + 0.5, ex = x1 + 0.5, ey = y1 + 0.5;
+  for (const door of board.allDoors()) {
+    if (door.isOpen) continue;
+    const [dx0, dy0, dx1, dy1] = doorSegment(door);
+    if (segmentsCross(sx, sy, ex, ey, dx0, dy0, dx1, dy1)) return false;
   }
 
   const dx = x1 - x0;

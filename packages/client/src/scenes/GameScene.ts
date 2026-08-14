@@ -71,18 +71,24 @@ export default class GameScene extends Phaser.Scene {
       this.add.image(sq.x * TILE_SIZE, sq.y * TILE_SIZE, texture).setOrigin(0)
     });
 
-    // Door sprites, keyed by square, updated via engine doorToggled events
+    // Door sprites, keyed by anchor square + facing, updated via doorToggled.
+    // EDGE-MODEL: the sprite sits ON the boundary between the anchor square
+    // and its facing-neighbor, rotated to lie along that boundary.
     board.allSquares().forEach((sq: Square) => {
-      const door = board.doorAt({ c: sq.x, r: sq.y });
-      if (!door) return;
-      const sprite = this.add.image(sq.x * TILE_SIZE + TILE_SIZE / 2, sq.y * TILE_SIZE + TILE_SIZE / 2, 'door_closed')
-        .setOrigin(0.5)
-        .setDepth(0.5)
-        .setRotation(door.facing % 2 === 0 ? 0 : Math.PI / 2);
-      this.doorSprites[`${sq.x},${sq.y}`] = sprite;
+      for (const door of board.doorsAt({ c: sq.x, r: sq.y })) {
+        const v = DIR_VEC[door.facing];
+        const sprite = this.add.image(
+          sq.x * TILE_SIZE + TILE_SIZE / 2 + v.dc * TILE_SIZE / 2,
+          sq.y * TILE_SIZE + TILE_SIZE / 2 + v.dr * TILE_SIZE / 2,
+          'door_closed')
+          .setOrigin(0.5)
+          .setDepth(0.5)
+          .setRotation(door.facing % 2 === 0 ? 0 : Math.PI / 2);
+        this.doorSprites[`${sq.x},${sq.y}:${door.facing}`] = sprite;
+      }
     });
-    PieceEvents.on('doorToggled', ({ x, y, open }) => {
-      this.doorSprites[`${x},${y}`]?.setTexture(open ? 'door_open' : 'door_closed');
+    PieceEvents.on('doorToggled', ({ x, y, facing, open }) => {
+      this.doorSprites[`${x},${y}:${facing}`]?.setTexture(open ? 'door_open' : 'door_closed');
     });
 
     // Mission markers: stealer entry points (purple), exit objective (green),

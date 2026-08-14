@@ -45,9 +45,9 @@ describe('blips convert immediately when a marine action reveals them', () => {
     const blip = new Blip(board, { c: 10, r: 7 }, 1);
     // Craft the situation: blip IS currently visible through the open door, so a
     // LIVE doorToggled would convert it. A REPLAYED one must not.
-    PieceEvents.replay({ type: 'doorToggled', payload: { x: 10, y: 5, open: true } });
+    PieceEvents.replay({ type: 'doorToggled', payload: { x: 10, y: 5, facing: 0, open: true } });
     expect(blip.alive).toBe(true); // untouched by the replay
-    PieceEvents.emit('doorToggled', { x: 10, y: 5, open: true }); // live event → rule applies
+    PieceEvents.emit('doorToggled', { x: 10, y: 5, facing: 0, open: true }); // live event → rule applies
     expect(blip.alive).toBe(false);
   });
 

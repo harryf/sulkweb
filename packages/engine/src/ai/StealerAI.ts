@@ -60,7 +60,9 @@ function facingToward(from: Coord, to: Coord): Dir {
  * permanently in concave room pockets — see ISA Changelog 2026-08-14.)
  */
 function nextStepOnPath(board: Board, from: Coord, isGoal: (c: Coord) => boolean): Coord | undefined {
-  const traversable = (c: Coord) => board.isPassable(c) || board.doorAt(c) !== undefined;
+  // Edge-model doors do not block squares; a closed edge on the path is fine —
+  // the piece opens it on contact in stepToward.
+  const traversable = (c: Coord) => board.isPassable(c);
   // Friendly stealer-side pieces are transparent for PATHING (the horde queues
   // through chokepoints instead of idling when a friend holds the only goal
   // square); marines are solid obstacles. The caller refuses to actually STEP
@@ -113,12 +115,12 @@ function stepToward(board: Board, piece: Piece, targets: Coord[]): 'acted' | 'wa
   if (!next) return 'none';
   if (board.isOccupied(next)) return 'wait'; // a friend holds the next square — wait in line
 
-  const door = board.doorAt(next);
+  const door = board.doorBetween(piece.pos, next);
   if (door && !door.isOpen) {
     if (piece.ap < 1) return 'wait';
     door.open();
     piece.ap -= 1;
-    PieceEvents.emit('doorToggled', { x: door.square.x, y: door.square.y, open: true });
+    PieceEvents.emit('doorToggled', { x: door.square.x, y: door.square.y, facing: door.facing, open: true });
     return 'acted';
   }
 
@@ -133,19 +135,17 @@ function stepToward(board: Board, piece: Piece, targets: Coord[]): 'acted' | 'wa
 
 import { PieceEvents } from '../events/PieceEvents.js';
 
-/** Open a closed door adjacent to the piece (1 AP). Stealer side ignores facing for doors. */
+/** Open a closed door on an edge of the piece's own square (1 AP). Stealer side ignores facing for doors. */
 function openAdjacentDoor(board: Board, piece: Piece): boolean {
   if (piece.ap < 1) return false;
-  for (let dr = -1; dr <= 1; dr++) {
-    for (let dc = -1; dc <= 1; dc++) {
-      if (dc === 0 && dr === 0) continue;
-      const door = board.doorAt({ c: piece.pos.c + dc, r: piece.pos.r + dr });
-      if (door && !door.isOpen) {
-        door.open();
-        piece.ap -= 1;
-        PieceEvents.emit('doorToggled', { x: door.square.x, y: door.square.y, open: true });
-        return true;
-      }
+  const ORTHO = [{ dc: 0, dr: -1 }, { dc: 1, dr: 0 }, { dc: 0, dr: 1 }, { dc: -1, dr: 0 }];
+  for (const v of ORTHO) {
+    const door = board.doorBetween(piece.pos, { c: piece.pos.c + v.dc, r: piece.pos.r + v.dr });
+    if (door && !door.isOpen) {
+      door.open();
+      piece.ap -= 1;
+      PieceEvents.emit('doorToggled', { x: door.square.x, y: door.square.y, facing: door.facing, open: true });
+      return true;
     }
   }
   return false;

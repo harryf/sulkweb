@@ -4,7 +4,7 @@ export type PieceEventsType = {
   /** Selection changed. `ap` is present when a piece is selected. */
   selected: { pieceId: string | null; ap?: ApInfo }
   apChanged: { pieceId: string } & ApInfo
-  doorToggled: { x: number; y: number; open: boolean }
+  doorToggled: { x: number; y: number; facing: number; open: boolean }
   pieceMoved: { pieceId: string; x: number; y: number; facing: number }
   shot: { shooterId: string; targetId: string; x: number; y: number; rolls: number[]; hit: boolean }
   pieceDied: { pieceId: string; kind: string; x: number; y: number }

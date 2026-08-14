@@ -4,10 +4,10 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 94/95 (ISC-71 deferred; ISC-77..95 bug sweep + animated stealer phase all verified)
+progress: 100/101 (ISC-71 deferred; ISC-77..101 bug sweep, animated stealer phase, edge-model doors all verified)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-14T19:30:00Z
+updated: 2026-08-14T20:15:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -69,10 +69,10 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 ### M4 — Doors, Overwatch, LOS
 
 - [x] ISC-13: Engine: `Door.toggle()` flips open/closed and costs the acting piece 1 AP
-- [x] ISC-14: Engine: closed door blocks LOS through its square (unit test)
-- [x] ISC-15: Engine: open door does not block LOS (unit test)
-- [x] ISC-16: Engine: closed door blocks movement into/through its square; open door allows it
-- [x] ISC-17: Engine: piece can only toggle a door in the square directly ahead of its facing
+- [x] ISC-14: Engine: closed door blocks LOS through its square (unit test) *(superseded by ISC-98 edge model — see Decisions 2026-08-14)*
+- [x] ISC-15: Engine: open door does not block LOS (unit test) *(superseded by ISC-98)*
+- [x] ISC-16: Engine: closed door blocks movement into/through its square; open door allows it *(superseded by ISC-97)*
+- [x] ISC-17: Engine: piece can only toggle a door in the square directly ahead of its facing *(superseded by ISC-99 front-3 edge rule)*
 - [x] ISC-18: Client: door sprite renders closed/open texture matching engine state
 - [x] ISC-19: Client: door-use key/button toggles adjacent door and re-renders sprite
 - [x] ISC-20: Engine: `overwatch` flag settable on a marine for 2 AP; cleared on move/turn/shoot
@@ -176,6 +176,15 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - [x] ISC-94: Pinned e2e games are fully deterministic: dice installed at engine construction via `?seed=N` (blip values + CP roll included); seeds re-scanned (Bash)
 - [x] ISC-95: Anti: REPLAYED events never mutate engine state — sight-conversion ignores `PieceEvents.replaying` (vitest, advisor finding)
 
+### Edge-model doors (2026-08-14, third user pass: "doors should be on the edge between two grid squares")
+
+- [x] ISC-96: A Door models the boundary between its anchor square and the `doorFacing` neighbor; `doorBetween(a,b)` finds it from either direction (vitest)
+- [x] ISC-97: Closed door blocks orthogonal movement across its edge; open allows it; movement parallel to the edge and onto the anchor square is unaffected (vitest)
+- [x] ISC-98: Closed door blocks LOS crossing its edge — including the square directly behind it; open restores sight; sight parallel to the edge is unaffected (vitest, exact segment intersection)
+- [x] ISC-99: Door operation follows the front-3 edge rule (straight-ahead edge wins; edges incident to front squares reachable; edges behind unreachable); AI opens the edge it is about to cross (vitest)
+- [x] ISC-100: Door sprites render ON the boundary between their two squares, rotated along it (browser screenshot)
+- [x] ISC-101: Anti: no door blocks or occupies a square — every door anchor square is passable (vitest)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
@@ -230,6 +239,8 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - 2026-08-14 (animated stealer phase): Advisor final-call adjudication — ADOPTED: replay-mutation guard (`PieceEvents.replaying` skipped by sight-conversion handlers; ISC-95), ESC-pause gated during replay, `prefers-reduced-motion` skips the timeline. REFUTED with evidence: timer leak (delayedCalls are scene-owned, die with scene; no in-app New Game exists — restart is a page reload); input-lockout breadth (all turn entry points funnel through guarded endTurn; keydown/pointerdown/pause gated; camera pan deliberately allowed so the player can follow the action); two-engines-one-process conversion (conversion_on_sight.spec constructs sequential engines in one worker — second converts); objective wired (reach-exit victory is engine-tested, not presentation-only). LOGGED as follow-ups: GameEngine.dispose() to unsubscribe global-emitter handlers if in-app restart ever ships; click-to-skip replay; camera-follow for off-screen action; wall-clock sampling in animation.spec could flake on loaded CI (consider Playwright clock API).
 - 2026-08-14 (animated stealer phase): Determinism root-fix — blip values + first CP roll consume dice at CONSTRUCTION, before test pins previously landed; all prior "pinned" seeds (and scans) were value-randomized. GameEngine now accepts a dice source at construction; client reads `?seed=N`. Deterministic rescan: 62W/58L/0 over 120; pins ?seed=1 (win) / ?seed=5 (loss).
 
+- 2026-08-14 (edge-model doors): refined: user playtest — doors rendered mid-square with square-blob LOS semantics "don't make sense". Remodeled: `Door` = boundary between anchor square and `doorFacing` neighbor (mission JSON reinterpreted in place — (10,5)↑, (10,8)↓, (10,16)↑, (15,13)→ — no data change). Movement blocks orthogonal edge crossings; LOS does exact sight-line-vs-edge segment intersection (endpoint grazing not blocking, consistent with corner-of-rock behavior); operation follows a front-3 EDGE rule; AI opens the edge it is about to cross; sprites render on the boundary. Dropped rule: "cannot close a door on an occupied square" (no doorway square exists). Known scope edge: diagonal moves cannot cross an edge's interior geometrically, and shipped corridors are 1-wide, so no diagonal-bypass rule was added — revisit if a mission ever puts a door edge on a 2-wide opening. ISC-14..17 superseded by ISC-96..99 (ID-stability: originals annotated, not renumbered).
+
 ## Changelog
 
 - **Conjectured:** heavily-mocked Phaser unit tests would keep client development safe (implicit in M0–M3 process).
@@ -251,6 +262,11 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
   **Refuted by:** win.spec(seed 1) failing in-browser while the engine scan called seed 1 a win — initial blip values and the first CP roll are consumed at ENGINE CONSTRUCTION from the default randomly-seeded dice, before any test-side swap lands; every prior pin and scan carried hidden variance.
   **Learned:** determinism claims must cover the full lifetime of the RNG consumer — audit WHEN the first roll happens, not just who rolls; "replace the RNG in the test" silently misses construction-time consumption.
   **Criterion now:** ISC-94 — dice source injectable at GameEngine construction, e2e pins via `?seed=N` URL, scans construct with the seed.
+
+- **Conjectured:** modeling a door as a square-occupying Feature (blocksMove/blocksLOS on the anchor square) was a faithful-enough port of the board game's doors.
+  **Refuted by:** user playtest — a door drawn in the middle of a walkable square reads as nonsense, and square-blob sight blocking produced "weird line of sight effects" (the whole door square vanished from sight lines instead of the boundary).
+  **Learned:** physical-board entities keep their geometry class in digital ports: doors are edge predicates, not cell contents. Modeling them as cells leaked wrong semantics into four subsystems at once (movement, LOS, AI, render) — geometry errors metastasize.
+  **Criterion now:** ISC-96..101 (edge model across movement, sight, operation, AI, render); ISC-14..17 annotated superseded.
 
 - **Conjectured:** (advisor, 2026-08-14) the 1–2%→52% autopilot win-rate jump might be a stealth AI nerf wearing a bug-fix label.
   **Refuted by:** playtest traces — the BFS horde is strictly deadlier (idle squad wiped by turn 7 vs stragglers never arriving), and the win-rate rise is explained by stalled blips previously making the exterminate objective unreachable (hidden pieces parked in pockets forever → 'ongoing' stalemates, 0/120 seeds stalemate now).
@@ -325,3 +341,13 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - ISC-93: animation.spec — second endTurn mid-replay: turnNumber unchanged
 - ISC-94: deterministic scan (dice at construction) 120 seeds: 62 win / 58 loss / 0 ongoing; pins ?seed=1 (win, MISSION COMPLETE overlay) / ?seed=5 (loss); full suites: engine 101/101, client 6/6, e2e 7/7, build clean
 - ISC-95: conversion_on_sight.spec — `PieceEvents.replay(doorToggled)` leaves visible blip alive; identical live emit converts it
+
+### Edge-model doors (2026-08-14, third user pass)
+
+- ISC-96: doors.spec — anchor (1,0) facing down: otherSide (1,1); doorBetween symmetric both directions
+- ISC-97: doors.spec — closed edge blocks (2,2)→(2,1); open allows; parallel entry (1,1)→(2,1) always allowed; anchor square isPassable true
+- ISC-98: doors.spec — LOS (2,2)→(2,0) and (2,2)→(2,1) blocked when closed, clear when open; row-parallel LOS through anchor unaffected; vision.spec door tests pass unchanged
+- ISC-99: doors.spec — straight-ahead toggle 1 AP, front-diagonal-incident edge reachable, behind edges (incl. own rear edge) unreachable; ai_pathing door test: blip opens edge (10,15)|(10,16) on contact and continues
+- ISC-100: Playwright markers-and-objective.png — door bars straddle square boundaries on col-10 corridor and row-13 arm (previously centered in squares)
+- ISC-101: doors.spec — `isPassable(anchor)` true with closed door present
+- Sweep: engine 104/104, client units 6/6, e2e 7/7, build clean; deterministic seed scan UNCHANGED (62W/58L/0 — dice order preserved), pins ?seed=1/?seed=5 still valid

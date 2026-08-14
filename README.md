@@ -32,7 +32,9 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
 ## Rules implemented (per the original Sulk manual in `docs/`)
 
 - AP economy: marines 4 AP, stealers 6 AP (free 90° turns), blips 6 AP omnidirectional
-- Facing-relative move costs; occupancy; doors (front-3 operate, block move + LOS)
+- Facing-relative move costs; occupancy; edge-model doors — a door sits on the
+  boundary between two squares (front-3 operate; closed = blocks movement and
+  sight across that edge)
 - Vision 180° / fire 90° arcs, walls and pieces block LOS
 - Storm bolter: 2d6 kill-on-6, sustained fire (+1 per miss, max +3), range 12
 - Overwatch reaction fire, jams on doubles, 1 AP unjam

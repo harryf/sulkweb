@@ -50,6 +50,13 @@ export abstract class Piece {
 
     const dest = { c: this.pos.c + dc, r: this.pos.r + dr };
     if (!this.board.isPassable(dest) || this.board.isOccupied(dest)) return false;
+    // Edge-model doors: an orthogonal move crossing a closed door edge is
+    // blocked. (Diagonals cannot cross an edge's interior — corridors here are
+    // one square wide, so no diagonal bypass exists on the shipped missions.)
+    if (dc === 0 || dr === 0) {
+      const door = this.board.doorBetween(this.pos, dest);
+      if (door && !door.isOpen) return false;
+    }
 
     this.pos = dest;
     this.ap -= cost;
@@ -67,27 +74,38 @@ export abstract class Piece {
     if (this.ap < 1) return false;
     const door = this.findAdjacentDoor();
     if (!door) return false;
-    // A door under a piece cannot close on it
-    if (door.isOpen && this.board.isOccupied({ c: door.square.x, r: door.square.y })) return false;
     door.toggle();
     this.ap -= 1;
-    PieceEvents.emit('doorToggled', { x: door.square.x, y: door.square.y, open: door.isOpen });
+    PieceEvents.emit('doorToggled', { x: door.square.x, y: door.square.y, facing: door.facing, open: door.isOpen });
     return true;
   }
 
-  /** The door this piece could operate, if any (front 3 squares). */
+  /**
+   * The door edge this piece could operate: the edge to the square straight
+   * ahead wins; otherwise any door edge incident to one of the three front
+   * squares (Sulk manual front-3 rule, translated to edges). Edges purely
+   * behind the piece are unreachable.
+   */
   findAdjacentDoor() {
     const fwd = DIR_VEC[this.facing];
     const left = DIR_VEC[turn(this.facing, -1)];
     const right = DIR_VEC[turn(this.facing, 1)];
-    const candidates = [
-      { c: this.pos.c + fwd.dc, r: this.pos.r + fwd.dr },
-      { c: this.pos.c + fwd.dc + left.dc, r: this.pos.r + fwd.dr + left.dr },
-      { c: this.pos.c + fwd.dc + right.dc, r: this.pos.r + fwd.dr + right.dr },
+    const ahead = { c: this.pos.c + fwd.dc, r: this.pos.r + fwd.dr };
+    const direct = this.board.doorBetween(this.pos, ahead);
+    if (direct) return direct;
+
+    const fronts = [
+      ahead,
+      { c: ahead.c + left.dc, r: ahead.r + left.dr },
+      { c: ahead.c + right.dc, r: ahead.r + right.dr },
     ];
-    for (const coord of candidates) {
-      const door = this.board.doorAt(coord);
-      if (door) return door;
+    const ORTHO = [{ dc: 0, dr: -1 }, { dc: 1, dr: 0 }, { dc: 0, dr: 1 }, { dc: -1, dr: 0 }];
+    for (const f of fronts) {
+      for (const v of ORTHO) {
+        const n = { c: f.c + v.dc, r: f.r + v.dr };
+        const door = this.board.doorBetween(f, n);
+        if (door) return door;
+      }
     }
     return undefined;
   }

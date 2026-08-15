@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: verify
+phase: complete
 progress: 204/205 (batch-migration ISC-191..203 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-15T11:45:00Z
+updated: 2026-08-15T12:00:00Z
 ---
 
 # Sulk Web — Project ISA

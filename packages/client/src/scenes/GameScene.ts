@@ -371,13 +371,20 @@ export default class GameScene extends Phaser.Scene {
     this.wasd = this.input.keyboard!.addKeys('W,A,S,D,O,F,C,V,U,P,X,T,R,G') as any
     this.input.keyboard!.on('keydown-ENTER', () => this.endTurn());
     this.input.keyboard!.on('keydown-ESC', () => this.togglePause());
-    // Camera bounds: one-tile margin for off-board markers, PLUS a HUD-width
-    // dead zone on the right. Phaser clamps scroll to bounds − FULL canvas
-    // width, but the right 200px of canvas is the opaque HUD strip — without
-    // the dead zone the rightmost markers can never pan out from under it
-    // (space_hulk_3's (28,22) entry triangle was the reported casualty).
-    this.cameras.main.setBounds(-TILE_SIZE, -TILE_SIZE,
-      (width + 2) * TILE_SIZE + HUD_WIDTH, (height + 2) * TILE_SIZE)
+    // Camera bounds — the SINGLE clamp for every scroll path (keys, drag,
+    // pan()): one-tile margin for off-board markers plus MARKER_OVERHANG for
+    // the wide entry/exit art (84px along one axis — up to 22px past its
+    // cell), PLUS a HUD-width dead zone on the right. Phaser clamps scroll to
+    // bounds − FULL canvas width, but the right 200px of canvas is the opaque
+    // HUD strip — without the dead zone the rightmost markers can never pan
+    // out from under it (space_hulk_3's (28,22) entry triangle was the
+    // reported casualty). Assumes zoom stays 1 (this scene never zooms);
+    // markers.spec sweeps all missions against these exact clamps.
+    const MARKER_OVERHANG = 24
+    this.cameras.main.setBounds(
+      -TILE_SIZE - MARKER_OVERHANG, -TILE_SIZE - MARKER_OVERHANG,
+      (width + 2) * TILE_SIZE + HUD_WIDTH + 2 * MARKER_OVERHANG,
+      (height + 2) * TILE_SIZE + 2 * MARKER_OVERHANG)
 
     const centerX = Math.floor(width / 2) * TILE_SIZE
     const centerY = Math.floor(height / 2) * TILE_SIZE
@@ -630,12 +637,8 @@ export default class GameScene extends Phaser.Scene {
     if (this.cursors.up.isDown) cam.scrollY -= speed;
     if (this.cursors.down.isDown) cam.scrollY += speed;
 
-    const T = this.tileSize;
-    const worldW = this.engine.state.board.width * T;
-    const worldH = this.engine.state.board.height * T;
-    // Clamp so left edge never goes past HUD; one-tile margin for off-board markers
-    cam.scrollX = Phaser.Math.Clamp(cam.scrollX, -T, worldW + T - cam.width + HUD_WIDTH);
-    cam.scrollY = Phaser.Math.Clamp(cam.scrollY, -T, worldH + T - cam.height);
+    // No manual clamp here: the camera bounds set in create() are the single
+    // source of truth — Phaser clamps every scroll path against them.
   }
 
   private createSprite(pieceId: string, kind: string, x: number, y: number, facing: number) {

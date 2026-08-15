@@ -64,6 +64,12 @@ describe('marine identities (ISC-275/276)', () => {
       expect(row.title).toBe(`Squad ${sgt.name.slice(5)}`)
     }
     expect(rows.map(r => r.squad)).toEqual(['Sakharov', 'Sternfeld'])
+    // Leaderless squad falls back to its first member (debug_1's lone bolter)
+    const solo = groupBySquad(buildRoster(
+      new GameEngine(loadMission('debug_1'), [], new SeededRng(1)), loadMission('debug_1')))
+    expect(solo).toHaveLength(1)
+    expect(solo[0].title).toBe(`Squad ${solo[0].members[0].name.replace(/^Bro\. /, '')}`)
+    expect(solo[0].members[0].name).toMatch(/^Bro\. /)
   })
 })
 

@@ -143,8 +143,18 @@ export abstract class Piece {
     if (!this.alive) return;
     this.alive = false;
     this.board.removePiece(this);
+    // Original teams.py casualty counting (every kill() path lands here, so a
+    // single counting point covers shots, CC, flames and self-destruct; blip
+    // CONVERSION removes via board.removePiece and never counts).
+    if (this.kind !== 'marine') {
+      this.board.stealerCasualties += this.casualtyWorth;
+      PieceEvents.emit('casualtiesChanged', { casualties: this.board.stealerCasualties });
+    }
     PieceEvents.emit('pieceDied', { pieceId: this.id, kind: this.kind, x: this.pos.c, y: this.pos.r });
   }
+
+  /** Kill-quota credit for this piece's death — blips override with their VALUE. */
+  protected get casualtyWorth(): number { return 1; }
 
   /** Hook fired after a successful move/turn/door — combat state reacts (sustained fire, overwatch, move-and-shoot). */
   protected onActed(_action: 'move' | 'turn' | 'door'): void {}

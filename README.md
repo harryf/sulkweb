@@ -2,9 +2,8 @@
 
 A web-based port of the classic turn-based strategy game [Sulk](https://sulk.sourceforge.net/) (a Space Hulk clone, originally Pygame), built with **Phaser 3 + TypeScript** on the client and a **pure-TypeScript rules engine** with no rendering dependencies.
 
-**Status: playable, faithful to the original.** Two missions transcribed from the
-original game's sources (`data/missions/<family>/MISH_*.py`), sharing the original
-Suicide Mission board:
+**Status: playable, faithful to the original.** Three missions transcribed from the
+original game's sources (`data/missions/<family>/MISH_*.py`):
 
 - **`debug_1`** (default): "Suicide Mission with no forces" — one storm-bolter marine
   vs a one-blip-per-turn trickle (adapted reach-the-exit objective).
@@ -15,6 +14,13 @@ Suicide Mission board:
   or runs out of ammo (6 shots — self-destruct also wins if he's inside the room).
   Reinforcements are uncapped, exactly like the source.
   `http://localhost:5173/?mission=space_hulk_1`
+- **`space_hulk_2`** "Exterminate": a fresh 204-square board. Squad Constantine
+  (3 storm bolters + sergeant + heavy flamer) starts scattered — one marine per
+  room, per the original deployment rule — against two blips a turn, uncapped.
+  Win by **killing 30 stealers** (a dead blip counts its hidden 1–3 value) or by
+  **blockading every entry** (a marine within 6 squares of each); lose when the
+  squad is wiped. The HUD shows the running toll (`Kills: n/30`).
+  `http://localhost:5173/?mission=space_hulk_2`
 
 Blips enter from the mission entry points, refuse to expose themselves (converting
 from cover like the originals), the stealer AI hunts the squad, and the original
@@ -77,13 +83,18 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
 - Original objective restored: flame Launch Control (20,20); stealers win the moment
   no living flamer has ammo. Original sprites for every piece variant and the
   original GPL sound set are wired in.
+- Mission 2 victory per the source `victory_check`: casualty counting matches the
+  original `kill()` (stealer +1, blip +its hidden value, blip CONVERSION counts
+  nothing), quota win fires the instant the 30th kill lands, and the blockade
+  check walks the board graph exactly like `get_team_is_near` (8-way, walls
+  block, closed doors don't, self = 0).
 
 ## Development
 
 ```bash
-pnpm --filter ./packages/engine test   # 143 unit tests (rules, AI, game flow)
+pnpm --filter ./packages/engine test   # 164 unit tests (rules, AI, game flow)
 pnpm --filter ./packages/client test   # HUD + minimap unit tests
-pnpm --filter ./packages/client e2e    # 10 Playwright tests: real browser, no mocks
+pnpm --filter ./packages/client e2e    # 11 Playwright tests: real browser, no mocks
 pnpm build                             # engine tsc + client vite build
 pnpm --filter ./packages/engine example  # CLI engine tour
 ```
@@ -113,6 +124,9 @@ packages/
   hammer, captain/grenades, CAT, ambush counters, marine interrupts — these
   belong to missions 2–6 and beta, queued for the mission-recreation phase
 - ✅ M8 (hygiene): clean build, e2e suite, truthful docs
+- ✅ Mission recreation 1/6 (2026-08-15): space_hulk_2 "Exterminate" — generalized
+  `transcribeMission.ts` pipeline (MISH_*.py → mission JSON), kill-quota +
+  entry-blockade victory, one-marine-per-room deployment, kill counter HUD
 
 ## Known gaps / residue
 
@@ -123,6 +137,16 @@ packages/
   balance evidence. The kill chain itself is verified: unopposed, the squad
   delivers the flamer and wins by turn 9. Human winnability with overwatch and
   door discipline is untested. debug_1 (default) stays comfortably winnable.
+- Mission 2 is brutal by design ("outnumbered sixty to one") and no scripted
+  strategy wins it: entry-post marching, a compact-deployment ablation, and a
+  camp-and-overwatch proxy all go 0-for-30, though kills scale with strategy
+  quality (means 3.3 → 4.2 → 5.6, best single run 15 of 30). Both win chains
+  are verified: the quota fires in a real OPPOSED game (integration test at a
+  lowered quota) and the blockade completes unopposed by turn 7. Whether a
+  human can reach 30 is untested — the missing marine-interrupt actions (below)
+  are the original's main tool for exactly this fight.
+- The two marines the original lets the STEALER player place (a bolter and the
+  sergeant) deploy at fixed adversarial spots instead — see ISA Decisions.
 - Marine interrupt actions (CP spending during the stealer phase) not implemented —
   a real mission-1 marine tool in the original (Space key), and the biggest
   named gap for a human trying to win space_hulk_1.

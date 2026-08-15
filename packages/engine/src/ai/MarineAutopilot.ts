@@ -34,6 +34,11 @@ export function runMarineTurn(engine: GameEngine): void {
     p.kind !== 'marine' && engine.marines.some(m =>
       Math.max(Math.abs(m.pos.c - p.pos.c), Math.abs(m.pos.r - p.pos.r)) <= 10));
 
+  // Kill-quota missions: the blockade win needs EVERY entry within 6 of some
+  // marine, so marines split into posts by greedy set-cover, not nearest-entry
+  // (which clumps the squad on one cluster and leaves far entries open).
+  const quotaPosts = engine.mission.objective === 'kill-quota' ? assignEntryPosts(engine) : undefined;
+
   for (const m of marines) {
     let acts = 0;
     while (m.alive && m.ap > 0 && acts++ < 16 && engine.state.result === 'ongoing') {
@@ -61,9 +66,11 @@ export function runMarineTurn(engine: GameEngine): void {
       // Flame missions: the flamer leads and the escorts FOLLOW it — they
       // must never overtake into the objective approach (they would wall off
       // the one-square-wide firing corridor or stand inside the blast).
+      // Kill-quota missions have no objective square: each marine marches on
+      // its nearest entry point (the blockade win) and overwatches the flow.
       const target = flameMission && !(m instanceof HeavyFlamerMarine) && flamer?.alive
         ? { x: flamer.pos.c, y: flamer.pos.r }
-        : goal;
+        : quotaPosts ? quotaPosts.get(m.id) : goal;
       if (target && advanceToward(board, m, target)) {
         engine.checkVictory();
         // Move-and-shoot: the move earned a free bolter shot — use it.
@@ -120,6 +127,53 @@ function nextStep(board: Board, from: Coord, to: Coord): Coord | undefined {
     }
   }
   return undefined;
+}
+
+/**
+ * Greedy entry-post assignment for kill-quota missions: each marine (in squad
+ * order) takes its nearest still-uncovered entry; standing there covers every
+ * entry within 6 board-walk squares (the blockade metric), which are removed
+ * from the pool. Marines left over reinforce their nearest entry.
+ */
+function assignEntryPosts(engine: GameEngine): Map<string, { x: number; y: number }> {
+  const board = engine.state.board;
+  const entries = engine.mission.entryPoints ?? [];
+  const posts = new Map<string, { x: number; y: number }>();
+  const uncovered = [...entries];
+  for (const m of engine.marines) {
+    const pool = uncovered.length > 0 ? uncovered : entries;
+    const target = [...pool].sort((a, b) =>
+      Math.hypot(a.x - m.pos.c, a.y - m.pos.r) - Math.hypot(b.x - m.pos.c, b.y - m.pos.r))[0];
+    if (!target) break;
+    posts.set(m.id, target);
+    for (let i = uncovered.length - 1; i >= 0; i--) {
+      if (walkDist(board, target, uncovered[i], 6) <= 6) uncovered.splice(i, 1);
+    }
+  }
+  return posts;
+}
+
+/** Board-walk distance (8-way over existing squares, the get_team_is_near
+ *  metric), capped at `max` — returns max+1 when farther/disconnected. */
+function walkDist(board: Board, a: { x: number; y: number }, b: { x: number; y: number }, max: number): number {
+  if (a.x === b.x && a.y === b.y) return 0;
+  const start = board.get(a.x, a.y);
+  if (!start) return max + 1;
+  let frontier = [start];
+  const seen = new Set([start]);
+  for (let dist = 1; dist <= max; dist++) {
+    const next = [];
+    for (const sq of frontier) {
+      for (const adj of board.adjacentsOf(sq)) {
+        if (seen.has(adj)) continue;
+        if (adj.x === b.x && adj.y === b.y) return dist;
+        seen.add(adj);
+        next.push(adj);
+      }
+    }
+    frontier = next;
+  }
+  return max + 1;
 }
 
 function facingToward(from: Coord, to: Coord): Dir {

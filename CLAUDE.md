@@ -20,9 +20,9 @@ Resuming work = extend `ISA.md` (new ISCs, decisions, changelog) — don't inven
 ```bash
 pnpm install
 pnpm --filter ./packages/client dev      # play at localhost:5173
-pnpm --filter ./packages/engine test     # 143 unit tests + coverage (~95% lines)
+pnpm --filter ./packages/engine test     # 164 unit tests + coverage (~95% lines)
 pnpm --filter ./packages/client test     # HUD/minimap units (vitest, --dir src only)
-pnpm --filter ./packages/client e2e      # Playwright no-mock suite (10 tests, incl. win+loss playthroughs, flame-victory UI, stealer-phase animation, HUD hover readout)
+pnpm --filter ./packages/client e2e      # Playwright no-mock suite (11 tests, incl. win+loss playthroughs, flame-victory UI, mission-2 kill counter, stealer-phase animation, HUD hover readout)
 pnpm build                               # engine tsc -b + client vite build
 pnpm --filter ./packages/engine example  # CLI engine tour
 ```
@@ -41,11 +41,33 @@ pnpm --filter ./packages/engine example  # CLI engine tour
   doors (`doorFacing`), `entryPoints`, `exitPoints`, `marineDeployment`, `objective`.
 - **Mission geometry comes from the ORIGINAL Sulk sources** at
   `~/Code/personal/sulk/archive/sulk-0.29-snapshot-20030623/data/missions/<family>/MISH_*.py`.
-  Our JSONs mirror that structure: `engine/src/missions/space_hulk/space_hulk_1.json`,
+  Our JSONs mirror that structure: `engine/src/missions/space_hulk/space_hulk_{1,2}.json`,
   `engine/src/missions/debug/debug_1.json` — registry in `missions/index.ts`. debug_1 and
   space_hulk_1 share a byte-identical 98-square BOARD (verified by diffing the sources);
-  they differ only in forces/objective. `mission1_fidelity.spec.ts` is the
-  square-for-square guard — edit maps only with the original source in hand.
+  they differ only in forces/objective. `mission{1,2}_fidelity.spec.ts` are the
+  square-for-square guards — edit maps only with the original source in hand.
+- **New missions transcribe mechanically**: `bun scripts/transcribeMission.ts
+  <MISH_*.py> <target.json>` parses the BOARD (sections, doors, entries, M/room
+  squares) and patches the target's board fields in place, preserving hand-written
+  forces/objective fields — idempotent, rerunnable for missions 3–6. Seed the
+  target with name/deployment/objective first, then transcribe. Each mission's
+  fidelity spec gets its expected data from an INDEPENDENT reading of the source
+  (mission 2's came from a separate Explore-agent transcription), never from the
+  script's own output.
+- **space_hulk_2 "Exterminate" victory** (`objective: kill-quota`): marines win at
+  `board.stealerCasualties >= killQuota` (counted in `Piece.die()` — stealer +1,
+  blip +VALUE, conversion counts NOTHING) OR when every entry square has a marine
+  within 6 (`Board.pieceNear` — the original `get_team_is_near` walk: 8-way over
+  existing squares, walls block, closed doors don't). Loss on squad wipe. The
+  original checks victory at PHASE BOUNDARIES (phases.py:774 marine-action end,
+  973 end-phase); our kill-quota missions add a marine-action-end check in
+  endMarinePhase plus an outcome-equivalent instant quota check on pieceDied
+  (no enemy act between the 30th kill and the boundary) — blockade evaluates
+  ONLY at boundaries (positions final). Other objectives keep their adapted
+  post-spawn timing: a pre-stealer-phase check would read the empty turn-1
+  board as "stealers exterminated" (debug1 regression caught this).
+  Deployment is one marine per room section (original pre_deploy_rule); the two
+  stealer-placed pieces are fixed adversarially (see ISA Decisions).
 - **BEGINPLACE is DEAD CODE in the original** (initial camera position; its board.py
   consumers are commented out). Real deployment squares are the `M:`-tagged tuples —
   mission 1: the north corridor (10,0)–(10,4). Original FORCES: 3 storm bolters +

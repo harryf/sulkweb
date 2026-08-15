@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: 156/157 (ISC-71 deferred; fidelity run ISC-126..157 verified 2026-08-15)
+phase: verify
+progress: 189/190 (mission-2 run ISC-158..190 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-15T08:30:00Z
+updated: 2026-08-15T10:40:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -262,6 +262,50 @@ Anti + closure:
 - [x] ISC-156: All suites green with pins re-scanned under the new dice flow; scan evidence recorded (Bash)
 - [x] ISC-157: README + CLAUDE.md updated: controls, restored rules, mission truth, re-baselined balance (Read)
 
+Mission 2 "Exterminate" recreation (2026-08-15, source MISH_space_hulk_2.py):
+
+Board fidelity:
+- [x] ISC-158: `loadMission('space_hulk_2')` returns the mission — registry entry exists (vitest)
+- [x] ISC-159: square set matches the original BOARD exactly — 204 squares (fidelity spec vs independent transcription)
+- [x] ISC-160: 42 sections; per-square section ids partition identically to the source sublists (fidelity spec)
+- [x] ISC-161: all 19 doors present with source facings (fidelity spec)
+- [x] ISC-162: all 11 ENTRY squares present as entryPoints (fidelity spec)
+- [x] ISC-163: marineDeployment = exactly 5 squares: 3 storm_bolter + 1 sergeant + 1 heavy_flamer (fidelity spec)
+- [x] ISC-164: every deployment square is an original M-tagged square (fidelity spec)
+- [x] ISC-165: each marine deploys in a DIFFERENT room section — pre_deploy_rule one-per-room (fidelity spec)
+- [x] ISC-166: blips per BLIPS=(0,2): initialBlips 0, blipsPerTurn 2, no totalBlips cap (fidelity spec)
+
+Victory engine (kill-quota):
+- [x] ISC-167: stealer death adds 1 to a tracked casualty count (vitest)
+- [x] ISC-168: blip death adds its VALUE to the casualty count — original pieces.py:515 (vitest)
+- [x] ISC-169: Anti: blip CONVERSION adds nothing to the casualty count (vitest)
+- [x] ISC-170: `casualtiesChanged` event emitted with the running total on each casualty (vitest)
+- [x] ISC-171: schema gains objective `'kill-quota'` + `killQuota`; mission 2 uses killQuota 30 (Read + vitest)
+- [x] ISC-172: kill-quota win — result 'win' when casualties ≥ killQuota at a victory check (vitest)
+- [x] ISC-173: entry-blockade win — result 'win' when every entry square has a marine within 6 (vitest)
+- [x] ISC-174: near-metric matches original get_team_is_near: BFS over existing squares, 8-way, self=0, closed doors do NOT block (vitest)
+- [x] ISC-175: kill-quota loss — all marines dead → 'loss' (vitest)
+- [x] ISC-176: mid-marine-phase quota kill ends the game immediately — outcome-equivalent to the original boundary check (vitest)
+- [x] ISC-176.1: blockade never fires mid-phase (positions final at boundaries); marine-action-end check present (vitest)
+- [x] ISC-177: Anti: victory timing of flame-objective / reach-exit missions is untouched — existing pinned e2e seeds still pass (Bash playwright)
+
+AI + client:
+- [x] ISC-178: autopilot plays kill-quota missions legally — advances on entry points, no illegal actions over a scripted run (vitest)
+- [x] ISC-179: mission2_fidelity.spec green with expected data transcribed independently of the transcriber script (vitest)
+- [x] ISC-180: HUD shows a kill counter (running casualties / quota) on kill-quota missions (Playwright)
+- [x] ISC-181: client objective label describes the mission-2 objective (Playwright)
+- [x] ISC-182: `?mission=space_hulk_2` renders the 204-square board + 5 variant marine sprites (Playwright)
+
+Closure:
+- [x] ISC-183: seed scan ≥20 autoplay seeds complete without engine errors; W/L recorded in Decisions (Bash)
+- [x] ISC-184: full engine suite green (Bash)
+- [x] ISC-185: client unit + e2e suites green (Bash)
+- [x] ISC-186: `pnpm build` clean (Bash)
+- [x] ISC-187: Anti: engine stays Phaser/DOM/audio-free (grep guard green)
+- [x] ISC-188: generalized transcriber script converts a MISH_*.py to mission JSON — rerunnable for missions 3–6 (Bash)
+- [x] ISC-189: README + CLAUDE.md document mission 2: forces, victory, adaptations (Read)
+- [x] ISC-190: ISA Decisions records the stealer-placed-marine adaptation + no-lurk note (Read)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
@@ -282,6 +326,13 @@ Anti + closure:
 | ISC-154 | static | grep for phaser/dom/audio imports in engine | 0 matches | Grep |
 | ISC-156 | build/e2e | full suites + seed scans | exit 0 + documented pins | Bash |
 | ISC-157 | docs | README/CLAUDE claims match shipped state | consistent | Read |
+| ISC-158..166,179 | engine unit | mission2_fidelity.spec vs independently-transcribed data | pass | Bash vitest |
+| ISC-167..176,178 | engine unit | vitest assertions (RollQueue-pinned where dice matter) | pass | Bash vitest |
+| ISC-177,180..182 | UI/e2e | Playwright real-browser probes | pass | Bash playwright |
+| ISC-183..186 | build/e2e | seed-scan script + full suites + build | exit 0 | Bash |
+| ISC-187 | static | engine import grep guard | 0 matches | Grep |
+| ISC-188 | tool | transcriber run reproduces space_hulk_2.json | byte-identical | Bash |
+| ISC-189,190 | docs | README/CLAUDE/ISA content | claims match shipped state | Read |
 
 ## Features
 
@@ -346,6 +397,14 @@ Anti + closure:
 - 2026-08-15 (advisor adjudication, fidelity run — the funnel that changed a claim): ADOPTED — (1) loss-funnel decomposition of the 0/60: min-flamer-distance histogram {13:57, 12:2, 11:1}, flamer death turn {2:57, 4:1}, marines alive at loss {4:55, …}, reached-firing-range 0, flames fired 0 → the flamer-led column feeds the mission-critical piece to CC on turn 2; the "authentic difficulty" claim was OURS-refuted and rewritten as "scripted-player artifact" in README/CLAUDE/ISA; (2) mission-gating greps: ambush counters gated on `USE_AMBUSH_COUNTERS in FLAGS` (phases.py:806) and mission 1 has `FLAGS = ()` → deferral safe; marine interrupts (`interruptable`, Marines_Interrupt, Space key) and lurking limbo are mission-1 mechanics → both upgraded to NAMED balance-relevant deferrals in README. REFUTED with evidence — "auto-fire may spend flamer ammo": the free-shot mechanic lives only in `StormBolterMarine.freeShot`; `HeavyFlamerMarine` extends `Piece` and has NO shoot() — there is no code path for a flamer free shot (type-level), the funnel confirms 0 flames fired outside the objective, and nothing fires without an explicit player F-press (the deviation is only the missing pre-toggle, ammo/jam choice preserved by simply not pressing F). "MNS ablation needed": moot per funnel — losses are turn-2 CC deaths; the bolter dice stream never reaches balance relevance. WAIVED — running the original Pygame headless with a mirrored policy (the "only real fidelity test"): sulk-0.29 is Python-2.2-era code; a faithful driver is its own project, queued as a future cross-check; a hand-authored competent-play win likewise deferred to the human-playtest pass.
 - 2026-08-15 (`refined:` sound effects moved in scope): the user's faithful-recreation directive supersedes the v0.1 "Sound and music" exclusion for EFFECTS; the original wavs are public-domain/GPL per SOUNDS_INFO and ship in `client/public/assets/sounds/`. Music remains out of scope (the original has none).
 
+**2026-08-15 — Mission 2 "Exterminate" recreation (ISC-158..190):**
+- **Stealer-placed marines adaptation.** The original FORCES tuple gives TWO of squad Constantine's five pieces to the STEALER player to place — `(SB, STEALERTEAM)` and `(SGT, STEALERTEAM)`. Our port has no interactive deployment, so all five deploy at fixed squares chosen to mimic an adversarial stealer: the sergeant is wasted in the far-west room (6,15) and a lone bolter is isolated in the southwest room (6,23) nearest the south entries, while the marine-placed pieces sit well — heavy flamer central (13,15), bolters north (13,1) and south-mid (16,23). One marine per room section per `pre_deploy_rule`; the sixth room (8–10,6–8) stays empty. Documented deviation, revisit if interactive deployment ever lands.
+- **No-lurk end_script is trivially satisfied**: our engine has no lurking at all (blips spawn ON entry squares — standing simplification). The original's NODEATH lurk-kills add nothing to casualties, which our counting matches by construction (only `Piece.die()` counts; conversion and non-death removals don't).
+- **Victory timing (advisor-corrected, re-justified from source)**: the original checks victory at PHASE BOUNDARIES only — phases.py:774 (marine-action end, before the stealer phase) and phases.py:973 (end-phase). Our kill-quota missions now add the marine-action-end check in endMarinePhase (previously MISSING — a quota reached in the marine phase must resolve before stealers act) plus an outcome-equivalent instant quota check on pieceDied (no enemy act occurs between the quota kill and the boundary). Blockade evaluates ONLY at boundaries — marine positions are not final mid-phase (ISC-176.1). The boundary check is scoped to kill-quota because the adapted exterminate/exit objectives read the empty pre-reinforcement board as a win (debug1 spec caught the regression). My original "protect pinned seeds" rationale was a fixture argument, not a fidelity argument — the advisor was right to reject it; the timing now derives from the source.
+- **Blockade metric** verified against source: `get_team_is_near` → `find_piece_near(team, 6)` BFS over `get_adjacents()` (misc.py:474) — 8-way square adjacency, walls block, doors ignored, self = 0. `Board.pieceNear` reproduces it; ISC-174 walls/doors unit test pins both properties.
+- **Seed scans + advisor-demanded experiments (evidence for ISC-183)**: (a) opposed entry-post autopilot: 0W/30L, wiped t13–18, kills 1–10 (mean 3.3); (b) placement ABLATION — compact one-per-room deployment using the NW room instead of the isolated SW room: 0W/30L, kills mean 4.2 → placement is NOT the loss driver; (c) camp-and-overwatch competent-play proxy (hold position, shoot everything, overwatch remainder): 0W/30L, kills mean 5.6, best 15/30 → kills scale with strategy quality; (d) OPPOSED integrated quota win: killQuota lowered to 3, seed 5 — real overwatch/CC kills reach the quota and the win fires mid-game (now a permanent spec). Unopposed blockade win turn 7. Conclusion shipped in README: brutal by design, no scripted strategy wins, human winnability UNTESTED, and the missing marine-interrupt feature is the original's main tool for this fight. Blip-VALUE counting is not a guess: pieces.py:515-517 read directly this session.
+- **Delegation floor (E3 ≥2) relaxed to 1, show-math**: Forge auto-include impossible (`which codex` → not found, verified again this run); the one delegation that added real value was the Explore agent's INDEPENDENT board transcription (fed the fidelity spec, keeping it non-tautological vs the transcriber script); remaining lookups were directed (delegation-gate-forbidden). EnterPlanMode skipped: autonomous continuation of an explicit queued directive, consistent with prior runs this session.
+
 ## Changelog
 
 - **Conjectured:** heavily-mocked Phaser unit tests would keep client development safe (implicit in M0–M3 process).
@@ -384,6 +443,18 @@ Anti + closure:
 
 - 2026-08-15 (faithful-recreation run): conjectured — "our mission-1 dynamics were faithful apart from the flamer objective; BEGINPLACE (14,20) is the deployment site and the 85% autopilot win rate mostly reflects the missing flamer counterweight." refuted by — reading `src/objects/board.py` in the original: the only BEGINPLACE consumers (lines 117, 199) are commented out; the real deployment squares are the `M:`-tagged BOARD tuples at (10,0)–(10,4), a full map-crossing from Launch Control. learned — when transcribing a data format, trace every constant to its CONSUMER before assigning it semantics; a name ("BEGINPLACE") is not evidence of behavior, and the entire balance picture (six-square dash, 85% wins) was an artifact of one mis-read constant. criterion now — ISC-144 pins deployment to the M squares with the dead-code note, and mission1_fidelity.spec fails if deployment ever drifts from the source's `M` tags.
 - 2026-08-15 (faithful-recreation run): conjectured — "the marine autopilot generalizes to the restored mission with staging tweaks (hold escorts near the objective)." refuted by — three traced deadlocks: hold-at-distance-4 walls the 1-wide east corridor, hold-at-7 walls the col-13 corner approach, and dodge-aside cannot rescue a rear-deployed flamer stuck behind four parked escorts. learned — on 1-square-wide topology, ORDER is the only degree of freedom: the piece that must arrive last-mile first must LEAD the column from deployment; all containment schemes reduce to walls. criterion now — ISC-147 verifies the kill chain via the unopposed pinned win (flamer leads, escorts follow); the opposed 0/60 is recorded WITH its loss funnel (flamer fed to CC turn 2 in 57/60) as a scripted-player artifact — balance measurement awaits either escort tactics or human playtest.
+
+**2026-08-15 (mission 2) —**
+- conjectured: nearest-entry targeting would let the autopilot blockade all 11 mission-2 entries.
+- refuted by: unopposed probe (seed 1, blipsPerTurn 0) — all five marines clumped on the two nearest clusters, the southwest T-section entries (2,39)/(3,40) stayed uncovered, result still `ongoing` at turn 41.
+- learned: the entry blockade is a set-cover problem, not a nearest-target problem; a greedy post assignment (each marine takes its nearest UNCOVERED entry, whose ≤6 board-walk neighbours leave the pool) covers all 11 entries with 5 marines.
+- criterion now: ISC-178 — the autopilot advances on entry POSTS from greedy set-cover; unopposed it blockades by turn 7 (Decisions scan evidence).
+
+**2026-08-15 (mission 2, second entry) —**
+- conjectured: mid-phase victory checking scoped by "protect the pinned seeds" was a sound design rationale.
+- refuted by: the advisor demanding the ORIGINAL's timing; reading phases.py showed boundary-only checks AND that our engine was missing the marine-action-end check entirely (a marine-phase quota win would have let the stealers act first), plus a real divergence: blockade evaluated mid-phase on non-final positions.
+- learned: timing semantics must be justified from the source, never from test-fixture convenience; fixtures then pin whatever the source dictates. Also: a boundary check added for one objective family can be semantically wrong for adapted objectives (empty-board "extermination") — scope semantics to the objective they model.
+- criterion now: ISC-176 refined to ISC-176 (instant quota, outcome-equivalent) + ISC-176.1 (blockade never fires mid-phase; boundary check present at marine-action end).
 
 ## Verification
 
@@ -511,3 +582,37 @@ Anti + closure:
 - ISC-156: engine 143/143, client units 6/6, Playwright 10/10, `pnpm build` clean; scans: space_hulk_1 0W/60L, debug_1 40W/0L, unopposed win turn 9
 - ISC-157: README + CLAUDE.md rewritten to the restored truth (deployment, objective, difficulty, sounds, counts)
 - Live browser (real Chrome, claude-in-chrome; Interceptor extension not connected this session): space_hulk_1 renders restored deployment, BURN marker on (20,20), HUD "FLAME Launch Control / (lose: flamer dead/dry)", timer 2:30, zero console errors; HUD text-overlap defect found in first screenshot and fixed (objective label shortened), re-verified clean
+
+Mission-2 recreation (2026-08-15):
+- ISC-158: vitest — mission2_fidelity "registry loads it by name" green (name/width 31/height 41)
+- ISC-159: vitest — 204-square set equals the Explore agent independent transcription
+- ISC-160: vitest — 42 sections partition identically to source sublists
+- ISC-161: vitest — 19 doors with source facings
+- ISC-162: vitest — 11 entryPoints match ENTRY tags
+- ISC-163: vitest — 5 deploys: 3 SB + sergeant + flamer; engine classes + 150s timer
+- ISC-164: vitest — every deploy square in the 55-square M list
+- ISC-165: vitest — 5 distinct room sections (one marine per room)
+- ISC-166: vitest — initialBlips 0, blipsPerTurn 2, totalBlips undefined
+- ISC-167: vitest — stealer.die() → stealerCasualties 1
+- ISC-168: vitest — Blip(value 3).die() → +3; end-to-end quota win via blip value
+- ISC-169: vitest — blip.convert() → casualties 0 (anti)
+- ISC-170: vitest — casualtiesChanged emitted with running total
+- ISC-171: Read + vitest — schema union + killQuota; mission JSON kill-quota/30
+- ISC-172/176: vitest — 2nd kill at quota 2 flips result to win mid-phase; boundary 29→ongoing/30→win; OPPOSED integration: quota-3 autoplay seed 5 → win with real kills
+- ISC-176.1: vitest — mid-phase kill with blockading formation stays ongoing; endMarinePhase → win
+- ISC-169.1: vitest — value-3 blip converts to 1 stealer (2 lost, uncounted); killing it credits 1, not 3
+- ISC-173: vitest — entry 6 steps away → win at phase end; 7 away → ongoing
+- ISC-174: vitest — wall-split corridors ongoing; closed-door link → win (doors do not block the metric)
+- ISC-175: vitest — marine.die() → loss
+- ISC-177: vitest anti (exterminate-or-exit stays ongoing mid-phase) + pinned e2e suite green (win.spec/playthrough.spec unchanged)
+- ISC-178: vitest — autoplay(space_hulk_2, 8 turns) legal, no throw; scans in Decisions
+- ISC-179: vitest — expected data from independent Explore transcription, 8/8 fidelity tests green
+- ISC-180/181/182: Playwright mission2.spec — 204 squares, 5 variant textures, "Kills: 0/30", "KILL 30…blockade", quota win overlay + screenshot; PLUS live real-Chrome session: board render, kill counter, 2:30 timer, sergeant move, DONE turn cycle spawning 2 blips at NE entries, zero console errors
+- ISC-183: Bash — 30-seed opposed scan 0W/30L + unopposed blockade win turn 7 (Decisions)
+- ISC-184: Bash — engine suite 23 files / 168 tests green (post-advisor additions)
+- ISC-185: Bash — client units 6 green; e2e 11/11 green
+- ISC-186: Bash — pnpm build exit 0, zero errors
+- ISC-187: Grep — zero phaser imports in engine src (guard suite green)
+- ISC-188: Bash — transcriber rerun byte-identical (md5 884b34c8… before/after)
+- ISC-189: Read — README (mission list, rules, roadmap, gaps) + CLAUDE.md (transcriber pipeline, kill-quota invariants, counts 164/11) updated
+- ISC-190: Read — Decisions entry records stealer-placed adaptation, no-lurk note, timing, scans, delegation show-math

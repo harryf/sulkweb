@@ -13,6 +13,9 @@ export class HudPanel extends Phaser.GameObjects.Container {
   private timerText!: Phaser.GameObjects.Text
   private kills = 0
   private losses = 0
+  /** VALUE-weighted stealer toll (blips count their hidden value) + mission quota. */
+  private toll = 0
+  private quota: number | undefined
   private objectiveText!: Phaser.GameObjects.Text
   private hoverText!: Phaser.GameObjects.Text
   private diceText!: Phaser.GameObjects.Text
@@ -20,6 +23,17 @@ export class HudPanel extends Phaser.GameObjects.Container {
 
   setObjective(text: string) {
     this.objectiveText.setText(text)
+  }
+
+  /** Kill-quota missions show the VALUE-weighted toll as `Kills: n/quota`. */
+  setKillQuota(quota: number | undefined) {
+    this.quota = quota
+    this.renderCasualties()
+  }
+
+  private renderCasualties() {
+    const kills = this.quota !== undefined ? `${this.toll}/${this.quota}` : `${this.kills}`
+    this.casualtyText.setText(`Kills: ${kills}   Losses: ${this.losses}`)
   }
 
   /** Coordinate + contents of the square under the cursor (below the controls). */
@@ -115,7 +129,13 @@ export class HudPanel extends Phaser.GameObjects.Container {
     PieceEvents.on('pieceDied', ({ kind }) => {
       if (kind === 'marine') this.losses += 1
       else this.kills += 1
-      this.casualtyText.setText(`Kills: ${this.kills}   Losses: ${this.losses}`)
+      this.renderCasualties()
+    })
+    // Kill-quota toll (original maction_end_script "N kills so far") — blips
+    // credit their hidden VALUE, so this can outrun the piece-count tally.
+    PieceEvents.on('casualtiesChanged', ({ casualties }) => {
+      this.toll = casualties
+      this.renderCasualties()
     })
 
     // Mission objective

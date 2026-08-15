@@ -19,6 +19,10 @@ export class Board {
   public dice: DiceSource = new SeededRng(Math.floor(Math.random() * 2147483647))
   /** Set when the game ends — pieces refuse further actions. */
   public locked = false
+  /** Running stealer-side death toll (original teams.py casualties): each
+   *  stealer death adds 1, each blip death adds its hidden VALUE. Blip
+   *  CONVERSION is not a death and adds nothing. Drives kill-quota victory. */
+  public stealerCasualties = 0
   /** Squares currently on fire ("x,y"). Flames block entry (unless the mover
    *  is itself standing in flames) and block sight; cleared each end-phase. */
   public readonly flaming = new Set<string>()
@@ -203,5 +207,35 @@ export class Board {
     // Cache and return the result
     this.adjacentsCache.set(square, adjacents);
     return adjacents;
+  }
+
+  /**
+   * Original `get_team_is_near` / `find_piece_near` metric (misc.py): BFS over
+   * EXISTING squares, 8-way adjacency, self = distance 0. Walls (missing
+   * squares) block the walk; closed doors and occupancy do NOT — the original
+   * expands raw square adjacency. True if any piece matching `pred` stands
+   * within `maxDist` of `start`.
+   */
+  pieceNear(start: { c: number; r: number }, maxDist: number, pred: (p: BoardPiece) => boolean): boolean {
+    const origin = this.get(start.c, start.r);
+    if (!origin) return false;
+    const byPos = new Map<string, BoardPiece>();
+    for (const p of this.pieces) byPos.set(`${p.pos.c},${p.pos.r}`, p);
+    let frontier: Square[] = [origin];
+    const seen = new Set<Square>([origin]);
+    for (let dist = 0; dist <= maxDist; dist++) {
+      for (const sq of frontier) {
+        const p = byPos.get(`${sq.x},${sq.y}`);
+        if (p && pred(p)) return true;
+      }
+      const next: Square[] = [];
+      for (const sq of frontier) {
+        for (const a of this.adjacentsOf(sq)) {
+          if (!seen.has(a)) { seen.add(a); next.push(a); }
+        }
+      }
+      frontier = next;
+    }
+    return false;
   }
 }

@@ -37,6 +37,9 @@ export class Blip extends Piece {
     this.value = value ?? drawBlipValue(board);
   }
 
+  /** A killed blip credits its full hidden VALUE (original pieces.py kill()). */
+  protected override get casualtyWorth(): number { return this.value; }
+
   protected override moveCost(): number | undefined {
     return 1; // any of the 8 directions
   }

@@ -35,10 +35,15 @@ export interface RawMissionJSON_v2 {
   /** Total reinforcement budget (excluding initialBlips). Omit = unlimited. */
   totalBlips?: number
   /** Victory rule for the marines. */
-  objective?: 'exterminate' | 'reach-exit' | 'exterminate-or-exit' | 'flame-objective'
+  objective?: 'exterminate' | 'reach-exit' | 'exterminate-or-exit' | 'flame-objective' | 'kill-quota'
   /** Objective square for flame-objective (e.g. Launch Control). Marines win
    *  when it is flaming; they LOSE when no living flamer has ammo left. */
   objectivePoint?: CoordJSON
+  /** kill-quota missions (original mission 2 "Exterminate"): marines win when
+   *  stealer-side casualties reach this count (blips count their hidden VALUE,
+   *  per pieces.py kill()) OR every entry square has a marine within 6 squares
+   *  (original get_team_is_near blockade). Loss on squad wipe. */
+  killQuota?: number
 }
 
 export type CompiledMission = RawMissionJSON_v2

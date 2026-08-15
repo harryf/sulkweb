@@ -82,6 +82,16 @@ export class GameEngine {
     PieceEvents.on('pieceDied', () => {
       if (PieceEvents.replaying) return
       if (this.state.result === 'ongoing') convertRevealedBlips(this.state.board)
+      // Kill-quota: the original announces victory at phase boundaries
+      // (phases.py:774/973), but between the quota-reaching kill and the
+      // marine-action-end check NO enemy act occurs, so ending on the spot is
+      // outcome-equivalent (and matches the original's running kill ticker).
+      // Blockade is excluded here — positions aren't final until phase end.
+      // Stealer-phase deaths happen inside capture() (handlers suppressed) —
+      // endMarinePhase re-checks. Other objectives keep boundary-only timing.
+      if (this.mission.objective === 'kill-quota' && this.state.result === 'ongoing') {
+        this.checkVictory({ blockade: false })
+      }
     })
     // A flamed section can win the mission on the spot (flame-objective) and
     // flames change sight lines. Stealers never flame, so this never fires
@@ -129,6 +139,16 @@ export class GameEngine {
   endMarinePhase(): void {
     if (this.state.result !== 'ongoing' || this.phase !== 'MarineAction') return
 
+    // Marine-action-end victory check (original phases.py:774) — a quota or
+    // blockade achieved in the marine phase must resolve BEFORE the stealers
+    // get their turn, with marine positions final. Kill-quota only: the
+    // adapted exterminate/exit objectives read "no stealers on the board" as a
+    // win, which would fire spuriously here before the first reinforcements.
+    if (this.mission.objective === 'kill-quota') {
+      this.checkVictory()
+      if (this.state.result !== 'ongoing') return
+    }
+
     this.setPhase('StealerAction')
     const board = this.state.board
     const entries = (this.mission.entryPoints ?? []).map(e => ({ c: e.x, r: e.y }))
@@ -165,8 +185,10 @@ export class GameEngine {
     this.setPhase('MarineAction')
   }
 
-  /** Evaluate the mission objective. Also fired when pieces die mid-phase. */
-  checkVictory(): void {
+  /** Evaluate the mission objective. Also fired when pieces die mid-phase
+   *  (kill-quota only — with `blockade: false`, since positions aren't final
+   *  until the phase boundary). */
+  checkVictory(opts: { blockade?: boolean } = {}): void {
     if (this.state.result !== 'ongoing') return
     const objective = this.mission.objective ?? 'exterminate'
     const marinesAlive = this.marines.length > 0
@@ -183,6 +205,27 @@ export class GameEngine {
         m => m instanceof HeavyFlamerMarine && m.ammo > 0
       )
       if (!flamerViable) this.finish('loss')
+      return
+    }
+
+    if (objective === 'kill-quota') {
+      // Original mission 2 "Exterminate" (victory_check): quota first, then
+      // entry blockade, then squad wipe. Blips credit their VALUE (counted in
+      // Piece.die); blockade = a marine within 6 board-graph squares of EVERY
+      // entry square (get_team_is_near semantics — walls block, doors don't).
+      const board = this.state.board
+      if (board.stealerCasualties >= (this.mission.killQuota ?? 30)) {
+        this.finish('win')
+        return
+      }
+      const entries = this.mission.entryPoints ?? []
+      const blockaded = (opts.blockade ?? true) && entries.length > 0 && entries.every(e =>
+        board.pieceNear({ c: e.x, r: e.y }, 6, p => (p as Piece).kind === 'marine'))
+      if (blockaded) {
+        this.finish('win')
+        return
+      }
+      if (!marinesAlive) this.finish('loss')
       return
     }
 

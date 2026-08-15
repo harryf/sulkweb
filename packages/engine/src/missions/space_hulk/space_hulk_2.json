@@ -1,0 +1,1329 @@
+{
+  "name": "space_hulk_2",
+  "objective": "kill-quota",
+  "killQuota": 30,
+  "marineDeployment": [
+    {
+      "x": 13,
+      "y": 15,
+      "facing": "right",
+      "type": "heavy_flamer"
+    },
+    {
+      "x": 6,
+      "y": 15,
+      "facing": "right",
+      "type": "sergeant"
+    },
+    {
+      "x": 13,
+      "y": 1,
+      "facing": "right"
+    },
+    {
+      "x": 6,
+      "y": 23,
+      "facing": "down"
+    },
+    {
+      "x": 16,
+      "y": 23,
+      "facing": "down"
+    }
+  ],
+  "initialBlips": 0,
+  "blipsPerTurn": 2,
+  "width": 31,
+  "height": 41,
+  "squares": [
+    {
+      "x": 0,
+      "y": 19,
+      "kind": "corridor",
+      "section": 0
+    },
+    {
+      "x": 1,
+      "y": 19,
+      "kind": "corridor",
+      "section": 0
+    },
+    {
+      "x": 0,
+      "y": 20,
+      "kind": "corridor",
+      "section": 0
+    },
+    {
+      "x": 2,
+      "y": 19,
+      "kind": "corridor",
+      "section": 1
+    },
+    {
+      "x": 3,
+      "y": 19,
+      "kind": "corridor",
+      "section": 1
+    },
+    {
+      "x": 4,
+      "y": 19,
+      "kind": "corridor",
+      "section": 1
+    },
+    {
+      "x": 6,
+      "y": 18,
+      "kind": "corridor",
+      "section": 2
+    },
+    {
+      "x": 5,
+      "y": 19,
+      "kind": "corridor",
+      "section": 2
+    },
+    {
+      "x": 6,
+      "y": 19,
+      "kind": "corridor",
+      "section": 2
+    },
+    {
+      "x": 6,
+      "y": 20,
+      "kind": "corridor",
+      "section": 2
+    },
+    {
+      "x": 5,
+      "y": 14,
+      "kind": "room",
+      "section": 3
+    },
+    {
+      "x": 6,
+      "y": 14,
+      "kind": "room",
+      "section": 3
+    },
+    {
+      "x": 7,
+      "y": 14,
+      "kind": "room",
+      "section": 3
+    },
+    {
+      "x": 5,
+      "y": 15,
+      "kind": "room",
+      "section": 3
+    },
+    {
+      "x": 6,
+      "y": 15,
+      "kind": "room",
+      "section": 3
+    },
+    {
+      "x": 7,
+      "y": 15,
+      "kind": "room",
+      "section": 3
+    },
+    {
+      "x": 8,
+      "y": 15,
+      "kind": "corridor",
+      "section": 3,
+      "doorFacing": "right"
+    },
+    {
+      "x": 5,
+      "y": 16,
+      "kind": "room",
+      "section": 3
+    },
+    {
+      "x": 6,
+      "y": 16,
+      "kind": "room",
+      "section": 3
+    },
+    {
+      "x": 7,
+      "y": 16,
+      "kind": "room",
+      "section": 3
+    },
+    {
+      "x": 6,
+      "y": 17,
+      "kind": "corridor",
+      "section": 3,
+      "doorFacing": "up"
+    },
+    {
+      "x": 9,
+      "y": 15,
+      "kind": "corridor",
+      "section": 4
+    },
+    {
+      "x": 10,
+      "y": 15,
+      "kind": "corridor",
+      "section": 4
+    },
+    {
+      "x": 13,
+      "y": 13,
+      "kind": "corridor",
+      "section": 5,
+      "doorFacing": "up"
+    },
+    {
+      "x": 12,
+      "y": 14,
+      "kind": "room",
+      "section": 5
+    },
+    {
+      "x": 13,
+      "y": 14,
+      "kind": "room",
+      "section": 5
+    },
+    {
+      "x": 14,
+      "y": 14,
+      "kind": "room",
+      "section": 5
+    },
+    {
+      "x": 11,
+      "y": 15,
+      "kind": "corridor",
+      "section": 5,
+      "doorFacing": "right"
+    },
+    {
+      "x": 12,
+      "y": 15,
+      "kind": "room",
+      "section": 5
+    },
+    {
+      "x": 13,
+      "y": 15,
+      "kind": "room",
+      "section": 5
+    },
+    {
+      "x": 14,
+      "y": 15,
+      "kind": "room",
+      "section": 5
+    },
+    {
+      "x": 15,
+      "y": 15,
+      "kind": "corridor",
+      "section": 5,
+      "doorFacing": "right"
+    },
+    {
+      "x": 12,
+      "y": 16,
+      "kind": "room",
+      "section": 5
+    },
+    {
+      "x": 13,
+      "y": 16,
+      "kind": "room",
+      "section": 5
+    },
+    {
+      "x": 14,
+      "y": 16,
+      "kind": "room",
+      "section": 5
+    },
+    {
+      "x": 16,
+      "y": 15,
+      "kind": "corridor",
+      "section": 6
+    },
+    {
+      "x": 17,
+      "y": 15,
+      "kind": "corridor",
+      "section": 6
+    },
+    {
+      "x": 18,
+      "y": 15,
+      "kind": "corridor",
+      "section": 6
+    },
+    {
+      "x": 19,
+      "y": 15,
+      "kind": "corridor",
+      "section": 6
+    },
+    {
+      "x": 20,
+      "y": 15,
+      "kind": "corridor",
+      "section": 6
+    },
+    {
+      "x": 13,
+      "y": 9,
+      "kind": "corridor",
+      "section": 7
+    },
+    {
+      "x": 13,
+      "y": 10,
+      "kind": "corridor",
+      "section": 7
+    },
+    {
+      "x": 13,
+      "y": 11,
+      "kind": "corridor",
+      "section": 7
+    },
+    {
+      "x": 13,
+      "y": 12,
+      "kind": "corridor",
+      "section": 7
+    },
+    {
+      "x": 13,
+      "y": 6,
+      "kind": "corridor",
+      "section": 8
+    },
+    {
+      "x": 12,
+      "y": 7,
+      "kind": "corridor",
+      "section": 8,
+      "doorFacing": "right"
+    },
+    {
+      "x": 13,
+      "y": 7,
+      "kind": "corridor",
+      "section": 8
+    },
+    {
+      "x": 14,
+      "y": 7,
+      "kind": "corridor",
+      "section": 8,
+      "doorFacing": "right"
+    },
+    {
+      "x": 13,
+      "y": 8,
+      "kind": "corridor",
+      "section": 8
+    },
+    {
+      "x": 8,
+      "y": 6,
+      "kind": "room",
+      "section": 9
+    },
+    {
+      "x": 9,
+      "y": 6,
+      "kind": "room",
+      "section": 9
+    },
+    {
+      "x": 10,
+      "y": 6,
+      "kind": "room",
+      "section": 9
+    },
+    {
+      "x": 8,
+      "y": 7,
+      "kind": "room",
+      "section": 9
+    },
+    {
+      "x": 9,
+      "y": 7,
+      "kind": "room",
+      "section": 9
+    },
+    {
+      "x": 10,
+      "y": 7,
+      "kind": "room",
+      "section": 9
+    },
+    {
+      "x": 11,
+      "y": 7,
+      "kind": "corridor",
+      "section": 9
+    },
+    {
+      "x": 8,
+      "y": 8,
+      "kind": "room",
+      "section": 9
+    },
+    {
+      "x": 9,
+      "y": 8,
+      "kind": "room",
+      "section": 9
+    },
+    {
+      "x": 10,
+      "y": 8,
+      "kind": "room",
+      "section": 9
+    },
+    {
+      "x": 13,
+      "y": 4,
+      "kind": "corridor",
+      "section": 10
+    },
+    {
+      "x": 13,
+      "y": 5,
+      "kind": "corridor",
+      "section": 10
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "kind": "room",
+      "section": 11
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "kind": "room",
+      "section": 11
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "kind": "room",
+      "section": 11
+    },
+    {
+      "x": 12,
+      "y": 1,
+      "kind": "room",
+      "section": 11
+    },
+    {
+      "x": 13,
+      "y": 1,
+      "kind": "room",
+      "section": 11
+    },
+    {
+      "x": 14,
+      "y": 1,
+      "kind": "room",
+      "section": 11
+    },
+    {
+      "x": 15,
+      "y": 1,
+      "kind": "corridor",
+      "section": 11,
+      "doorFacing": "right"
+    },
+    {
+      "x": 12,
+      "y": 2,
+      "kind": "room",
+      "section": 11
+    },
+    {
+      "x": 13,
+      "y": 2,
+      "kind": "room",
+      "section": 11
+    },
+    {
+      "x": 14,
+      "y": 2,
+      "kind": "room",
+      "section": 11
+    },
+    {
+      "x": 13,
+      "y": 3,
+      "kind": "room",
+      "section": 11
+    },
+    {
+      "x": 16,
+      "y": 1,
+      "kind": "corridor",
+      "section": 12
+    },
+    {
+      "x": 17,
+      "y": 1,
+      "kind": "corridor",
+      "section": 12
+    },
+    {
+      "x": 18,
+      "y": 1,
+      "kind": "corridor",
+      "section": 12
+    },
+    {
+      "x": 19,
+      "y": 1,
+      "kind": "corridor",
+      "section": 13,
+      "doorFacing": "right"
+    },
+    {
+      "x": 20,
+      "y": 1,
+      "kind": "corridor",
+      "section": 13
+    },
+    {
+      "x": 21,
+      "y": 1,
+      "kind": "corridor",
+      "section": 13
+    },
+    {
+      "x": 20,
+      "y": 2,
+      "kind": "corridor",
+      "section": 13
+    },
+    {
+      "x": 22,
+      "y": 1,
+      "kind": "corridor",
+      "section": 14
+    },
+    {
+      "x": 23,
+      "y": 1,
+      "kind": "corridor",
+      "section": 14
+    },
+    {
+      "x": 23,
+      "y": 2,
+      "kind": "corridor",
+      "section": 14
+    },
+    {
+      "x": 20,
+      "y": 3,
+      "kind": "corridor",
+      "section": 15
+    },
+    {
+      "x": 20,
+      "y": 4,
+      "kind": "corridor",
+      "section": 15
+    },
+    {
+      "x": 20,
+      "y": 5,
+      "kind": "corridor",
+      "section": 15
+    },
+    {
+      "x": 23,
+      "y": 3,
+      "kind": "corridor",
+      "section": 16
+    },
+    {
+      "x": 23,
+      "y": 4,
+      "kind": "corridor",
+      "section": 16
+    },
+    {
+      "x": 24,
+      "y": 4,
+      "kind": "corridor",
+      "section": 16,
+      "doorFacing": "right"
+    },
+    {
+      "x": 23,
+      "y": 5,
+      "kind": "corridor",
+      "section": 16
+    },
+    {
+      "x": 25,
+      "y": 4,
+      "kind": "corridor",
+      "section": 17
+    },
+    {
+      "x": 26,
+      "y": 4,
+      "kind": "corridor",
+      "section": 17
+    },
+    {
+      "x": 27,
+      "y": 4,
+      "kind": "corridor",
+      "section": 17
+    },
+    {
+      "x": 29,
+      "y": 3,
+      "kind": "corridor",
+      "section": 18
+    },
+    {
+      "x": 28,
+      "y": 4,
+      "kind": "corridor",
+      "section": 18
+    },
+    {
+      "x": 29,
+      "y": 4,
+      "kind": "corridor",
+      "section": 18
+    },
+    {
+      "x": 30,
+      "y": 4,
+      "kind": "corridor",
+      "section": 18
+    },
+    {
+      "x": 29,
+      "y": 5,
+      "kind": "corridor",
+      "section": 18
+    },
+    {
+      "x": 29,
+      "y": 0,
+      "kind": "corridor",
+      "section": 19
+    },
+    {
+      "x": 29,
+      "y": 1,
+      "kind": "corridor",
+      "section": 19
+    },
+    {
+      "x": 30,
+      "y": 1,
+      "kind": "corridor",
+      "section": 19
+    },
+    {
+      "x": 29,
+      "y": 2,
+      "kind": "corridor",
+      "section": 19
+    },
+    {
+      "x": 25,
+      "y": 7,
+      "kind": "corridor",
+      "section": 20
+    },
+    {
+      "x": 26,
+      "y": 7,
+      "kind": "corridor",
+      "section": 20,
+      "doorFacing": "right"
+    },
+    {
+      "x": 27,
+      "y": 7,
+      "kind": "corridor",
+      "section": 20
+    },
+    {
+      "x": 29,
+      "y": 6,
+      "kind": "corridor",
+      "section": 21
+    },
+    {
+      "x": 28,
+      "y": 7,
+      "kind": "corridor",
+      "section": 21
+    },
+    {
+      "x": 29,
+      "y": 7,
+      "kind": "corridor",
+      "section": 21
+    },
+    {
+      "x": 30,
+      "y": 7,
+      "kind": "corridor",
+      "section": 21
+    },
+    {
+      "x": 29,
+      "y": 8,
+      "kind": "corridor",
+      "section": 21
+    },
+    {
+      "x": 23,
+      "y": 6,
+      "kind": "corridor",
+      "section": 22
+    },
+    {
+      "x": 22,
+      "y": 7,
+      "kind": "corridor",
+      "section": 22
+    },
+    {
+      "x": 23,
+      "y": 7,
+      "kind": "corridor",
+      "section": 22
+    },
+    {
+      "x": 24,
+      "y": 7,
+      "kind": "corridor",
+      "section": 22
+    },
+    {
+      "x": 20,
+      "y": 6,
+      "kind": "corridor",
+      "section": 23,
+      "doorFacing": "up"
+    },
+    {
+      "x": 19,
+      "y": 7,
+      "kind": "corridor",
+      "section": 23
+    },
+    {
+      "x": 20,
+      "y": 7,
+      "kind": "corridor",
+      "section": 23
+    },
+    {
+      "x": 21,
+      "y": 7,
+      "kind": "corridor",
+      "section": 23
+    },
+    {
+      "x": 15,
+      "y": 7,
+      "kind": "corridor",
+      "section": 24
+    },
+    {
+      "x": 16,
+      "y": 7,
+      "kind": "corridor",
+      "section": 24
+    },
+    {
+      "x": 17,
+      "y": 7,
+      "kind": "corridor",
+      "section": 24
+    },
+    {
+      "x": 18,
+      "y": 7,
+      "kind": "corridor",
+      "section": 24
+    },
+    {
+      "x": 6,
+      "y": 21,
+      "kind": "corridor",
+      "section": 25,
+      "doorFacing": "up"
+    },
+    {
+      "x": 5,
+      "y": 22,
+      "kind": "room",
+      "section": 25
+    },
+    {
+      "x": 6,
+      "y": 22,
+      "kind": "room",
+      "section": 25
+    },
+    {
+      "x": 7,
+      "y": 22,
+      "kind": "room",
+      "section": 25
+    },
+    {
+      "x": 5,
+      "y": 23,
+      "kind": "room",
+      "section": 25
+    },
+    {
+      "x": 6,
+      "y": 23,
+      "kind": "room",
+      "section": 25
+    },
+    {
+      "x": 7,
+      "y": 23,
+      "kind": "room",
+      "section": 25
+    },
+    {
+      "x": 8,
+      "y": 23,
+      "kind": "corridor",
+      "section": 25,
+      "doorFacing": "right"
+    },
+    {
+      "x": 5,
+      "y": 24,
+      "kind": "room",
+      "section": 25
+    },
+    {
+      "x": 6,
+      "y": 24,
+      "kind": "room",
+      "section": 25
+    },
+    {
+      "x": 7,
+      "y": 24,
+      "kind": "room",
+      "section": 25
+    },
+    {
+      "x": 6,
+      "y": 25,
+      "kind": "corridor",
+      "section": 25,
+      "doorFacing": "up"
+    },
+    {
+      "x": 9,
+      "y": 23,
+      "kind": "corridor",
+      "section": 26
+    },
+    {
+      "x": 10,
+      "y": 23,
+      "kind": "corridor",
+      "section": 26
+    },
+    {
+      "x": 11,
+      "y": 23,
+      "kind": "corridor",
+      "section": 26
+    },
+    {
+      "x": 12,
+      "y": 23,
+      "kind": "corridor",
+      "section": 26
+    },
+    {
+      "x": 13,
+      "y": 23,
+      "kind": "corridor",
+      "section": 26
+    },
+    {
+      "x": 15,
+      "y": 22,
+      "kind": "room",
+      "section": 27
+    },
+    {
+      "x": 16,
+      "y": 22,
+      "kind": "room",
+      "section": 27
+    },
+    {
+      "x": 17,
+      "y": 22,
+      "kind": "room",
+      "section": 27
+    },
+    {
+      "x": 14,
+      "y": 23,
+      "kind": "corridor",
+      "section": 27,
+      "doorFacing": "right"
+    },
+    {
+      "x": 15,
+      "y": 23,
+      "kind": "room",
+      "section": 27
+    },
+    {
+      "x": 16,
+      "y": 23,
+      "kind": "room",
+      "section": 27
+    },
+    {
+      "x": 17,
+      "y": 23,
+      "kind": "room",
+      "section": 27
+    },
+    {
+      "x": 15,
+      "y": 24,
+      "kind": "room",
+      "section": 27
+    },
+    {
+      "x": 16,
+      "y": 24,
+      "kind": "room",
+      "section": 27
+    },
+    {
+      "x": 17,
+      "y": 24,
+      "kind": "room",
+      "section": 27
+    },
+    {
+      "x": 16,
+      "y": 25,
+      "kind": "corridor",
+      "section": 27,
+      "doorFacing": "up"
+    },
+    {
+      "x": 16,
+      "y": 26,
+      "kind": "corridor",
+      "section": 28
+    },
+    {
+      "x": 16,
+      "y": 27,
+      "kind": "corridor",
+      "section": 28
+    },
+    {
+      "x": 17,
+      "y": 27,
+      "kind": "corridor",
+      "section": 28
+    },
+    {
+      "x": 6,
+      "y": 26,
+      "kind": "corridor",
+      "section": 29
+    },
+    {
+      "x": 5,
+      "y": 27,
+      "kind": "corridor",
+      "section": 29,
+      "doorFacing": "right"
+    },
+    {
+      "x": 6,
+      "y": 27,
+      "kind": "corridor",
+      "section": 29
+    },
+    {
+      "x": 7,
+      "y": 27,
+      "kind": "corridor",
+      "section": 29,
+      "doorFacing": "right"
+    },
+    {
+      "x": 6,
+      "y": 28,
+      "kind": "corridor",
+      "section": 29
+    },
+    {
+      "x": 0,
+      "y": 21,
+      "kind": "corridor",
+      "section": 30
+    },
+    {
+      "x": 0,
+      "y": 22,
+      "kind": "corridor",
+      "section": 30
+    },
+    {
+      "x": 0,
+      "y": 23,
+      "kind": "corridor",
+      "section": 30
+    },
+    {
+      "x": 0,
+      "y": 24,
+      "kind": "corridor",
+      "section": 30
+    },
+    {
+      "x": 0,
+      "y": 25,
+      "kind": "corridor",
+      "section": 30
+    },
+    {
+      "x": 0,
+      "y": 26,
+      "kind": "corridor",
+      "section": 31
+    },
+    {
+      "x": 0,
+      "y": 27,
+      "kind": "corridor",
+      "section": 31
+    },
+    {
+      "x": 1,
+      "y": 27,
+      "kind": "corridor",
+      "section": 31
+    },
+    {
+      "x": 2,
+      "y": 27,
+      "kind": "corridor",
+      "section": 32
+    },
+    {
+      "x": 3,
+      "y": 27,
+      "kind": "corridor",
+      "section": 32
+    },
+    {
+      "x": 4,
+      "y": 27,
+      "kind": "corridor",
+      "section": 32
+    },
+    {
+      "x": 8,
+      "y": 27,
+      "kind": "corridor",
+      "section": 33
+    },
+    {
+      "x": 9,
+      "y": 27,
+      "kind": "corridor",
+      "section": 33
+    },
+    {
+      "x": 9,
+      "y": 28,
+      "kind": "corridor",
+      "section": 33
+    },
+    {
+      "x": 6,
+      "y": 29,
+      "kind": "corridor",
+      "section": 34
+    },
+    {
+      "x": 6,
+      "y": 30,
+      "kind": "corridor",
+      "section": 34
+    },
+    {
+      "x": 6,
+      "y": 31,
+      "kind": "corridor",
+      "section": 34
+    },
+    {
+      "x": 6,
+      "y": 32,
+      "kind": "corridor",
+      "section": 34
+    },
+    {
+      "x": 6,
+      "y": 33,
+      "kind": "corridor",
+      "section": 35
+    },
+    {
+      "x": 6,
+      "y": 34,
+      "kind": "corridor",
+      "section": 35
+    },
+    {
+      "x": 6,
+      "y": 35,
+      "kind": "corridor",
+      "section": 35
+    },
+    {
+      "x": 6,
+      "y": 36,
+      "kind": "corridor",
+      "section": 35
+    },
+    {
+      "x": 6,
+      "y": 37,
+      "kind": "corridor",
+      "section": 35
+    },
+    {
+      "x": 9,
+      "y": 29,
+      "kind": "corridor",
+      "section": 36
+    },
+    {
+      "x": 9,
+      "y": 30,
+      "kind": "corridor",
+      "section": 36
+    },
+    {
+      "x": 9,
+      "y": 31,
+      "kind": "corridor",
+      "section": 37
+    },
+    {
+      "x": 9,
+      "y": 32,
+      "kind": "corridor",
+      "section": 37
+    },
+    {
+      "x": 9,
+      "y": 33,
+      "kind": "corridor",
+      "section": 37
+    },
+    {
+      "x": 9,
+      "y": 34,
+      "kind": "corridor",
+      "section": 37
+    },
+    {
+      "x": 9,
+      "y": 35,
+      "kind": "corridor",
+      "section": 38
+    },
+    {
+      "x": 9,
+      "y": 36,
+      "kind": "corridor",
+      "section": 38
+    },
+    {
+      "x": 10,
+      "y": 36,
+      "kind": "corridor",
+      "section": 38
+    },
+    {
+      "x": 9,
+      "y": 37,
+      "kind": "corridor",
+      "section": 38
+    },
+    {
+      "x": 9,
+      "y": 38,
+      "kind": "corridor",
+      "section": 39
+    },
+    {
+      "x": 8,
+      "y": 39,
+      "kind": "corridor",
+      "section": 39
+    },
+    {
+      "x": 9,
+      "y": 39,
+      "kind": "corridor",
+      "section": 39
+    },
+    {
+      "x": 10,
+      "y": 39,
+      "kind": "corridor",
+      "section": 39
+    },
+    {
+      "x": 9,
+      "y": 40,
+      "kind": "corridor",
+      "section": 39
+    },
+    {
+      "x": 6,
+      "y": 38,
+      "kind": "corridor",
+      "section": 40
+    },
+    {
+      "x": 5,
+      "y": 39,
+      "kind": "corridor",
+      "section": 40
+    },
+    {
+      "x": 6,
+      "y": 39,
+      "kind": "corridor",
+      "section": 40
+    },
+    {
+      "x": 7,
+      "y": 39,
+      "kind": "corridor",
+      "section": 40
+    },
+    {
+      "x": 6,
+      "y": 40,
+      "kind": "corridor",
+      "section": 40
+    },
+    {
+      "x": 2,
+      "y": 39,
+      "kind": "corridor",
+      "section": 41
+    },
+    {
+      "x": 3,
+      "y": 39,
+      "kind": "corridor",
+      "section": 41
+    },
+    {
+      "x": 4,
+      "y": 39,
+      "kind": "corridor",
+      "section": 41
+    },
+    {
+      "x": 3,
+      "y": 40,
+      "kind": "corridor",
+      "section": 41
+    }
+  ],
+  "entryPoints": [
+    {
+      "x": 30,
+      "y": 4
+    },
+    {
+      "x": 29,
+      "y": 0
+    },
+    {
+      "x": 30,
+      "y": 1
+    },
+    {
+      "x": 30,
+      "y": 7
+    },
+    {
+      "x": 29,
+      "y": 8
+    },
+    {
+      "x": 10,
+      "y": 36
+    },
+    {
+      "x": 10,
+      "y": 39
+    },
+    {
+      "x": 9,
+      "y": 40
+    },
+    {
+      "x": 6,
+      "y": 40
+    },
+    {
+      "x": 2,
+      "y": 39
+    },
+    {
+      "x": 3,
+      "y": 40
+    }
+  ]
+}

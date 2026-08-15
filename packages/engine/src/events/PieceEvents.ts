@@ -23,6 +23,8 @@ export type PieceEventsType = {
   flamesCleared: { squares: { x: number; y: number }[] }
   /** Flamer ammo changed. */
   ammoChanged: { pieceId: string; ammo: number }
+  /** Stealer-side death toll changed (blips add their VALUE) — kill-quota HUD. */
+  casualtiesChanged: { casualties: number }
 }
 
 type Handler<T> = (payload: T) => void

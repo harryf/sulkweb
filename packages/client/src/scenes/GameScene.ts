@@ -284,8 +284,11 @@ export default class GameScene extends Phaser.Scene {
       'reach-exit': 'Objective: reach the green EXIT',
       'exterminate-or-exit': 'Objective: kill all stealers\nOR reach the green EXIT',
       'flame-objective': 'FLAME Launch Control\n(lose: flamer dead/dry)',
+      'kill-quota': `KILL ${this.engine.mission.killQuota ?? 30} stealers\nOR blockade every entry`,
     };
     this.hud.setObjective(objectiveLabel[this.engine.mission.objective ?? 'exterminate-or-exit'] ?? '');
+    this.hud.setKillQuota(this.engine.mission.objective === 'kill-quota'
+      ? (this.engine.mission.killQuota ?? 30) : undefined);
 
     // Hover readout: coordinate + contents of the square under the cursor,
     // shown in the HUD below the controls (map design / reference aid).

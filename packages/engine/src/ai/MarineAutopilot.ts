@@ -1,5 +1,5 @@
 import { GameEngine } from '../GameEngine.js';
-import { StormBolterMarine } from '../pieces/StormBolterMarine.js';
+import { StormBolterMarine, SergeantMarine } from '../pieces/StormBolterMarine.js';
 import { HeavyFlamerMarine } from '../pieces/HeavyFlamerMarine.js';
 import type { Piece, Coord } from '../pieces/Piece.js';
 import { canShoot } from '../board/vision.js';
@@ -168,6 +168,17 @@ function missionTarget(engine: GameEngine, m: Piece): { x: number; y: number } |
     }
     case 'defend':
       return undefined; // hold the fort — the overwatch branch takes it from here
+    case 'download': {
+      // Sergeants make for the Data Room square; everyone else converges but
+      // holds the perimeter (never parks ON the square the sergeant needs).
+      const dp = engine.mission.downloadPoint;
+      if (!dp) return undefined;
+      if (!(m instanceof SergeantMarine)) {
+        const d = Math.max(Math.abs(dp.x - m.pos.c), Math.abs(dp.y - m.pos.r));
+        if (d <= 2) return undefined; // in position — overwatch from here
+      }
+      return { x: dp.x, y: dp.y };
+    }
     default:
       return undefined;
   }

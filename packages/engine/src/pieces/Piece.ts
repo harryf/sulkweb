@@ -35,6 +35,9 @@ export abstract class Piece {
   /** Full AP pool at the start of each turn. */
   readonly apInitial: number;
 
+  /** Power-sword parry (beta_2 sword sergeant): may force one reroll of the
+   *  opponent's best close-combat die when losing or tied. */
+  readonly parry: boolean = false;
   /** Flat bonus added to every close-combat die (sergeant +1, etc). */
   readonly ccBonus: number = 0;
 

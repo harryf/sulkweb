@@ -1,6 +1,8 @@
 import { Piece } from './pieces/Piece.js';
-import { StormBolterMarine, SergeantMarine } from './pieces/StormBolterMarine.js';
+import { StormBolterMarine, SergeantMarine, SwordSergeantMarine } from './pieces/StormBolterMarine.js';
 import { HeavyFlamerMarine } from './pieces/HeavyFlamerMarine.js';
+import { AssaultCannonMarine, ChainFistMarine } from './pieces/AssaultCannonMarine.js';
+import { deployAmbushCounter } from './pieces/AmbushCounter.js';
 import { Board } from './board/Board.js'
 import type { CompiledMission, MarineType } from './missions/missionTypes.js'
 import { Dir } from './core/Direction.js';
@@ -40,6 +42,9 @@ export class GameEngine {
   readonly escaped: Piece[] = []
   /** flame-objectives squares that have burned at least once ("x,y") — permanent. */
   readonly cleansed = new Set<string>()
+  /** beta_2 download: counter 4→0 while a sergeant holds the Data Room. */
+  downloadCounter = 4
+  private downloadPieceId: string | null = null
 
   constructor(mission: CompiledMission, extraPieces: Piece[] = [], dice?: DiceSource) {
     this.mission = mission
@@ -56,6 +61,9 @@ export class GameEngine {
       storm_bolter: StormBolterMarine,
       sergeant: SergeantMarine,
       heavy_flamer: HeavyFlamerMarine,
+      assault_cannon: AssaultCannonMarine,
+      chain_fist: ChainFistMarine,
+      sergeant_sword: SwordSergeantMarine,
     }
     for (const d of mission.marineDeployment ?? []) {
       const Cls = MARINE_CLASSES[d.type ?? 'storm_bolter']
@@ -72,6 +80,7 @@ export class GameEngine {
     if (mission.ductingSquares?.length) {
       initDucting(board, mission.ductingSquares.map(d => ({ c: d.x, r: d.y })))
     }
+    this.downloadCounter = mission.downloadTurns ?? 4
     // Seed the first blips
     const entries = (mission.entryPoints ?? []).map(e => ({ c: e.x, r: e.y }))
     if (entries.length && (mission.initialBlips ?? 0) > 0) {
@@ -98,6 +107,18 @@ export class GameEngine {
       }
       // Escape-family missions: entering an EXIT square leaves the board.
       this.tryEscape(mover)
+      // beta_2: the downloading sergeant MOVING aborts the download (original
+      // post_action_script MOVING). tryTurn also emits pieceMoved (facing
+      // change), so test that he actually LEFT the square — turning in place
+      // is legal mid-download.
+      if (this.mission.objective === 'download' && mover.id === this.downloadPieceId) {
+        const dp = this.mission.downloadPoint
+        if (!dp || mover.pos.c !== dp.x || mover.pos.r !== dp.y) {
+          this.downloadPieceId = null
+          this.downloadCounter = this.mission.downloadTurns ?? 4
+          PieceEvents.emit('downloadChanged', { counter: this.downloadCounter, active: false })
+        }
+      }
     })
     PieceEvents.on('doorToggled', () => {
       if (PieceEvents.replaying) return // animation replays past events — not new sight lines
@@ -223,6 +244,34 @@ export class GameEngine {
     // Stealer action phase (AI)
     runStealerActions(board)
 
+    // beta_2 ambush counters deploy at the END of the stealer phase (original
+    // Stealer_Action_Phase._end): one per turn, at most two alive at once.
+    if (this.mission.useAmbushCounters && (this.mission.blipsPerTurn ?? 0) > 0
+        && this.state.result === 'ongoing') {
+      deployAmbushCounter(board)
+    }
+
+    // beta_2 download tick (original end_script): a sergeant on the Data Room
+    // square BEGINS the download at his first end-phase; each further one he
+    // remains decrements the counter. Anyone else there — or nobody — resets.
+    if (this.mission.objective === 'download' && this.mission.downloadPoint) {
+      const dp = this.mission.downloadPoint
+      const occupant = board.pieceAt({ c: dp.x, r: dp.y }) as Piece | undefined
+      const sergeant = occupant instanceof SergeantMarine ? occupant : undefined
+      if (sergeant) {
+        if (this.downloadPieceId === sergeant.id) {
+          this.downloadCounter -= 1
+        } else {
+          this.downloadPieceId = sergeant.id // download begins — counter holds
+        }
+        PieceEvents.emit('downloadChanged', { counter: this.downloadCounter, active: true })
+      } else if (this.downloadPieceId !== null || this.downloadCounter !== (this.mission.downloadTurns ?? 4)) {
+        this.downloadPieceId = null
+        this.downloadCounter = this.mission.downloadTurns ?? 4
+        PieceEvents.emit('downloadChanged', { counter: this.downloadCounter, active: false })
+      }
+    }
+
     // End phase: victory checks BEFORE flame dispersal (a burning objective is
     // a win), then flames go out (original `persist = False`) and the freed
     // sight lines are re-checked.
@@ -340,6 +389,18 @@ export class GameEngine {
         return
       }
       if (!marinesAlive) this.finish('loss')
+      return
+    }
+
+    if (objective === 'download') {
+      // Original beta_2 victory_check: no sergeant of either type → stealers;
+      // counter at zero → marines. No draw.
+      const sergeantAlive = this.marines.some(m => m instanceof SergeantMarine)
+      if (!sergeantAlive) {
+        this.finish('loss')
+        return
+      }
+      if (this.downloadCounter <= 0) this.finish('win')
       return
     }
 

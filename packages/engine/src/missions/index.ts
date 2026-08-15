@@ -7,6 +7,7 @@ import space_hulk_4 from './space_hulk/space_hulk_4.json' with { type: 'json' };
 import space_hulk_5 from './space_hulk/space_hulk_5.json' with { type: 'json' };
 import space_hulk_6 from './space_hulk/space_hulk_6.json' with { type: 'json' };
 import beta_1 from './beta/beta_1.json' with { type: 'json' };
+import beta_2 from './beta/beta_2.json' with { type: 'json' };
 import debug_1 from './debug/debug_1.json' with { type: 'json' };
 
 export const missions = {
@@ -17,5 +18,6 @@ export const missions = {
   space_hulk_5,
   space_hulk_6,
   beta_1,
+  beta_2,
   debug_1,
 };

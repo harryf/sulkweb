@@ -1,73 +1,22 @@
 {
   "name": "beta_2",
-  "draft": true,
-  "originalName": "Download",
-  "family": "beta",
-  "info": "To win, a Sergeant must occupy the central square in the Data Room for 4 consecutive end phases. If he moves away from that spot, or dies, the counter will reset. However, he may turn and fight normally. The Genestealers must prevent this by killing both Sergeants.",
-  "story": "NO STORY YET.",
-  "flags": [
-    "USE_AMBUSH_COUNTERS"
-  ],
-  "squads": [
-    {
-      "name": "Sakharov",
-      "pieces": [
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "sergeant"
-        },
-        {
-          "type": "assault_cannon"
-        }
-      ]
-    },
-    {
-      "name": "Sternfeld",
-      "pieces": [
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "chain_fist"
-        },
-        {
-          "type": "sergeant_sword"
-        },
-        {
-          "type": "heavy_flamer"
-        }
-      ]
-    }
-  ],
+  "objective": "download",
+  "downloadPoint": {
+    "x": 12,
+    "y": 22
+  },
+  "downloadTurns": 4,
+  "useAmbushCounters": true,
   "marineDeployment": [
     {
       "x": 7,
       "y": 1,
-      "facing": "down",
-      "type": "heavy_flamer"
-    },
-    {
-      "x": 12,
-      "y": 1,
-      "facing": "down",
-      "type": "sergeant_sword"
+      "facing": "down"
     },
     {
       "x": 7,
       "y": 2,
-      "facing": "down",
-      "type": "chain_fist"
+      "facing": "down"
     },
     {
       "x": 7,
@@ -77,7 +26,8 @@
     {
       "x": 7,
       "y": 4,
-      "facing": "down"
+      "facing": "down",
+      "type": "sergeant"
     },
     {
       "x": 7,
@@ -87,52 +37,35 @@
     },
     {
       "x": 12,
+      "y": 1,
+      "facing": "down"
+    },
+    {
+      "x": 12,
       "y": 2,
-      "facing": "down",
-      "type": "sergeant"
+      "facing": "down"
     },
     {
       "x": 12,
       "y": 3,
-      "facing": "down"
+      "facing": "down",
+      "type": "chain_fist"
     },
     {
       "x": 12,
       "y": 4,
-      "facing": "down"
+      "facing": "down",
+      "type": "sergeant_sword"
     },
     {
       "x": 12,
       "y": 5,
-      "facing": "down"
+      "facing": "down",
+      "type": "heavy_flamer"
     }
   ],
   "initialBlips": 1,
   "blipsPerTurn": 2,
-  "objectiveSquares": [
-    {
-      "x": 12,
-      "y": 22,
-      "id": 1
-    }
-  ],
-  "comments": [
-    {
-      "x": 12,
-      "y": 22,
-      "text": "Data Room"
-    }
-  ],
-  "todo": [
-    "equipment: assault cannon (+autofire/reload/malfunction), chain fist, sergeant-with-sword not implemented",
-    "FLAGS=(USE_AMBUSH_COUNTERS,) — ambush counters not implemented",
-    "victory: hold the Data Room square (O:1 at (12,22)) for 4 turns (init/end_script counter) — not implemented",
-    "piece type not implemented: TERMINATOR_MARINE_WITH_ASSAULT_CANNON (Sakharov)",
-    "piece type not implemented: TERMINATOR_MARINE_WITH_CHAIN_FIST (Sternfeld)",
-    "piece type not implemented: TERMINATOR_MARINE_SERGEANT_WITH_SWORD (Sternfeld)",
-    "deployment squares + facings are mechanical defaults — hand-review against pre_deploy_rule and the mission tactics",
-    "victory rule not migrated — implement from victory_check, then register in missions/index.ts + fidelity spec"
-  ],
   "width": 23,
   "height": 33,
   "squares": [

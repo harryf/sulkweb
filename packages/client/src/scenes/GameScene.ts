@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { GameEngine, loadMission, missions, Square, Piece, StormBolterMarine, HeavyFlamerMarine, Genestealer, Selection, PieceEvents, visibleSquares, canShoot, closeCombat, DIR_VEC, SeededRng, autoplay, runMarineTurn } from "@sulk/engine/index.js";
+import { GameEngine, loadMission, missions, Square, Piece, StormBolterMarine, HeavyFlamerMarine, AssaultCannonMarine, ChainFistMarine, Genestealer, Selection, PieceEvents, visibleSquares, canShoot, closeCombat, DIR_VEC, SeededRng, autoplay, runMarineTurn } from "@sulk/engine/index.js";
 import { Minimap } from '../ui/Minimap.js';
 import { HighlightSprite } from '../ui/HighlightSprite.js';
 import { HudPanel } from '../ui/HudPanel.js';
@@ -77,6 +77,10 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('marker_damage', 'assets/themes/default/marker_damage.png');
     this.load.image('ducting', 'assets/themes/default/ducting.png');
     this.load.image('ducting_destroyed', 'assets/themes/default/ducting_destroyed.png');
+    this.load.image('terminator_assault_cannon', 'assets/themes/default/terminator_assault_cannon.png');
+    this.load.image('terminator_chain_fist', 'assets/themes/default/terminator_chain_fist.png');
+    this.load.image('terminator_sergeant_sword', 'assets/themes/default/terminator_sergeant_sword.png');
+    this.load.image('ambush_counter', 'assets/themes/default/ambush_counter.png');
     // Original GPL sound set (data/sounds in the Pygame source)
     this.load.audio('snd_move', 'assets/sounds/marine_move.wav');
     this.load.audio('snd_bolter', 'assets/sounds/marine_shoot_bolter.wav');
@@ -220,6 +224,25 @@ export default class GameScene extends Phaser.Scene {
       const total = (this.engine.mission.objectivePoints ?? []).length;
       this.hud.setStatus(`Cleansed: ${cleansedCount}/${total}`);
     });
+    // beta_2: destroyed doors disappear for good; malfunctions go out with a bang.
+    PieceEvents.on('doorDestroyed', ({ x, y, facing }) => {
+      this.doorSprites[`${x},${y}:${facing}`]?.destroy();
+      delete this.doorSprites[`${x},${y}:${facing}`];
+      this.sfx('snd_cc', 0.6);
+    });
+    PieceEvents.on('malfunction', () => this.sfx('snd_destruct'));
+    PieceEvents.on('downloadChanged', ({ counter, active }) => {
+      const total = this.engine.mission.downloadTurns ?? 4;
+      this.hud.setStatus(active ? `Downloading… ${counter}/${total}` : `Download reset (${total})`);
+    });
+    if (mission.objective === 'download' && mission.downloadPoint) {
+      const dp = mission.downloadPoint;
+      markers.fillStyle(0xff8800, 0.35).fillRect(dp.x * T, dp.y * T, T, T);
+      markers.lineStyle(2, 0xffaa00, 1).strokeRect(dp.x * T + 1, dp.y * T + 1, T - 2, T - 2);
+      this.add.text(dp.x * T + T / 2, dp.y * T + T / 2, 'DATA', {
+        fontFamily: 'Kanit', fontSize: '11px', color: '#ffaa00', fontStyle: 'bold'
+      }).setOrigin(0.5).setDepth(0.45);
+    }
 
     // Render-side combat reactions: engine events drive all sprite state.
     // Handlers read the event PAYLOAD, never the engine — during stealer-phase
@@ -324,7 +347,7 @@ export default class GameScene extends Phaser.Scene {
     pieces.forEach(p => this.createPieceSprite(p));
 
     this.cursors = this.input.keyboard!.createCursorKeys()
-    this.wasd = this.input.keyboard!.addKeys('W,A,S,D,O,F,C,V,U,P,X') as any
+    this.wasd = this.input.keyboard!.addKeys('W,A,S,D,O,F,C,V,U,P,X,T,R,G') as any
     this.input.keyboard!.on('keydown-ENTER', () => this.endTurn());
     this.input.keyboard!.on('keydown-ESC', () => this.togglePause());
     // Camera bounds to exclude HUD area
@@ -364,6 +387,7 @@ export default class GameScene extends Phaser.Scene {
         ? `ESCAPE ${this.engine.mission.escapeQuota} marines via the EXIT`
         : 'GET one marine out via the EXIT',
       'defend': `DEFEND the ducting + control room\nuntil the end of turn ${this.engine.mission.turnLimit ?? 16}`,
+      'download': 'HOLD the Data Room with a sergeant\nfor 4 quiet end-phases',
     };
     this.hud.setObjective(objectiveLabel[this.engine.mission.objective ?? 'exterminate-or-exit'] ?? '');
     this.hud.setKillQuota(this.engine.mission.objective === 'kill-quota'
@@ -375,6 +399,8 @@ export default class GameScene extends Phaser.Scene {
       this.hud.setStatus(`Cleansed: 0/${(this.engine.mission.objectivePoints ?? []).length}`);
     } else if (obj === 'defend') {
       this.hud.setStatus(`Hold until turn ${this.engine.mission.turnLimit ?? 16}`);
+    } else if (obj === 'download') {
+      this.hud.setStatus(`Download not started (${this.engine.mission.downloadTurns ?? 4})`);
     }
 
     // Hover readout: coordinate + contents of the square under the cursor,
@@ -432,7 +458,7 @@ export default class GameScene extends Phaser.Scene {
       PieceEvents.emit('selected', {
         pieceId: piece?.id ?? null,
         ap: piece ? { apRemaining: piece.apRemaining, apInitial: piece.apInitial } : undefined,
-        ammo: piece instanceof HeavyFlamerMarine ? piece.ammo : undefined
+        ammo: piece instanceof HeavyFlamerMarine || piece instanceof AssaultCannonMarine ? piece.ammo : undefined
       });
     });
 
@@ -471,6 +497,9 @@ export default class GameScene extends Phaser.Scene {
       }
       else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).U)) acted = (piece as StormBolterMarine).unjam?.() ?? false;
       else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).X)) acted = piece instanceof HeavyFlamerMarine && piece.selfDestruct();
+      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).T)) acted = piece instanceof AssaultCannonMarine && piece.autofire();
+      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).R)) acted = piece instanceof AssaultCannonMarine && piece.reload();
+      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).G)) acted = piece instanceof ChainFistMarine && piece.cutDoor();
       else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).P)) acted = this.engine.spendCP(piece);
 
       if (acted) this.engine.checkVictory(); // e.g. marine stepped onto the exit
@@ -497,9 +526,13 @@ export default class GameScene extends Phaser.Scene {
     const piece = board.pieceAt({ c: x, r: y }) as Piece | undefined;
     if (piece) {
       parts.push(piece instanceof HeavyFlamerMarine ? `marine (flamer, ammo ${piece.ammo})`
+        : piece instanceof AssaultCannonMarine ? `marine (assault cannon, ammo ${piece.ammo})`
+        : piece instanceof ChainFistMarine ? 'marine (chain fist)'
         : piece.timerBonus > 0 ? 'marine (sergeant)'
         : piece.kind);
     }
+    const dl = this.engine.mission.downloadPoint;
+    if (dl && dl.x === x && dl.y === y) parts.push('OBJECTIVE: Data Room');
     if (board.isFlaming({ c: x, r: y })) parts.push('ON FIRE');
     if (this.engine.mission.entryPoints?.some(e => e.x === x && e.y === y)) parts.push('stealer entry');
     if (this.engine.mission.exitPoints?.some(e => e.x === x && e.y === y)) parts.push('EXIT');
@@ -615,6 +648,7 @@ export default class GameScene extends Phaser.Scene {
     sectionFlamed: 300, flamesCleared: 150, jammed: 120,
     catMoved: 110, catDropped: 170, catDamaged: 220,
     ductingDestroyed: 220, marineEscaped: 180, objectiveCleansed: 150,
+    doorDestroyed: 220, malfunction: 320, downloadChanged: 120,
   };
 
   /**

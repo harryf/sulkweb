@@ -11,12 +11,18 @@ import { Dir, DIR_VEC } from '../core/Direction.js';
  */
 export class Door extends Feature {
   private closed = true
+  /** Cut apart by a chain fist or shredded by assault-cannon autofire —
+   *  a destroyed door is permanently open and can no longer be operated. */
+  destroyed = false
   /** Which neighbor of the anchor square the door edge borders. */
   readonly facing: Dir
 
   constructor(square: Square, facing: Dir = Dir.N) { super(square); this.facing = facing }
 
-  get isOpen(): boolean { return !this.closed }
+  get isOpen(): boolean { return this.destroyed || !this.closed }
+
+  /** Remove the door from play (original door.kill()). */
+  destroy(): void { this.destroyed = true; this.closed = false }
 
   /** The square on the far side of the edge from the anchor. */
   otherSide(): { c: number; r: number } {
@@ -25,9 +31,9 @@ export class Door extends Feature {
   }
 
   open(): void  { this.closed = false }
-  close(): void { this.closed = true }
+  close(): void { if (!this.destroyed) this.closed = true }
 
-  toggle(): void { this.closed = !this.closed }
+  toggle(): void { if (!this.destroyed) this.closed = !this.closed }
 
   // The edge blocks; the anchor square itself never does.
   blocksMove() { return false }

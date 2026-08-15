@@ -1,7 +1,7 @@
 # sulkweb — working notes for AI/dev sessions
 
 Web port of **Sulk** (Space Hulk clone): pure-TypeScript rules engine + Phaser 3 client.
-Now EIGHT registered missions (space_hulk 1–6, beta_1, debug_1) — the full original campaign; only beta_2 (exotic weapons) remains drafted.
+ALL NINE missions registered (space_hulk 1–6, beta_1, beta_2, debug_1) — the complete original campaign, exotic weapons included.
 
 ## Read first
 
@@ -20,9 +20,9 @@ Resuming work = extend `ISA.md` (new ISCs, decisions, changelog) — don't inven
 ```bash
 pnpm install
 pnpm --filter ./packages/client dev      # play at localhost:5173
-pnpm --filter ./packages/engine test     # 209 unit tests + coverage (~95% lines)
+pnpm --filter ./packages/engine test     # 228 unit tests + coverage (~95% lines)
 pnpm --filter ./packages/client test     # HUD/minimap units (vitest, --dir src only)
-pnpm --filter ./packages/client e2e      # Playwright no-mock suite (17 tests: playthroughs, flame/kill-counter/draw UIs, all-mission boots, animation, hover)
+pnpm --filter ./packages/client e2e      # Playwright no-mock suite (18 tests: playthroughs, flame/kill-counter/draw/download UIs, all-mission boots, animation, hover)
 pnpm build                               # engine tsc -b + client vite build
 pnpm --filter ./packages/engine example  # CLI engine tour
 ```
@@ -102,6 +102,18 @@ pnpm --filter ./packages/engine example  # CLI engine tour
   an explicit end-phase check; ducting/room-flames/wipe lose; flamerAmmo
   override; the flamer-fires-from-control-room kludge lives on the
   sectionFlamed handler.
+- **beta_2 weapons (AssaultCannonMarine.ts, AmbushCounter.ts)**: the cannon's
+  aimed fire is 3 dice vs 5 (sustained LOWERS the req, floor 1), AUTOFIRE
+  sweeps pieces INCLUDING MARINES and closed doors (Door.destroy() = gone for
+  good, isOpen forever) in repeat passes, MALFUNCTION fires on a 3-dice triple
+  once shotsFired > 10 (kills the cannon + adjacent d6 ≥ 4/5). Parry lives in
+  combat.ts (best-die reroll when the parrier loses/ties with the opponent
+  ahead). AmbushCounter extends Blip but overrides tryMove (no sight bars) and
+  convert (fake → vanish + fireAtNothing on every watching overwatcher).
+  Download victory: begin/decrement in endMarinePhase mirrors end_script; the
+  MOVE-reset handler must check the sergeant actually LEFT the square —
+  tryTurn also emits pieceMoved (caught twice now: keep initial hud.setStatus
+  calls OUT of the pre-HUD markers block, the create()-order bug bit both runs).
 - **Client default mission is `debug_1`;** `?mission=<name>` (any registry key) selects
   another — the space_hulk_1 e2e specs pass `?mission=space_hulk_1` explicitly.
 

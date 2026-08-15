@@ -4,10 +4,10 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 246/247 (mission-completion ISC-204..245 verified; ISC-71 deferred)
+progress: 268/269 (beta_2 run ISC-246..267 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-15T13:50:00Z
+updated: 2026-08-15T15:10:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -374,6 +374,36 @@ Closure:
 - [x] ISC-244: beta_2 deferral documented (equipment run of its own) (Read)
 - [x] ISC-245: each new mission boots via ?mission= in a real browser with zero console errors (Playwright)
 
+Beta_2 "Download" completion (2026-08-15, "finish it off"):
+
+Assault cannon:
+- [x] ISC-246: aimed shot: 3 dice, kill on any ≥ 5, 10 ammo, ammo consumed per shot (vitest)
+- [x] ISC-247: sustained fire lowers the kill requirement by 1 per aimed miss on the same target, floor 1 (max bonus 4); move-and-shoot/overwatch get no bonus (vitest)
+- [x] ISC-248: autofire: 2 AP + 5 ammo, sweeps every visible fire-arc unit — stealers, closed DOORS, even marines — 3 dice vs 3 each, repeating until nothing new dies (vitest)
+- [x] ISC-249: malfunction: a triple rolled after 10+ shots kills the cannon marine and rolls d6 ≥ 4 (stealers) / ≥ 5 (marines) for each adjacent piece (vitest)
+- [x] ISC-250: reload: once, 4 AP, restores 10 ammo (vitest)
+- [x] ISC-251: doors destroyed by autofire are gone permanently (edge acts open; sprite removed) (vitest + Playwright)
+Chain fist + sword sergeant:
+- [x] ISC-252: chain fist cuts (destroys) the door on the front edge for 1 AP (vitest)
+- [x] ISC-253: sword sergeant parries: when losing or tied in CC with the opponent in his front arc, the opponent's best die is rerolled once; keeps sergeant +1 and +30s (vitest)
+Ambush counters:
+- [x] ISC-254: with the mission flag, one counter deploys at each stealer-phase end on a legal square (unoccupied, not within 6 of / seen by a marine), max 2 on board (vitest)
+- [x] ISC-255: counter value drawn 0/0/1 from the board dice — deterministic under seed (vitest)
+- [x] ISC-256: a sighted value-1 counter converts to a genestealer; a sighted FAKE vanishes and every overwatching marine that sees it fires at nothing — bolters can jam, an assault cannon burns ammo + risks malfunction (vitest)
+- [x] ISC-257: counters move freely toward marines (no blip sight/adjacency bars) (vitest)
+Download victory:
+- [x] ISC-258: a sergeant (either type) on the Data Room square at end-phase begins the download; each further end-phase he remains unmoved decrements 4→0 (vitest)
+- [x] ISC-259: the downloading sergeant MOVING (or vacating) resets the counter to 4 (turning does not) (vitest)
+- [x] ISC-260: counter 0 → win at the boundary check; no living sergeant → loss (vitest)
+Mission + closure:
+- [x] ISC-261: beta_2.json finalized (2×5 column deployment with AC/CF/SGT-SW/HF placed, downloadPoint (12,22), blips 1/2, ambush flag) + registered — draft removed, drafts/ now empty (vitest + Bash)
+- [x] ISC-262: fidelity spec green vs independent transcription (176 sq / 38 sec / 17 doors / 9 entries) (vitest)
+- [x] ISC-263: autopilot plays beta_2: a sergeant walks to the Data Room and SITS; escorts overwatch; scans + opposed evidence recorded (Bash)
+- [x] ISC-264: client: three new marine sprites + ambush-counter sprite render; keys T autofire / R reload / G cut door; download status line (Playwright)
+- [x] ISC-265: Anti: all seven existing missions' suites + pins stay green; build clean (Bash)
+- [x] ISC-266: Anti: registry guard passes with beta_2 registered (no draft/todo, objective set) (vitest)
+- [x] ISC-267: README/CLAUDE updated — campaign 8/8 complete, weapons documented, honest balance (Read)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
@@ -527,6 +557,10 @@ Closure:
 - Parser hardening: multi-tag square dicts ({O:1,M:None}, {O:2,DUCTING:RIGHT}) and quoted COMMENT strings occur in missions 4–6 — parseMish parses full dicts; the mission-1/2 single-tag path regenerates space_hulk_2.json byte-identically (regression md5 match).
 - Registry = playability gate (ISC-200): drafts live in src/missions/drafts/, never imported, never registered; finishing checklist stamped into every draft todo.
 - Mission-6 quirk recorded: 189/192 squares are M-tagged (deploy almost anywhere) — kind:room heuristic mis-paints it; flagged in its draft todo.
+
+**2026-08-15 — Advisor adjudication, beta_2 run:** the advisor's parry question was REAL and fixed: my tie-parry was a gamble the original leaves to the player (get_best_parry_result auto-parries only when LOSING or when the opponent's score is already maximal — a reroll can't be worse; plain ties prompt the player). combat.ts now implements exactly that rule and declines the plain-tie gamble (deviation noted: no interactive prompt exists). Confirmed the reroll itself was already faithful — _parry REMOVES the max and the new roll STANDS (not best-of-two); no sergeant buff existed. Also delivered: PINNED opposed win (seed 4 CP-boost run is now a permanent spec — statistic → evidence); no-legal-square ambush deployment test (deviation: original random.choice would throw on empty; we skip — marine-favouring only on boards that would have crashed the original); 0/20 autopilot explained STRUCTURALLY (counter never left 4 because the squad dies en route — the sit-still path exists and is reached only by the CP rush); download does NOT forbid other actions (reset on MOVING only, per post_action_script — the sergeant can overwatch/shoot mid-download, verified by the turn-tolerance test); roster completeness verified 9/9 mission files ported (ls of data/missions families); FULL campaign re-verification ran AFTER the combat.ts parry change — 231 engine / 18 e2e green, all pins intact (parry activates only for parry=true pieces, so the other eight missions' dice streams are untouched, and their pinned seeds prove it). Advisor auto-state loaded an unrelated WORK ISA for the FOURTH time (standing v6.2.x project-ISA discovery gap) — criteria judged against sulkweb/ISA.md.
+
+**2026-08-15 — beta_2 "Download" completion (ISC-246..267):** the final mission, weapons read class-by-class from pieces.py (assault cannon + ReloadsMixIn, chain fist, Sergeant_with_Power_Sword + ParryMixIn, Ambush_Counter + get_ambush_counter_val + Stealer_Action_Phase._end deployment). Adaptations: parry auto-decides (original asks the player on ties — ours parries whenever losing-or-tied with the opponent ahead, matching the "might as well" branch); ambush deployment square picked by 3-dice index over the legal list (original random.choice — uniformity approximate, determinism exact); autofire judges doors by their anchor square LOS. Download machinery mirrors init/end_script/post_action_script exactly: begin-then-decrement (5 quiet end-phases total), reset on MOVE only — the pieceMoved handler checks the sergeant actually LEFT the square because tryTurn also emits pieceMoved (caught by the ISC-259 test, engine-side fix). The create()-order HUD bug from the last run was REINTRODUCED in the download marker block and caught the same way (e2e timeout) — lesson now written into CLAUDE.md gotchas. Scans: shipped autopilot 0W/20L (the sit-still download is the hardest ask for a scripted player — counter never left 4); CP-boost probe 3/40 FULL OPPOSED WINS (seeds 4/8/9) — the mission is winnable under full opposition. Fidelity: 176/38/17/9 vs the independent transcription, exact. E4 context-override escalation from classifier E3, delegation 1/2 with standing show-math, Cato waived (codex absent).
 
 **2026-08-15 — Mission completion run (ISC-204..245):** all five drafted missions finished with their ORIGINAL victory semantics, read from each victory_check this session. Adaptations (each preserving the source rule's shape): C.A.T. as board-level state (never occupies its square — a Piece would have blocked pickup/attack; enter-to-pick-up, stealer-enter-to-damage replaces the original's possession/attack UI; wanders 3 d6-driven steps in the end phase per may_wander); LURKING as exit-square departure (tryEscape removes the marine; escaped marines count toward quotas; original limbo squares don't exist here); mission-5 loss = alive+escaped < 5 (original len(marines) < 5, lurkers included — equivalent); escort-cat adds wipe→loss (original would hang with a loose cat and no marines); mission-6 stealers destroy ducting BY ENTERING the square (original attack mechanic is UI-driven; entering is the AI-reachable equivalent) and the flamer-fires-from-control-room kludge is preserved verbatim in spirit. Escalated E3→E4 (conversation context: five missions × new engine systems). Deployment choices: m3 both squads at their corridor pairs with the CAT at (28,13) Ilyich; m4/m5 fully determined by their 10 M squares (flamers at column heads — mission-1 lesson); m6 defensive ring in/around the control room with flamers OUT of the O:1 zone; b1 five of the ten M squares. Seed scans: m6 10W/10L over 20 (genuinely winnable scripted — camping defence suits the autopilot); m3/m4/m5/b1 0W/20L opposed (familiar scripted-player pattern; m4's flamer-led columns feed both flamers to CC by t3-4) with ALL win chains proven unopposed (m3 t17 after the escort crowd-lock fix — escorts now head for the exits and VACATE the corridors, only the nearest marine fetches the cat; m4 t7; m5 t11; b1 t12). beta_2 DEFERRED explicitly: assault cannon (autofire/reload/malfunction), chain fist, sword sergeant, ambush counters, hold-square-counter victory — a weapons-system run of its own; its draft stays in drafts/ behind the registry gate. Cato (E4-mandatory) waived again: codex CLI absent — standing waiver. One client defect found by e2e + real-Chrome reproduction: initial setStatus calls ran before this.hud existed (create()-order bug) — moved next to setObjective.
 
@@ -733,3 +767,15 @@ Mission completion (2026-08-15):
 - ISC-240: Bash — full suites green: 209 engine (25 files) / 6 client units / 17 e2e / build clean
 - ISC-241: vitest — registry guard sweeps all EIGHT missions (no draft/todo/missing-objective); finished drafts deleted, only beta_2.json remains
 - ISC-243/244: Read — README (8-mission list, systems, honest balance, beta_2 note) + CLAUDE (exotic systems invariants) updated
+
+beta_2 completion (2026-08-15):
+- ISC-246..251: vitest — cannon shot/sustained-floor/autofire-multipass (door-opens-sightline case)/malfunction (adjacent 4-vs-5 reqs)/reload-once/permanent door destruction
+- ISC-252/253: vitest — chain-fist cut (1 AP, uncloseable) + parry reroll flips a losing exchange
+- ISC-254..257: vitest — deploy legality (far + unseen, max 2), dice-drawn 0/0/1 value, free movement, real-converts / fake-rattles (bolter jam + cannon ammo burn)
+- ISC-258..260: vitest — begin/decrement/win, turn-tolerant move-reset, both sergeant types download, sergeantless loss
+- ISC-261/262: vitest + Bash — beta_2 registered (drafts/ EMPTY), board vs independent transcription exact, 180s two-sergeant timer
+- ISC-263: Bash — autopilot legal 6-turn spec + 20-seed scan (0W, structurally explained) + CP-boost 3/40 OPPOSED WINS, seed 4 PINNED as a permanent spec
+- ISC-264: Playwright beta2.spec — 10 variant sprites, download status line, win overlay, zero page errors + screenshot inspected (DATA marker, 3-line objective, Downloading 2/4)
+- ISC-265: Bash — 231 engine / 6 unit / 18 e2e green AFTER the combat.ts parry fix (full-campaign re-verification), build clean, all pins intact
+- ISC-266: vitest — registry guard sweeps NINE missions clean
+- ISC-267: Read — README (campaign COMPLETE, weapons) + CLAUDE (weapon invariants, twice-bitten create()-order gotcha)

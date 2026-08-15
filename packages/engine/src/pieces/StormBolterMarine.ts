@@ -17,10 +17,10 @@ export class StormBolterMarine extends Piece {
   /** Move-and-shoot: the first shot after a move is free (original MNS). */
   freeShot = false;
 
-  private sustainedTargetId: string | null = null;
-  private sustainedBonus = 0;
+  protected sustainedTargetId: string | null = null;
+  protected sustainedBonus = 0;
   /** Sustained-fire cap per the original `_max_fire_bonus`. */
-  private static readonly MAX_SUSTAINED = 4;
+  protected static readonly MAX_SUSTAINED = 4;
 
   constructor(board: Board, start: Coord, facing: Dir = Dir.N) {
     super('marine', board, start, facing);
@@ -70,6 +70,19 @@ export class StormBolterMarine extends Piece {
     this.clearOverwatch();
   }
 
+  /** A fake ambush counter revealed itself: every overwatcher who saw it
+   *  reflex-fires at empty space (original fire_at_empty_space) — the bolter
+   *  rolls its dice and can JAM on a double; nothing is consumed otherwise. */
+  fireAtNothing(): void {
+    const raw = [this.board.dice.roll(), this.board.dice.roll()];
+    PieceEvents.emit('shot', { shooterId: this.id, targetId: '', x: this.pos.c, y: this.pos.r, rolls: raw, hit: false });
+    if (raw[0] === raw[1]) {
+      this.jammed = true;
+      PieceEvents.emit('jammed', { pieceId: this.id, jammed: true });
+      this.clearOverwatch();
+    }
+  }
+
   /** Clear a jammed bolter for 1 AP. */
   unjam(): boolean {
     if (!this.jammed || this.ap < 1) return false;
@@ -95,7 +108,7 @@ export class StormBolterMarine extends Piece {
     this.sustainedBonus = 0;
   }
 
-  private clearOverwatch(): void {
+  protected clearOverwatch(): void {
     if (!this.overwatch) return;
     this.overwatch = false;
     PieceEvents.emit('overwatchChanged', { pieceId: this.id, on: false });
@@ -131,4 +144,11 @@ export class SergeantMarine extends StormBolterMarine {
   static override readonly SPRITE_KEY: string = 'terminator_sergeant';
   override readonly ccBonus = 1;
   override readonly timerBonus = 30;
+}
+
+/** Sergeant with power sword (beta_2): everything the sergeant has, plus the
+ *  PARRY — force one reroll of the opponent's best CC die when losing/tied. */
+export class SwordSergeantMarine extends SergeantMarine {
+  static override readonly SPRITE_KEY: string = 'terminator_sergeant_sword';
+  override readonly parry: boolean = true;
 }

@@ -10,6 +10,7 @@ export interface SquareJSON {
 export interface CoordJSON { x: number; y: number }
 
 export type MarineType = 'storm_bolter' | 'sergeant' | 'heavy_flamer'
+  | 'assault_cannon' | 'chain_fist' | 'sergeant_sword'
 
 export interface DeploySquareJSON extends CoordJSON {
   facing?: 'up'|'right'|'down'|'left'
@@ -36,7 +37,7 @@ export interface RawMissionJSON_v2 {
   totalBlips?: number
   /** Victory rule for the marines. */
   objective?: 'exterminate' | 'reach-exit' | 'exterminate-or-exit' | 'flame-objective' | 'kill-quota'
-    | 'escort-cat' | 'flame-objectives' | 'escape-count' | 'defend'
+    | 'escort-cat' | 'flame-objectives' | 'escape-count' | 'defend' | 'download'
   /** Objective square for flame-objective (e.g. Launch Control). Marines win
    *  when it is flaming; they LOSE when no living flamer has ammo left. */
   objectivePoint?: CoordJSON
@@ -64,6 +65,12 @@ export interface RawMissionJSON_v2 {
   ductingSquares?: CoordJSON[]
   /** defend: O:1 control-room squares — any flaming = loss. */
   roomSquares?: CoordJSON[]
+  /** download (beta_2): the Data Room square a sergeant must hold. */
+  downloadPoint?: CoordJSON
+  /** download: end-phases the sergeant must remain (counter start; original 4). */
+  downloadTurns?: number
+  /** beta_2 USE_AMBUSH_COUNTERS: the stealer side drops decoy counters. */
+  useAmbushCounters?: boolean
 }
 
 export type CompiledMission = RawMissionJSON_v2

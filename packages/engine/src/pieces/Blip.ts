@@ -27,7 +27,7 @@ export function drawBlipValue(board: Board): number {
  */
 export class Blip extends Piece {
 
-  static readonly SPRITE_KEY = 'blip';
+  static readonly SPRITE_KEY: string = 'blip';
 
   /** Hidden stealer count (1-3), secret from the marine player. */
   readonly value: number;

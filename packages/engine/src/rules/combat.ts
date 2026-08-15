@@ -46,8 +46,29 @@ export function closeCombat(attacker: Piece, defender: Piece): CombatResult | un
   const d = ccDice(defender, attacker);
   const attackerRolls = Array.from({ length: a.count }, () => board.dice.roll() + a.bonus);
   const defenderRolls = Array.from({ length: d.count }, () => board.dice.roll() + d.bonus);
-  const aBest = Math.max(...attackerRolls);
-  const dBest = Math.max(...defenderRolls);
+  let aBest = Math.max(...attackerRolls);
+  let dBest = Math.max(...defenderRolls);
+
+  // Power-sword PARRY (original ParryMixIn._parry): the opponent's best die is
+  // REMOVED and a fresh roll takes its place — the new result STANDS (not
+  // best-of-two), so the post-parry best can come from a lower original die.
+  // Decision rule per get_best_parry_result's auto branch: parry when LOSING,
+  // or when tied and the opponent's score is already its maximum (a reroll
+  // cannot make it worse). A plain tie is the original's ask-the-player case —
+  // we decline it: rerolling a beatable tie is a gamble, and the draw stands.
+  const parryRoll = (rolls: number[], bonus: number): number => {
+    rolls.splice(rolls.indexOf(Math.max(...rolls)), 1);
+    rolls.push(board.dice.roll() + bonus);
+    return Math.max(...rolls);
+  };
+  const shouldParry = (mine: number, theirs: number, theirBonus: number) =>
+    theirs > mine || (theirs === mine && theirs >= 6 + theirBonus);
+  if (defender.parry && shouldParry(dBest, aBest, a.bonus) && directlyAhead(defender, attacker)) {
+    aBest = parryRoll(attackerRolls, a.bonus);
+  }
+  if (attacker.parry && shouldParry(aBest, dBest, d.bonus)) { // attacker always faces its target
+    dBest = parryRoll(defenderRolls, d.bonus);
+  }
 
   let outcome: CombatResult['outcome'];
   if (aBest > dBest) {

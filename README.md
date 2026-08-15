@@ -2,7 +2,7 @@
 
 A web-based port of the classic turn-based strategy game [Sulk](https://sulk.sourceforge.net/) (a Space Hulk clone, originally Pygame), built with **Phaser 3 + TypeScript** on the client and a **pure-TypeScript rules engine** with no rendering dependencies.
 
-**Status: playable, faithful to the original.** Eight missions transcribed from the
+**Status: COMPLETE — the entire original campaign is playable.** Nine missions transcribed from the
 original game's sources (`data/missions/<family>/MISH_*.py`):
 
 - **`debug_1`** (default): "Suicide Mission with no forces" — one storm-bolter marine
@@ -36,8 +36,16 @@ original game's sources (`data/missions/<family>/MISH_*.py`):
   here, and firing one from inside the control room wrecks the ducting —
   exactly the source's own booby-trap.
 - **`beta_1`** "Messenger": get any one marine out through the far exit.
-  (Beta 2 "Download" is drafted but needs the assault cannon, chain fist,
-  sword sergeant and ambush counters — a weapons-system build of its own.)
+- **`beta_2`** "Download": the full exotic armoury. A sergeant must HOLD the
+  **Data Room** square through four quiet end-phases (moving resets the
+  counter) while the squad covers him with the **assault cannon** (3 dice,
+  kill on 5+, 10 rounds + one reload, 2-AP AUTOFIRE that shreds stealers,
+  doors and even battle-brothers — and can catastrophically MALFUNCTION), the
+  **chain fist** (cuts doors apart for good), the **power-sword sergeant**
+  (parries the best enemy die) and the heavy flamer. The stealers seed
+  **ambush counters** behind your lines — two in three are bluffs that bait
+  your overwatch into wasted fire, jams, and cannon mishaps.
+  `http://localhost:5173/?mission=beta_2`
 
 Blips enter from the mission entry points, refuse to expose themselves (converting
 from cover like the originals), the stealer AI hunts the squad, and the original
@@ -105,6 +113,11 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
   nothing), quota win fires the instant the 30th kill lands, and the blockade
   check walks the board graph exactly like `get_team_is_near` (8-way, walls
   block, closed doors don't, self = 0).
+- beta_2 weapons per the source classes: assault cannon (aburst 5 / autofire 3
+  score-reqs, sustained −1 per miss, malfunction on triples past ten shots —
+  adjacent d6 ≥ 4, marines ≥ 5), chain-fist door cutting, ParryMixIn rerolls,
+  Ambush_Counter with the original choice((0,0,1)) fake odds and
+  try_to_jam_guns overwatch bait.
 - Missions 3–6 + beta 1 victory rules per their `victory_check` functions:
   C.A.T. escort with the original damaged-draw state, permanent Gene Bank
   cleansing, lurk-count escapes (adapted as exit-square departures), and the
@@ -114,9 +127,9 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
 ## Development
 
 ```bash
-pnpm --filter ./packages/engine test   # 209 unit tests (rules, AI, game flow)
+pnpm --filter ./packages/engine test   # 228 unit tests (rules, AI, game flow)
 pnpm --filter ./packages/client test   # HUD + minimap unit tests
-pnpm --filter ./packages/client e2e    # 17 Playwright tests: real browser, no mocks
+pnpm --filter ./packages/client e2e    # 18 Playwright tests: real browser, no mocks
 pnpm build                             # engine tsc + client vite build
 pnpm --filter ./packages/engine example  # CLI engine tour
 ```

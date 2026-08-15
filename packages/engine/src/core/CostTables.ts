@@ -1,9 +1,9 @@
 
-/** Movement cost by delta column & delta row (-1…1) */
+/** Marine movement cost by facing-relative delta. Side-steps are ILLEGAL for
+ *  terminators per the original (`_movemap` L/R = None) — no entry = no move. */
 export const MOVE_COST: Record<string, number> = {
   '0,-1': 1,  '1,-1': 1,  '-1,-1': 1,   // forward & f-diagonals
-  '0,1': 2,   '1,1': 2,   '-1,1': 2,    // backward & b-diagonals
-  '1,0': 2,   '-1,0': 2                    // side-steps
+  '0,1': 2,   '1,1': 2,   '-1,1': 2     // backward & b-diagonals
 };
 
 /** Turning costs */

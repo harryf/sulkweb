@@ -20,9 +20,9 @@ Resuming work = extend `ISA.md` (new ISCs, decisions, changelog) — don't inven
 ```bash
 pnpm install
 pnpm --filter ./packages/client dev      # play at localhost:5173
-pnpm --filter ./packages/engine test     # 112 unit tests + coverage (~95% lines)
+pnpm --filter ./packages/engine test     # 143 unit tests + coverage (~95% lines)
 pnpm --filter ./packages/client test     # HUD/minimap units (vitest, --dir src only)
-pnpm --filter ./packages/client e2e      # Playwright no-mock suite (8 tests, incl. win+loss playthroughs, stealer-phase animation, HUD hover readout)
+pnpm --filter ./packages/client e2e      # Playwright no-mock suite (10 tests, incl. win+loss playthroughs, flame-victory UI, stealer-phase animation, HUD hover readout)
 pnpm build                               # engine tsc -b + client vite build
 pnpm --filter ./packages/engine example  # CLI engine tour
 ```
@@ -44,10 +44,23 @@ pnpm --filter ./packages/engine example  # CLI engine tour
   Our JSONs mirror that structure: `engine/src/missions/space_hulk/space_hulk_1.json`,
   `engine/src/missions/debug/debug_1.json` — registry in `missions/index.ts`. debug_1 and
   space_hulk_1 share a byte-identical 98-square BOARD (verified by diffing the sources);
-  they differ only in forces (debug_1: ONE marine at BEGINPLACE, blips 0 initial + 1/turn).
-  `mission1_fidelity.spec.ts` is the square-for-square guard — edit maps only with the
-  original source in hand. Dynamics are documented deviations (no flamer →
-  reach-Launch-Control win; see ISA Decisions).
+  they differ only in forces/objective. `mission1_fidelity.spec.ts` is the
+  square-for-square guard — edit maps only with the original source in hand.
+- **BEGINPLACE is DEAD CODE in the original** (initial camera position; its board.py
+  consumers are commented out). Real deployment squares are the `M:`-tagged tuples —
+  mission 1: the north corridor (10,0)–(10,4). Original FORCES: 3 storm bolters +
+  sergeant (+1 CC, +30s timer) + heavy flamer (deployed at the column head — the
+  original deploy phase pops the member list from the END, flamer first).
+- **Sections drive the flamer**: each BOARD sublist in the Python source is one board
+  SECTION; `scripts/addSections.ts` regenerates per-square `section` ids in the JSONs
+  from the source. Flames fill the target's whole section (orthogonal spread, stopped
+  by closed door edges), kill on d6 ≥ 2, block movement-in and LOS, and clear at
+  end-phase (with a blip-sight recheck). Self-destruct silently wipes + torches the
+  flamer's OWN section.
+- **space_hulk_1 victory is the ORIGINAL**: `objective: flame-objective` +
+  `objectivePoint (20,20)` — win the instant the objective square burns; LOSS the
+  instant no living flamer has ammo. No exit win, no extermination win, reinforcements
+  UNCAPPED. debug_1 keeps the adapted reach-exit objective (documented deviation).
 - **Client default mission is `debug_1`;** `?mission=<name>` (any registry key) selects
   another — the space_hulk_1 e2e specs pass `?mission=space_hulk_1` explicitly.
 
@@ -60,11 +73,14 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
    never assertions against seeds. `SeededRng` is for gameplay/e2e determinism only.
 2. **Anything visual/interactive → real browser** (Playwright in `packages/client/tests/`,
    which is e2e-only — never put vitest specs there, the runners conflict).
-3. Pinned-seed e2e: win.spec (debug_1 default, ?seed=1 → MISSION COMPLETE) and
-   playthrough.spec (?mission=space_hulk_1&seed=3 → loss).
+3. Pinned-seed e2e: win.spec (debug_1 default, ?seed=1 → MISSION COMPLETE),
+   playthrough.spec (?mission=space_hulk_1&seed=3 → loss), flamer-ui.spec
+   (engine-surgery flame → win overlay + flames on screen).
    These are determinism fixtures, NOT balance evidence; balance = unpinned seed sweep.
-   2026-08-15 baselines — space_hulk_1: 102W/18L/0 over 120 (ALL wins by reaching Launch
-   Control; rate measures the adapted objective, see ISA); debug_1: 30W/30L/0 over 60.
+   2026-08-15 post-fidelity baselines — space_hulk_1: 0W/60L, but the funnel shows
+   the autopilot's flamer-led column feeds the flamer to CC on turn 2 in 57/60 —
+   an autopilot artifact, NOT balance evidence; unopposed the autopilot wins turn 9,
+   proving the kill chain (flamer.spec); debug_1: 40W/0L over 40.
    CAUTION: playthrough.spec idles turn 1 before its DONE click, so it consumes dice
    differently from plain autoplay — scan loss seeds under THAT pattern (endMarinePhase
    first, then autoplay). If a rules change alters dice-consumption order, re-scan and re-pin.
@@ -112,7 +128,8 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
 
 ## Where work would continue (see README "Known gaps")
 
-Balance tuning (blip budget/entries), sergeant + special weapons (flamer, assault cannon,
-librarian — rules already digested in ISA), marine interrupts during stealer phase,
-more missions (schema is ready), sound, deploy pipeline. Deferred verifications:
-FPS probe (ISC-71), cross-vendor audit against tag `v0.1`.
+Missions 2–6 + beta transcription (each brings its equipment: assault cannon +
+autofire/reload/malfunction, chain fist, thunder hammer, captain + grenades + parry,
+librarian psi, CAT escort, ambush counters, exit-arrow lurking, turn limits — the
+original per-mission survey is in ISA Decisions 2026-08-15). Marine interrupts during
+stealer phase. Deferred verifications: FPS probe (ISC-71), cross-vendor audit.

@@ -1,9 +1,11 @@
 import { Piece } from './pieces/Piece.js';
-import { StormBolterMarine } from './pieces/StormBolterMarine.js';
+import { StormBolterMarine, SergeantMarine } from './pieces/StormBolterMarine.js';
+import { HeavyFlamerMarine } from './pieces/HeavyFlamerMarine.js';
 import { Board } from './board/Board.js'
-import type { CompiledMission } from './missions/missionTypes.js'
+import type { CompiledMission, MarineType } from './missions/missionTypes.js'
 import { Dir } from './core/Direction.js';
 import { runStealerActions, spawnBlips, convertRevealedBlips } from './ai/StealerAI.js';
+import { clearFlames } from './rules/flame.js';
 import { PieceEvents } from './events/PieceEvents.js';
 import type { DiceSource } from './core/Dice.js';
 
@@ -18,7 +20,7 @@ export interface EngineState {
 
 const FACING: Record<string, Dir> = { up: Dir.N, right: Dir.E, down: Dir.S, left: Dir.W };
 
-/** Marine-phase clock, per the Sulk manual: 2 minutes (+30s per sergeant, later). */
+/** Base marine-phase clock (original TURNTIMER_BASE_TIME); sergeants add 30s each. */
 export const MARINE_PHASE_SECONDS = 120;
 
 export class GameEngine {
@@ -41,9 +43,15 @@ export class GameEngine {
     this.state = { board, pieces: board.pieces as Piece[], result: 'ongoing' }
     for (const p of extraPieces) board.addPiece(p)
 
-    // Deploy the marine squad
+    // Deploy the marine squad — per-square marine type (original FORCES)
+    const MARINE_CLASSES: Record<MarineType, new (b: Board, s: { c: number; r: number }, f: Dir) => Piece> = {
+      storm_bolter: StormBolterMarine,
+      sergeant: SergeantMarine,
+      heavy_flamer: HeavyFlamerMarine,
+    }
     for (const d of mission.marineDeployment ?? []) {
-      new StormBolterMarine(board, { c: d.x, r: d.y }, FACING[d.facing ?? 'down'])
+      const Cls = MARINE_CLASSES[d.type ?? 'storm_bolter']
+      new Cls(board, { c: d.x, r: d.y }, FACING[d.facing ?? 'down'])
     }
     // Seed the first blips
     const entries = (mission.entryPoints ?? []).map(e => ({ c: e.x, r: e.y }))
@@ -75,18 +83,31 @@ export class GameEngine {
       if (PieceEvents.replaying) return
       if (this.state.result === 'ongoing') convertRevealedBlips(this.state.board)
     })
+    // A flamed section can win the mission on the spot (flame-objective) and
+    // flames change sight lines. Stealers never flame, so this never fires
+    // inside the captured stealer phase.
+    PieceEvents.on('sectionFlamed', () => {
+      if (PieceEvents.replaying || this.state.result !== 'ongoing') return
+      convertRevealedBlips(this.state.board)
+      this.checkVictory()
+    })
   }
 
   findPiece(id: string): Piece | undefined {
     return this.state.pieces.find(p => p.id === id)
   }
 
-  get marines(): StormBolterMarine[] {
-    return this.state.pieces.filter((p): p is StormBolterMarine => p.kind === 'marine')
+  get marines(): Piece[] {
+    return this.state.pieces.filter(p => p.kind === 'marine')
   }
 
   get stealerSide(): Piece[] {
     return this.state.pieces.filter(p => p.kind !== 'marine')
+  }
+
+  /** Marine-phase clock: 120s base + 30s per living sergeant (original timer_bonus). */
+  get marinePhaseSeconds(): number {
+    return MARINE_PHASE_SECONDS + this.marines.reduce((s, m) => s + m.timerBonus, 0)
   }
 
   /** Spend one command point to give a marine one extra AP (also re-activates a spent piece). */
@@ -102,7 +123,8 @@ export class GameEngine {
 
   /**
    * End the marine phase (Done button or timer expiry) and run the rest of the
-   * turn synchronously: reinforcements → stealer actions → end phase → new turn.
+   * turn synchronously: reinforcements → stealer actions → end phase (flame
+   * dispersal, victory checks, AP refresh) → new turn.
    */
   endMarinePhase(): void {
     if (this.state.result !== 'ongoing' || this.phase !== 'MarineAction') return
@@ -124,7 +146,13 @@ export class GameEngine {
     // Stealer action phase (AI)
     runStealerActions(board)
 
-    // End phase: victory checks, effect cleanup, AP refresh
+    // End phase: victory checks BEFORE flame dispersal (a burning objective is
+    // a win), then flames go out (original `persist = False`) and the freed
+    // sight lines are re-checked.
+    this.checkVictory()
+    if (this.state.result !== 'ongoing') return
+    clearFlames(board)
+    convertRevealedBlips(board)
     this.checkVictory()
     if (this.state.result !== 'ongoing') return
 
@@ -142,6 +170,22 @@ export class GameEngine {
     if (this.state.result !== 'ongoing') return
     const objective = this.mission.objective ?? 'exterminate'
     const marinesAlive = this.marines.length > 0
+
+    if (objective === 'flame-objective') {
+      // Original Suicide Mission: win the moment the objective square burns;
+      // lose the moment no living flamer has ammo left (squad wipe implies it).
+      const obj = this.mission.objectivePoint
+      if (obj && this.state.board.isFlaming({ c: obj.x, r: obj.y })) {
+        this.finish('win')
+        return
+      }
+      const flamerViable = this.marines.some(
+        m => m instanceof HeavyFlamerMarine && m.ammo > 0
+      )
+      if (!flamerViable) this.finish('loss')
+      return
+    }
+
     if (!marinesAlive) {
       this.finish('loss')
       return

@@ -120,6 +120,10 @@ export function hasLineOfSight(board: Board, a: Square, b: Square, opts: LosOpti
     if (opts.piecesBlock && board.isOccupied({ c: x, r: y })) {
       return false;
     }
+    // Burning squares block sight through (original Flames blockslos).
+    if (board.isFlaming({ c: x, r: y })) {
+      return false;
+    }
   }
 
   return true;

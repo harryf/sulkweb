@@ -1,8 +1,8 @@
 export type ApInfo = { apRemaining: number; apInitial: number }
 
 export type PieceEventsType = {
-  /** Selection changed. `ap` is present when a piece is selected. */
-  selected: { pieceId: string | null; ap?: ApInfo }
+  /** Selection changed. `ap` is present when a piece is selected; `ammo` when it carries a limited-ammo weapon. */
+  selected: { pieceId: string | null; ap?: ApInfo; ammo?: number }
   apChanged: { pieceId: string } & ApInfo
   doorToggled: { x: number; y: number; facing: number; open: boolean }
   pieceMoved: { pieceId: string; x: number; y: number; facing: number }
@@ -15,6 +15,14 @@ export type PieceEventsType = {
   phaseChanged: { phase: string; turn: number }
   cpChanged: { cp: number }
   gameOver: { result: string }
+  /** Bolter jam state changed (jam on overwatch doubles; unjam action). */
+  jammed: { pieceId: string; jammed: boolean }
+  /** Heavy flamer torched a section (or self-destructed into its own). */
+  sectionFlamed: { shooterId: string; squares: { x: number; y: number }[]; kills: string[] }
+  /** End-phase flame dispersal. */
+  flamesCleared: { squares: { x: number; y: number }[] }
+  /** Flamer ammo changed. */
+  ammoChanged: { pieceId: string; ammo: number }
 }
 
 type Handler<T> = (payload: T) => void

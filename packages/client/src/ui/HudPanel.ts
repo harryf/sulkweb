@@ -15,6 +15,8 @@ export class HudPanel extends Phaser.GameObjects.Container {
   private losses = 0
   private objectiveText!: Phaser.GameObjects.Text
   private hoverText!: Phaser.GameObjects.Text
+  private diceText!: Phaser.GameObjects.Text
+  private currentAmmo: number | undefined
 
   setObjective(text: string) {
     this.objectiveText.setText(text)
@@ -59,7 +61,7 @@ export class HudPanel extends Phaser.GameObjects.Container {
     })
     this.add(headerText)
 
-    // AP text
+    // AP text (ammo readout shares the line — flamer shows "AP 2/4 · Ammo 6")
     this.apText = scene.add.text(header.x + 8, header.y + 38, 'AP: --/--', {
       fontFamily: 'Kanit',
       fontSize: '18px',
@@ -123,9 +125,21 @@ export class HudPanel extends Phaser.GameObjects.Container {
     })
     this.add(this.objectiveText)
 
+    // Dice readout — the original shows every roll on screen (DisplayDie)
+    this.diceText = scene.add.text(8, doneY + 78, '', {
+      fontFamily: 'Kanit', fontSize: '13px', color: '#c8d8c8', fixedWidth: HUD_WIDTH - 16
+    })
+    this.add(this.diceText)
+    PieceEvents.on('shot', ({ rolls, hit }) => {
+      this.diceText.setText(`Dice: ${rolls.join(' ')} ${hit ? '— KILL' : ''}`)
+    })
+    PieceEvents.on('closeCombat', ({ attackerRolls, defenderRolls }) => {
+      this.diceText.setText(`CC: ${attackerRolls.join(' ')} vs ${defenderRolls.join(' ')}`)
+    })
+
     // Controls reference + map legend
     const controls = scene.add.text(8, doneY + 96,
-      'Click marine to select\nW/S move · A/D turn\nO door · F fire · C melee\nV overwatch · U unjam\nP spend CP · L show LOS\nEnter end turn · Esc pause\n\nMap: purple = stealer entry\ngreen = mission exit',
+      'Click marine to select\nW/S move · A/D turn\nO door · F fire/flame · C melee\nV overwatch · U unjam\nX flamer self-destruct\nP spend CP · L show LOS\nEnter end turn · Esc pause\n\nMap: purple = stealer entry\norange = objective · green = exit',
       { fontFamily: 'Kanit', fontSize: '12px', color: '#8a8a8a', lineSpacing: 3, fixedWidth: HUD_WIDTH - 16 })
     this.add(controls)
 
@@ -137,8 +151,9 @@ export class HudPanel extends Phaser.GameObjects.Container {
     this.add(this.hoverText)
 
     // subscribe — payloads carry everything; the HUD never reaches into the engine
-    PieceEvents.on('selected', ({ pieceId, ap }) => {
+    PieceEvents.on('selected', ({ pieceId, ap, ammo }) => {
       this.currentId = pieceId
+      this.currentAmmo = ammo
       if (!pieceId || !ap) {
         this.apText.setText('AP: --/--')
         return
@@ -148,6 +163,12 @@ export class HudPanel extends Phaser.GameObjects.Container {
     PieceEvents.on('apChanged', ({ pieceId, apRemaining, apInitial }) => {
       if (pieceId === this.currentId) this.setAP(apRemaining, apInitial)
     })
+    PieceEvents.on('ammoChanged', ({ pieceId, ammo }) => {
+      if (pieceId === this.currentId) {
+        this.currentAmmo = ammo
+        this.apText.setText(this.apText.text.replace(/ · Ammo.*$/, '') + ` · Ammo ${ammo}`)
+      }
+    })
 
     // Children default to scrollFactor 1: rendering follows the container (0),
     // but Phaser's input hit-test uses the child's own factor — set each child,
@@ -156,6 +177,7 @@ export class HudPanel extends Phaser.GameObjects.Container {
   }
 
   private setAP(rem: number, init: number) {
-    this.apText.setText(`AP: ${rem}/${init}`)
+    const ammo = this.currentAmmo !== undefined ? ` · Ammo ${this.currentAmmo}` : ''
+    this.apText.setText(`AP: ${rem}/${init}${ammo}`)
   }
 }

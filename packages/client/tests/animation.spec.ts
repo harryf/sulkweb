@@ -56,23 +56,27 @@ test('stealer phase replays as a visible animation, then reconciles', async ({ p
       const spr = scene.pieceSprites[p.id];
       if (!spr) { bad.push(`${p.id}:no-sprite`); continue; }
       if (spr.x !== p.pos.c * T + T / 2 || spr.y !== p.pos.r * T + T / 2) bad.push(`${p.id}:pos`);
-      const expectedTex = p.kind === 'stealer' ? 'stealer' : p.kind === 'blip' ? 'blip' : 'terminator_storm_bolter';
+      // Marines carry per-variant textures now (sergeant / heavy flamer) —
+      // the engine piece's own spriteKey is the truth.
+      const expectedTex = p.spriteKey ?? (p.kind === 'stealer' ? 'stealer' : p.kind === 'blip' ? 'blip' : 'terminator_storm_bolter');
       if (spr.texture.key !== expectedTex) bad.push(`${p.id}:tex`);
     }
     return bad;
   });
   expect(drift).toEqual([]);
 
-  // Mission surfacing: EXIT marker on the map, objective in the HUD
+  // Mission surfacing: the BURN objective marker on the map, objective in the HUD
+  // (space_hulk_1's restored original objective is flame-Launch-Control; the
+  // green EXIT marker only exists on missions with exitPoints, e.g. debug_1).
   const surfacing = await page.evaluate(() => {
     const { scene } = (window as any).sulk;
     return {
-      exitMarker: scene.children.list.some((o: any) => o.text === 'EXIT'),
+      objectiveMarker: scene.children.list.some((o: any) => o.text === 'BURN'),
       objective: scene.hud.objectiveText?.text ?? '',
     };
   });
-  expect(surfacing.exitMarker).toBe(true);
-  expect(surfacing.objective).toContain('Objective');
+  expect(surfacing.objectiveMarker).toBe(true);
+  expect(surfacing.objective).toContain('FLAME');
   await page.screenshot({ path: 'test-results/markers-and-objective.png' });
   expect(errors).toHaveLength(0);
 });

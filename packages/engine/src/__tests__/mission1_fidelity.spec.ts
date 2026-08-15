@@ -79,21 +79,44 @@ describe('Mission 1 fidelity vs original Sulk BOARD', () => {
     for (const s of m.squares!) expect(['room', 'corridor']).toContain(s.kind);
   });
 
-  it('five marines deploy at/behind BEGINPLACE (14,20) facing the objective (ISC-115)', () => {
+  it('five marines deploy on the ORIGINAL M squares — the north corridor (ISC-115/144)', () => {
+    // Source truth (2026-08-15 re-audit): the five {M:None} squares are
+    // (10,0)..(10,4). BEGINPLACE (14,20) is DEAD CODE in the original —
+    // its only consumers in board.py are commented out; it was the intended
+    // initial camera position, not a deployment site.
     expect(m.marineDeployment).toHaveLength(5);
-    expect(m.marineDeployment!.some(d => d.x === 14 && d.y === 20)).toBe(true);
-    for (const d of m.marineDeployment!) {
-      // all inside the eastern X-junction, all facing the Launch Control room
-      expect(Math.abs(d.x - 13) <= 1 && Math.abs(d.y - 20) <= 1).toBe(true);
-      expect(d.facing).toBe('right');
-    }
+    const squares = m.marineDeployment!.map(d => `${d.x},${d.y}`).sort();
+    expect(squares).toEqual(['10,0', '10,1', '10,2', '10,3', '10,4']);
+    for (const d of m.marineDeployment!) expect(d.facing).toBe('down');
+    // FORCES: 3 storm bolters, the sergeant, the heavy flamer (flamer leads)
+    const types = m.marineDeployment!.map(d => d.type ?? 'storm_bolter');
+    expect(types.filter(t => t === 'storm_bolter')).toHaveLength(3);
+    expect(m.marineDeployment!.find(d => d.type === 'sergeant')).toEqual({ x: 10, y: 3, facing: 'down', type: 'sergeant' });
+    expect(m.marineDeployment!.find(d => d.type === 'heavy_flamer')).toEqual({ x: 10, y: 4, facing: 'down', type: 'heavy_flamer' });
   });
 
-  it('objective adaptation: exit is Launch Control (20,20); blip flow 2 initial + 1/turn (ISC-116)', () => {
-    expect(m.exitPoints).toEqual([{ x: 20, y: 20 }]);
+  it('ORIGINAL objective: flame Launch Control (20,20); blip flow 2 initial + 1/turn, uncapped (ISC-116/145)', () => {
+    expect(m.objective).toBe('flame-objective');
+    expect(m.objectivePoint).toEqual({ x: 20, y: 20 });
+    expect(m.exitPoints).toBeUndefined();
+    expect(m.totalBlips).toBeUndefined();
     expect(m.initialBlips).toBe(2);
     expect(m.blipsPerTurn).toBe(1);
-    expect(m.objective).toBe('exterminate-or-exit');
+  });
+
+  it('per-square sections mirror the original BOARD sublists (ISC-137)', () => {
+    // 20 sections; every square has one
+    const ids = new Set(m.squares!.map(s => s.section));
+    expect(ids.has(undefined as never)).toBe(false);
+    expect(ids.size).toBe(20);
+    // the north corridor is one section…
+    const northSec = m.squares!.find(s => s.x === 10 && s.y === 0)!.section;
+    const north = m.squares!.filter(s => s.section === northSec).map(s => `${s.x},${s.y}`).sort();
+    expect(north).toEqual(['10,0', '10,1', '10,2', '10,3', '10,4']);
+    // …and Launch Control (room + its door anchor (18,20)) is one section
+    const lcSec = m.squares!.find(s => s.x === 20 && s.y === 20)!.section;
+    const lc = m.squares!.filter(s => s.section === lcSec).map(s => `${s.x},${s.y}`).sort();
+    expect(lc).toEqual(['18,20', '19,19', '19,20', '19,21', '20,19', '20,20', '20,21', '21,19', '21,20', '21,21']);
   });
 
   it('the board constructs cleanly — validator accepts all door edges (ISC-117)', () => {

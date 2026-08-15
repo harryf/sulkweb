@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { GameEngine, MARINE_PHASE_SECONDS, loadMission, missions, Square, Piece, StormBolterMarine, Genestealer, Selection, PieceEvents, visibleSquares, canShoot, closeCombat, DIR_VEC, SeededRng, autoplay, runMarineTurn } from "@sulk/engine/index.js";
+import { GameEngine, loadMission, missions, Square, Piece, StormBolterMarine, HeavyFlamerMarine, Genestealer, Selection, PieceEvents, visibleSquares, canShoot, closeCombat, DIR_VEC, SeededRng, autoplay, runMarineTurn } from "@sulk/engine/index.js";
 import { Minimap } from '../ui/Minimap.js';
 import { HighlightSprite } from '../ui/HighlightSprite.js';
 import { HudPanel } from '../ui/HudPanel.js';
@@ -23,7 +23,11 @@ export default class GameScene extends Phaser.Scene {
   private pieceSprites: { [id: string]: Phaser.GameObjects.Image } = {};
   private doorSprites: { [coord: string]: Phaser.GameObjects.Image } = {};
   private owMarkers: { [id: string]: Phaser.GameObjects.Image } = {};
-  private timerRemaining = MARINE_PHASE_SECONDS;
+  private jamMarkers: { [id: string]: Phaser.GameObjects.Image } = {};
+  private flameSprites: { [coord: string]: Phaser.GameObjects.Image } = {};
+  /** Board coordinate under the mouse — the flamer's F-key target. */
+  private hoverCoord: { x: number; y: number } | null = null;
+  private timerRemaining = 120;
   private timerEvent?: Phaser.Time.TimerEvent;
   private paused = false;
   /** True while the captured stealer-phase event stream is being replayed. */
@@ -46,7 +50,7 @@ export default class GameScene extends Phaser.Scene {
     const missionParam = params.get('mission') ?? 'debug_1';
     const missionName = (missionParam in missions ? missionParam : 'debug_1') as keyof typeof missions;
     this.engine = new GameEngine(loadMission(missionName), [], dice);
-    (window as any).sulk = { engine: this.engine, Selection, scene: this, SeededRng, autoplay, runMarineTurn }; // dev/debug + autoplay handle
+    (window as any).sulk = { engine: this.engine, Selection, scene: this, SeededRng, autoplay, runMarineTurn, PieceEvents }; // dev/debug + autoplay handle
   }
 
   preload() {
@@ -56,11 +60,30 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('select', 'assets/themes/default/select.png');
     this.load.image('door_closed', 'assets/themes/default/door_closed.png');
     this.load.image('door_open', 'assets/themes/default/door_open.png');
-    this.load.image(StormBolterMarine.SPRITE_KEY, 'assets/themes/default/terminator_storm_bolter.png');
+    this.load.image('terminator_storm_bolter', 'assets/themes/default/terminator_storm_bolter.png');
+    this.load.image('terminator_sergeant', 'assets/themes/default/terminator_sergeant.png');
+    this.load.image('terminator_heavy_flamer', 'assets/themes/default/terminator_heavy_flamer.png');
     this.load.image(Genestealer.SPRITE_KEY, 'assets/themes/default/stealer.png');
     this.load.image('blip', 'assets/themes/default/blip.png');
+    this.load.image('flames', 'assets/themes/default/flames.png');
     this.load.image('flash_storm_bolter', 'assets/themes/default/flash_storm_bolter.png');
+    this.load.image('flash_heavy_flamer', 'assets/themes/default/flash_heavy_flamer.png');
     this.load.image('marker_overwatch', 'assets/themes/default/marker_overwatch.png');
+    this.load.image('marker_jam', 'assets/themes/default/marker_jam.png');
+    // Original GPL sound set (data/sounds in the Pygame source)
+    this.load.audio('snd_move', 'assets/sounds/marine_move.wav');
+    this.load.audio('snd_bolter', 'assets/sounds/marine_shoot_bolter.wav');
+    this.load.audio('snd_flamer', 'assets/sounds/marine_shoot_flamer.wav');
+    this.load.audio('snd_cc', 'assets/sounds/marine_cc.wav');
+    this.load.audio('snd_die', 'assets/sounds/marine_kill_skewered.wav');
+    this.load.audio('snd_jam', 'assets/sounds/marine_jam.wav');
+    this.load.audio('snd_door', 'assets/sounds/door_open.wav');
+    this.load.audio('snd_destruct', 'assets/sounds/marine_selfdestruct_flamer.wav');
+  }
+
+  /** Fire-and-forget sound: never let a locked/absent audio context break play. */
+  private sfx(key: string, volume = 0.5): void {
+    try { this.sound.play(key, { volume }); } catch { /* audio unavailable */ }
   }
 
   create() {
@@ -95,7 +118,9 @@ export default class GameScene extends Phaser.Scene {
     });
     PieceEvents.on('doorToggled', ({ x, y, facing, open }) => {
       this.doorSprites[`${x},${y}:${facing}`]?.setTexture(open ? 'door_open' : 'door_closed');
+      this.sfx('snd_door', 0.4);
     });
+    PieceEvents.on('closeCombat', () => this.sfx('snd_cc', 0.5));
 
     // Mission markers: stealer entry points (purple), exit objective (green),
     // marine deployment (blue outline). Drawn under pieces, over squares.
@@ -113,6 +138,14 @@ export default class GameScene extends Phaser.Scene {
         fontFamily: 'Kanit', fontSize: '11px', color: '#00ff55', fontStyle: 'bold'
       }).setOrigin(0.5).setDepth(0.45);
     }
+    if (mission.objectivePoint) {
+      const o = mission.objectivePoint;
+      markers.fillStyle(0xff8800, 0.35).fillRect(o.x * T, o.y * T, T, T);
+      markers.lineStyle(2, 0xffaa00, 1).strokeRect(o.x * T + 1, o.y * T + 1, T - 2, T - 2);
+      this.add.text(o.x * T + T / 2, o.y * T + T / 2, 'BURN', {
+        fontFamily: 'Kanit', fontSize: '11px', color: '#ffaa00', fontStyle: 'bold'
+      }).setOrigin(0.5).setDepth(0.45);
+    }
     for (const d of mission.marineDeployment ?? []) {
       markers.lineStyle(2, 0x3b82f6, 0.7).strokeRect(d.x * T + 3, d.y * T + 3, T - 6, T - 6);
     }
@@ -123,8 +156,10 @@ export default class GameScene extends Phaser.Scene {
     // the only truthful intermediate positions.
     PieceEvents.on('pieceMoved', ({ pieceId, x, y, facing }) => {
       this.moveSprite(pieceId, x, y, facing);
+      this.sfx('snd_move', 0.25);
     });
     PieceEvents.on('pieceDied', ({ pieceId }) => {
+      this.sfx('snd_die', 0.4);
       const sprite = this.pieceSprites[pieceId];
       if (sprite) {
         this.tweens.killTweensOf(sprite);
@@ -133,6 +168,8 @@ export default class GameScene extends Phaser.Scene {
       delete this.pieceSprites[pieceId];
       this.owMarkers[pieceId]?.destroy();
       delete this.owMarkers[pieceId];
+      this.jamMarkers[pieceId]?.destroy();
+      delete this.jamMarkers[pieceId];
       if (Selection.get() === pieceId) {
         Selection.clear();
         this.updateHighlight();
@@ -140,6 +177,7 @@ export default class GameScene extends Phaser.Scene {
       }
     });
     PieceEvents.on('shot', ({ shooterId }) => {
+      this.sfx('snd_bolter', 0.35);
       const shooter = this.engine.findPiece(shooterId);
       if (!shooter) return;
       const v = DIR_VEC[shooter.facing];
@@ -160,6 +198,35 @@ export default class GameScene extends Phaser.Scene {
         delete this.owMarkers[pieceId];
       }
     });
+    // Jam marker (original marker_jam.png on the jammed marine) + sound
+    PieceEvents.on('jammed', ({ pieceId, jammed }) => {
+      if (jammed) {
+        const sprite = this.pieceSprites[pieceId];
+        if (!sprite) return;
+        this.jamMarkers[pieceId]?.destroy();
+        this.jamMarkers[pieceId] = this.add.image(sprite.x + 12, sprite.y - 12, 'marker_jam').setDepth(2);
+        this.sfx('snd_jam');
+      } else {
+        this.jamMarkers[pieceId]?.destroy();
+        delete this.jamMarkers[pieceId];
+      }
+    });
+    // Flames: render every burning square; clear on end-phase dispersal.
+    PieceEvents.on('sectionFlamed', ({ shooterId, squares, kills }) => {
+      for (const s of squares) {
+        const key = `${s.x},${s.y}`;
+        if (this.flameSprites[key]) continue;
+        this.flameSprites[key] = this.add.image(s.x * T + T / 2, s.y * T + T / 2, 'flames').setDepth(0.9);
+      }
+      // A self-destruct kills its own shooter — that gets the big boom.
+      this.sfx(kills.includes(shooterId) ? 'snd_destruct' : 'snd_flamer');
+    });
+    PieceEvents.on('flamesCleared', ({ squares }) => {
+      for (const s of squares) {
+        this.flameSprites[`${s.x},${s.y}`]?.destroy();
+        delete this.flameSprites[`${s.x},${s.y}`];
+      }
+    });
     PieceEvents.on('pieceAdded', ({ pieceId, kind, x, y, facing }) => {
       if (this.pieceSprites[pieceId]) return;
       this.createSprite(pieceId, kind, x, y, facing);
@@ -171,7 +238,7 @@ export default class GameScene extends Phaser.Scene {
     PieceEvents.on('gameOver', ({ result }) => {
       this.timerEvent?.remove();
       const cam = this.cameras.main;
-      const msg = result === 'win' ? 'MISSION COMPLETE' : 'SQUAD WIPED OUT';
+      const msg = result === 'win' ? 'MISSION COMPLETE' : 'MISSION FAILED';
       const color = result === 'win' ? '#7CFC00' : '#ff4040';
       this.add.rectangle(0, 0, cam.width, cam.height, 0x000000, 0.6)
         .setOrigin(0).setScrollFactor(0).setDepth(99);
@@ -184,7 +251,7 @@ export default class GameScene extends Phaser.Scene {
     pieces.forEach(p => this.createPieceSprite(p));
 
     this.cursors = this.input.keyboard!.createCursorKeys()
-    this.wasd = this.input.keyboard!.addKeys('W,A,S,D,O,F,C,V,U,P') as any
+    this.wasd = this.input.keyboard!.addKeys('W,A,S,D,O,F,C,V,U,P,X') as any
     this.input.keyboard!.on('keydown-ENTER', () => this.endTurn());
     this.input.keyboard!.on('keydown-ESC', () => this.togglePause());
     // Camera bounds to exclude HUD area
@@ -216,6 +283,7 @@ export default class GameScene extends Phaser.Scene {
       'exterminate': 'Objective: kill every genestealer',
       'reach-exit': 'Objective: reach the green EXIT',
       'exterminate-or-exit': 'Objective: kill all stealers\nOR reach the green EXIT',
+      'flame-objective': 'FLAME Launch Control\n(lose: flamer dead/dry)',
     };
     this.hud.setObjective(objectiveLabel[this.engine.mission.objective ?? 'exterminate-or-exit'] ?? '');
 
@@ -223,16 +291,21 @@ export default class GameScene extends Phaser.Scene {
     // shown in the HUD below the controls (map design / reference aid).
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
       if (p.isDown) return; // dragging = panning; leave the readout as-is
-      this.hoverInfo = p.x > this.scale.width - HUD_WIDTH
-        ? ''
-        : this.describeSquare(Math.floor(p.worldX / TILE_SIZE), Math.floor(p.worldY / TILE_SIZE));
+      if (p.x > this.scale.width - HUD_WIDTH) {
+        this.hoverInfo = '';
+        this.hoverCoord = null;
+      } else {
+        const hx = Math.floor(p.worldX / TILE_SIZE), hy = Math.floor(p.worldY / TILE_SIZE);
+        this.hoverCoord = { x: hx, y: hy };
+        this.hoverInfo = this.describeSquare(hx, hy);
+      }
       this.hud.setHoverInfo(this.hoverInfo);
     });
 
     PieceEvents.emit('cpChanged', { cp: this.engine.cp }); // HUD subscribed after the initial roll
 
-    // Marine-phase turn timer
-    this.timerRemaining = MARINE_PHASE_SECONDS;
+    // Marine-phase turn timer (120s + 30s per living sergeant, per the original)
+    this.timerRemaining = this.engine.marinePhaseSeconds;
     this.hud.setTimer(this.timerRemaining);
     this.timerEvent = this.time.addEvent({
       delay: 1000, loop: true, callback: () => {
@@ -268,7 +341,8 @@ export default class GameScene extends Phaser.Scene {
       const piece = selectedId ? this.engine.findPiece(selectedId) : undefined;
       PieceEvents.emit('selected', {
         pieceId: piece?.id ?? null,
-        ap: piece ? { apRemaining: piece.apRemaining, apInitial: piece.apInitial } : undefined
+        ap: piece ? { apRemaining: piece.apRemaining, apInitial: piece.apInitial } : undefined,
+        ammo: piece instanceof HeavyFlamerMarine ? piece.ammo : undefined
       });
     });
 
@@ -306,6 +380,7 @@ export default class GameScene extends Phaser.Scene {
         else acted = marine.overwatchOn?.() ?? false;
       }
       else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).U)) acted = (piece as StormBolterMarine).unjam?.() ?? false;
+      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).X)) acted = piece instanceof HeavyFlamerMarine && piece.selfDestruct();
       else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).P)) acted = this.engine.spendCP(piece);
 
       if (acted) this.engine.checkVictory(); // e.g. marine stepped onto the exit
@@ -330,9 +405,16 @@ export default class GameScene extends Phaser.Scene {
       parts.push(`door ${ARROW[door.facing]} ${door.isOpen ? 'open' : 'closed'}`);
     }
     const piece = board.pieceAt({ c: x, r: y }) as Piece | undefined;
-    if (piece) parts.push(piece.kind);
+    if (piece) {
+      parts.push(piece instanceof HeavyFlamerMarine ? `marine (flamer, ammo ${piece.ammo})`
+        : piece.timerBonus > 0 ? 'marine (sergeant)'
+        : piece.kind);
+    }
+    if (board.isFlaming({ c: x, r: y })) parts.push('ON FIRE');
     if (this.engine.mission.entryPoints?.some(e => e.x === x && e.y === y)) parts.push('stealer entry');
     if (this.engine.mission.exitPoints?.some(e => e.x === x && e.y === y)) parts.push('EXIT');
+    const obj = this.engine.mission.objectivePoint;
+    if (obj && obj.x === x && obj.y === y) parts.push('OBJECTIVE: Launch Control');
     return parts.join(' · ');
   }
 
@@ -353,9 +435,12 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private createSprite(pieceId: string, kind: string, x: number, y: number, facing: number) {
-    const texture = kind === 'stealer' ? Genestealer.SPRITE_KEY
-      : kind === 'blip' ? 'blip'
-      : StormBolterMarine.SPRITE_KEY;
+    // Engine pieces carry their own texture key (sergeant/flamer variants);
+    // fall back to the kind for pieces not present in the engine registry.
+    const texture = this.engine.findPiece(pieceId)?.spriteKey
+      ?? (kind === 'stealer' ? Genestealer.SPRITE_KEY
+        : kind === 'blip' ? 'blip'
+        : 'terminator_storm_bolter');
     const sprite = this.add.image(
       x * this.tileSize + this.tileSize / 2,
       y * this.tileSize + this.tileSize / 2,
@@ -419,6 +504,7 @@ export default class GameScene extends Phaser.Scene {
   private static readonly REPLAY_DELAY: Record<string, number> = {
     pieceMoved: 110, doorToggled: 200, shot: 230, closeCombat: 260,
     pieceDied: 200, blipConverted: 170, pieceAdded: 90,
+    sectionFlamed: 300, flamesCleared: 150, jammed: 120,
   };
 
   /**
@@ -463,20 +549,31 @@ export default class GameScene extends Phaser.Scene {
         delete this.owMarkers[id];
       }
     }
-    this.timerRemaining = MARINE_PHASE_SECONDS;
+    this.timerRemaining = this.engine.marinePhaseSeconds;
     this.hud.setTimer(this.timerRemaining);
     this.updateHighlight();
   }
 
-  /** F key: shoot the nearest enemy in fire arc + LOS. */
+  /** F key: bolters shoot the nearest enemy in fire arc + LOS; the flamer
+   *  torches the hovered square (fallback: the nearest enemy's square). */
   private shootNearest(piece: Piece): boolean {
-    if (!(piece instanceof StormBolterMarine)) return false;
     const board = this.engine.state.board;
+    if (piece instanceof HeavyFlamerMarine) {
+      const hovered = this.hoverCoord ? board.get(this.hoverCoord.x, this.hoverCoord.y) : undefined;
+      if (piece.canFlame(hovered)) return piece.flameAt(hovered) !== undefined;
+      const enemySquares = board.pieces
+        .filter((p): p is Piece => (p as Piece).kind !== 'marine')
+        .map(p => board.get(p.pos.c, p.pos.r))
+        .filter((sq): sq is Square => sq !== undefined && piece.canFlame(sq));
+      if (!enemySquares[0]) return false;
+      return piece.flameAt(enemySquares[0]) !== undefined;
+    }
+    if (!(piece instanceof StormBolterMarine)) return false;
     const enemies = board.pieces
       .filter((p): p is Piece => (p as Piece).kind !== 'marine')
       .filter(p => {
         const sq = board.get(p.pos.c, p.pos.r);
-        return sq !== undefined && canShoot(board, piece, sq, StormBolterMarine.RANGE);
+        return sq !== undefined && canShoot(board, piece, sq); // aimed fire: LOS-bound, no range cap
       })
       .sort((a, b) =>
         Math.hypot(a.pos.c - piece.pos.c, a.pos.r - piece.pos.r) -

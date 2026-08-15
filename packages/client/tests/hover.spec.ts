@@ -26,15 +26,13 @@ test('hover readout shows square coordinate and contents in the HUD (ISC-106..10
   });
   const before = await stateSnapshot();
 
-  // Scroll the camera so the southern half (deployment + doors) is on screen
-  await page.evaluate(() => (window as any).sulk.scene.cameras.main.setScroll(0, 500));
-
-  // The lead marine stands at BEGINPLACE (14,20) — hover it (ISC-107 + ISC-108 occupant)
-  let { px, py } = await tileCenter(page, 14, 20);
+  // The marine deploys on the original M squares — north corridor (10,4).
+  await page.evaluate(() => (window as any).sulk.scene.cameras.main.setScroll(0, 0));
+  let { px, py } = await tileCenter(page, 10, 4);
   await page.mouse.move(px, py);
-  await page.waitForFunction(() => (window as any).sulk.scene.hoverInfo.includes('(14,20)'), undefined, { timeout: 5000 });
+  await page.waitForFunction(() => (window as any).sulk.scene.hoverInfo.includes('(10,4)'), undefined, { timeout: 5000 });
   const marineInfo = await page.evaluate(() => (window as any).sulk.scene.hoverInfo);
-  expect(marineInfo).toContain('(14,20)');
+  expect(marineInfo).toContain('(10,4)');
   expect(marineInfo).toContain('corridor tile');
   expect(marineInfo).toContain('marine');
 
@@ -57,15 +55,16 @@ test('hover readout shows square coordinate and contents in the HUD (ISC-106..10
   expect(hudCheck!.hoverY).toBeGreaterThan(hudCheck!.controlsY); // below the instructions
   await page.screenshot({ path: 'test-results/hover-readout.png' });
 
-  // A stealer entry square names itself (ISC-108)
-  ({ px, py } = await tileCenter(page, 14, 26));
-  await page.mouse.move(px, py);
-  await page.waitForFunction(() => (window as any).sulk.scene.hoverInfo.includes('stealer entry'), undefined, { timeout: 5000 });
-
   // Old-map residue reads as rock — (15,13) held a door in the invented map (ISC-119)
   ({ px, py } = await tileCenter(page, 15, 13));
   await page.mouse.move(px, py);
   await page.waitForFunction(() => (window as any).sulk.scene.hoverInfo.includes('rock'), undefined, { timeout: 5000 });
+
+  // A stealer entry square names itself (ISC-108) — scroll south to reach it
+  await page.evaluate(() => (window as any).sulk.scene.cameras.main.setScroll(0, 500));
+  ({ px, py } = await tileCenter(page, 14, 26));
+  await page.mouse.move(px, py);
+  await page.waitForFunction(() => (window as any).sulk.scene.hoverInfo.includes('stealer entry'), undefined, { timeout: 5000 });
 
   // ISC-109 Anti: the mousemove sweep changed no game state
   expect(await stateSnapshot()).toBe(before);

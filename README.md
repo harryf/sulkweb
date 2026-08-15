@@ -2,16 +2,23 @@
 
 A web-based port of the classic turn-based strategy game [Sulk](https://sulk.sourceforge.net/) (a Space Hulk clone, originally Pygame), built with **Phaser 3 + TypeScript** on the client and a **pure-TypeScript rules engine** with no rendering dependencies.
 
-**Status: playable v0.1 slice.** Two missions transcribed from the original game's
-sources (`data/missions/<family>/MISH_*.py`), sharing the original Suicide Mission board:
+**Status: playable, faithful to the original.** Two missions transcribed from the
+original game's sources (`data/missions/<family>/MISH_*.py`), sharing the original
+Suicide Mission board:
 
 - **`debug_1`** (default): "Suicide Mission with no forces" — one storm-bolter marine
-  vs a one-blip-per-turn trickle. `http://localhost:5173/`
-- **`space_hulk_1`**: the full scenario — five-marine squad, 2 starting blips plus
-  reinforcements. `http://localhost:5173/?mission=space_hulk_1`
+  vs a one-blip-per-turn trickle (adapted reach-the-exit objective).
+  `http://localhost:5173/`
+- **`space_hulk_1`**: the ORIGINAL scenario — 3 storm bolters, a sergeant and a
+  heavy flamer deploy in the north corridor and must fight across the hulk to
+  **set the Launch Control room on fire**. Defeat the moment the flamer marine dies
+  or runs out of ammo (6 shots — self-destruct also wins if he's inside the room).
+  Reinforcements are uncapped, exactly like the source.
+  `http://localhost:5173/?mission=space_hulk_1`
 
-Blips enter from the mission entry points, the stealer AI hunts the squad, and the game
-ends in victory (reach Launch Control or exterminate) or defeat (squad wiped).
+Blips enter from the mission entry points, refuse to expose themselves (converting
+from cover like the originals), the stealer AI hunts the squad, and the original
+sounds play throughout.
 
 ## Play
 
@@ -28,10 +35,11 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
 | `W` / `S` | Move forward / backward |
 | `A` / `D` | Turn left / right |
 | `O` | Open/close door ahead |
-| `F` | Fire storm bolter at nearest target |
+| `F` | Fire storm bolter at nearest target · heavy flamer: flame the hovered square |
 | `C` | Close combat (enemy directly ahead) |
 | `V` | Overwatch on/off (2 AP) |
 | `U` | Unjam bolter |
+| `X` | Heavy flamer self-destruct (torches his own section) |
 | `P` | Spend a Command Point (+1 AP) |
 | `L` (hold) | Show line of sight |
 | `Enter` / DONE | End marine phase |
@@ -41,31 +49,41 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
 
 ## Rules implemented (per the original Sulk manual in `docs/`)
 
-- AP economy: marines 4 AP, stealers 6 AP (free 90° turns), blips 6 AP omnidirectional
+- AP economy: marines 4 AP (NO side-steps, per the original movemap), stealers 6 AP
+  (free 90° turns — but the same direction twice in a row costs 1), blips 6 AP omnidirectional
 - Facing-relative move costs; occupancy; edge-model doors — a door sits on the
   boundary between two squares (front-3 operate; closed = blocks movement and
   sight across that edge)
-- Vision 180° / fire 90° arcs, walls and pieces block LOS
-- Storm bolter: 2d6 kill-on-6, sustained fire (+1 per miss, max +3), range 12
-- Overwatch reaction fire, jams on doubles, 1 AP unjam
-- Close combat: highest die, stealer 3d6 front / 2d6 flank, tie both survive
-- Blips: hidden 1–3 stealers, convert the moment they are sighted — including
-  when a kill vacates the square that was blocking the sight line; overflow lost
-- Turn cycle: CP roll (1d6), marine phase (2:00 timer), reinforcements, stealer AI, victory checks
-- The board is the ORIGINAL Sulk "Suicide Mission" layout (98 squares, 7 doors,
-  6 stealer entries, three rooms, marines deployed at BEGINPLACE (14,20)), verified
-  square-for-square against the Pygame source by `mission1_fidelity.spec`; debug_1
-  shares it byte-for-byte per the original sources
-- Objective is adapted: without the heavy flamer, "reach Launch Control (20,20)" stands in
-  for "set the room on fire" (exterminate also wins; blips 2 initial + 1/turn per the
-  original, capped at 10 reinforcements); both win and loss verified at pinned seeds
+- Vision 180° / fire 90° arcs; walls, pieces and flames block LOS
+- Storm bolter: 2d6 kill-on-6, sustained fire (+1 per aimed miss, max +4), no range
+  cap on aimed shots; move-and-shoot — the first shot after a move is free
+- Overwatch reaction fire (range 12), jams on doubles, 1 AP unjam, jam marker
+- Close combat per the source: highest die; stealer 3d6 front / 2d6 flank; sergeant +1;
+  attacker-win always kills; a winning defender only kills an attacker it faces,
+  otherwise it spins to face; draws spin the defender too
+- Heavy flamer: 2 AP per shot, 6 ammo, range 12, sets the target's whole board
+  SECTION on fire (d6 ≥ 2 kills each piece; flames block movement + sight until the
+  end-phase); cannot flame his own section; 1 AP self-destruct torches it instead
+- Blips: hidden 1–3 stealers drawn from the original 8/4/9 counter bag; never move
+  into marine sight or adjacent to a marine; convert the instant they're sighted —
+  including when a kill vacates a blocking square — or voluntarily from cover
+- Turn cycle: CP roll (1d6), marine phase (2:00 + 0:30 per living sergeant),
+  reinforcements (uncapped on space_hulk_1, per source), stealer AI, victory checks
+- The board is the ORIGINAL Sulk "Suicide Mission" layout (98 squares, 20 sections,
+  7 doors, 6 stealer entries, three rooms), verified square-for-square against the
+  Pygame source by `mission1_fidelity.spec`; marines deploy on the original `M`
+  squares — the north corridor (10,0)–(10,4). (`BEGINPLACE` turned out to be dead
+  code in the source: the initial camera position, not a deployment site.)
+- Original objective restored: flame Launch Control (20,20); stealers win the moment
+  no living flamer has ammo. Original sprites for every piece variant and the
+  original GPL sound set are wired in.
 
 ## Development
 
 ```bash
-pnpm --filter ./packages/engine test   # 112 unit tests (rules, AI, game flow)
+pnpm --filter ./packages/engine test   # 143 unit tests (rules, AI, game flow)
 pnpm --filter ./packages/client test   # HUD + minimap unit tests
-pnpm --filter ./packages/client e2e    # Playwright smoke: real browser, no mocks
+pnpm --filter ./packages/client e2e    # 10 Playwright tests: real browser, no mocks
 pnpm build                             # engine tsc + client vite build
 pnpm --filter ./packages/engine example  # CLI engine tour
 ```
@@ -89,21 +107,28 @@ packages/
 - ✅ M4: doors, overwatch, LOS overlay
 - ✅ M5: shooting, close combat, death, blips, AI0
 - ✅ M6: phase cycle, CP, turn timer, victory/defeat
-- 🔶 M7 (scoped): Mission 1 playable with storm-bolter squad; deferred: flamer,
-  assault cannon, librarian, chain fist, sergeant/captain special rules, CAT,
-  ambush counters, marine interrupts, additional missions
+- ✅ M7 (fidelity pass 2026-08-15): original mission 1 force (sergeant + heavy
+  flamer), sections + flames, original deployment + flame objective, original
+  sprites and sounds; deferred: assault cannon, librarian, chain fist, thunder
+  hammer, captain/grenades, CAT, ambush counters, marine interrupts — these
+  belong to missions 2–6 and beta, queued for the mission-recreation phase
 - ✅ M8 (hygiene): clean build, e2e suite, truthful docs
 
 ## Known gaps / residue
 
-- Balance reflects the adapted objective, not original difficulty: on the original
-  map (2026-08-15) the scripted autopilot wins 85% of seeds (102/120, all by reaching
-  Launch Control, zero by extermination) because BEGINPLACE starts the squad six squares
-  from the objective and the original counterweight — the flamer-ammo loss condition —
-  is not modeled. Every game reaches a decisive result. Implementing the heavy flamer
-  and its ammo economy is the real fix; difficulty tuning before then is provisional.
-- Marine interrupt actions (CP spending during the stealer phase) not implemented.
+- The restored mission is hard, and the scripted autopilot cannot measure HOW hard:
+  it loses 60/60 seeds, but the loss funnel shows why — its flamer leads the column
+  and dies to close combat on turn 2 in 57 of them (four marines still standing).
+  That is a scripted-player limitation (protect-the-VIP escort tactics), not
+  balance evidence. The kill chain itself is verified: unopposed, the squad
+  delivers the flamer and wins by turn 9. Human winnability with overwatch and
+  door discipline is untested. debug_1 (default) stays comfortably winnable.
+- Marine interrupt actions (CP spending during the stealer phase) not implemented —
+  a real mission-1 marine tool in the original (Space key), and the biggest
+  named gap for a human trying to win space_hulk_1.
+- Blips spawn ON entry squares instead of lurking off-board in the original's
+  entry-triangle limbo (documented simplification; entries sit far from the fight).
 - FPS measurement deferred (needs a visible-tab recording session).
 - Cross-vendor code audit pending — revisit against tag `v0.1` when available.
 - `docs/` retains the original Sulk manual; edge rules (parry, autofire, psi)
-  are deliberately out of the v0.1 scope.
+  arrive with the missions that need them.

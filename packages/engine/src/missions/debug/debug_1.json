@@ -6,499 +6,597 @@
     {
       "x": 10,
       "y": 0,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 0
     },
     {
       "x": 10,
       "y": 1,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 0
     },
     {
       "x": 10,
       "y": 2,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 0
     },
     {
       "x": 10,
       "y": 3,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 0
     },
     {
       "x": 10,
       "y": 4,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 0
     },
     {
       "x": 10,
       "y": 5,
       "kind": "corridor",
-      "doorFacing": "up"
+      "doorFacing": "up",
+      "section": 1
     },
     {
       "x": 9,
       "y": 6,
-      "kind": "room"
+      "kind": "room",
+      "section": 1
     },
     {
       "x": 10,
       "y": 6,
-      "kind": "room"
+      "kind": "room",
+      "section": 1
     },
     {
       "x": 11,
       "y": 6,
-      "kind": "room"
+      "kind": "room",
+      "section": 1
     },
     {
       "x": 8,
       "y": 7,
       "kind": "corridor",
-      "doorFacing": "right"
+      "doorFacing": "right",
+      "section": 1
     },
     {
       "x": 9,
       "y": 7,
-      "kind": "room"
+      "kind": "room",
+      "section": 1
     },
     {
       "x": 10,
       "y": 7,
-      "kind": "room"
+      "kind": "room",
+      "section": 1
     },
     {
       "x": 11,
       "y": 7,
-      "kind": "room"
+      "kind": "room",
+      "section": 1
     },
     {
       "x": 9,
       "y": 8,
-      "kind": "room"
+      "kind": "room",
+      "section": 1
     },
     {
       "x": 10,
       "y": 8,
-      "kind": "room"
+      "kind": "room",
+      "section": 1
     },
     {
       "x": 11,
       "y": 8,
-      "kind": "room"
+      "kind": "room",
+      "section": 1
     },
     {
       "x": 10,
       "y": 9,
       "kind": "corridor",
-      "doorFacing": "up"
+      "doorFacing": "up",
+      "section": 1
     },
     {
       "x": 4,
       "y": 7,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 2
     },
     {
       "x": 5,
       "y": 7,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 2
     },
     {
       "x": 6,
       "y": 7,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 2
     },
     {
       "x": 7,
       "y": 7,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 2
     },
     {
       "x": 0,
       "y": 6,
-      "kind": "room"
+      "kind": "room",
+      "section": 3
     },
     {
       "x": 1,
       "y": 6,
-      "kind": "room"
+      "kind": "room",
+      "section": 3
     },
     {
       "x": 2,
       "y": 6,
-      "kind": "room"
+      "kind": "room",
+      "section": 3
     },
     {
       "x": 0,
       "y": 7,
-      "kind": "room"
+      "kind": "room",
+      "section": 3
     },
     {
       "x": 1,
       "y": 7,
-      "kind": "room"
+      "kind": "room",
+      "section": 3
     },
     {
       "x": 2,
       "y": 7,
-      "kind": "room"
+      "kind": "room",
+      "section": 3
     },
     {
       "x": 3,
       "y": 7,
       "kind": "corridor",
-      "doorFacing": "right"
+      "doorFacing": "right",
+      "section": 3
     },
     {
       "x": 0,
       "y": 8,
-      "kind": "room"
+      "kind": "room",
+      "section": 3
     },
     {
       "x": 1,
       "y": 8,
-      "kind": "room"
+      "kind": "room",
+      "section": 3
     },
     {
       "x": 2,
       "y": 8,
-      "kind": "room"
+      "kind": "room",
+      "section": 3
     },
     {
       "x": 1,
       "y": 9,
       "kind": "corridor",
-      "doorFacing": "up"
+      "doorFacing": "up",
+      "section": 3
     },
     {
       "x": 1,
       "y": 10,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 4
     },
     {
       "x": 0,
       "y": 11,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 4
     },
     {
       "x": 1,
       "y": 11,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 4
     },
     {
       "x": 2,
       "y": 11,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 4
     },
     {
       "x": 10,
       "y": 10,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 5
     },
     {
       "x": 10,
       "y": 11,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 5
     },
     {
       "x": 10,
       "y": 12,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 5
     },
     {
       "x": 10,
       "y": 13,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 6
     },
     {
       "x": 10,
       "y": 14,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 6
     },
     {
       "x": 11,
       "y": 14,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 6
     },
     {
       "x": 10,
       "y": 15,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 6
     },
     {
       "x": 12,
       "y": 14,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 7
     },
     {
       "x": 13,
       "y": 14,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 7
     },
     {
       "x": 13,
       "y": 15,
       "kind": "corridor",
-      "doorFacing": "up"
+      "doorFacing": "up",
+      "section": 7
     },
     {
       "x": 10,
       "y": 16,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 8
     },
     {
       "x": 10,
       "y": 17,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 8
     },
     {
       "x": 10,
       "y": 18,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 8
     },
     {
       "x": 13,
       "y": 16,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 9
     },
     {
       "x": 13,
       "y": 17,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 9
     },
     {
       "x": 13,
       "y": 18,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 9
     },
     {
       "x": 10,
       "y": 19,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 10
     },
     {
       "x": 9,
       "y": 20,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 10
     },
     {
       "x": 10,
       "y": 20,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 10
     },
     {
       "x": 11,
       "y": 20,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 10
     },
     {
       "x": 10,
       "y": 21,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 10
     },
     {
       "x": 13,
       "y": 19,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 11
     },
     {
       "x": 12,
       "y": 20,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 11
     },
     {
       "x": 13,
       "y": 20,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 11
     },
     {
       "x": 14,
       "y": 20,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 11
     },
     {
       "x": 13,
       "y": 21,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 11
     },
     {
       "x": 4,
       "y": 20,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 12
     },
     {
       "x": 5,
       "y": 20,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 12
     },
     {
       "x": 6,
       "y": 20,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 12
     },
     {
       "x": 7,
       "y": 20,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 12
     },
     {
       "x": 8,
       "y": 20,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 12
     },
     {
       "x": 2,
       "y": 19,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 13
     },
     {
       "x": 2,
       "y": 20,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 13
     },
     {
       "x": 3,
       "y": 20,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 13
     },
     {
       "x": 2,
       "y": 21,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 13
     },
     {
       "x": 10,
       "y": 22,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 14
     },
     {
       "x": 10,
       "y": 23,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 14
     },
     {
       "x": 10,
       "y": 24,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 14
     },
     {
       "x": 13,
       "y": 22,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 15
     },
     {
       "x": 13,
       "y": 23,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 15
     },
     {
       "x": 13,
       "y": 24,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 15
     },
     {
       "x": 10,
       "y": 25,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 16
     },
     {
       "x": 9,
       "y": 26,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 16
     },
     {
       "x": 10,
       "y": 26,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 16
     },
     {
       "x": 11,
       "y": 26,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 16
     },
     {
       "x": 13,
       "y": 25,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 17
     },
     {
       "x": 12,
       "y": 26,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 17
     },
     {
       "x": 13,
       "y": 26,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 17
     },
     {
       "x": 14,
       "y": 26,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 17
     },
     {
       "x": 15,
       "y": 20,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 18
     },
     {
       "x": 16,
       "y": 20,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 18
     },
     {
       "x": 17,
       "y": 20,
-      "kind": "corridor"
+      "kind": "corridor",
+      "section": 18
     },
     {
       "x": 19,
       "y": 19,
-      "kind": "room"
+      "kind": "room",
+      "section": 19
     },
     {
       "x": 20,
       "y": 19,
-      "kind": "room"
+      "kind": "room",
+      "section": 19
     },
     {
       "x": 21,
       "y": 19,
-      "kind": "room"
+      "kind": "room",
+      "section": 19
     },
     {
       "x": 18,
       "y": 20,
       "kind": "corridor",
-      "doorFacing": "right"
+      "doorFacing": "right",
+      "section": 19
     },
     {
       "x": 19,
       "y": 20,
-      "kind": "room"
+      "kind": "room",
+      "section": 19
     },
     {
       "x": 20,
       "y": 20,
-      "kind": "room"
+      "kind": "room",
+      "section": 19
     },
     {
       "x": 21,
       "y": 20,
-      "kind": "room"
+      "kind": "room",
+      "section": 19
     },
     {
       "x": 19,
       "y": 21,
-      "kind": "room"
+      "kind": "room",
+      "section": 19
     },
     {
       "x": 20,
       "y": 21,
-      "kind": "room"
+      "kind": "room",
+      "section": 19
     },
     {
       "x": 21,
       "y": 21,
-      "kind": "room"
+      "kind": "room",
+      "section": 19
     }
   ],
   "entryPoints": [
@@ -535,9 +633,9 @@
   ],
   "marineDeployment": [
     {
-      "x": 14,
-      "y": 20,
-      "facing": "right"
+      "x": 10,
+      "y": 4,
+      "facing": "down"
     }
   ],
   "initialBlips": 0,

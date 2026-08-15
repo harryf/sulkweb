@@ -2,14 +2,19 @@ export interface SquareJSON {
   x: number
   y: number
   kind: 'corridor' | 'room'
-  section?: number      // optional, for future
+  /** Board section per the original BOARD sublists — flamer/self-destruct blast unit. */
+  section?: number
   doorFacing?: 'up'|'right'|'down'|'left'
 }
 
 export interface CoordJSON { x: number; y: number }
 
+export type MarineType = 'storm_bolter' | 'sergeant' | 'heavy_flamer'
+
 export interface DeploySquareJSON extends CoordJSON {
   facing?: 'up'|'right'|'down'|'left'
+  /** Marine variant deployed here; defaults to storm_bolter. */
+  type?: MarineType
 }
 
 export interface RawMissionJSON_v2 {
@@ -30,7 +35,10 @@ export interface RawMissionJSON_v2 {
   /** Total reinforcement budget (excluding initialBlips). Omit = unlimited. */
   totalBlips?: number
   /** Victory rule for the marines. */
-  objective?: 'exterminate' | 'reach-exit' | 'exterminate-or-exit'
+  objective?: 'exterminate' | 'reach-exit' | 'exterminate-or-exit' | 'flame-objective'
+  /** Objective square for flame-objective (e.g. Launch Control). Marines win
+   *  when it is flaming; they LOSE when no living flamer has ammo left. */
+  objectivePoint?: CoordJSON
 }
 
 export type CompiledMission = RawMissionJSON_v2

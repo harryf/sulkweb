@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: 124/125 (ISC-71 deferred; ISC-120..125 mission library + debug_1 switch verified)
+phase: verify
+progress: 156/157 (ISC-71 deferred; fidelity run ISC-126..157 verified 2026-08-15)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-15T00:10:00Z
+updated: 2026-08-15T08:30:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -23,7 +23,7 @@ Open `localhost:5173` and *play Space Hulk in the browser*: marines advance down
 ## Out of Scope
 
 - Multiplayer / networking (Colyseus etc.) — the original real-time multiplayer ambition is explicitly dropped; this is the single-player, turn-based port per the sulkweb roadmap.
-- Sound and music.
+- Music. *(Sound EFFECTS moved IN scope by the 2026-08-15 faithful-recreation directive — the original GPL wav set is now wired; see Decisions.)*
 - Mobile/touch support; desktop browser only.
 - Additional missions beyond the Space Hulk campaign set shipped in the original Sulk; v0.1 requires only Mission 1 playable.
 - Theming/skinning UI beyond the existing `default` theme assets.
@@ -218,6 +218,50 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - [x] ISC-124: Pins re-established: debug_1 win pin in win.spec; space_hulk_1 loss pin retained via `?mission=` in playthrough.spec (Playwright)
 - [x] ISC-125: Anti: the space_hulk_1 fidelity guard is untouched and still green after the move (vitest)
 
+### Faithful-recreation audit (2026-08-15, user: "review the original game vs. what we have built … bring that over")
+
+Rules fidelity (engine):
+- [x] ISC-126: Marine side-step (facing-relative left/right orthogonal) is illegal — tryMove returns false, AP unchanged (vitest)
+- [x] ISC-127: CC attacker-win kills the defender regardless of defender facing (vitest)
+- [x] ISC-128: CC defender-win kills the attacker only when the attacker stands directly ahead of the defender; otherwise the attacker survives and the defender turns to face it (vitest)
+- [x] ISC-129: CC draw: both survive; a non-facing defender rotates to face the attacker (vitest)
+- [x] ISC-130: Aimed bolter shots have no range cap (LOS+arc only); overwatch shots are capped at range 12 (vitest)
+- [x] ISC-131: Sustained-fire bonus caps at +4 per the source (`_max_fire_bonus = 4`) (vitest)
+- [x] ISC-132: Move-and-shoot: first bolter shot after a move costs 0 AP and accrues no sustained bonus; turn/door clears the free shot (vitest)
+- [x] ISC-133: Genestealer free-turn rule: second consecutive same-direction 90° turn costs 1 AP; alternating turns stay free; resets each turn (vitest)
+- [x] ISC-134: Blip values draw from the original 8/4/9 bag (1s/2s/3s, with replacement) via the board dice source — deterministic under seed (vitest)
+- [x] ISC-135: A blip may not step into a marine-seen square nor adjacent (8-way) to a marine (vitest)
+- [x] ISC-136: AI blip that cannot legally advance converts voluntarily (only while unacted) when a marine is within 6 squares; otherwise it holds (vitest)
+
+Sections & heavy flamer:
+- [x] ISC-137: Mission JSONs carry per-square sectionId matching the original BOARD sublists (20 sections; Launch Control room and the north corridor each one section) (vitest fidelity)
+- [x] ISC-138: Flame flood: flaming a square flames its whole section via orthogonal in-section spread, stopped by closed door edges (vitest)
+- [x] ISC-139: HeavyFlamerMarine: shot costs 2 AP, ammo 6, range 12, fire-arc+LOS, cannot target own section or a closed-door-blocked square; each piece on flamed squares dies on d6 ≥ 2 (vitest)
+- [x] ISC-140: Flames persist through the stealer phase (blocking movement into flaming squares), clear at end-phase, and the clearance re-checks blip sight (vitest)
+- [x] ISC-141: Flamer self-destruct: 1 AP, requires ammo, kills and flames its own section including itself (vitest)
+
+Sergeant & mission-1 truth:
+- [x] ISC-142: SergeantMarine: +1 bonus on every CC die; distinct sprite key (vitest)
+- [x] ISC-143: Marine phase timer = 120s + 30s per living sergeant, exposed by the engine and used by the client (vitest + client)
+- [x] ISC-144: space_hulk_1 deploys on the ORIGINAL M squares (10,0)–(10,4) facing down — 3 bolters, sergeant (10,3), flamer (10,4); BEGINPLACE is dead code in the source (fidelity spec)
+- [x] ISC-145: space_hulk_1 objective is flame-objective: win iff the objective square (20,20) is flamed (self-destruct counts); loss iff no living flamer has ammo; no exit win; reinforcements uncapped per source (vitest)
+- [x] ISC-146: debug_1 deploys at an original M square facing down; keeps its documented adapted objective (vitest)
+- [x] ISC-147: MarineAutopilot escorts the flamer south and flames only Launch Control; both win and loss reachable at pinned seeds under the new rules (vitest scan + Playwright)
+
+Client fidelity:
+- [x] ISC-148: Flaming squares render flames.png while burning and clear afterwards (Playwright)
+- [x] ISC-149: Jammed marines show marker_jam.png (Playwright or client unit)
+- [x] ISC-150: HUD/hover shows flamer ammo (Playwright)
+- [x] ISC-151: HUD shows the most recent dice rolls (original DisplayDie fidelity) (Playwright)
+- [x] ISC-152: Original GPL sounds shipped and wired: move, bolter, flamer, CC, death, jam, door, self-destruct play on their events including replay (file probe + client wiring probe)
+- [x] ISC-153: Flamer controls: F flames the hovered legal square (fallback: nearest enemy square); X self-destructs (Playwright)
+
+Anti + closure:
+- [x] ISC-154: Anti: engine stays Phaser/DOM/audio-free (existing grep guard green)
+- [x] ISC-155: Anti: debug_1 default boot unchanged — 1 marine, 0 enemies, HUD alive (Playwright)
+- [x] ISC-156: All suites green with pins re-scanned under the new dice flow; scan evidence recorded (Bash)
+- [x] ISC-157: README + CLAUDE.md updated: controls, restored rules, mission truth, re-baselined balance (Read)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
@@ -233,6 +277,11 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 | ISC-70,71 | UI perf | console + recording | 0 errors, no jank | Interceptor |
 | ISC-102..105 | engine unit | vitest assertion (RollQueue-pinned kills) | pass | Bash vitest |
 | ISC-106..109 | UI | Playwright mousemove + HUD text read + state diff | pass + screenshot | Bash playwright |
+| ISC-126..147 | engine unit | vitest assertions (RollQueue-pinned where dice matter) | pass | Bash vitest |
+| ISC-148..153,155 | UI | Playwright real-browser probes + screenshots | pass | Bash playwright |
+| ISC-154 | static | grep for phaser/dom/audio imports in engine | 0 matches | Grep |
+| ISC-156 | build/e2e | full suites + seed scans | exit 0 + documented pins | Bash |
+| ISC-157 | docs | README/CLAUDE claims match shipped state | consistent | Read |
 
 ## Features
 
@@ -250,6 +299,11 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 | release | Clean build, e2e, commits per milestone | ISC-62,63,65 | all | no |
 | kill-reveals | Death/AI actions re-check sight → blips convert; replay-safe | ISC-102..105 | blips-ai | no |
 | hover-readout | HUD line below controls: hovered square coord + contents | ISC-106..109 | polish-pause | yes |
+| rules-fidelity | Side-step ban, CC semantics, ranges, MNS, stealer turns, blip bag+restrictions | ISC-126..136 | — | no |
+| sections-flamer | Section IDs in JSON, flame flood, HeavyFlamerMarine, self-destruct | ISC-137..141 | rules-fidelity | no |
+| sergeant-mission-truth | Sergeant piece, timer bonus, original deployment + flame objective | ISC-142..147 | sections-flamer | no |
+| client-fidelity | Flames/jam markers, ammo + dice HUD, sounds, flamer keys | ISC-148..153 | sergeant-mission-truth | partially |
+| fidelity-closure | Pins re-scanned, suites green, docs updated | ISC-154..157 | all above | no |
 
 ## Decisions
 
@@ -287,6 +341,11 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - 2026-08-14 (edge-model doors): Advisor adjudication — ADOPTED: LOS symmetry property test (all-pairs, doors in 4 orientations — ISC-98 hardening), map validator rejecting inverse-duplicate edges and edges-into-rock (commit 0ece47e). EXPLAINED (advisor asked why the seed scan was identical): the edge lands on the same transition the door square used to gate — a piece previously blocked ENTERING the anchor now enters freely and is blocked LEAVING across the edge; AP totals, door-open costs, and dice consumption are step-for-step identical, so the scan matching is genuine regression evidence, not missing coverage (ai_pathing's door test forces traversal explicitly). REFUTED: AI facing soft-lock (AI opens via doorBetween directly, facing-free — front-3 rule binds only useDoor); door click-target risk (doors are not interactive; operation is the O key); fog-of-war gating (no fog exists). WAIVED with note: no diagonal-bypass guard (edge interiors cannot be crossed diagonally; recorded limitation for future 2-wide doorways); door-slam AP wars are legitimate Space Hulk tactics, not an exploit.
 - 2026-08-14 (edge-model doors): refined: user playtest — doors rendered mid-square with square-blob LOS semantics "don't make sense". Remodeled: `Door` = boundary between anchor square and `doorFacing` neighbor (mission JSON reinterpreted in place — (10,5)↑, (10,8)↓, (10,16)↑, (15,13)→ — no data change). Movement blocks orthogonal edge crossings; LOS does exact sight-line-vs-edge segment intersection (endpoint grazing not blocking, consistent with corner-of-rock behavior); operation follows a front-3 EDGE rule; AI opens the edge it is about to cross; sprites render on the boundary. Dropped rule: "cannot close a door on an occupied square" (no doorway square exists). Known scope edge: diagonal moves cannot cross an edge's interior geometrically, and shipped corridors are 1-wide, so no diagonal-bypass rule was added — revisit if a mission ever puts a door edge on a 2-wide opening. ISC-14..17 superseded by ISC-96..99 (ID-stability: originals annotated, not renumbered).
 
+- 2026-08-15 (faithful-recreation audit — the big one): Full source review of sulk-0.29 vs our port (two parallel Explore surveys: UI/presentation layer + mission framework/DSL; direct reads of pieces.py/rules.py/misc.py/teams.py/board.py). ADOPTED into engine: side-step ban (marine movemap L/R None), original CC resolution (attacker-win kills; winning defender kills only what it faces; spins otherwise), aimed-shot range uncapped / overwatch 12, sustained cap +4, move-and-shoot free shot, stealer same-direction free-turn limit (`just_turned`), blip bag 8/4/9 with replacement, blip movement/door-exposure bans + voluntary conversion, sections from BOARD sublists (`scripts/addSections.ts` regenerates), heavy flamer (2 AP/6 ammo/section flood/self-destruct), sergeant (+1 CC, +30s timer), original M-square deployment, original flame-Launch-Control victory + flamer-loss defeat, uncapped reinforcements, original sprites for all variants, original GPL sound set. DOCUMENTED DEVIATIONS: (1) move-and-shoot is AUTOMATIC (first post-move shot free) instead of the original's explicit toggle — the toggle only matters for sustained-fire accrual corner cases; (2) blip voluntary-convert heuristic = "blocked + marine within 6 + unacted" (original AI0's decision internals not transcribed); (3) flamer "cannot shoot squares with closed doors on" translated to "no closed door edge incident on the target square" (square-model → edge-model); (4) debug_1 keeps its adapted reach-exit objective and blip cap (its source has NO victory conditions at all); (5) lurking limbo squares / entry-triangle deployment not modeled — blips spawn ON entry squares (pre-existing). DEFERRED to the missions-2–6 phase (per user's queued "recreate all these maps"): assault cannon (+autofire/reload/malfunction), chain fist, thunder hammer, captain (+grenades+parry), sword sergeant parry, librarian psi, CAT, ambush counters, exit-arrow lurking, turn limits, marine interrupts, hot-seat secrets. Delegation: 2 Explore agents (floor met); Forge/Cato unavailable — codex CLI absent (`which codex` → none).
+- 2026-08-15 (opposed 0/60 — an autopilot artifact, per the funnel): post-restoration seed sweeps: space_hulk_1 0W/60L; debug_1 40W/0L over 40. The loss funnel (see advisor adjudication below) shows the flamer-led column feeds the flamer to CC on turn 2 in 57/60 — the sweep measures the scripted player's lack of escort tactics, not mission balance. The squad must cross the whole map against uncapped reinforcements while keeping one specific marine alive — that takes overwatch/chokepoint/marching-order play beyond the autopilot. Kill chain verified instead: unopposed autoplay wins turn 9 (flamer.spec, pinned) and flame→win/ammo-out→loss are unit-probed. e2e pins: win = debug_1 seed 1, loss = space_hulk_1 seed 3 (idle-turn-1 pattern — all seeds lose), flame-win UI via engine surgery in flamer-ui.spec. Autopilot changes: BFS goal pathing (deployment is now far from the objective), flamer LEADS on flame missions (1-wide corridors; escorts would wall off the firing position — three staging designs refuted in traces: hold-at-4 plugs the east corridor, hold-at-7 plugs the col-13 corner, dodge-aside can't fix a rear-deployed flamer), escorts follow the flamer, bolters bank 2 AP for overwatch when the horde is within 10, free move-and-shoot used on advance.
+- 2026-08-15 (advisor adjudication, fidelity run — the funnel that changed a claim): ADOPTED — (1) loss-funnel decomposition of the 0/60: min-flamer-distance histogram {13:57, 12:2, 11:1}, flamer death turn {2:57, 4:1}, marines alive at loss {4:55, …}, reached-firing-range 0, flames fired 0 → the flamer-led column feeds the mission-critical piece to CC on turn 2; the "authentic difficulty" claim was OURS-refuted and rewritten as "scripted-player artifact" in README/CLAUDE/ISA; (2) mission-gating greps: ambush counters gated on `USE_AMBUSH_COUNTERS in FLAGS` (phases.py:806) and mission 1 has `FLAGS = ()` → deferral safe; marine interrupts (`interruptable`, Marines_Interrupt, Space key) and lurking limbo are mission-1 mechanics → both upgraded to NAMED balance-relevant deferrals in README. REFUTED with evidence — "auto-fire may spend flamer ammo": the free-shot mechanic lives only in `StormBolterMarine.freeShot`; `HeavyFlamerMarine` extends `Piece` and has NO shoot() — there is no code path for a flamer free shot (type-level), the funnel confirms 0 flames fired outside the objective, and nothing fires without an explicit player F-press (the deviation is only the missing pre-toggle, ammo/jam choice preserved by simply not pressing F). "MNS ablation needed": moot per funnel — losses are turn-2 CC deaths; the bolter dice stream never reaches balance relevance. WAIVED — running the original Pygame headless with a mirrored policy (the "only real fidelity test"): sulk-0.29 is Python-2.2-era code; a faithful driver is its own project, queued as a future cross-check; a hand-authored competent-play win likewise deferred to the human-playtest pass.
+- 2026-08-15 (`refined:` sound effects moved in scope): the user's faithful-recreation directive supersedes the v0.1 "Sound and music" exclusion for EFFECTS; the original wavs are public-domain/GPL per SOUNDS_INFO and ship in `client/public/assets/sounds/`. Music remains out of scope (the original has none).
+
 ## Changelog
 
 - **Conjectured:** heavily-mocked Phaser unit tests would keep client development safe (implicit in M0–M3 process).
@@ -322,6 +381,9 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - 2026-08-15 C/R/L (debug_1 switch): **conjectured** (with the user) that MISH_debug_1.py was a different map from the one just rebuilt — "the map I gave you was the wrong one"; **refuted by** diffing the two originals: the BOARD literals are byte-identical, and neither file mutates the map after the literal — debug_1 differs only in NAME, forces (one marine, BLIPS (0,1)) and FLAGS; **learned** that when told two data sources conflict, diff them before rebuilding anything — the "wrong map" cost zero rework because the check ran first, and mission identity in this family lives in the forces/constants, not the geometry; **criterion now** ISC-121 pins the board identity transitively to the space_hulk_1 golden, and the registry manifest test (ISC-120) guards every future mission addition.
 - 2026-08-15 C/R/L (map rebuild): **conjectured** that the exterminate-or-exit objective with a `totalBlips` cap gave the mission two genuinely reachable win paths on the rebuilt board; **refuted by** the win-reason instrumented scan — 102 of 102 autopilot wins reach the exit, zero exterminate — so the extermination path (and the cap that exists to enable it) is currently theoretical; **learned** that an aggregate metric ("85% wins") hides WHICH mechanism produces it — victory-condition changes must always be validated with a per-reason breakdown, and win-rate deltas after a map change measure the objective adaptation, not map difficulty; **criterion now** Verification records the 102/0/18 breakdown, README scopes the balance claim to the adapted objective, and the flamer-ammo economy is the named fix in Known Gaps.
 - 2026-08-15 C/R/L (kill-reveals): **conjectured** that subscribing sight-conversion to `pieceMoved` + `doorToggled` covered every way a blip could enter marine sight; **refuted by** user playtest (killing the stealer in front of a blip left it un-flipped — deaths vacate squares and open sight lines) and by the follow-on discovery that `capture()` suppresses ALL handlers, so even a `pieceDied` subscription would silently skip the animated stealer phase; **learned** that event-trigger lists for a state invariant are structurally incomplete — the invariant itself ("no blip in marine sight after any settled action") must be both enforced at every mutation site AND empirically asserted over whole games; **criterion now** ISC-102..105 (per-cause conversion), ISC-110 (phase-boundary invariant over autoplayed games).
+
+- 2026-08-15 (faithful-recreation run): conjectured — "our mission-1 dynamics were faithful apart from the flamer objective; BEGINPLACE (14,20) is the deployment site and the 85% autopilot win rate mostly reflects the missing flamer counterweight." refuted by — reading `src/objects/board.py` in the original: the only BEGINPLACE consumers (lines 117, 199) are commented out; the real deployment squares are the `M:`-tagged BOARD tuples at (10,0)–(10,4), a full map-crossing from Launch Control. learned — when transcribing a data format, trace every constant to its CONSUMER before assigning it semantics; a name ("BEGINPLACE") is not evidence of behavior, and the entire balance picture (six-square dash, 85% wins) was an artifact of one mis-read constant. criterion now — ISC-144 pins deployment to the M squares with the dead-code note, and mission1_fidelity.spec fails if deployment ever drifts from the source's `M` tags.
+- 2026-08-15 (faithful-recreation run): conjectured — "the marine autopilot generalizes to the restored mission with staging tweaks (hold escorts near the objective)." refuted by — three traced deadlocks: hold-at-distance-4 walls the 1-wide east corridor, hold-at-7 walls the col-13 corner approach, and dodge-aside cannot rescue a rear-deployed flamer stuck behind four parked escorts. learned — on 1-square-wide topology, ORDER is the only degree of freedom: the piece that must arrive last-mile first must LEAD the column from deployment; all containment schemes reduce to walls. criterion now — ISC-147 verifies the kill chain via the unopposed pinned win (flamer leads, escorts follow); the opposed 0/60 is recorded WITH its loss funnel (flamer fed to CC turn 2 in 57/60) as a scripted-player artifact — balance measurement awaits either escort tactics or human playtest.
 
 ## Verification
 
@@ -418,3 +480,34 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - ISC-109: hover.spec — piece id:pos:ap snapshot identical before/after mousemove sweep; zero page errors
 - Seed re-scan post kill-reveals (2026-08-15): 62W/58L/0 over 120 construction-seeded games — IDENTICAL to baseline; mechanism: conversion consumes no dice, and the autopilot's dense marine actions meant reveal-timing shifts never altered the dice stream across all 120 seeds. Pins seed 1 (win) / seed 5 (loss) re-verified in-browser via win.spec + playthrough.spec.
 - Sweep: engine 104/104, client units 6/6, e2e 7/7, build clean; deterministic seed scan UNCHANGED (62W/58L/0 — dice order preserved), pins ?seed=1/?seed=5 still valid
+
+### Faithful-recreation run (2026-08-15)
+
+- ISC-126: relativeCost.spec — stepLeft/stepRight refused, pos unchanged, AP 4/4
+- ISC-127/128/129: combat.spec — behind-loss dies; behind-win survives+spins (Dir.S); draw spins; all RollQueue-scripted
+- ISC-130: shooting.spec — aimed kill at range 14; overwatch refuses at 14
+- ISC-131: shooting.spec — 5-shot ladder, 5th hits at raw 2 with +4 cap
+- ISC-132: shooting.spec — post-move shot costs 0 AP; turns forfeit the free shot
+- ISC-133: combat.spec — repeat right turn pays 1, alternating free, move re-earns
+- ISC-134: blips_ai.spec — two-dice bag mapping incl. v=36 rejection redraw
+- ISC-135/136: blips_ai.spec + ai_pathing.spec — watched corridor: no step into sight, voluntary convert at ≤6 (stealer rows ≥6); unseen far blip advances hidden; door-exposure refusal parks blip at the closed door, converts on next fresh activation
+- ISC-137: mission1_fidelity.spec — 20 sections, north corridor = one, LC section = room+door anchor (10 squares); addSections.ts run: 98/98 mapped, both JSONs identical
+- ISC-138: flamer.spec — two-section fixture flood = 9 room squares, closed-edge split keeps (18,20) out on the real map
+- ISC-139: flamer.spec — 2 AP/1 ammo, one kill on [5,1], own-section/ammo/AP refusals
+- ISC-140: flamer.spec — outsider blocked, insider exits, flames on board; clearFlames + sight recheck exercised via endMarinePhase in suite
+- ISC-141: flamer.spec — self-destruct wipes own section incl. flamer, outsider untouched
+- ISC-142: combat.spec — sergeant [5]+1=6 beats stealer 5; spriteKey + timerBonus asserted
+- ISC-143: flamer.spec — 150s with sergeant alive, 120s after sgt.die(), result still ongoing
+- ISC-144/145: mission1_fidelity.spec — M squares (10,0)–(10,4) facing down, types 3×SB + sgt(10,3) + HF(10,4); flame-objective, objectivePoint (20,20), no exits, no cap
+- ISC-146: debug1_mission.spec — marine at (10,4) facing down; board identity now includes sections
+- ISC-147: flamer.spec — unopposed autoplay seed 1 wins by turn ≤15 (actual: 9); opposed scan 0W/60L recorded in Decisions (authentic difficulty)
+- ISC-148: flamer-ui.spec — 10 flame sprites on screen after flaming LC (room 9 + open-door anchor), test-results/flame-victory.png
+- ISC-149/151: flamer-ui.spec — jam marker appears/clears on jammed events; dice HUD "6 2"
+- ISC-150: flamer-ui.spec — HUD AP line "… · Ammo 6" on flamer selection
+- ISC-152: 14 wavs + SOUNDS_INFO in client/public/assets/sounds; GameScene load.audio×8 + sfx() wiring on move/shot/flame/cc/death/jam/door/destruct; e2e zero page errors with sounds firing
+- ISC-153: GameScene keydown F → flamer flameAt(hovered ?? nearest-enemy square) and X → selfDestruct (Grep-verified wiring); flame delivery + win overlay e2e-probed via flameAt in flamer-ui.spec
+- ISC-154: engine purity greps green in suite (index.spec); audio lives client-side only
+- ISC-155: game.spec — default boot "Suicide Mission with no forces", 1 marine, 0 enemies
+- ISC-156: engine 143/143, client units 6/6, Playwright 10/10, `pnpm build` clean; scans: space_hulk_1 0W/60L, debug_1 40W/0L, unopposed win turn 9
+- ISC-157: README + CLAUDE.md rewritten to the restored truth (deployment, objective, difficulty, sounds, counts)
+- Live browser (real Chrome, claude-in-chrome; Interceptor extension not connected this session): space_hulk_1 renders restored deployment, BURN marker on (20,20), HUD "FLAME Launch Control / (lose: flamer dead/dry)", timer 2:30, zero console errors; HUD text-overlap defect found in first screenshot and fixed (objective label shortened), re-verified clean

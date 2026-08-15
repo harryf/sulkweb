@@ -7,13 +7,18 @@ import { StormBolterMarine } from '../pieces/StormBolterMarine.js';
 import { loadMission } from '../missions/missionLoader.js';
 import { runStealerActions } from '../ai/StealerAI.js';
 import { RollQueue } from '../core/Dice.js';
+import { Dir } from '../core/Direction.js';
+import { HeavyFlamerMarine } from '../pieces/HeavyFlamerMarine.js';
 
 describe('AI pathing on the real mission map', () => {
-  it('a far-north blip walks the long corridor toward the squad', () => {
+  it('a far-south blip walks the long corridor toward the squad (now deployed north)', () => {
     const engine = new GameEngine({ ...loadMission('space_hulk_1'), initialBlips: 0 });
-    const blip = new Blip(engine.state.board, { c: 10, r: 0 }, 1);
+    const blip = new Blip(engine.state.board, { c: 10, r: 12 }, 1);
     runStealerActions(engine.state.board);
-    expect(blip.pos.r).toBeGreaterThan(0); // regression: used to stall at equal max(dx,dy)
+    // The squad is boxed in behind the closed door edge (10,5)↑, so the
+    // corridor is unseen: the blip closes distance without converting.
+    expect(blip.pos.r).toBeLessThan(12);
+    expect(blip.alive).toBe(true);
   });
 
   it('a blip blocked by a closed door opens it and keeps moving', () => {
@@ -27,16 +32,29 @@ describe('AI pathing on the real mission map', () => {
     expect(blip.pos.c).toBeGreaterThanOrEqual(4); // crossed the opened edge
   });
 
-  it('a blip that opens a door INTO marine sight converts on the spot', () => {
-    // The col-13 corridor is watched by the deployed squad: opening the door
-    // edge (13,15)↑ exposes the blip — the sight sweep must flip it mid-phase.
-    const engine = new GameEngine({ ...loadMission('space_hulk_1'), initialBlips: 0 });
-    const board = engine.state.board;
-    const blip = new Blip(board, { c: 13, r: 14 }, 1);
+  it('a blip REFUSES a door that would expose it, then converts from cover (ISC-135/136)', () => {
+    // Original Blip.can_use_door: pretend the door is open — if any marine
+    // would see the blip, the door stays shut. The blip advances to the door,
+    // holds, and converts voluntarily on its next fresh activation.
+    const board = new Board(3, 7, [
+      { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 1, y: 2 },
+      { x: 1, y: 3, doorFacing: 'up' }, { x: 1, y: 4 }, { x: 1, y: 5 }, { x: 1, y: 6 },
+    ] as any);
+    board.dice = new RollQueue(new Array(20).fill(1));
+    new StormBolterMarine(board, { c: 1, r: 0 }, Dir.S); // watching down the corridor
+    const blip = new Blip(board, { c: 1, r: 5 }, 2);
+    const door = board.doorBetween({ c: 1, r: 3 }, { c: 1, r: 2 })!;
+
     runStealerActions(board);
-    expect(board.doorAt({ c: 13, r: 15 })!.isOpen).toBe(true);
-    expect(blip.alive).toBe(false); // seen the moment the door opened
-    expect(board.pieces.some(p => (p as any).kind === 'stealer')).toBe(true);
+    expect(door.isOpen).toBe(false);   // exposure check refused the door
+    expect(blip.alive).toBe(true);     // moved this turn → may not convert yet
+    expect(blip.pos).toEqual({ c: 1, r: 3 }); // parked at the door, out of sight
+
+    blip.resetAP();
+    runStealerActions(board);
+    expect(door.isOpen).toBe(false);
+    expect(blip.alive).toBe(false);    // fresh activation, blocked, near → converted
+    expect(board.pieces.filter(p => (p as any).kind === 'stealer')).toHaveLength(2);
   });
 
   it('a blip in a concave room-corner pocket paths out instead of stalling (ISC-80)', () => {
@@ -48,10 +66,10 @@ describe('AI pathing on the real mission map', () => {
     const start = { ...blip.pos };
     runStealerActions(board);
     expect(blip.pos).not.toEqual(start); // escaped the pocket
-    // and over a few activations it makes real progress toward the squad at the X-junction
+    // and over a few activations it makes real progress toward the squad (north corridor)
     for (let t = 0; t < 3; t++) { blip.ap = 6; runStealerActions(board); }
-    const dist = Math.max(Math.abs(blip.pos.c - 13), Math.abs(blip.pos.r - 20));
-    expect(dist).toBeLessThan(Math.max(Math.abs(0 - 13), Math.abs(6 - 20)));
+    const dist = Math.max(Math.abs(blip.pos.c - 10), Math.abs(blip.pos.r - 4));
+    expect(dist).toBeLessThan(Math.max(Math.abs(0 - 10), Math.abs(6 - 4)));
   });
 
   it('a stealer diagonally adjacent to a marine lines up orthogonally and attacks (ISC-82)', () => {
@@ -93,7 +111,9 @@ describe('AI pathing on the real mission map', () => {
     for (let t = 0; t < 6; t++) engine.endMarinePhase();
     // Marines never moved: expect stealers/blips to have closed most of the map
     if (engine.state.result === 'loss') {
-      expect(engine.marines).toHaveLength(0); // the horde wiped the idle squad
+      // flame-objective loss = the flamer (or the whole squad) went down
+      const flamerAlive = engine.marines.some(m => m instanceof HeavyFlamerMarine);
+      expect(flamerAlive).toBe(false);
       return;
     }
     const nearest = Math.min(...engine.stealerSide.map(p =>

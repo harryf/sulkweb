@@ -8,11 +8,11 @@ import { Dir, DIR_VEC } from '../core/Direction.js';
 
 const chebyshev = (a: Coord, b: Coord) => Math.max(Math.abs(a.c - b.c), Math.abs(a.r - b.r));
 
-function marines(board: Board): StormBolterMarine[] {
-  return board.pieces.filter((p): p is StormBolterMarine => (p as Piece).kind === 'marine');
+function marines(board: Board): Piece[] {
+  return board.pieces.filter((p): p is Piece => (p as Piece).kind === 'marine');
 }
 
-function nearestMarine(board: Board, from: Coord): StormBolterMarine | undefined {
+function nearestMarine(board: Board, from: Coord): Piece | undefined {
   return marines(board).sort((a, b) => chebyshev(a.pos, from) - chebyshev(b.pos, from))[0];
 }
 
@@ -39,7 +39,7 @@ export function convertRevealedBlips(board: Board): number {
 function overwatchReactions(board: Board, target: Piece): void {
   for (const marine of marines(board)) {
     if (!target.alive) return;
-    if (marine.overwatch && !marine.jammed) {
+    if (marine instanceof StormBolterMarine && marine.overwatch && !marine.jammed) {
       marine.overwatchShot(target);
     }
   }
@@ -118,6 +118,14 @@ function stepToward(board: Board, piece: Piece, targets: Coord[]): 'acted' | 'wa
   const door = board.doorBetween(piece.pos, next);
   if (door && !door.isOpen) {
     if (piece.ap < 1) return 'wait';
+    // A blip may not open a door that would expose it to marine sight
+    // (original Blip.can_use_door "pretend it's open" check).
+    if (piece.kind === 'blip') {
+      door.open();
+      const exposed = squareSeenByMarine(board, piece.pos);
+      door.close();
+      if (exposed) return 'wait';
+    }
     door.open();
     piece.ap -= 1;
     PieceEvents.emit('doorToggled', { x: door.square.x, y: door.square.y, facing: door.facing, open: true });
@@ -197,6 +205,19 @@ export function runStealerActions(board: Board): void {
       }
 
       const step = stepToward(board, p, marines(board).map(m => m.pos));
+      if (p.kind === 'blip' && step !== 'acted') {
+        // The blip cannot advance (marine sight / adjacency bars it, or it is
+        // boxed in). Original play: convert voluntarily — legal only while the
+        // blip has taken no action — once marines are near (within 6 squares),
+        // so the stealers inside can charge from cover next turn.
+        const blip = p as Blip;
+        const near = marines(board).some(m => chebyshev(m.pos, p.pos) <= 6);
+        if (near && blip.canConvert()) {
+          blip.convert();
+          convertRevealedBlips(board);
+        }
+        break;
+      }
       if (step === 'wait') break; // queued behind a friend — hold, don't burn AP or flap doors
       if (step === 'none') {
         // No path at all — last-resort safety net: open any adjacent door.

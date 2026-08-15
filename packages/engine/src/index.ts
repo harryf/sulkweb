@@ -9,7 +9,9 @@ export { hasLineOfSight } from './board/los.js';
 // Core game pieces and direction logic
 export { Piece } from './pieces/Piece.js';
 export type { Coord } from './pieces/Piece.js';
-export { StormBolterMarine } from './pieces/StormBolterMarine.js';
+export { StormBolterMarine, SergeantMarine } from './pieces/StormBolterMarine.js';
+export { HeavyFlamerMarine } from './pieces/HeavyFlamerMarine.js';
+export { flameFlood, igniteSquares, sectionSquares, clearFlames } from './rules/flame.js';
 export { Dir } from './core/Direction.js';
 export { AP_PER_TURN, MOVE_COST, TURN_COST } from './core/CostTables.js';
 

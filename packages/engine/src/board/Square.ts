@@ -10,13 +10,14 @@ export class Square {
     public readonly x: number,
     public readonly y: number,
     public readonly kind: SquareKind | number = 'corridor',
+    sectionId?: number,
   ) {
     this.coord = [x, y]
     // Handle legacy tests that pass a number as sectionId instead of SquareKind
     if (typeof kind === 'number') {
       this.sectionId = kind;
-      // Potentially set passable based on kind or sectionId if rules existed
-      // For now, it defaults to true and can be overridden externally.
+    } else if (sectionId !== undefined) {
+      this.sectionId = sectionId;
     }
   }
 

@@ -40,14 +40,16 @@ describe('storm bolter shooting', () => {
     expect(stealer.alive).toBe(true);
   });
 
-  it('sustained fire: +1 per consecutive miss at same target, max +3', () => {
-    // misses at raw 5,5 → next shot 4+1=5 miss → next 3+2=5 miss → next 3+3=6 HIT
-    const { marine, stealer } = setup([5, 5, 4, 1, 3, 1, 3, 1]);
+  it('sustained fire: +1 per consecutive miss at same target, capped at +4 (ISC-131)', () => {
+    // misses at raw 5,5 → next shot 4+1=5 miss → next 3+2=5 miss → next 2+3=5 miss
+    // → bonus now capped at 4 → 1+4=5 still a miss, but 2+4=6 hits
+    const { marine, stealer } = setup([5, 5, 4, 1, 3, 1, 2, 1, 2, 1]);
+    marine.ap = 6; // room for five shots in one activation (CP-boosted)
     expect(marine.shoot(stealer)).toBe(false); // bonus 0
     expect(marine.shoot(stealer)).toBe(false); // bonus 1 → 5
     expect(marine.shoot(stealer)).toBe(false); // bonus 2 → 5
-    expect(marine.shoot(stealer)).toBe(true);  // bonus 3 → 6
-    expect(marine.ap).toBe(0);
+    expect(marine.shoot(stealer)).toBe(false); // bonus 3 → 5
+    expect(marine.shoot(stealer)).toBe(true);  // bonus 4 (cap) → 2+4=6 HIT
   });
 
   it('sustained bonus is lost on turning', () => {
@@ -67,12 +69,36 @@ describe('storm bolter shooting', () => {
     expect(marine.ap).toBe(4); // no AP spent on an illegal shot
   });
 
-  it('rejects a shot beyond range 12', () => {
+  it('aimed shots have NO range cap; only overwatch is limited to 12 (ISC-130)', () => {
     const board = new Board(3, 20);
-    board.dice = new RollQueue([6, 6]);
+    board.dice = new RollQueue([6, 1]);
     const marine = new StormBolterMarine(board, { c: 1, r: 15 }, Dir.N);
     const stealer = new Genestealer(board, { c: 1, r: 1 }, Dir.S); // 14 away
-    expect(marine.shoot(stealer)).toBe(false);
+    expect(marine.shoot(stealer)).toBe(true); // LOS-bound, not range-bound
+    // Overwatch at the same distance refuses to fire
+    const board2 = new Board(3, 20);
+    board2.dice = new RollQueue([6, 1]);
+    const ow = new StormBolterMarine(board2, { c: 1, r: 15 }, Dir.N);
+    const far = new Genestealer(board2, { c: 1, r: 1 }, Dir.S);
+    ow.overwatchOn();
+    expect(ow.overwatchShot(far)).toBe(false);
+    expect(far.alive).toBe(true);
+  });
+
+  it('move-and-shoot: the first shot after a move is free (ISC-132)', () => {
+    const board = new Board(9, 16);
+    board.dice = new RollQueue([6, 1, 5, 1]);
+    const marine = new StormBolterMarine(board, { c: 4, r: 11 }, Dir.N);
+    const stealer = new Genestealer(board, { c: 4, r: 5 }, Dir.S);
+    expect(marine.moveForward()).toBe(true);   // 1 AP → 3 left, earns free shot
+    expect(marine.shoot(stealer)).toBe(true);  // kills, costs NOTHING
+    expect(marine.ap).toBe(3);
+    // A turn forfeits the free shot: next shot pays
+    const s2 = new Genestealer(board, { c: 4, r: 4 }, Dir.S);
+    expect(marine.moveForward()).toBe(true);   // 1 AP → 2 left, free shot earned
+    marine.tryTurn(1); marine.tryTurn(-1);     // 1 AP each → 0 left, free shot forfeited
+    expect(marine.ap).toBe(0);
+    expect(marine.shoot(s2)).toBe(false);      // no AP and no free shot → refused
   });
 });
 

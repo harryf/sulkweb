@@ -30,11 +30,12 @@ describe('facing-relative movement costs', () => {
     }
   });
 
-  it('side-steps cost 2 AP', () => {
+  it('side-steps are ILLEGAL for terminators (ISC-126, original movemap L/R = None)', () => {
     const m = new StormBolterMarine(new Board(5, 5), { c: 2, r: 2 }, Dir.E);
-    expect(m.stepLeft()).toBe(true);   // world N
-    expect(m.pos).toEqual({ c: 2, r: 1 });
-    expect(m.ap).toBe(2);
+    expect(m.stepLeft()).toBe(false);   // world N — no sidestep
+    expect(m.stepRight()).toBe(false);  // world S
+    expect(m.pos).toEqual({ c: 2, r: 2 });
+    expect(m.ap).toBe(4);               // nothing spent on refused moves
   });
 
   it('exposes apRemaining/apInitial for the UI layer', () => {

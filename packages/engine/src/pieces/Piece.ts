@@ -34,6 +34,17 @@ export abstract class Piece {
   /** Full AP pool at the start of each turn. */
   readonly apInitial: number;
 
+  /** Flat bonus added to every close-combat die (sergeant +1, etc). */
+  readonly ccBonus: number = 0;
+
+  /** Extra marine-phase seconds this piece grants while alive (sergeant +30). */
+  readonly timerBonus: number = 0;
+
+  /** Client texture key — subclasses override via their static SPRITE_KEY. */
+  get spriteKey(): string {
+    return (this.constructor as { SPRITE_KEY?: string }).SPRITE_KEY ?? this.kind;
+  }
+
   /** AP left this turn — alias kept in sync with `ap` for UI consumers. */
   get apRemaining(): number { return this.ap; }
 
@@ -49,7 +60,10 @@ export abstract class Piece {
     if (cost === undefined || cost > this.ap) return false;
 
     const dest = { c: this.pos.c + dc, r: this.pos.r + dr };
-    if (!this.board.isPassable(dest) || this.board.isOccupied(dest)) return false;
+    // A piece already standing in flames may move through/out of burning
+    // squares; everyone else is barred from entering them (original rule).
+    const ignoreFlames = this.board.isFlaming(this.pos);
+    if (!this.board.isPassable(dest, ignoreFlames) || this.board.isOccupied(dest)) return false;
     // Edge-model doors: an orthogonal move crossing a closed door edge is
     // blocked. (Diagonals cannot cross an edge's interior — corridors here are
     // one square wide, so no diagonal bypass exists on the shipped missions.)
@@ -76,6 +90,7 @@ export abstract class Piece {
     if (!door) return false;
     door.toggle();
     this.ap -= 1;
+    this.onActed('door');
     PieceEvents.emit('doorToggled', { x: door.square.x, y: door.square.y, facing: door.facing, open: door.isOpen });
     return true;
   }
@@ -131,8 +146,8 @@ export abstract class Piece {
     PieceEvents.emit('pieceDied', { pieceId: this.id, kind: this.kind, x: this.pos.c, y: this.pos.r });
   }
 
-  /** Hook fired after a successful move/turn — combat state reacts (sustained fire, overwatch). */
-  protected onActed(_action: 'move' | 'turn'): void {}
+  /** Hook fired after a successful move/turn/door — combat state reacts (sustained fire, overwatch, move-and-shoot). */
+  protected onActed(_action: 'move' | 'turn' | 'door'): void {}
 
   /** Convenience helpers for UI */
   moveForward()   { return this.tryMove(...dirToDelta(this.facing)); }

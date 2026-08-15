@@ -19,6 +19,9 @@ export class Board {
   public dice: DiceSource = new SeededRng(Math.floor(Math.random() * 2147483647))
   /** Set when the game ends — pieces refuse further actions. */
   public locked = false
+  /** Squares currently on fire ("x,y"). Flames block entry (unless the mover
+   *  is itself standing in flames) and block sight; cleared each end-phase. */
+  public readonly flaming = new Set<string>()
   private adjacentsCache: Map<Square, Square[]> = new Map()
 
   constructor(width: number, height: number, squares?: SquareJSON[] | number[][]) {
@@ -42,7 +45,7 @@ export class Board {
         // New format: SquareJSON[]
         (squares as SquareJSON[]).forEach(sq => {
           const key = `${sq.x},${sq.y}`;
-          const square = new Square(sq.x, sq.y, sq.kind);
+          const square = new Square(sq.x, sq.y, sq.kind, sq.section);
           if (sq.doorFacing) {
             square.features.add(new Door(square, DOOR_FACING[sq.doorFacing]));
           }
@@ -93,9 +96,14 @@ export class Board {
   allSquares(): Square[] { return [...this.grid.values()] }
   get(x: number, y: number): Square | undefined { return this.grid.get(`${x},${y}`) }
 
-  isPassable(coord: { c: number; r: number }): boolean {
+  isFlaming(coord: { c: number; r: number }): boolean {
+    return this.flaming.has(`${coord.c},${coord.r}`)
+  }
+
+  isPassable(coord: { c: number; r: number }, ignoreFlames = false): boolean {
     const square = this.get(coord.c, coord.r);
     if (!square || !square.passable) return false;
+    if (!ignoreFlames && this.isFlaming(coord)) return false;
     for (const feature of square.features) {
       if (feature.blocksMove?.()) return false;
     }

@@ -37,12 +37,19 @@ describe('Blip', () => {
     expect(stealers).toHaveLength(1);
   });
 
-  it('rolled value maps d6 to 1-3', () => {
-    const board = new Board(3, 3);
-    board.dice = new RollQueue([1, 4, 6]);
+  it('draws its value from the original 8/4/9 blip bag via two-dice sampling (ISC-134)', () => {
+    // v = (d1-1)*6 + d2 → 1..8 = value 1, 9..12 = value 2, 13..21 = value 3, >21 redraw
+    const board = new Board(5, 3);
+    board.dice = new RollQueue([
+      1, 1,       // v=1  → 1
+      2, 3,       // v=9  → 2
+      3, 3,       // v=15 → 3
+      6, 6, 1, 2, // v=36 rejected, redraw v=2 → 1
+    ]);
     expect(new Blip(board, { c: 0, r: 0 }).value).toBe(1);
     expect(new Blip(board, { c: 1, r: 0 }).value).toBe(2);
     expect(new Blip(board, { c: 2, r: 0 }).value).toBe(3);
+    expect(new Blip(board, { c: 3, r: 0 }).value).toBe(1);
   });
 });
 
@@ -73,14 +80,28 @@ describe('runStealerActions (AI0)', () => {
     expect(stealer.alive).toBe(true);
   });
 
-  it('blip converts when it steps into marine sight', () => {
+  it('blip never steps into marine sight — it converts voluntarily from cover (ISC-135/136)', () => {
+    // An open corridor watched by the marine: every forward square is seen, so
+    // the blip may not advance. It is within 6 squares → voluntary conversion.
     const board = new Board(3, 12);
     new StormBolterMarine(board, { c: 1, r: 2 }, Dir.S); // looking south down the corridor
-    const blip = new Blip(board, { c: 1, r: 10 }, 2);
-    board.dice = new RollQueue([1, 1, 1, 1, 1, 1, 1, 1]); // CC dice if any — low rolls
+    const blip = new Blip(board, { c: 1, r: 7 }, 2);
+    board.dice = new RollQueue([1, 1, 1, 1, 1, 1, 1, 1]);
     runStealerActions(board);
-    expect(blip.alive).toBe(false); // converted somewhere along the approach
-    expect(board.pieces.filter(p => (p as Genestealer).kind === 'stealer').length).toBe(2);
+    expect(blip.alive).toBe(false); // converted in place, not exposed by movement
+    const stealers = board.pieces.filter(p => (p as Genestealer).kind === 'stealer');
+    expect(stealers.length).toBe(2);
+    // conversion happened at/behind the blip square — never inside a closer, seen square
+    expect(Math.min(...stealers.map(s => (s as Genestealer).pos.r))).toBeGreaterThanOrEqual(6);
+  });
+
+  it('an unseen far-away blip advances as a blip and does not convert (ISC-136)', () => {
+    const board = new Board(3, 20);
+    new StormBolterMarine(board, { c: 1, r: 2 }, Dir.N); // facing AWAY — corridor unseen
+    const blip = new Blip(board, { c: 1, r: 18 }, 2);    // 16 squares away — not "near"
+    runStealerActions(board);
+    expect(blip.alive).toBe(true);       // still hidden
+    expect(blip.pos.r).toBeLessThan(18); // but it closed the distance
   });
 
   it('overwatching marine gets reaction shots as the stealer approaches', () => {
@@ -99,7 +120,7 @@ describe('runStealerActions (AI0)', () => {
 describe('spawnBlips', () => {
   it('places blips round-robin on free entry squares', () => {
     const board = new Board(9, 9);
-    board.dice = new RollQueue([1, 3, 5, 2]);
+    board.dice = new RollQueue([1, 3, 3, 2]); // two bag-draws: v=3 → 1, v=14 → 3
     const entries = [{ c: 0, r: 0 }, { c: 8, r: 8 }];
     const blips = spawnBlips(board, entries, 2);
     expect(blips).toHaveLength(2);
@@ -112,12 +133,14 @@ describe('spawnBlips', () => {
 });
 
 describe('mission schema', () => {
-  it('space_hulk_1 carries deployment, entries, exit and objective', () => {
+  it('space_hulk_1 carries deployment, entries and the ORIGINAL flame objective', () => {
     const m = loadMission('space_hulk_1');
     expect(m.marineDeployment).toHaveLength(5);
     expect(m.entryPoints!.length).toBeGreaterThanOrEqual(3);
-    expect(m.exitPoints).toHaveLength(1);
-    expect(m.objective).toBe('exterminate-or-exit');
+    expect(m.objective).toBe('flame-objective');
+    expect(m.objectivePoint).toEqual({ x: 20, y: 20 }); // Launch Control
+    expect(m.exitPoints).toBeUndefined();               // original has no EXIT squares
+    expect(m.totalBlips).toBeUndefined();               // reinforcements uncapped per source
     expect(m.blipsPerTurn).toBe(1); // original BLIPS = (2, 1)
   });
 });

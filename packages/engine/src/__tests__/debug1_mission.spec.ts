@@ -21,18 +21,19 @@ describe('debug_1 mission (MISH_debug_1)', () => {
   const debug = loadMission('debug_1');
   const hulk = loadMission('space_hulk_1');
 
-  it('board is square/door/entry-identical to space_hulk_1 (ISC-121)', () => {
+  it('board is square/door/entry/section-identical to space_hulk_1 (ISC-121)', () => {
+    // Objective fields intentionally differ (documented adaptation) — the
+    // BOARD identity covers squares, doors, entries, sections, dimensions.
     const shape = (m: typeof debug) => ({
-      squares: m.squares!.map(s => `${s.x},${s.y}:${s.kind}:${s.doorFacing ?? '-'}`).sort(),
+      squares: m.squares!.map(s => `${s.x},${s.y}:${s.kind}:${s.doorFacing ?? '-'}:${s.section}`).sort(),
       entries: m.entryPoints!.map(e => `${e.x},${e.y}`).sort(),
-      exits: m.exitPoints,
       width: m.width, height: m.height,
     });
     expect(shape(debug)).toEqual(shape(hulk));
   });
 
-  it('forces per source: one marine at BEGINPLACE, blips 0 initial + 1/turn (ISC-122)', () => {
-    expect(debug.marineDeployment).toEqual([{ x: 14, y: 20, facing: 'right' }]);
+  it('forces per source: one marine on an original M square, blips 0 initial + 1/turn (ISC-122/146)', () => {
+    expect(debug.marineDeployment).toEqual([{ x: 10, y: 4, facing: 'down' }]);
     expect(debug.initialBlips).toBe(0);
     expect(debug.blipsPerTurn).toBe(1);
     expect(debug.name).toBe('Suicide Mission with no forces');
@@ -41,7 +42,7 @@ describe('debug_1 mission (MISH_debug_1)', () => {
   it('boots: one marine, zero enemies on turn 1 (ISC-120/122)', () => {
     const engine = new GameEngine(debug);
     expect(engine.marines).toHaveLength(1);
-    expect(engine.marines[0].pos).toEqual({ c: 14, r: 20 });
+    expect(engine.marines[0].pos).toEqual({ c: 10, r: 4 });
     expect(engine.stealerSide).toHaveLength(0);
     expect(engine.state.board.allDoors()).toHaveLength(7);
   });

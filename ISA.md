@@ -3,8 +3,8 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: build
-progress: 109/119 (ISC-71 deferred; ISC-111..119 in flight: original-map fidelity rebuild)
+phase: complete
+progress: 118/119 (ISC-71 deferred; ISC-111..119 original-map rebuild verified)
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-15T00:10:00Z
@@ -309,6 +309,7 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
   **Learned:** when a bug fix moves a balance metric, trace the mechanism (which side gained capability) before accepting either "restored intended balance" or "regression" — win-rate alone cannot distinguish them.
   **Criterion now:** ISC-84 records the seed-scan (62W/58L/0 stalemate) as the balance baseline; fixtures (seeds 29/3) are labeled determinism regressions, not balance evidence.
 
+- 2026-08-15 C/R/L (map rebuild): **conjectured** that the exterminate-or-exit objective with a `totalBlips` cap gave the mission two genuinely reachable win paths on the rebuilt board; **refuted by** the win-reason instrumented scan — 102 of 102 autopilot wins reach the exit, zero exterminate — so the extermination path (and the cap that exists to enable it) is currently theoretical; **learned** that an aggregate metric ("85% wins") hides WHICH mechanism produces it — victory-condition changes must always be validated with a per-reason breakdown, and win-rate deltas after a map change measure the objective adaptation, not map difficulty; **criterion now** Verification records the 102/0/18 breakdown, README scopes the balance claim to the adapted objective, and the flamer-ammo economy is the named fix in Known Gaps.
 - 2026-08-15 C/R/L (kill-reveals): **conjectured** that subscribing sight-conversion to `pieceMoved` + `doorToggled` covered every way a blip could enter marine sight; **refuted by** user playtest (killing the stealer in front of a blip left it un-flipped — deaths vacate squares and open sight lines) and by the follow-on discovery that `capture()` suppresses ALL handlers, so even a `pieceDied` subscription would silently skip the animated stealer phase; **learned** that event-trigger lists for a state invariant are structurally incomplete — the invariant itself ("no blip in marine sight after any settled action") must be both enforced at every mutation site AND empirically asserted over whole games; **criterion now** ISC-102..105 (per-cause conversion), ISC-110 (phase-boundary invariant over autoplayed games).
 
 ## Verification

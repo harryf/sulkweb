@@ -3,8 +3,8 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: think
-progress: 118/125 (ISC-71 deferred; ISC-120..125 in flight: mission library + debug_1 switch)
+phase: complete
+progress: 124/125 (ISC-71 deferred; ISC-120..125 mission library + debug_1 switch verified)
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-15T00:10:00Z
@@ -211,12 +211,12 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 
 ### Mission library structure + debug_1 switch (2026-08-15)
 
-- [ ] ISC-120: Missions live in family subdirs mirroring the original `data/missions/` (space_hulk/, debug/); loader resolves both names (vitest)
-- [ ] ISC-121: debug_1 board is square/door/entry-identical to space_hulk_1 — mirrors the source diff (vitest)
-- [ ] ISC-122: debug_1 forces per source: one storm-bolter marine at BEGINPLACE (14,20), initialBlips 0, blipsPerTurn 1 (vitest)
-- [ ] ISC-123: Client loads debug_1 by default; `?mission=` URL param selects any registered mission (Playwright)
-- [ ] ISC-124: Pins re-established: debug_1 win pin in win.spec; space_hulk_1 loss pin retained via `?mission=` in playthrough.spec (Playwright)
-- [ ] ISC-125: Anti: the space_hulk_1 fidelity guard is untouched and still green after the move (vitest)
+- [x] ISC-120: Missions live in family subdirs mirroring the original `data/missions/` (space_hulk/, debug/); loader resolves both names (vitest)
+- [x] ISC-121: debug_1 board is square/door/entry-identical to space_hulk_1 — mirrors the source diff (vitest)
+- [x] ISC-122: debug_1 forces per source: one storm-bolter marine at BEGINPLACE (14,20), initialBlips 0, blipsPerTurn 1 (vitest)
+- [x] ISC-123: Client loads debug_1 by default; `?mission=` URL param selects any registered mission (Playwright)
+- [x] ISC-124: Pins re-established: debug_1 win pin in win.spec; space_hulk_1 loss pin retained via `?mission=` in playthrough.spec (Playwright)
+- [x] ISC-125: Anti: the space_hulk_1 fidelity guard is untouched and still green after the move (vitest)
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
@@ -253,6 +253,7 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 
 ## Decisions
 
+- 2026-08-15 (mission library): missions now live at `engine/src/missions/<family>/<name>.json` mirroring the original `data/missions/` tree at `~/Code/personal/sulk/archive/sulk-0.29-snapshot-20030623/`; static registry in `missions/index.ts` is the only import site. Client default is `debug_1` per the user's explicit switch instruction; `?mission=<registry key>` selects others (param indexes the bundled registry object — never concatenated into a path, so no traversal surface; unknown → default). Squad-scenario e2e specs name `?mission=space_hulk_1` explicitly — coverage of the 5-marine path is retained under the param, accepted since the default choice is user-directed. debug_1 deviations: source has NO blip cap (we keep totalBlips 10 for finite extermination) and NO stealer-win clause (we inherit engine loss-on-squad-wipe); BEGINPLACE collapsed to a fixed square as with space_hulk_1. Advisor round: adopted registry manifest test + provenance notes; refuted path-traversal, implicit-default engine loads (grep clean), seed-parity smell (mixed parity), silent fallback on missing file (bundled import = build error). Delegation floor relaxed — codex CLI absent.
 - 2026-08-15 (map rebuild — DOCUMENTED DEVIATIONS from the original MISH_space_hulk_1, per advisor): static board topology (98 squares, 7 doors, 6 entries, 3 rooms, BEGINPLACE) is verbatim-faithful and spec-verified; DYNAMICS are adapted. (1) Objective: "reach Launch Control (20,20)" replaces "flame the room" — no heavy flamer/ammo model yet, so the original loss condition (flamer dry/dead) is unmodeled. (2) `exterminate-or-exit` adds a win path the original lacks; win-reason breakdown over 120 seeds: 102 exit / 0 extermination / 18 losses — the extermination path and its `totalBlips: 10` cap are currently theoretical for the autopilot. (3) Marine facings: source specifies BEGINPLACE only; uniform 'right' (toward the objective) is our choice. (4) Consequence: autopilot win rate 85% vs 52% on the invented map — measures the adapted dash objective, NOT original difficulty; honest scoping in README, flamer + balance remain Known Gaps.
 - 2026-08-15 (map rebuild — door translation): original doors are square-occupying Features ("Closed blocks move+LOS", Pygame analysis doc) at the listed coordinates; UP/RIGHT is the corridor-axis orientation. Our edge model is the USER-DIRECTED deviation from the 2026-08-14 remodel ("doors should be on the edge between two grid squares") — translation keeps the authored facing as the edge (e.g. (10,5)↑ = edge (10,5)-(10,4)); either adjacent edge preserves the choke, the anchor square stays standable by design. Advisor's "directed-door" concern refuted: `doorBetween` is symmetric (doors.spec asserts both directions) and the AI opens (3,7)→ from its anchor side and (13,15)↑ from the far side in ai_pathing.spec.
 - 2026-08-15 (map rebuild): advisor's stale `--auto-state` ISA pointer is a known artifact — the tool reads MEMORY/WORK task ISAs; THIS project ISA (sulkweb/ISA.md, ISC-111..119) is the criteria record. Delegation floor (E3 ≥2) relaxed again: codex CLI absent; the generator + independent fidelity spec stand in for a second implementer. Correlated-transcription risk accepted: generator and spec were written in one session, but the browser screenshot against the physical-map reference is a third, visual check.
@@ -318,6 +319,7 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
   **Learned:** when a bug fix moves a balance metric, trace the mechanism (which side gained capability) before accepting either "restored intended balance" or "regression" — win-rate alone cannot distinguish them.
   **Criterion now:** ISC-84 records the seed-scan (62W/58L/0 stalemate) as the balance baseline; fixtures (seeds 29/3) are labeled determinism regressions, not balance evidence.
 
+- 2026-08-15 C/R/L (debug_1 switch): **conjectured** (with the user) that MISH_debug_1.py was a different map from the one just rebuilt — "the map I gave you was the wrong one"; **refuted by** diffing the two originals: the BOARD literals are byte-identical, and neither file mutates the map after the literal — debug_1 differs only in NAME, forces (one marine, BLIPS (0,1)) and FLAGS; **learned** that when told two data sources conflict, diff them before rebuilding anything — the "wrong map" cost zero rework because the check ran first, and mission identity in this family lives in the forces/constants, not the geometry; **criterion now** ISC-121 pins the board identity transitively to the space_hulk_1 golden, and the registry manifest test (ISC-120) guards every future mission addition.
 - 2026-08-15 C/R/L (map rebuild): **conjectured** that the exterminate-or-exit objective with a `totalBlips` cap gave the mission two genuinely reachable win paths on the rebuilt board; **refuted by** the win-reason instrumented scan — 102 of 102 autopilot wins reach the exit, zero exterminate — so the extermination path (and the cap that exists to enable it) is currently theoretical; **learned** that an aggregate metric ("85% wins") hides WHICH mechanism produces it — victory-condition changes must always be validated with a per-reason breakdown, and win-rate deltas after a map change measure the objective adaptation, not map difficulty; **criterion now** Verification records the 102/0/18 breakdown, README scopes the balance claim to the adapted objective, and the flamer-ammo economy is the named fix in Known Gaps.
 - 2026-08-15 C/R/L (kill-reveals): **conjectured** that subscribing sight-conversion to `pieceMoved` + `doorToggled` covered every way a blip could enter marine sight; **refuted by** user playtest (killing the stealer in front of a blip left it un-flipped — deaths vacate squares and open sight lines) and by the follow-on discovery that `capture()` suppresses ALL handlers, so even a `pieceDied` subscription would silently skip the animated stealer phase; **learned** that event-trigger lists for a state invariant are structurally incomplete — the invariant itself ("no blip in marine sight after any settled action") must be both enforced at every mutation site AND empirically asserted over whole games; **criterion now** ISC-102..105 (per-cause conversion), ISC-110 (phase-boundary invariant over autoplayed games).
 

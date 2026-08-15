@@ -3,8 +3,8 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: 286/287 (roster-panel run ISC-270..287 verified; ISC-71 deferred)
+phase: verify
+progress: 290/291 (card-polish ISC-288..291 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-15T12:45:00Z
@@ -425,6 +425,13 @@ Mission + closure:
 - [x] ISC-286: Anti: engine stays Phaser/DOM-free — import grep guard still passes; roster is client-only (Grep)
 - [x] ISC-287: Anti: all existing suites stay green (engine + client unit + e2e) and the build is clean after the change (Bash)
 
+### Card polish — facing, CP, ammo line (2026-08-15 follow-up)
+
+- [x] ISC-288: each living card shows a facing arrow glyph that updates when the marine turns (vitest + Playwright)
+- [x] ISC-289: each living card shows the CP pool next to AP, live on cpChanged (vitest + Playwright)
+- [x] ISC-290: ammo renders in its own .m-ammo element on a separate line — no longer part of .m-stats (Playwright + screenshot, no truncation)
+- [x] ISC-291: Anti: all suites stay green and the build is clean after the change (Bash)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
@@ -835,3 +842,7 @@ beta_2 completion (2026-08-15):
 - ISC-286: Bash — engine suite (incl. import grep guard) 236/236; roster code lives entirely in client/src/ui
 - ISC-287: Bash — 236 engine + 12 client unit + 21 e2e green, `pnpm -r build` clean
 - ISC-274/275 (advisor round): vitest — buildRoster weapon cross-check clean on all missions exercised; space_hulk_6 (squad,type) map PINNED pair-for-pair; reversed-deployment negative test proves the tripwire fires ('Unknown' downgrade). e2e re-run 3/3 after the change.
+- ISC-288: vitest + Playwright — .m-face renders ↓ at deploy, flips to ← after tryTurn(1) (unit) / changes after a live turn (e2e)
+- ISC-289: vitest + Playwright — stats line reads "AP n/m · CP p", updates on cpChanged (unit exact-match) and shows the seeded pool in e2e
+- ISC-290: Playwright + wide screenshot — .m-ammo is its own element+line ("Ammo 10"/"Ammo 6" under the weapon cards), .m-stats contains no Ammo, nothing truncated at 92px
+- ISC-291: Bash — 236 engine + 14 client unit + 21 e2e green, build clean

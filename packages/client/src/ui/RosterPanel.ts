@@ -10,7 +10,11 @@ export interface PieceStats {
   ammo?: number;
   overwatch: boolean;
   jammed: boolean;
+  /** Board facing 0-3 (up/right/down/left) — rendered as the card's arrow. */
+  facing: number;
 }
+
+const FACING_ARROW = ['↑', '→', '↓', '←'];
 
 /**
  * DOM roster panel to the right of the canvas: one row per squad, one card per
@@ -30,6 +34,8 @@ export class RosterPanel {
   readonly root: HTMLElement;
   private cards = new Map<string, HTMLElement>();
   private byId = new Map<string, RosterEntry>();
+  /** Team command-point pool (shared) — shown on every living card. */
+  private cp = 0;
 
   constructor(
     entries: RosterEntry[],
@@ -60,10 +66,12 @@ export class RosterPanel {
         card.className = 'marine-card';
         card.dataset.pieceId = e.id;
         card.innerHTML =
+          `<span class="m-face"></span>` +
           `<img alt="" src="${iconUrl(e.spriteKey)}">` +
           `<span class="m-name">${e.name}</span>` +
           (e.special ? `<span class="m-weapon">${e.special}</span>` : '') +
           `<span class="m-stats"></span>` +
+          `<span class="m-ammo"></span>` +
           `<span class="m-badges"></span>` +
           `<span class="m-state"></span>`;
         card.addEventListener('click', () => {
@@ -80,6 +88,8 @@ export class RosterPanel {
     this.refreshAll();
 
     // Event-driven updates — payloads only; full truth re-read on refreshAll().
+    PieceEvents.on('cpChanged', ({ cp }) => { this.cp = cp; this.refreshAll(); });
+    PieceEvents.on('pieceMoved', ({ pieceId }) => this.refreshCard(pieceId)); // turns update the facing arrow
     PieceEvents.on('apChanged', ({ pieceId }) => this.refreshCard(pieceId));
     PieceEvents.on('ammoChanged', ({ pieceId }) => this.refreshCard(pieceId));
     PieceEvents.on('jammed', ({ pieceId }) => this.refreshCard(pieceId));
@@ -102,8 +112,9 @@ export class RosterPanel {
     const s = this.readStats(id);
     if (!s) return;
     if (!s.alive) { this.markState(id, 'dead', 'KIA'); return; }
-    card.querySelector('.m-stats')!.textContent =
-      `AP ${s.apRemaining}/${s.apInitial}` + (s.ammo !== undefined ? ` · Ammo ${s.ammo}` : '');
+    card.querySelector('.m-face')!.textContent = FACING_ARROW[s.facing] ?? '';
+    card.querySelector('.m-stats')!.textContent = `AP ${s.apRemaining}/${s.apInitial} · CP ${this.cp}`;
+    card.querySelector('.m-ammo')!.textContent = s.ammo !== undefined ? `Ammo ${s.ammo}` : '';
     const badges: string[] = [];
     if (s.overwatch) badges.push('OW');
     if (s.jammed) badges.push('JAM');
@@ -118,6 +129,7 @@ export class RosterPanel {
     card.classList.remove('selected');
     card.querySelector('.m-state')!.textContent = label;
     card.querySelector('.m-badges')!.textContent = '';
+    card.querySelector('.m-face')!.textContent = '';
   }
 
   private setCatCarrier(id: string | null): void {

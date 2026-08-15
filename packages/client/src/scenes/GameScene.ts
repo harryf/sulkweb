@@ -402,7 +402,7 @@ export default class GameScene extends Phaser.Scene {
       buildRoster(this.engine, this.engine.mission),
       (id): PieceStats | undefined => {
         const p = this.engine.findPiece(id) as StormBolterMarine | undefined;
-        if (!p) return { alive: false, apRemaining: 0, apInitial: 4, overwatch: false, jammed: false };
+        if (!p) return { alive: false, apRemaining: 0, apInitial: 4, overwatch: false, jammed: false, facing: 0 };
         return {
           alive: p.alive,
           apRemaining: p.apRemaining,
@@ -410,6 +410,7 @@ export default class GameScene extends Phaser.Scene {
           ammo: p instanceof HeavyFlamerMarine || p instanceof AssaultCannonMarine ? p.ammo : undefined,
           overwatch: p.overwatch ?? false,
           jammed: p.jammed ?? false,
+          facing: p.facing,
         };
       },
       (id) => this.selectFromRoster(id),

@@ -31,8 +31,19 @@ test('space_hulk_2: entry triangles render; cards select, update, and grey out o
   await expect(cards).toHaveCount(5);
   await expect(cards.nth(0).locator('.m-name')).toContainText('Sgt.');
   await expect(cards.nth(1).locator('.m-weapon')).toHaveText('Heavy Flamer');
-  await expect(cards.nth(0).locator('.m-stats')).toHaveText('AP 4/4');
-  await expect(cards.nth(1).locator('.m-stats')).toContainText('Ammo 6');
+  // AP + team CP pool share the stats line; ammo sits on its OWN line (ISC-289/290)
+  await expect(cards.nth(0).locator('.m-stats')).toContainText('AP 4/4 · CP ');
+  await expect(cards.nth(1).locator('.m-ammo')).toHaveText('Ammo 6');
+  await expect(cards.nth(1).locator('.m-stats')).not.toContainText('Ammo');
+  // Facing arrow renders and follows a turn (ISC-288)
+  const face = cards.nth(0).locator('.m-face');
+  const before0 = await face.textContent();
+  expect(['↑', '→', '↓', '←']).toContain(before0);
+  await page.evaluate(() => {
+    const sgt = (window as any).sulk.engine.marines.find((m: any) => m.timerBonus > 0);
+    sgt.tryTurn(1);
+  });
+  await expect(face).not.toHaveText(before0!);
 
   // Card click → engine selection + camera pans toward the marine (ISC-280)
   const before = await page.evaluate(() => {

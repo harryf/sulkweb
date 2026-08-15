@@ -91,6 +91,23 @@ body {
 
 .marine-card .m-stats { font-size: 11px; color: #b8c6d8; }
 
+.marine-card .m-ammo {
+  font-size: 11px;
+  color: #d8c68a;
+  min-height: 13px;
+}
+
+/* Facing arrow — top-right corner, spins live as the marine turns */
+.marine-card { position: relative; }
+.marine-card .m-face {
+  position: absolute;
+  top: 3px;
+  right: 6px;
+  font-size: 13px;
+  font-weight: 900;
+  color: #7ec8ff;
+}
+
 .marine-card .m-badges {
   font-size: 10px;
   color: #7ec8ff;

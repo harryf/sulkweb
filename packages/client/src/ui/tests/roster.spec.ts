@@ -66,10 +66,10 @@ describe('RosterPanel DOM', () => {
   let panel: RosterPanel
 
   const stats = (id: string): PieceStats => {
-    const p = engine.findPiece(id) as { alive: boolean; apRemaining: number; apInitial: number } | undefined
+    const p = engine.findPiece(id) as { alive: boolean; apRemaining: number; apInitial: number; facing: number; ammo?: number } | undefined
     return p
-      ? { alive: p.alive, apRemaining: p.apRemaining, apInitial: p.apInitial, overwatch: false, jammed: false }
-      : { alive: false, apRemaining: 0, apInitial: 4, overwatch: false, jammed: false }
+      ? { alive: p.alive, apRemaining: p.apRemaining, apInitial: p.apInitial, overwatch: false, jammed: false, facing: p.facing, ammo: p.ammo }
+      : { alive: false, apRemaining: 0, apInitial: 4, overwatch: false, jammed: false, facing: 0 }
   }
 
   beforeEach(() => {
@@ -84,8 +84,26 @@ describe('RosterPanel DOM', () => {
     expect(document.querySelectorAll('.marine-card')).toHaveLength(10)
     const first = document.querySelector('.marine-card')!
     expect(first.querySelector('.m-name')!.textContent).toMatch(/^Sgt\. /)
-    expect(first.querySelector('.m-stats')!.textContent).toBe('AP 4/4')
+    expect(first.querySelector('.m-stats')!.textContent).toBe('AP 4/4 · CP 0')
     expect(document.querySelectorAll('.m-weapon')).toHaveLength(4) // AC, CF, sword, flamer
+  })
+
+  it('facing arrow, CP pool, and own-line ammo render and stay live (ISC-288/289/290)', () => {
+    panel = new RosterPanel(buildRoster(engine, engine.mission), stats, () => {})
+    const sgt = engine.marines[3] // Sakharov sergeant, deployed facing down
+    const card = document.querySelector(`[data-piece-id="${sgt.id}"]`)!
+    expect(card.querySelector('.m-face')!.textContent).toBe('↓')
+    sgt.tryTurn(1) // face west — pieceMoved fires, arrow follows
+    expect(card.querySelector('.m-face')!.textContent).toBe('←')
+
+    PieceEvents.emit('cpChanged', { cp: 3 })
+    expect(card.querySelector('.m-stats')!.textContent).toBe('AP 3/4 · CP 3') // turn cost 1 AP
+
+    const flamer = engine.marines.find(m => (m as { ammo?: number }).ammo !== undefined)!
+    const fCard = document.querySelector(`[data-piece-id="${flamer.id}"]`)!
+    expect(fCard.querySelector('.m-stats')!.textContent).toBe('AP 4/4 · CP 3') // no ammo in the stats line…
+    expect(fCard.querySelector('.m-ammo')!.textContent).toBe('Ammo 10')        // …it lives on its own line (AC gunner)
+    void panel
   })
 
   it('death greys the card and blocks selection; selection highlights exactly one card', () => {

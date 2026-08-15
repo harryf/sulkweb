@@ -17,6 +17,14 @@ export interface PieceStats {
  * marine (icon, name, AP, ammo, weapon, state badges). Cards grey out on death
  * and mark ESCAPED marines; clicking a living marine's card selects him on the
  * map. Selection state stays in sync via the `selected` PieceEvents channel.
+ *
+ * Truthfulness split vs HudPanel: the HUD is strictly event-payload-driven so
+ * stealer-phase REPLAY shows historical values. The roster's state
+ * TRANSITIONS (death, escape, badges) are payload-driven too, but its AP/ammo
+ * numbers pull live engine state via `readStats` — during a replay a card can
+ * briefly show final-phase numbers, which is acceptable for a squad overview,
+ * and `refreshAll()` (called by GameScene.finishReplay) reconciles everything
+ * to engine truth the moment the replay ends.
  */
 export class RosterPanel {
   readonly root: HTMLElement;
@@ -121,7 +129,9 @@ export class RosterPanel {
 
   private highlight(id: string | null): void {
     for (const [cid, card] of this.cards) {
-      card.classList.toggle('selected', cid === id && !card.classList.contains('dead'));
+      const on = cid === id && !card.classList.contains('dead');
+      card.classList.toggle('selected', on);
+      if (on) card.scrollIntoView?.({ block: 'nearest' }); // panel can overflow — keep the highlight visible (absent in jsdom)
     }
   }
 }

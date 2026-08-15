@@ -43,21 +43,44 @@ export function nameOffset(missionName: string): number {
   return h % NAME_POOL.length;
 }
 
+/** What each deployment type's engine piece renders as — used to cross-check
+ *  the positional zip below. Mirrors GameEngine's MARINE_CLASSES mapping. */
+const EXPECTED_SPRITE: Record<MarineType, string> = {
+  storm_bolter: 'terminator_storm_bolter',
+  sergeant: 'terminator_sergeant',
+  sergeant_sword: 'terminator_sergeant_sword',
+  heavy_flamer: 'terminator_heavy_flamer',
+  assault_cannon: 'terminator_assault_cannon',
+  chain_fist: 'terminator_chain_fist',
+};
+
 /**
  * Zip the engine's marines (deployment order — pieces are inserted in
  * marineDeployment order) with the mission deployment metadata, BY ID, at
  * scene start. Later deaths shrink `engine.marines` but never shift these.
+ *
+ * The pairing is positional, so it is CROSS-CHECKED per pair on a property
+ * both sides carry independently — the weapon (deploy type vs the engine
+ * piece's sprite). A silent permutation (e.g. a future deploy-order refactor)
+ * would otherwise keep rendering plausible-but-wrong names; the mismatch
+ * downgrades the card to an unmistakable "Unknown" instead. (Advisor 2026-08-15.)
  */
 export function buildRoster(engine: GameEngine, mission: CompiledMission): RosterEntry[] {
   const deploy = mission.marineDeployment ?? [];
   const off = nameOffset(mission.name);
   return engine.marines.map((m, i) => {
-    const type: MarineType = (deploy[i]?.type ?? 'storm_bolter') as MarineType;
+    let type: MarineType = (deploy[i]?.type ?? 'storm_bolter') as MarineType;
+    let squad = deploy[i]?.squad ?? 'Squad';
+    if (EXPECTED_SPRITE[type] !== m.spriteKey) {
+      console.warn(`roster zip mismatch at ${i}: deploy says ${type}, engine piece is ${m.spriteKey}`);
+      type = 'storm_bolter';
+      squad = 'Unknown';
+    }
     const first = NAME_POOL[(off + i) % NAME_POOL.length];
     return {
       id: m.id,
       name: `${isSergeant(type) ? 'Sgt.' : 'Bro.'} ${first}`,
-      squad: deploy[i]?.squad ?? 'Squad',
+      squad,
       type,
       spriteKey: m.spriteKey,
       special: SPECIAL_LABEL[type],

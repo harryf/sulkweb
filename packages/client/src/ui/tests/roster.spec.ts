@@ -32,6 +32,24 @@ describe('marine identities (ISC-275/276)', () => {
     expect(roster.find(e => e.type === 'sergeant_sword')?.special).toBe('Power Sword')
   })
 
+  it('zip cross-check: engine piece weapons match deploy types pair-for-pair; s6 arbitrated map is exact (Advisor 2026-08-15)', () => {
+    // space_hulk_6 is the mission where a silent permutation would hide —
+    // identical squad rosters, hand-arbitrated interleave. Pin the full map.
+    const engine = new GameEngine(loadMission('space_hulk_6'), [], new SeededRng(1))
+    const roster = buildRoster(engine, loadMission('space_hulk_6'))
+    expect(roster.some(e => e.squad === 'Unknown')).toBe(false) // weapon cross-check clean
+    expect(roster.map(e => `${e.squad}:${e.type}`)).toEqual([
+      'Luther:storm_bolter', 'Luther:storm_bolter', 'Snow:storm_bolter',
+      'Luther:storm_bolter', 'Snow:storm_bolter', 'Snow:storm_bolter',
+      'Luther:sergeant', 'Snow:sergeant', 'Luther:heavy_flamer', 'Snow:heavy_flamer',
+    ])
+    // And the cross-check actually fires: a permuted deployment downgrades loudly.
+    const twisted = structuredClone(loadMission('space_hulk_6'))
+    twisted.marineDeployment!.reverse()
+    const bad = buildRoster(engine, twisted)
+    expect(bad.some(e => e.squad === 'Unknown')).toBe(true)
+  })
+
   it('squad rows order sergeant → specials → bolters; offset stays in pool range', () => {
     const rows = groupBySquad(buildRoster(freshEngine(), loadMission('beta_2')))
     expect(rows.map(r => r.squad)).toEqual(['Sakharov', 'Sternfeld'])

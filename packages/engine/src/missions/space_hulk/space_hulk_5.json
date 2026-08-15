@@ -1,51 +1,11 @@
 {
   "name": "space_hulk_5",
-  "draft": true,
-  "originalName": "Decoy",
-  "family": "space_hulk",
-  "info": "To win, the Space Marines must get 5 Marines off the map. The Stealers must prevent this.",
-  "story": "Four squads were committed to attack the main cryogenics control room. The area was heavily occupied. To buy time for this attack, squads Abraham and Harken conducted a decoy action.",
-  "flags": [],
-  "squads": [
+  "objective": "escape-count",
+  "escapeQuota": 5,
+  "exitPoints": [
     {
-      "name": "Abraham",
-      "pieces": [
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "sergeant"
-        },
-        {
-          "type": "heavy_flamer"
-        }
-      ]
-    },
-    {
-      "name": "Harken",
-      "pieces": [
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "sergeant"
-        },
-        {
-          "type": "heavy_flamer"
-        }
-      ]
+      "x": 9,
+      "y": 28
     }
   ],
   "marineDeployment": [
@@ -56,15 +16,10 @@
       "type": "heavy_flamer"
     },
     {
-      "x": 23,
-      "y": 13,
-      "facing": "down",
-      "type": "sergeant"
-    },
-    {
       "x": 11,
       "y": 10,
-      "facing": "down"
+      "facing": "down",
+      "type": "sergeant"
     },
     {
       "x": 12,
@@ -79,45 +34,38 @@
     {
       "x": 14,
       "y": 10,
-      "facing": "down",
+      "facing": "down"
+    },
+    {
+      "x": 23,
+      "y": 13,
+      "facing": "left",
       "type": "heavy_flamer"
     },
     {
       "x": 24,
       "y": 13,
-      "facing": "down",
+      "facing": "left",
       "type": "sergeant"
     },
     {
       "x": 25,
       "y": 13,
-      "facing": "down"
+      "facing": "left"
     },
     {
       "x": 26,
       "y": 13,
-      "facing": "down"
+      "facing": "left"
     },
     {
       "x": 27,
       "y": 13,
-      "facing": "down"
+      "facing": "left"
     }
   ],
   "initialBlips": 3,
   "blipsPerTurn": 2,
-  "exitPoints": [
-    {
-      "x": 9,
-      "y": 28
-    }
-  ],
-  "todo": [
-    "victory: ≥5 marines LURKING off-board win (get_numlurking) — lurking/exit-arrow limbo not implemented",
-    "end_script + pre_deploy_rule hooks unread in depth — read before finalizing",
-    "deployment squares + facings are mechanical defaults — hand-review against pre_deploy_rule and the mission tactics",
-    "victory rule not migrated — implement from victory_check, then register in missions/index.ts + fidelity spec"
-  ],
   "width": 33,
   "height": 30,
   "squares": [

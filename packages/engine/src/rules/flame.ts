@@ -38,6 +38,8 @@ export function flameFlood(board: Board, target: Square): Square[] {
  * (`fl_kill_scorereq = 2` for marines and stealers alike). When `silent` is
  * true (self-destruct), every piece dies outright with no roll.
  */
+import { looseCatPos, destroyCat } from './exotic.js';
+
 export function igniteSquares(board: Board, shooterId: string, squares: Square[], silent = false): string[] {
   const kills: string[] = [];
   for (const sq of squares) {
@@ -50,6 +52,9 @@ export function igniteSquares(board: Board, shooterId: string, squares: Square[]
     }
     board.flaming.add(`${sq.x},${sq.y}`);
   }
+  // A loose C.A.T. caught in the blast dies outright (original update()).
+  const catPos = looseCatPos(board);
+  if (catPos && board.isFlaming(catPos)) destroyCat(board);
   PieceEvents.emit('sectionFlamed', {
     shooterId,
     squares: squares.map(s => ({ x: s.x, y: s.y })),

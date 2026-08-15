@@ -1,7 +1,7 @@
 # sulkweb — working notes for AI/dev sessions
 
 Web port of **Sulk** (Space Hulk clone): pure-TypeScript rules engine + Phaser 3 client.
-Currently at **v0.1 (tagged)** — Mission 1 is playable start-to-finish, win and loss both verified.
+Now EIGHT registered missions (space_hulk 1–6, beta_1, debug_1) — the full original campaign; only beta_2 (exotic weapons) remains drafted.
 
 ## Read first
 
@@ -20,9 +20,9 @@ Resuming work = extend `ISA.md` (new ISCs, decisions, changelog) — don't inven
 ```bash
 pnpm install
 pnpm --filter ./packages/client dev      # play at localhost:5173
-pnpm --filter ./packages/engine test     # 164 unit tests + coverage (~95% lines)
+pnpm --filter ./packages/engine test     # 209 unit tests + coverage (~95% lines)
 pnpm --filter ./packages/client test     # HUD/minimap units (vitest, --dir src only)
-pnpm --filter ./packages/client e2e      # Playwright no-mock suite (11 tests, incl. win+loss playthroughs, flame-victory UI, mission-2 kill counter, stealer-phase animation, HUD hover readout)
+pnpm --filter ./packages/client e2e      # Playwright no-mock suite (17 tests: playthroughs, flame/kill-counter/draw UIs, all-mission boots, animation, hover)
 pnpm build                               # engine tsc -b + client vite build
 pnpm --filter ./packages/engine example  # CLI engine tour
 ```
@@ -90,6 +90,18 @@ pnpm --filter ./packages/engine example  # CLI engine tour
   `objectivePoint (20,20)` — win the instant the objective square burns; LOSS the
   instant no living flamer has ammo. No exit win, no extermination win, reinforcements
   UNCAPPED. debug_1 keeps the adapted reach-exit objective (documented deviation).
+- **Exotic systems (missions 3–6)**: `rules/exotic.ts` owns the C.A.T. (BOARD-level
+  state, not a Piece — never occupies its square; enter to pick up / stealer-enter
+  to damage, twice destroys; wanders 3 steps end-phase via board dice) and the
+  destructible DUCTING map. Stealer-phase interactions CANNOT use event handlers
+  (capture suppresses them) — runStealerActions calls stealerExoticInteractions
+  after each move, same pattern as convertRevealedBlips. Marine ESCAPE (lurk
+  adaptation): entering an EXIT square on escort-cat/escape-count missions
+  removes the marine via GameEngine.tryEscape (live marine phase only).
+  GameResult now includes DRAW (damaged-cat escape). Defend: turn-limit win is
+  an explicit end-phase check; ducting/room-flames/wipe lose; flamerAmmo
+  override; the flamer-fires-from-control-room kludge lives on the
+  sectionFlamed handler.
 - **Client default mission is `debug_1`;** `?mission=<name>` (any registry key) selects
   another — the space_hulk_1 e2e specs pass `?mission=space_hulk_1` explicitly.
 

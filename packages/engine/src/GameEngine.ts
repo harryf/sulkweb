@@ -6,10 +6,14 @@ import type { CompiledMission, MarineType } from './missions/missionTypes.js'
 import { Dir } from './core/Direction.js';
 import { runStealerActions, spawnBlips, convertRevealedBlips } from './ai/StealerAI.js';
 import { clearFlames } from './rules/flame.js';
+import {
+  initCat, initDucting, looseCatPos, pickUpCat, wanderCat,
+  anyDuctingDestroyed, destroyDuctingAt, intactDucting,
+} from './rules/exotic.js';
 import { PieceEvents } from './events/PieceEvents.js';
 import type { DiceSource } from './core/Dice.js';
 
-export type GameResult = 'ongoing' | 'win' | 'loss';
+export type GameResult = 'ongoing' | 'win' | 'loss' | 'draw';
 export type PhaseName = 'MarineAction' | 'StealerAction';
 
 export interface EngineState {
@@ -32,6 +36,10 @@ export class GameEngine {
   cp = 0
   /** Reinforcement blips already spawned (counts against mission.totalBlips). */
   private blipsSpawned = 0
+  /** Marines that left the board via an EXIT square (escape-family missions). */
+  readonly escaped: Piece[] = []
+  /** flame-objectives squares that have burned at least once ("x,y") — permanent. */
+  readonly cleansed = new Set<string>()
 
   constructor(mission: CompiledMission, extraPieces: Piece[] = [], dice?: DiceSource) {
     this.mission = mission
@@ -53,6 +61,17 @@ export class GameEngine {
       const Cls = MARINE_CLASSES[d.type ?? 'storm_bolter']
       new Cls(board, { c: d.x, r: d.y }, FACING[d.facing ?? 'down'])
     }
+    // Per-mission heavy-flamer ammo override (mission 6 post_deploy_script).
+    if (mission.flamerAmmo !== undefined) {
+      for (const m of this.marines) {
+        if (m instanceof HeavyFlamerMarine) m.ammo = mission.flamerAmmo
+      }
+    }
+    // Exotic board objects.
+    if (mission.catStart) initCat(board, { c: mission.catStart.x, r: mission.catStart.y })
+    if (mission.ductingSquares?.length) {
+      initDucting(board, mission.ductingSquares.map(d => ({ c: d.x, r: d.y })))
+    }
     // Seed the first blips
     const entries = (mission.entryPoints ?? []).map(e => ({ c: e.x, r: e.y }))
     if (entries.length && (mission.initialBlips ?? 0) > 0) {
@@ -68,7 +87,17 @@ export class GameEngine {
     PieceEvents.on('pieceMoved', ({ pieceId }) => {
       if (PieceEvents.replaying || this.state.result !== 'ongoing') return
       const mover = this.findPiece(pieceId)
-      if (mover?.kind === 'marine') convertRevealedBlips(this.state.board)
+      if (mover?.kind !== 'marine') return
+      convertRevealedBlips(this.state.board)
+      // A marine stepping onto the loose C.A.T. scoops it up (original:
+      // possession pickup). Marines move only in the live marine phase, so an
+      // event handler is safe here (capture() only wraps endMarinePhase).
+      const catPos = looseCatPos(this.state.board)
+      if (catPos && catPos.c === mover.pos.c && catPos.r === mover.pos.r) {
+        pickUpCat(this.state.board, mover)
+      }
+      // Escape-family missions: entering an EXIT square leaves the board.
+      this.tryEscape(mover)
     })
     PieceEvents.on('doorToggled', () => {
       if (PieceEvents.replaying) return // animation replays past events — not new sight lines
@@ -96,15 +125,43 @@ export class GameEngine {
     // A flamed section can win the mission on the spot (flame-objective) and
     // flames change sight lines. Stealers never flame, so this never fires
     // inside the captured stealer phase.
-    PieceEvents.on('sectionFlamed', () => {
+    PieceEvents.on('sectionFlamed', ({ shooterId }) => {
       if (PieceEvents.replaying || this.state.result !== 'ongoing') return
       convertRevealedBlips(this.state.board)
+      // Mission 6 kludge, straight from the source (post_action_script): a
+      // heavy flamer FIRING while standing in the control room wrecks a piece
+      // of ducting — "this ensures the marines will lose this turn."
+      if (this.mission.objective === 'defend') {
+        const shooter = this.findPiece(shooterId)
+        const rooms = this.mission.roomSquares ?? []
+        if (shooter && rooms.some(r => r.x === shooter.pos.c && r.y === shooter.pos.r)) {
+          const duct = intactDucting(this.state.board)[0]
+          if (duct) destroyDuctingAt(this.state.board, duct)
+        }
+      }
       this.checkVictory()
     })
   }
 
   findPiece(id: string): Piece | undefined {
     return this.state.pieces.find(p => p.id === id)
+  }
+
+  /** Escape-family missions ('escort-cat', 'escape-count'): a marine standing
+   *  on an EXIT square lurks off the board — removed from play, counted, and
+   *  the C.A.T. leaves with its carrier (mission 3's win/draw trigger). */
+  private tryEscape(marine: Piece): void {
+    const objective = this.mission.objective
+    if (objective !== 'escort-cat' && objective !== 'escape-count') return
+    const exits = this.mission.exitPoints ?? []
+    if (!exits.some(e => e.x === marine.pos.c && e.y === marine.pos.r)) return
+    marine.alive = false
+    this.state.board.removePiece(marine)
+    this.escaped.push(marine)
+    const cat = this.state.board.cat
+    if (cat && cat.carrierId === marine.id) cat.escaped = true
+    PieceEvents.emit('marineEscaped', { pieceId: marine.id, escaped: this.escaped.length })
+    this.checkVictory()
   }
 
   get marines(): Piece[] {
@@ -173,8 +230,17 @@ export class GameEngine {
     if (this.state.result !== 'ongoing') return
     clearFlames(board)
     convertRevealedBlips(board)
+    // The loose C.A.T. wanders in the end phase (original may_wander/update_autos).
+    wanderCat(board)
     this.checkVictory()
     if (this.state.result !== 'ongoing') return
+
+    // Mission 6 marine win — an explicit END-PHASE check in the original
+    // ("KLUDGE (endphase only)"): survive to the end of turn `turnLimit`.
+    if (this.mission.objective === 'defend' && this.turnNumber >= (this.mission.turnLimit ?? 16)) {
+      this.finish('win')
+      return
+    }
 
     this.turnNumber += 1
     for (const p of this.state.pieces) {
@@ -205,6 +271,75 @@ export class GameEngine {
         m => m instanceof HeavyFlamerMarine && m.ammo > 0
       )
       if (!flamerViable) this.finish('loss')
+      return
+    }
+
+    if (objective === 'escort-cat') {
+      // Original mission 3 victory_check: no cat / cat destroyed / squad dead
+      // → stealers; a lurking (escaped) carrier with the cat → marines if the
+      // cat is undamaged, DRAW if damaged; otherwise the game goes on.
+      const cat = this.state.board.cat
+      if (!cat || cat.destroyed) {
+        this.finish('loss')
+        return
+      }
+      if (cat.escaped) {
+        this.finish(cat.damaged ? 'draw' : 'win')
+        return
+      }
+      // Adaptation (documented): with every marine dead the cat can never be
+      // carried out — call it there rather than letting the game hang.
+      if (!marinesAlive) this.finish('loss')
+      return
+    }
+
+    if (objective === 'flame-objectives') {
+      // Original mission 4: a flaming objective square is permanently
+      // "cleansed"; all cleansed → marines; no flamer with ammo → stealers.
+      const points = this.mission.objectivePoints ?? []
+      for (const p of points) {
+        const key = `${p.x},${p.y}`
+        if (!this.cleansed.has(key) && this.state.board.isFlaming({ c: p.x, r: p.y })) {
+          this.cleansed.add(key)
+          PieceEvents.emit('objectiveCleansed', { x: p.x, y: p.y, cleansedCount: this.cleansed.size })
+        }
+      }
+      if (points.length > 0 && points.every(p => this.cleansed.has(`${p.x},${p.y}`))) {
+        this.finish('win')
+        return
+      }
+      const flamerViable = this.marines.some(m => m instanceof HeavyFlamerMarine && m.ammo > 0)
+      if (!flamerViable) this.finish('loss')
+      return
+    }
+
+    if (objective === 'escape-count') {
+      // Original mission 5 / beta 1: quota of lurking marines wins; the squad
+      // shrinking below the quota (dead marines don't lurk) loses.
+      const quota = this.mission.escapeQuota ?? 1
+      if (this.escaped.length >= quota) {
+        this.finish('win')
+        return
+      }
+      if (this.marines.length + this.escaped.length < quota) this.finish('loss')
+      return
+    }
+
+    if (objective === 'defend') {
+      // Original mission 6: stealers win on any ducting destroyed, any
+      // control-room square flaming, or a squad wipe. The turn-16 marine win
+      // is an END-PHASE check — it lives in endMarinePhase.
+      const board = this.state.board
+      if (anyDuctingDestroyed(board)) {
+        this.finish('loss')
+        return
+      }
+      const rooms = this.mission.roomSquares ?? []
+      if (rooms.some(r => board.isFlaming({ c: r.x, r: r.y }))) {
+        this.finish('loss')
+        return
+      }
+      if (!marinesAlive) this.finish('loss')
       return
     }
 

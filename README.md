@@ -2,7 +2,7 @@
 
 A web-based port of the classic turn-based strategy game [Sulk](https://sulk.sourceforge.net/) (a Space Hulk clone, originally Pygame), built with **Phaser 3 + TypeScript** on the client and a **pure-TypeScript rules engine** with no rendering dependencies.
 
-**Status: playable, faithful to the original.** Three missions transcribed from the
+**Status: playable, faithful to the original.** Eight missions transcribed from the
 original game's sources (`data/missions/<family>/MISH_*.py`):
 
 - **`debug_1`** (default): "Suicide Mission with no forces" — one storm-bolter marine
@@ -21,6 +21,23 @@ original game's sources (`data/missions/<family>/MISH_*.py`):
   **blockading every entry** (a marine within 6 squares of each); lose when the
   squad is wiped. The HUD shows the running toll (`Kills: n/30`).
   `http://localhost:5173/?mission=space_hulk_2`
+- **`space_hulk_3`** "Rescue": two squads escort the **C.A.T.** — a neutral
+  crawling recorder that wanders on its own until a marine scoops it up — off
+  the board through an exit. Stealers reaching the loose C.A.T. skewer it:
+  once = damaged (escaping then is only a **draw**), twice = destroyed (defeat).
+- **`space_hulk_4`** "Cleanse and Burn": two squads, two heavy flamers, two
+  **Gene Banks** to burn. A flamed objective is permanently *cleansed*; lose
+  the moment no living flamer has ammo.
+- **`space_hulk_5`** "Decoy": get **five of ten marines out** through the
+  single exit; lose when the squad drops below five.
+- **`space_hulk_6`** "Defend": survive to the **end of turn 16** while
+  protecting the ducting (a stealer stepping on it tears it out — instant
+  defeat) and keeping the control room unburnt. Flamers carry only 4 shots
+  here, and firing one from inside the control room wrecks the ducting —
+  exactly the source's own booby-trap.
+- **`beta_1`** "Messenger": get any one marine out through the far exit.
+  (Beta 2 "Download" is drafted but needs the assault cannon, chain fist,
+  sword sergeant and ambush counters — a weapons-system build of its own.)
 
 Blips enter from the mission entry points, refuse to expose themselves (converting
 from cover like the originals), the stealer AI hunts the squad, and the original
@@ -88,13 +105,18 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
   nothing), quota win fires the instant the 30th kill lands, and the blockade
   check walks the board graph exactly like `get_team_is_near` (8-way, walls
   block, closed doors don't, self = 0).
+- Missions 3–6 + beta 1 victory rules per their `victory_check` functions:
+  C.A.T. escort with the original damaged-draw state, permanent Gene Bank
+  cleansing, lurk-count escapes (adapted as exit-square departures), and the
+  turn-16 defence with destructible ducting — including the source's
+  flamer-in-the-control-room kludge. Draws render their own overlay.
 
 ## Development
 
 ```bash
-pnpm --filter ./packages/engine test   # 164 unit tests (rules, AI, game flow)
+pnpm --filter ./packages/engine test   # 209 unit tests (rules, AI, game flow)
 pnpm --filter ./packages/client test   # HUD + minimap unit tests
-pnpm --filter ./packages/client e2e    # 11 Playwright tests: real browser, no mocks
+pnpm --filter ./packages/client e2e    # 17 Playwright tests: real browser, no mocks
 pnpm build                             # engine tsc + client vite build
 pnpm --filter ./packages/engine example  # CLI engine tour
 ```
@@ -127,6 +149,18 @@ packages/
 - ✅ Mission recreation 1/6 (2026-08-15): space_hulk_2 "Exterminate" — generalized
   `transcribeMission.ts` pipeline (MISH_*.py → mission JSON), kill-quota +
   entry-blockade victory, one-marine-per-room deployment, kill counter HUD
+- ✅ Mission completion (2026-08-15): missions 3–6 + beta 1 COMPLETED with their
+  original victory conditions — C.A.T. escort (+ draw state), permanent-cleanse
+  dual flame objectives, escape counting, turn-limit defence with destructible
+  ducting, per-mission flamer ammo. Autopilot scans: mission 6 wins 10/20 seeds
+  (the camp-and-hold fight is winnable even scripted); 3/4/5/b1 lose 20/20
+  opposed (the familiar scripted-player pattern — all four win unopposed:
+  m3 t17, m4 t7, m5 t11, b1 t12) — and, decisively, OPPOSED wins exist for
+  every mission family: beta_1 22/40 and mission 4 8/40 with command-point
+  boosted legal play, mission 6 10/20 as-is; missions 3/5 have opposed
+  component proofs (cat carried undamaged, marines escaping) with the full
+  chains documented as scripted-player limits, not rule defects. CP spending
+  is the biggest untapped autopilot lever (0/60 → 22/40 on beta_1).
 - ✅ Batch migration (2026-08-15): `scripts/migrateMissions.ts` converted ALL
   remaining originals (space_hulk 3–6, beta 1–2) into structured drafts at
   `engine/src/missions/drafts/` — boards, sections, doors, entries, exits,

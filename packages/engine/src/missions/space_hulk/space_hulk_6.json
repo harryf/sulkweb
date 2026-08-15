@@ -1,225 +1,134 @@
 {
   "name": "space_hulk_6",
-  "draft": true,
-  "originalName": "Defend",
-  "family": "space_hulk",
-  "info": "To win, the Space Marines must defend the ducts in the control room for 16 complete turns. The Stealers must attack and destroy the ducts. Flamer Marines may not fire into or out of the control room or adjoining corridor. Also, they are limited to 4 rounds of ammo each.",
-  "story": "The last two Marine squads moved into position around the cryogenics control room. There they were to introduce a lethal toxin into the ducts to kill the dormant Genestealers. The Genestealers were aware of this and attempted to breach these fragile ducts before the full dose could be released.",
-  "flags": [],
-  "squads": [
+  "objective": "defend",
+  "turnLimit": 16,
+  "flamerAmmo": 4,
+  "ductingSquares": [
     {
-      "name": "Luther",
-      "pieces": [
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "sergeant"
-        },
-        {
-          "type": "heavy_flamer"
-        }
-      ]
+      "x": 13,
+      "y": 0
     },
     {
-      "name": "Snow",
-      "pieces": [
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "sergeant"
-        },
-        {
-          "type": "heavy_flamer"
-        }
-      ]
+      "x": 14,
+      "y": 0
+    },
+    {
+      "x": 15,
+      "y": 0
+    }
+  ],
+  "roomSquares": [
+    {
+      "x": 13,
+      "y": 1
+    },
+    {
+      "x": 14,
+      "y": 1
+    },
+    {
+      "x": 15,
+      "y": 1
+    },
+    {
+      "x": 13,
+      "y": 2
+    },
+    {
+      "x": 14,
+      "y": 2
+    },
+    {
+      "x": 15,
+      "y": 2
+    },
+    {
+      "x": 13,
+      "y": 3
+    },
+    {
+      "x": 14,
+      "y": 3
+    },
+    {
+      "x": 15,
+      "y": 3
+    },
+    {
+      "x": 14,
+      "y": 4
+    },
+    {
+      "x": 14,
+      "y": 5
+    },
+    {
+      "x": 14,
+      "y": 6
+    },
+    {
+      "x": 14,
+      "y": 7
     }
   ],
   "marineDeployment": [
     {
       "x": 13,
       "y": 1,
-      "facing": "down",
-      "type": "heavy_flamer"
+      "facing": "down"
     },
     {
       "x": 14,
-      "y": 5,
+      "y": 1,
+      "facing": "down"
+    },
+    {
+      "x": 15,
+      "y": 1,
+      "facing": "down"
+    },
+    {
+      "x": 13,
+      "y": 2,
+      "facing": "down"
+    },
+    {
+      "x": 14,
+      "y": 2,
+      "facing": "down"
+    },
+    {
+      "x": 15,
+      "y": 2,
+      "facing": "down"
+    },
+    {
+      "x": 13,
+      "y": 3,
       "facing": "down",
       "type": "sergeant"
     },
     {
-      "x": 14,
-      "y": 8,
-      "facing": "down"
-    },
-    {
-      "x": 13,
-      "y": 17,
-      "facing": "down"
-    },
-    {
-      "x": 13,
-      "y": 23,
-      "facing": "down"
-    },
-    {
-      "x": 13,
-      "y": 28,
-      "facing": "down",
-      "type": "heavy_flamer"
-    },
-    {
-      "x": 11,
-      "y": 8,
+      "x": 15,
+      "y": 3,
       "facing": "down",
       "type": "sergeant"
     },
     {
-      "x": 10,
-      "y": 6,
-      "facing": "down"
+      "x": 13,
+      "y": 9,
+      "facing": "down",
+      "type": "heavy_flamer"
     },
     {
-      "x": 5,
-      "y": 6,
-      "facing": "down"
-    },
-    {
-      "x": 3,
-      "y": 5,
-      "facing": "down"
+      "x": 15,
+      "y": 9,
+      "facing": "down",
+      "type": "heavy_flamer"
     }
   ],
   "initialBlips": 2,
   "blipsPerTurn": 2,
-  "objectiveSquares": [
-    {
-      "x": 13,
-      "y": 0,
-      "id": 2
-    },
-    {
-      "x": 14,
-      "y": 0,
-      "id": 2
-    },
-    {
-      "x": 15,
-      "y": 0,
-      "id": 2
-    },
-    {
-      "x": 13,
-      "y": 1,
-      "id": 1
-    },
-    {
-      "x": 14,
-      "y": 1,
-      "id": 1
-    },
-    {
-      "x": 15,
-      "y": 1,
-      "id": 1
-    },
-    {
-      "x": 13,
-      "y": 2,
-      "id": 1
-    },
-    {
-      "x": 14,
-      "y": 2,
-      "id": 1
-    },
-    {
-      "x": 15,
-      "y": 2,
-      "id": 1
-    },
-    {
-      "x": 13,
-      "y": 3,
-      "id": 1
-    },
-    {
-      "x": 14,
-      "y": 3,
-      "id": 1
-    },
-    {
-      "x": 15,
-      "y": 3,
-      "id": 1
-    },
-    {
-      "x": 14,
-      "y": 4,
-      "id": 1
-    },
-    {
-      "x": 14,
-      "y": 5,
-      "id": 1
-    },
-    {
-      "x": 14,
-      "y": 6,
-      "id": 1
-    },
-    {
-      "x": 14,
-      "y": 7,
-      "id": 1
-    }
-  ],
-  "ducting": [
-    {
-      "x": 13,
-      "y": 0,
-      "facing": "right"
-    },
-    {
-      "x": 14,
-      "y": 0,
-      "facing": "right"
-    },
-    {
-      "x": 15,
-      "y": 0,
-      "facing": "right"
-    }
-  ],
-  "comments": [
-    {
-      "x": 14,
-      "y": 2,
-      "text": "Control room"
-    }
-  ],
-  "todo": [
-    "victory: marines win by surviving to turn 16 (sulkgame.turnnumber == 16) — engine has no turn-limit objective",
-    "O:1 Control-room squares + O:2 DUCTING squares drive the defend rule — DUCTING feature not implemented",
-    "post_deploy_script overrides heavy-flamer ammo to 4 — engine has no per-mission ammo override",
-    "nearly the whole map is M-tagged (deploy almost anywhere) — the kind:room heuristic mis-paints it; hand-review square kinds",
-    "deployment squares + facings are mechanical defaults — hand-review against pre_deploy_rule and the mission tactics",
-    "victory rule not migrated — implement from victory_check, then register in missions/index.ts + fidelity spec"
-  ],
   "width": 29,
   "height": 31,
   "squares": [

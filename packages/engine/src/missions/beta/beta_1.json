@@ -1,76 +1,44 @@
 {
   "name": "beta_1",
-  "draft": true,
-  "originalName": "Messenger",
-  "family": "beta",
-  "info": "To win, at least one Space Marine must escape through an exit point. The Genestealers must prevent this.",
-  "story": "The squad was completing a sweep of the sector for alien lifeforms, with nothing to report so far...",
-  "flags": [],
-  "squads": [
-    {
-      "name": "Lawer",
-      "pieces": [
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "sergeant"
-        },
-        {
-          "type": "heavy_flamer"
-        }
-      ]
-    }
-  ],
-  "marineDeployment": [
-    {
-      "x": 0,
-      "y": 9,
-      "facing": "down",
-      "type": "heavy_flamer"
-    },
-    {
-      "x": 1,
-      "y": 9,
-      "facing": "down",
-      "type": "sergeant"
-    },
-    {
-      "x": 2,
-      "y": 9,
-      "facing": "down"
-    },
-    {
-      "x": 0,
-      "y": 10,
-      "facing": "down"
-    },
-    {
-      "x": 1,
-      "y": 10,
-      "facing": "down"
-    }
-  ],
-  "initialBlips": 2,
-  "blipsPerTurn": 1,
+  "objective": "escape-count",
+  "escapeQuota": 1,
   "exitPoints": [
     {
       "x": 33,
       "y": 8
     }
   ],
-  "todo": [
-    "victory: ANY marine lurking off-board wins (Messenger) — lurking not implemented",
-    "post_deploy_script / post_action_script hooks present — read before finalizing",
-    "deployment squares + facings are mechanical defaults — hand-review against pre_deploy_rule and the mission tactics",
-    "victory rule not migrated — implement from victory_check, then register in missions/index.ts + fidelity spec"
+  "marineDeployment": [
+    {
+      "x": 0,
+      "y": 9,
+      "facing": "right"
+    },
+    {
+      "x": 1,
+      "y": 9,
+      "facing": "right"
+    },
+    {
+      "x": 2,
+      "y": 9,
+      "facing": "right"
+    },
+    {
+      "x": 0,
+      "y": 10,
+      "facing": "right",
+      "type": "sergeant"
+    },
+    {
+      "x": 1,
+      "y": 10,
+      "facing": "right",
+      "type": "heavy_flamer"
+    }
   ],
+  "initialBlips": 2,
+  "blipsPerTurn": 1,
   "width": 34,
   "height": 24,
   "squares": [

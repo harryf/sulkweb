@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: 204/205 (batch-migration ISC-191..203 verified; ISC-71 deferred)
+phase: verify
+progress: 246/247 (mission-completion ISC-204..245 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-15T12:00:00Z
+updated: 2026-08-15T13:15:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -321,6 +321,59 @@ Batch migration of remaining missions (2026-08-15, "migrate all the rest"):
 - [x] ISC-202: migrator is idempotent — rerun produces byte-identical drafts (Bash md5)
 - [x] ISC-203: README/CLAUDE document the migrator, the drafts, and the per-mission semantic remainder (Read)
 
+Mission completion run (2026-08-15, "get these missions completed including the victory condition"):
+
+Shared engine systems:
+- [x] ISC-204: GameResult supports 'draw'; client shows a draw overlay (vitest + Playwright)
+- [x] ISC-205: marine entering an EXIT square on escape-family missions leaves the board — tracked, event emitted (vitest)
+- [x] ISC-206: CAT: neutral board object; wanders ≤3 squares in end-phase when loose and undamaged, deterministic under seed (vitest)
+- [x] ISC-207: marine entering the CAT square picks it up; the CAT moves with its carrier (vitest)
+- [x] ISC-208: carrier death drops the CAT on the death square (vitest)
+- [x] ISC-209: stealer reaching the loose CAT damages it; second damage destroys it (vitest)
+- [x] ISC-210: flames on the CAT square destroy it outright (original update(): flaming → kill) (vitest)
+- [x] ISC-211: mission `flamerAmmo` override applied at deploy (m6: 4) (vitest)
+- [x] ISC-212: DUCTING: stealer stepping on a ducting square destroys that ducting (vitest)
+Mission 3 "Rescue":
+- [x] ISC-213: JSON finalized (squad-corridor deployments, CAT on an Ilyich square, exits, blips 0/3) + registered (vitest)
+- [x] ISC-214: carrier escaping with an UNDAMAGED CAT → win (vitest)
+- [x] ISC-215: carrier escaping with a DAMAGED CAT → draw (vitest)
+- [x] ISC-216: CAT destroyed or squad wiped → loss (vitest)
+- [x] ISC-217: fidelity spec green vs independent transcription (151 sq / 34 sec / 14 doors / 10 entries / 2 exits) (vitest)
+Mission 4 "Cleanse and Burn":
+- [x] ISC-218: JSON finalized (10 exact M-square deploys, two flamers, objectivePoints Gene Banks) + registered (vitest)
+- [x] ISC-219: a flaming objective square becomes permanently CLEANSED — survives end-phase flame clearing (vitest)
+- [x] ISC-220: both cleansed → win (vitest)
+- [x] ISC-221: no living flamer with ammo and not won → loss (vitest)
+- [x] ISC-222: fidelity spec green (182 sq / 40 sec / 18 doors / 8 entries) (vitest)
+Mission 5 "Decoy":
+- [x] ISC-223: JSON finalized (escapeQuota 5, exit (9,28), blips 3/2) + registered (vitest)
+- [x] ISC-224: fifth marine escaping → win (vitest)
+- [x] ISC-225: alive + escaped dropping below 5 → loss (vitest)
+- [x] ISC-226: fidelity spec green (158 sq / 34 sec / 17 doors / 7 entries / 1 exit) (vitest)
+Mission 6 "Defend":
+- [x] ISC-227: JSON finalized (turnLimit 16, flamerAmmo 4, 3 ducting, 13 room squares, blips 2/2) + registered (vitest)
+- [x] ISC-228: end of turn 16 with squad alive → win (vitest)
+- [x] ISC-229: any ducting destroyed → loss (vitest)
+- [x] ISC-230: any control-room square flaming → loss (vitest)
+- [x] ISC-231: flamer firing while standing in the control room destroys a ducting (source kludge preserved) (vitest)
+- [x] ISC-232: fidelity spec green (192 sq / 40 sec / 15 doors / 13 entries / 16 O / 3 ducting) (vitest)
+Beta 1 "Messenger":
+- [x] ISC-233: JSON finalized (escapeQuota 1, exit (33,8), blips 2/1) + registered (vitest)
+- [x] ISC-234: fidelity spec green (192 sq / 41 sec / 21 doors — source-arbitrated over one agent's 19) (vitest)
+AI + client:
+- [x] ISC-235: stealer AI targets the loose CAT and intact ducting alongside marines (vitest)
+- [x] ISC-236: autopilot plays all five new missions legally; seed scans recorded in Decisions (Bash)
+- [x] ISC-237: client objective labels + HUD status counters (escaped/quota, cleansed/2, turn/limit) (Playwright)
+- [x] ISC-238: CAT rendered (cat.png) with damage marker; ducting rendered with destroyed variant (Playwright)
+- [x] ISC-239: draw overlay reachable end-to-end (m3 engine surgery) (Playwright)
+Closure:
+- [x] ISC-240: Anti: existing missions/pins untouched — full suites green, build clean (Bash)
+- [x] ISC-241: Anti: registry guard passes — five finished missions registered without draft/todo; their drafts removed (vitest + Bash)
+- [x] ISC-242: seed scans per new mission recorded (Bash)
+- [x] ISC-243: README + CLAUDE updated (mission list, systems, honest balance) (Read)
+- [x] ISC-244: beta_2 deferral documented (equipment run of its own) (Read)
+- [x] ISC-245: each new mission boots via ?mission= in a real browser with zero console errors (Playwright)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
@@ -475,7 +528,17 @@ Batch migration of remaining missions (2026-08-15, "migrate all the rest"):
 - Registry = playability gate (ISC-200): drafts live in src/missions/drafts/, never imported, never registered; finishing checklist stamped into every draft todo.
 - Mission-6 quirk recorded: 189/192 squares are M-tagged (deploy almost anywhere) — kind:room heuristic mis-paints it; flagged in its draft todo.
 
+**2026-08-15 — Mission completion run (ISC-204..245):** all five drafted missions finished with their ORIGINAL victory semantics, read from each victory_check this session. Adaptations (each preserving the source rule's shape): C.A.T. as board-level state (never occupies its square — a Piece would have blocked pickup/attack; enter-to-pick-up, stealer-enter-to-damage replaces the original's possession/attack UI; wanders 3 d6-driven steps in the end phase per may_wander); LURKING as exit-square departure (tryEscape removes the marine; escaped marines count toward quotas; original limbo squares don't exist here); mission-5 loss = alive+escaped < 5 (original len(marines) < 5, lurkers included — equivalent); escort-cat adds wipe→loss (original would hang with a loose cat and no marines); mission-6 stealers destroy ducting BY ENTERING the square (original attack mechanic is UI-driven; entering is the AI-reachable equivalent) and the flamer-fires-from-control-room kludge is preserved verbatim in spirit. Escalated E3→E4 (conversation context: five missions × new engine systems). Deployment choices: m3 both squads at their corridor pairs with the CAT at (28,13) Ilyich; m4/m5 fully determined by their 10 M squares (flamers at column heads — mission-1 lesson); m6 defensive ring in/around the control room with flamers OUT of the O:1 zone; b1 five of the ten M squares. Seed scans: m6 10W/10L over 20 (genuinely winnable scripted — camping defence suits the autopilot); m3/m4/m5/b1 0W/20L opposed (familiar scripted-player pattern; m4's flamer-led columns feed both flamers to CC by t3-4) with ALL win chains proven unopposed (m3 t17 after the escort crowd-lock fix — escorts now head for the exits and VACATE the corridors, only the nearest marine fetches the cat; m4 t7; m5 t11; b1 t12). beta_2 DEFERRED explicitly: assault cannon (autofire/reload/malfunction), chain fist, sword sergeant, ambush counters, hold-square-counter victory — a weapons-system run of its own; its draft stays in drafts/ behind the registry gate. Cato (E4-mandatory) waived again: codex CLI absent — standing waiver. One client defect found by e2e + real-Chrome reproduction: initial setStatus calls ran before this.hud existed (create()-order bug) — moved next to setObjective.
+
+**2026-08-15 — Advisor adjudication, mission-completion run:** the advisor held on one point — 0/20 opposed with unopposed chain proofs cannot distinguish HARD from IMPOSSIBLE on missions whose new subsystems interact with opposition. Demanded opposed evidence per mission. Delivered: (a) FULL OPPOSED WINS via a CP-boosted legal-play probe — beta_1 22/40 seeds, mission 4 8/40 seeds (both Gene Banks cleansed under full opposition); mission 6 already 10/20 with the shipped autopilot; (b) COMPONENT OPPOSED PROOFS where full scripted wins stay out of reach — mission 5: marines escape through the exit under opposition (quota-5 unmet by script; squad shrinks below 5 first); mission 3: cat picked up and carried UNDAMAGED across 28 turn-ticks under opposition, and five marines exited opposed (full escort unmet by script — the longest chain). CP spending is the decisive lever (b1 0/60 without it → 22/40 with it) — NOT shipped into the autopilot (would shift dice order and invalidate the mission-1/debug_1 pins; recorded as a known autopilot improvement). Ducting semantics validated against mission-6 INFO: "The Stealers must attack and destroy the ducts" — the AI targets ducting for the source reason; "Flamer Marines may not fire into or out of the control room" = the kludge + room-fire loss. Escape timing note: escape-quota wins fire at the departure instant — outcome-equivalent to the original phase-boundary check (no enemy act intervenes), same argument as the mission-2 quota. The create()-order bug retains its regression tests (the five boot specs assert hud+status post-load). Transcription provenance: both agents read the .py sources directly (primary), never the pipeline output. Advisor auto-state again loaded an unrelated WORK ISA (known v6.2.x project-ISA discovery gap) — criteria judged against sulkweb/ISA.md ISC-204..245.
+
 **2026-08-15 — Advisor adjudication, batch-migration run:** advisor endorsed both design calls (drafts-with-todos over auto-generating victory logic; unregistered-drafts as the shipping line) and demanded negative evidence. Executed: (a) load-path audit — loadMission goes only through the registry object; ?mission= can only reach registry keys; the one path-based loader (loadMissionSync) is an explicit-filepath Node test utility, noted as residual; (b) NEGATIVE CONTROL — mutated a draft (entry coordinate shift + dropped roster piece), the cross-check comparison fired on both, draft restored byte-identical; (c) durable REGISTRY GUARD — the registry-manifest spec now iterates ALL registered missions and fails on draft flag / todo list / missing objective (it had been hardcoded to two names and was silently skipping space_hulk_2 — advisor pressure surfaced that too). Adjudicated as residual without action: parser silent-skip risk (compensating control = independent per-tag totals, all matched); runtime-dump oracle (original needs Python 2.2-era pygame — waiver carried from the fidelity run); agent blindness confirmed by construction (launched before the migrator existed, prompt scoped to the .py sources, read-only). Advisor auto-state again loaded an unrelated WORK ISA — project-ISA discovery is a known v6.2.x gap; criteria judged against sulkweb/ISA.md ISC-191..203.
+
+**2026-08-15 (mission completion) —**
+- conjectured: the scripted-player precedent from missions 1–2 transfers — unopposed chain proofs plus 0/20 opposed scans are sufficient evidence for the new missions.
+- refuted by: the advisor — the new subsystems (CAT damage, exit departure, ducting) are exactly what OPPOSITION interacts with; 0/20 bounds the win rate below ~14% but cannot distinguish hard from impossible, and "impossible under opposition" would be a fidelity defect, not difficulty.
+- learned: every new subsystem needs opposed evidence — full opposed wins where reachable, component-level opposed proofs where not; CP spending turned beta_1 from 0/60 to 22/40, revealing the autopilot leaves the original toolkit's strongest lever unused.
+- criterion now: ISC-236 satisfied by opposed evidence per mission (full wins: m4/m6/b1; components: m3 carry, m5 escape), with the CP-boost autopilot improvement recorded for a future run.
 
 **2026-08-15 (mission 2, second entry) —**
 - conjectured: mid-phase victory checking scoped by "protect the pinned seeds" was a sound design rationale.
@@ -654,3 +717,19 @@ Batch migration (2026-08-15):
 - ISC-201: Bash — 168 engine / 6 unit / 11 e2e green, build clean, mission-1/2 JSON md5 unchanged
 - ISC-202: Bash — rerun md5 identical (idempotent)
 - ISC-203: Read — README roadmap + CLAUDE.md pipeline docs updated
+
+Mission completion (2026-08-15):
+- ISC-204..212: vitest exotic_victory.spec — draw result, escape, CAT pickup/drop/damage/flames/wander (seed-deterministic), flamerAmmo, ducting (16 tests)
+- ISC-213..216: vitest — m3 registered + escort-cat win/draw/loss paths
+- ISC-217/222/226/232/234: vitest missions_fidelity.spec — five boards square-for-square vs two independent transcriptions (b1 doors source-arbitrated to 21)
+- ISC-218..221: vitest — m4 permanent cleanse, dual-cleanse win, dry-flamer loss
+- ISC-223..225: vitest — m5 quota-5 escape win, below-5 loss
+- ISC-227..231: vitest — m6 turn-limit win, ducting loss, room-fire loss, control-room kludge, ammo-4 override
+- ISC-233: vitest — beta_1 registered, quota 1
+- ISC-235: vitest — stealer AI lunges at loose cat + tears ducting en route
+- ISC-236/242: Bash — 20-seed scans ×5 missions zero errors; 60-seed instrumented scans; OPPOSED wins b1 22/40 + m4 8/40 (CP-boost probe) + m6 10/20 (shipped autopilot); m3/m5 component-opposed proofs; all recorded in Decisions
+- ISC-237/238/245: Playwright missions3plus.spec — five boots with labels/status/cat/ducting sprites, zero console errors; real-Chrome state probe (10 marines/151 squares/HUD ready)
+- ISC-239/204: Playwright — engine-surgery draw → MISSION DRAWN overlay + screenshot mission3-draw.png (visually inspected: board, escort label, Escaped: 0, 3:00 two-sergeant timer)
+- ISC-240: Bash — full suites green: 209 engine (25 files) / 6 client units / 17 e2e / build clean
+- ISC-241: vitest — registry guard sweeps all EIGHT missions (no draft/todo/missing-objective); finished drafts deleted, only beta_2.json remains
+- ISC-243/244: Read — README (8-mission list, systems, honest balance, beta_2 note) + CLAUDE (exotic systems invariants) updated

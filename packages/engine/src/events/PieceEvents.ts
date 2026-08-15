@@ -25,6 +25,17 @@ export type PieceEventsType = {
   ammoChanged: { pieceId: string; ammo: number }
   /** Stealer-side death toll changed (blips add their VALUE) — kill-quota HUD. */
   casualtiesChanged: { casualties: number }
+  /** A marine left the board via an EXIT square (escape-family missions). */
+  marineEscaped: { pieceId: string; escaped: number }
+  /** C.A.T. state (mission 3 "Rescue"). */
+  catPickedUp: { carrierId: string }
+  catDropped: { x: number; y: number }
+  catMoved: { x: number; y: number }
+  catDamaged: { x: number; y: number; destroyed: boolean }
+  /** A flame-objectives square burned and is permanently cleansed (mission 4). */
+  objectiveCleansed: { x: number; y: number; cleansedCount: number }
+  /** A ducting square was torn out (mission 6 "Defend"). */
+  ductingDestroyed: { x: number; y: number }
 }
 
 type Handler<T> = (payload: T) => void

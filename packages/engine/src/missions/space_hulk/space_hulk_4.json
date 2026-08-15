@@ -1,142 +1,74 @@
 {
   "name": "space_hulk_4",
-  "draft": true,
-  "originalName": "Cleanse and Burn",
-  "family": "space_hulk",
-  "info": "The Space Marines must cleanse each of two Gene Banks with a flamer hit. The Genestealers must prevent this.",
-  "story": "Techmarine squad 3 has been captured by the Stealers and cryogenically stored in Gene Banks. The Blood Angels' gene seed could not be allowed to fall into enemy hands, but there was not enough time to rescue the Techmarines. Squads Pilgrim and Stone were sent to put them out of their misery.",
-  "flags": [],
-  "squads": [
+  "objective": "flame-objectives",
+  "objectivePoints": [
     {
-      "name": "Pilgrim",
-      "pieces": [
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "sergeant"
-        },
-        {
-          "type": "heavy_flamer"
-        }
-      ]
+      "x": 9,
+      "y": 6
     },
     {
-      "name": "Stone",
-      "pieces": [
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "sergeant"
-        },
-        {
-          "type": "heavy_flamer"
-        }
-      ]
+      "x": 9,
+      "y": 17
     }
   ],
   "marineDeployment": [
     {
       "x": 29,
       "y": 10,
-      "facing": "down",
+      "facing": "left",
       "type": "heavy_flamer"
+    },
+    {
+      "x": 30,
+      "y": 10,
+      "facing": "left",
+      "type": "sergeant"
+    },
+    {
+      "x": 31,
+      "y": 10,
+      "facing": "left"
+    },
+    {
+      "x": 32,
+      "y": 10,
+      "facing": "left"
+    },
+    {
+      "x": 33,
+      "y": 10,
+      "facing": "left"
     },
     {
       "x": 29,
       "y": 13,
-      "facing": "down",
-      "type": "sergeant"
-    },
-    {
-      "x": 30,
-      "y": 10,
-      "facing": "down"
-    },
-    {
-      "x": 31,
-      "y": 10,
-      "facing": "down"
-    },
-    {
-      "x": 32,
-      "y": 10,
-      "facing": "down"
-    },
-    {
-      "x": 33,
-      "y": 10,
-      "facing": "down",
+      "facing": "left",
       "type": "heavy_flamer"
     },
     {
       "x": 30,
       "y": 13,
-      "facing": "down",
+      "facing": "left",
       "type": "sergeant"
     },
     {
       "x": 31,
       "y": 13,
-      "facing": "down"
+      "facing": "left"
     },
     {
       "x": 32,
       "y": 13,
-      "facing": "down"
+      "facing": "left"
     },
     {
       "x": 33,
       "y": 13,
-      "facing": "down"
+      "facing": "left"
     }
   ],
   "initialBlips": 0,
   "blipsPerTurn": 2,
-  "objectiveSquares": [
-    {
-      "x": 9,
-      "y": 6,
-      "id": 1
-    },
-    {
-      "x": 9,
-      "y": 17,
-      "id": 1
-    }
-  ],
-  "comments": [
-    {
-      "x": 9,
-      "y": 6,
-      "text": "Gene Bank"
-    },
-    {
-      "x": 9,
-      "y": 17,
-      "text": "Gene Bank"
-    }
-  ],
-  "todo": [
-    "victory: flame BOTH Gene Bank objective squares (O:1 at (9,6) and (9,17)) — needs multi-point flame-objective with per-point cleansed persistence",
-    "TWO squads (Pilgrim, Stone) deploy — engine deploys a flat marine list; squad identity is cosmetic so far",
-    "check pre_deploy_rule before finalizing marineDeployment",
-    "deployment squares + facings are mechanical defaults — hand-review against pre_deploy_rule and the mission tactics",
-    "victory rule not migrated — implement from victory_check, then register in missions/index.ts + fidelity spec"
-  ],
   "width": 34,
   "height": 24,
   "squares": [

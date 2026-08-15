@@ -2,6 +2,7 @@ import { Board } from '../board/Board.js';
 import { Dir, DIR_VEC, turn, toRelative } from '../core/Direction.js';
 import { MOVE_COST, TURN_COST, AP_PER_TURN } from '../core/CostTables.js';
 import { PieceEvents } from '../events/PieceEvents.js';
+import { dropCat } from '../rules/exotic.js';
 
 export type Coord = { c: number; r: number };
 
@@ -143,6 +144,10 @@ export abstract class Piece {
     if (!this.alive) return;
     this.alive = false;
     this.board.removePiece(this);
+    // A dying C.A.T. carrier drops it where he fell (original dead_drop).
+    if (this.board.cat?.carrierId === this.id) {
+      dropCat(this.board, this.pos);
+    }
     // Original teams.py casualty counting (every kill() path lands here, so a
     // single counting point covers shots, CC, flames and self-destruct; blip
     // CONVERSION removes via board.removePiece and never counts).

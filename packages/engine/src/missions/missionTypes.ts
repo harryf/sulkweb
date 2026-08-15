@@ -36,6 +36,7 @@ export interface RawMissionJSON_v2 {
   totalBlips?: number
   /** Victory rule for the marines. */
   objective?: 'exterminate' | 'reach-exit' | 'exterminate-or-exit' | 'flame-objective' | 'kill-quota'
+    | 'escort-cat' | 'flame-objectives' | 'escape-count' | 'defend'
   /** Objective square for flame-objective (e.g. Launch Control). Marines win
    *  when it is flaming; they LOSE when no living flamer has ammo left. */
   objectivePoint?: CoordJSON
@@ -44,6 +45,25 @@ export interface RawMissionJSON_v2 {
    *  per pieces.py kill()) OR every entry square has a marine within 6 squares
    *  (original get_team_is_near blockade). Loss on squad wipe. */
   killQuota?: number
+  /** flame-objectives (mission 4 "Cleanse and Burn"): every one of these
+   *  squares must burn at least once (permanently "cleansed"); loss the moment
+   *  no living flamer has ammo before that. */
+  objectivePoints?: CoordJSON[]
+  /** escort-cat (mission 3 "Rescue"): where the C.A.T. starts (an Ilyich
+   *  deploy square — original places it WITHSQUAD). */
+  catStart?: CoordJSON
+  /** escape-count missions: marines win when this many have left the board
+   *  via an EXIT square; loss when alive + escaped drops below it. */
+  escapeQuota?: number
+  /** defend (mission 6): marines win at the END of this turn number. */
+  turnLimit?: number
+  /** defend: per-mission heavy-flamer ammo override (original
+   *  post_deploy_script sets it to 4). */
+  flamerAmmo?: number
+  /** defend: O:2 squares carrying destructible ducting — any destroyed = loss. */
+  ductingSquares?: CoordJSON[]
+  /** defend: O:1 control-room squares — any flaming = loss. */
+  roomSquares?: CoordJSON[]
 }
 
 export type CompiledMission = RawMissionJSON_v2

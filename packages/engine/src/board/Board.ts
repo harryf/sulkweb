@@ -23,6 +23,10 @@ export class Board {
    *  stealer death adds 1, each blip death adds its hidden VALUE. Blip
    *  CONVERSION is not a death and adds nothing. Drives kill-quota victory. */
   public stealerCasualties = 0
+  /** C.A.T. state (mission 3 "Rescue") — see rules/exotic.ts. */
+  public cat?: import('../rules/exotic.js').CatState
+  /** Ducting squares "x,y" → intact (mission 6 "Defend"). */
+  public readonly ducting = new Map<string, boolean>()
   /** Squares currently on fire ("x,y"). Flames block entry (unless the mover
    *  is itself standing in flames) and block sight; cleared each end-phase. */
   public readonly flaming = new Set<string>()

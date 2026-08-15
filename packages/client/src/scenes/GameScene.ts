@@ -25,6 +25,9 @@ export default class GameScene extends Phaser.Scene {
   private owMarkers: { [id: string]: Phaser.GameObjects.Image } = {};
   private jamMarkers: { [id: string]: Phaser.GameObjects.Image } = {};
   private flameSprites: { [coord: string]: Phaser.GameObjects.Image } = {};
+  private ductingSprites: { [coord: string]: Phaser.GameObjects.Image } = {};
+  private catSprite?: Phaser.GameObjects.Image;
+  private catMarker?: Phaser.GameObjects.Image;
   /** Board coordinate under the mouse — the flamer's F-key target. */
   private hoverCoord: { x: number; y: number } | null = null;
   private timerRemaining = 120;
@@ -70,6 +73,10 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('flash_heavy_flamer', 'assets/themes/default/flash_heavy_flamer.png');
     this.load.image('marker_overwatch', 'assets/themes/default/marker_overwatch.png');
     this.load.image('marker_jam', 'assets/themes/default/marker_jam.png');
+    this.load.image('cat', 'assets/themes/default/cat.png');
+    this.load.image('marker_damage', 'assets/themes/default/marker_damage.png');
+    this.load.image('ducting', 'assets/themes/default/ducting.png');
+    this.load.image('ducting_destroyed', 'assets/themes/default/ducting_destroyed.png');
     // Original GPL sound set (data/sounds in the Pygame source)
     this.load.audio('snd_move', 'assets/sounds/marine_move.wav');
     this.load.audio('snd_bolter', 'assets/sounds/marine_shoot_bolter.wav');
@@ -146,9 +153,73 @@ export default class GameScene extends Phaser.Scene {
         fontFamily: 'Kanit', fontSize: '11px', color: '#ffaa00', fontStyle: 'bold'
       }).setOrigin(0.5).setDepth(0.45);
     }
+    for (const o of mission.objectivePoints ?? []) {
+      markers.fillStyle(0xff8800, 0.35).fillRect(o.x * T, o.y * T, T, T);
+      markers.lineStyle(2, 0xffaa00, 1).strokeRect(o.x * T + 1, o.y * T + 1, T - 2, T - 2);
+      this.add.text(o.x * T + T / 2, o.y * T + T / 2, 'BURN', {
+        fontFamily: 'Kanit', fontSize: '11px', color: '#ffaa00', fontStyle: 'bold'
+      }).setOrigin(0.5).setDepth(0.45);
+    }
+    for (const r of mission.roomSquares ?? []) {
+      markers.lineStyle(2, 0xff4040, 0.6).strokeRect(r.x * T + 2, r.y * T + 2, T - 4, T - 4);
+    }
+    for (const d of mission.ductingSquares ?? []) {
+      this.ductingSprites[`${d.x},${d.y}`] =
+        this.add.image(d.x * T + T / 2, d.y * T + T / 2, 'ducting').setDepth(0.5);
+    }
     for (const d of mission.marineDeployment ?? []) {
       markers.lineStyle(2, 0x3b82f6, 0.7).strokeRect(d.x * T + 3, d.y * T + 3, T - 6, T - 6);
     }
+    // The C.A.T. (mission 3): board-level object with its own sprite.
+    if (this.engine.state.board.cat) {
+      const cat = this.engine.state.board.cat;
+      this.catSprite = this.add.image(cat.pos.c * T + T / 2, cat.pos.r * T + T / 2, 'cat').setDepth(0.95);
+    }
+    PieceEvents.on('catMoved', ({ x, y }) => {
+      this.catSprite?.setVisible(true).setPosition(x * T + T / 2, y * T + T / 2);
+      this.catMarker?.setPosition(x * T + T / 2 + 12, y * T + T / 2 - 12);
+    });
+    PieceEvents.on('catPickedUp', () => this.catSprite?.setVisible(false));
+    PieceEvents.on('catDropped', ({ x, y }) => {
+      this.catSprite?.setVisible(true).setPosition(x * T + T / 2, y * T + T / 2);
+      this.catMarker?.setVisible(true).setPosition(x * T + T / 2 + 12, y * T + T / 2 - 12);
+    });
+    PieceEvents.on('catDamaged', ({ x, y, destroyed }) => {
+      if (destroyed) {
+        this.catSprite?.setVisible(true).setPosition(x * T + T / 2, y * T + T / 2).setTint(0x552222).setAlpha(0.6);
+      } else {
+        this.catMarker?.destroy();
+        this.catMarker = this.add.image(x * T + T / 2 + 12, y * T + T / 2 - 12, 'marker_damage').setDepth(2);
+      }
+      this.sfx('snd_cc', 0.4);
+    });
+    PieceEvents.on('ductingDestroyed', ({ x, y }) => {
+      this.ductingSprites[`${x},${y}`]?.setTexture('ducting_destroyed');
+      this.sfx('snd_die', 0.5);
+    });
+    PieceEvents.on('marineEscaped', ({ pieceId, escaped }) => {
+      const sprite = this.pieceSprites[pieceId];
+      if (sprite) {
+        this.tweens.killTweensOf(sprite);
+        this.tweens.add({ targets: sprite, alpha: 0, duration: 150, onComplete: () => sprite.destroy() });
+      }
+      delete this.pieceSprites[pieceId];
+      this.owMarkers[pieceId]?.destroy();
+      delete this.owMarkers[pieceId];
+      this.jamMarkers[pieceId]?.destroy();
+      delete this.jamMarkers[pieceId];
+      if (Selection.get() === pieceId) {
+        Selection.clear();
+        this.updateHighlight();
+        PieceEvents.emit('selected', { pieceId: null });
+      }
+      this.sfx('snd_move', 0.4);
+      this.hud.setStatus(this.escapeStatus(escaped));
+    });
+    PieceEvents.on('objectiveCleansed', ({ cleansedCount }) => {
+      const total = (this.engine.mission.objectivePoints ?? []).length;
+      this.hud.setStatus(`Cleansed: ${cleansedCount}/${total}`);
+    });
 
     // Render-side combat reactions: engine events drive all sprite state.
     // Handlers read the event PAYLOAD, never the engine — during stealer-phase
@@ -238,8 +309,10 @@ export default class GameScene extends Phaser.Scene {
     PieceEvents.on('gameOver', ({ result }) => {
       this.timerEvent?.remove();
       const cam = this.cameras.main;
-      const msg = result === 'win' ? 'MISSION COMPLETE' : 'MISSION FAILED';
-      const color = result === 'win' ? '#7CFC00' : '#ff4040';
+      const msg = result === 'win' ? 'MISSION COMPLETE'
+        : result === 'draw' ? 'MISSION DRAWN' : 'MISSION FAILED';
+      const color = result === 'win' ? '#7CFC00'
+        : result === 'draw' ? '#e8c840' : '#ff4040';
       this.add.rectangle(0, 0, cam.width, cam.height, 0x000000, 0.6)
         .setOrigin(0).setScrollFactor(0).setDepth(99);
       this.add.text(cam.width / 2, cam.height / 2, msg, {
@@ -285,10 +358,24 @@ export default class GameScene extends Phaser.Scene {
       'exterminate-or-exit': 'Objective: kill all stealers\nOR reach the green EXIT',
       'flame-objective': 'FLAME Launch Control\n(lose: flamer dead/dry)',
       'kill-quota': `KILL ${this.engine.mission.killQuota ?? 30} stealers\nOR blockade every entry`,
+      'escort-cat': 'ESCORT the C.A.T. to an EXIT\n(damaged = draw; destroyed = defeat)',
+      'flame-objectives': 'FLAME both Gene Banks\n(lose: flamers dead/dry)',
+      'escape-count': (this.engine.mission.escapeQuota ?? 1) > 1
+        ? `ESCAPE ${this.engine.mission.escapeQuota} marines via the EXIT`
+        : 'GET one marine out via the EXIT',
+      'defend': `DEFEND the ducting + control room\nuntil the end of turn ${this.engine.mission.turnLimit ?? 16}`,
     };
     this.hud.setObjective(objectiveLabel[this.engine.mission.objective ?? 'exterminate-or-exit'] ?? '');
     this.hud.setKillQuota(this.engine.mission.objective === 'kill-quota'
       ? (this.engine.mission.killQuota ?? 30) : undefined);
+    const obj = this.engine.mission.objective;
+    if (obj === 'escape-count' || obj === 'escort-cat') {
+      this.hud.setStatus(this.escapeStatus(0));
+    } else if (obj === 'flame-objectives') {
+      this.hud.setStatus(`Cleansed: 0/${(this.engine.mission.objectivePoints ?? []).length}`);
+    } else if (obj === 'defend') {
+      this.hud.setStatus(`Hold until turn ${this.engine.mission.turnLimit ?? 16}`);
+    }
 
     // Hover readout: coordinate + contents of the square under the cursor,
     // shown in the HUD below the controls (map design / reference aid).
@@ -418,7 +505,25 @@ export default class GameScene extends Phaser.Scene {
     if (this.engine.mission.exitPoints?.some(e => e.x === x && e.y === y)) parts.push('EXIT');
     const obj = this.engine.mission.objectivePoint;
     if (obj && obj.x === x && obj.y === y) parts.push('OBJECTIVE: Launch Control');
+    const multi = this.engine.mission.objectivePoints;
+    if (multi?.some(p => p.x === x && p.y === y)) {
+      parts.push(this.engine.cleansed.has(`${x},${y}`) ? 'Gene Bank (CLEANSED)' : 'OBJECTIVE: Gene Bank');
+    }
+    if (this.engine.mission.roomSquares?.some(r => r.x === x && r.y === y)) parts.push('CONTROL ROOM');
+    const duct = board.ducting.get(`${x},${y}`);
+    if (duct !== undefined) parts.push(duct ? 'DUCTING' : 'DUCTING (destroyed)');
+    const cat = board.cat;
+    if (cat && cat.carrierId === null && !cat.escaped && cat.pos.c === x && cat.pos.r === y) {
+      parts.push(cat.destroyed ? 'C.A.T. (destroyed)' : cat.damaged ? 'C.A.T. (damaged)' : 'C.A.T.');
+    }
     return parts.join(' · ');
+  }
+
+  /** HUD status line for escape-family missions. */
+  private escapeStatus(escaped: number): string {
+    const quota = this.engine.mission.objective === 'escape-count'
+      ? (this.engine.mission.escapeQuota ?? 1) : undefined;
+    return quota !== undefined ? `Escaped: ${escaped}/${quota}` : `Escaped: ${escaped}`;
   }
 
   update() {
@@ -508,6 +613,8 @@ export default class GameScene extends Phaser.Scene {
     pieceMoved: 110, doorToggled: 200, shot: 230, closeCombat: 260,
     pieceDied: 200, blipConverted: 170, pieceAdded: 90,
     sectionFlamed: 300, flamesCleared: 150, jammed: 120,
+    catMoved: 110, catDropped: 170, catDamaged: 220,
+    ductingDestroyed: 220, marineEscaped: 180, objectiveCleansed: 150,
   };
 
   /**

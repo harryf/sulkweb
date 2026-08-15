@@ -42,10 +42,15 @@ export function runMarineTurn(engine: GameEngine): void {
   for (const m of marines) {
     let acts = 0;
     while (m.alive && m.ap > 0 && acts++ < 16 && engine.state.result === 'ongoing') {
-      if (m instanceof HeavyFlamerMarine && goal) {
-        const objSquare = board.get(goal.x, goal.y);
-        if (m.canFlame(objSquare)) {
-          m.flameAt(objSquare);
+      if (m instanceof HeavyFlamerMarine) {
+        // Flame targets: the single objective (mission 1) or every not-yet-
+        // cleansed Gene Bank (mission 4) — first one in range gets torched.
+        const flamePoints = engine.mission.objective === 'flame-objectives'
+          ? (engine.mission.objectivePoints ?? []).filter(p => !engine.cleansed.has(`${p.x},${p.y}`))
+          : goal ? [goal] : [];
+        const target = flamePoints.map(t => board.get(t.x, t.y)).find(sq => m.canFlame(sq));
+        if (target) {
+          m.flameAt(target);
           break;
         }
       }
@@ -70,7 +75,7 @@ export function runMarineTurn(engine: GameEngine): void {
       // its nearest entry point (the blockade win) and overwatches the flow.
       const target = flameMission && !(m instanceof HeavyFlamerMarine) && flamer?.alive
         ? { x: flamer.pos.c, y: flamer.pos.r }
-        : quotaPosts ? quotaPosts.get(m.id) : goal;
+        : quotaPosts ? quotaPosts.get(m.id) : (missionTarget(engine, m) ?? goal);
       if (target && advanceToward(board, m, target)) {
         engine.checkVictory();
         // Move-and-shoot: the move earned a free bolter shot — use it.
@@ -127,6 +132,45 @@ function nextStep(board: Board, from: Coord, to: Coord): Coord | undefined {
     }
   }
   return undefined;
+}
+
+/** Per-mission movement target for one marine (undefined = hold/overwatch or
+ *  fall back to the generic goal). */
+function missionTarget(engine: GameEngine, m: Piece): { x: number; y: number } | undefined {
+  const board = engine.state.board;
+  const nearest = (pts: { x: number; y: number }[]) => [...pts].sort((a, b) =>
+    Math.hypot(a.x - m.pos.c, a.y - m.pos.r) - Math.hypot(b.x - m.pos.c, b.y - m.pos.r))[0];
+  switch (engine.mission.objective) {
+    case 'kill-quota':
+      return assignEntryPosts(engine).get(m.id);
+    case 'escape-count':
+      return nearest(engine.mission.exitPoints ?? []);
+    case 'escort-cat': {
+      // Everyone converges on the exits — escaping escorts VACATE the one-wide
+      // corridors instead of walling the carrier in (the mission-1 marching
+      // lesson). Only the marine closest to a loose cat detours to fetch it.
+      const cat = board.cat;
+      if (cat && !cat.destroyed && cat.carrierId === null) {
+        const fetcher = [...engine.marines].sort((a, b) =>
+          Math.hypot(a.pos.c - cat.pos.c, a.pos.r - cat.pos.r) -
+          Math.hypot(b.pos.c - cat.pos.c, b.pos.r - cat.pos.r))[0];
+        if (fetcher?.id === m.id) return { x: cat.pos.c, y: cat.pos.r };
+      }
+      return nearest(engine.mission.exitPoints ?? []);
+    }
+    case 'flame-objectives': {
+      const open = (engine.mission.objectivePoints ?? []).filter(p => !engine.cleansed.has(`${p.x},${p.y}`));
+      if (m instanceof HeavyFlamerMarine) return nearest(open);
+      const flamers = engine.marines.filter(f => f instanceof HeavyFlamerMarine);
+      const f = flamers.sort((a, b) =>
+        Math.hypot(a.pos.c - m.pos.c, a.pos.r - m.pos.r) - Math.hypot(b.pos.c - m.pos.c, b.pos.r - m.pos.r))[0];
+      return f ? { x: f.pos.c, y: f.pos.r } : undefined;
+    }
+    case 'defend':
+      return undefined; // hold the fort — the overwatch branch takes it from here
+    default:
+      return undefined;
+  }
 }
 
 /**

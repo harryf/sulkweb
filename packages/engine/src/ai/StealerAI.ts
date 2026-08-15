@@ -4,6 +4,7 @@ import { Blip } from '../pieces/Blip.js';
 import { StormBolterMarine } from '../pieces/StormBolterMarine.js';
 import { closeCombat } from '../rules/combat.js';
 import { canSee } from '../board/vision.js';
+import { looseCatPos, intactDucting, stealerExoticInteractions } from '../rules/exotic.js';
 import { Dir, DIR_VEC } from '../core/Direction.js';
 
 const chebyshev = (a: Coord, b: Coord) => Math.max(Math.abs(a.c - b.c), Math.abs(a.r - b.r));
@@ -181,6 +182,30 @@ export function runStealerActions(board: Board): void {
         ?? squad.find(m => chebyshev(m.pos, p.pos) === 1)
         ?? nearestMarine(board, p.pos)!;
 
+      // Exotic objectives: an adjacent loose C.A.T. or intact ducting square
+      // is stepped ONTO (they don't occupy) — skewering the cat / tearing the
+      // duct out (mission 3 / mission 6).
+      if (p.kind === 'stealer') {
+        const exoticSpots = [looseCatPos(board), ...intactDucting(board)]
+          .filter((t): t is Coord => t !== undefined);
+        const spot = exoticSpots.find(t =>
+          chebyshev(p.pos, t) === 1 && board.isPassable(t) && !board.isOccupied(t));
+        if (spot) {
+          const dir = facingToward(p.pos, spot);
+          if (p.facing !== dir) {
+            const delta = ((dir - p.facing + 4) % 4);
+            p.tryTurn(delta === 1 ? 1 : delta === 3 ? -1 : 2);
+          }
+          if (p.tryMove(spot.c - p.pos.c, spot.r - p.pos.r)) {
+            stealerExoticInteractions(board, p);
+            overwatchReactions(board, p);
+            convertRevealedBlips(board);
+            if (!p.alive) break;
+            continue;
+          }
+        }
+      }
+
       if (p.kind === 'stealer' && chebyshev(p.pos, marine.pos) === 1) {
         // Face the marine, then rend
         const dir = facingToward(p.pos, marine.pos);
@@ -204,7 +229,13 @@ export function runStealerActions(board: Board): void {
         }
       }
 
-      const step = stepToward(board, p, marines(board).map(m => m.pos));
+      const goals: Coord[] = marines(board).map(m => m.pos);
+      if (p.kind === 'stealer') {
+        const cat = looseCatPos(board);
+        if (cat) goals.push(cat);
+        goals.push(...intactDucting(board));
+      }
+      const step = stepToward(board, p, goals);
       if (p.kind === 'blip' && step !== 'acted') {
         // The blip cannot advance (marine sight / adjacency bars it, or it is
         // boxed in). Original play: convert voluntarily — legal only while the
@@ -226,6 +257,8 @@ export function runStealerActions(board: Board): void {
         continue; // door opened; try stepping again next iteration
       }
       overwatchReactions(board, p);
+      // A path step can land on the cat / a ducting square in passing.
+      stealerExoticInteractions(board, p);
       // The step (and any door it opened, and any overwatch death) changed
       // sight lines — convert every blip a marine now sees, including p itself
       // if it just stepped into view. Idempotent; converted pieces go !alive.

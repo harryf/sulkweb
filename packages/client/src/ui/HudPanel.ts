@@ -20,6 +20,7 @@ export class HudPanel extends Phaser.GameObjects.Container {
   private hoverText!: Phaser.GameObjects.Text
   private diceText!: Phaser.GameObjects.Text
   private currentAmmo: number | undefined
+  private statusText!: Phaser.GameObjects.Text
 
   setObjective(text: string) {
     this.objectiveText.setText(text)
@@ -29,6 +30,11 @@ export class HudPanel extends Phaser.GameObjects.Container {
   setKillQuota(quota: number | undefined) {
     this.quota = quota
     this.renderCasualties()
+  }
+
+  /** Mission status line (escaped count, cleansed count, defend hold). */
+  setStatus(text: string) {
+    this.statusText.setText(text)
   }
 
   private renderCasualties() {
@@ -158,7 +164,13 @@ export class HudPanel extends Phaser.GameObjects.Container {
     })
 
     // Controls reference + map legend
-    const controls = scene.add.text(8, doneY + 96,
+    this.statusText = scene.add.text(8, doneY + 96, '', {
+      fontFamily: 'Kanit', fontSize: '14px', color: '#7ec8ff',
+      fixedWidth: HUD_WIDTH - 16,
+    })
+    this.add(this.statusText)
+
+    const controls = scene.add.text(8, doneY + 114,
       'Click marine to select\nW/S move · A/D turn\nO door · F fire/flame · C melee\nV overwatch · U unjam\nX flamer self-destruct\nP spend CP · L show LOS\nEnter end turn · Esc pause\n\nMap: purple = stealer entry\norange = objective · green = exit',
       { fontFamily: 'Kanit', fontSize: '12px', color: '#8a8a8a', lineSpacing: 3, fixedWidth: HUD_WIDTH - 16 })
     this.add(controls)

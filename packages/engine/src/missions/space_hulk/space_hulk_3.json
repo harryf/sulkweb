@@ -1,122 +1,10 @@
 {
   "name": "space_hulk_3",
-  "draft": true,
-  "originalName": "Rescue",
-  "family": "space_hulk",
-  "info": "A Space Marine must exit the map with the C.A.T.. The Stealers must prevent this by destroying the C.A.T.. If the C.A.T. leaves the map but is damaged, the game is a draw.",
-  "story": "A Cyber-Altered Task Unit had infiltrated the Hulk and taken layout and security data from its command systems. Squad Ilyich retrieved it but became cut off from their company. Squad Abel was sent to reinforce them and assist in returning the C.A.T. to the dropship.",
-  "flags": [
-    "CAT"
-  ],
-  "squads": [
-    {
-      "name": "Abel",
-      "pieces": [
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "sergeant"
-        },
-        {
-          "type": "heavy_flamer"
-        }
-      ]
-    },
-    {
-      "name": "Ilyich",
-      "pieces": [
-        {
-          "type": "cat"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "storm_bolter"
-        },
-        {
-          "type": "sergeant"
-        },
-        {
-          "type": "heavy_flamer"
-        }
-      ]
-    }
-  ],
-  "marineDeployment": [
-    {
-      "x": 27,
-      "y": 9,
-      "facing": "down",
-      "type": "heavy_flamer"
-    },
-    {
-      "x": 28,
-      "y": 13,
-      "facing": "down",
-      "type": "sergeant"
-    },
-    {
-      "x": 8,
-      "y": 25,
-      "facing": "down"
-    },
-    {
-      "x": 11,
-      "y": 25,
-      "facing": "down"
-    },
-    {
-      "x": 28,
-      "y": 9,
-      "facing": "down"
-    },
-    {
-      "x": 29,
-      "y": 9,
-      "facing": "down",
-      "type": "cat"
-    },
-    {
-      "x": 30,
-      "y": 9,
-      "facing": "down",
-      "type": "heavy_flamer"
-    },
-    {
-      "x": 31,
-      "y": 9,
-      "facing": "down",
-      "type": "sergeant"
-    },
-    {
-      "x": 29,
-      "y": 13,
-      "facing": "down"
-    },
-    {
-      "x": 30,
-      "y": 13,
-      "facing": "down"
-    },
-    {
-      "x": 31,
-      "y": 13,
-      "facing": "down"
-    }
-  ],
-  "initialBlips": 0,
-  "blipsPerTurn": 3,
+  "objective": "escort-cat",
+  "catStart": {
+    "x": 28,
+    "y": 13
+  },
   "exitPoints": [
     {
       "x": 8,
@@ -127,14 +15,64 @@
       "y": 29
     }
   ],
-  "todo": [
-    "victory: escort the CAT to an EXIT (FLAGS=(CAT,)) — CAT piece not implemented",
-    "draw state exists in the original victory_check — engine has win/loss only",
-    "check pre_deploy_rule for deployment constraints before finalizing marineDeployment",
-    "piece type not implemented: CAT (Ilyich)",
-    "deployment squares + facings are mechanical defaults — hand-review against pre_deploy_rule and the mission tactics",
-    "victory rule not migrated — implement from victory_check, then register in missions/index.ts + fidelity spec"
+  "marineDeployment": [
+    {
+      "x": 27,
+      "y": 9,
+      "facing": "left"
+    },
+    {
+      "x": 28,
+      "y": 9,
+      "facing": "left"
+    },
+    {
+      "x": 29,
+      "y": 9,
+      "facing": "left"
+    },
+    {
+      "x": 30,
+      "y": 9,
+      "facing": "left",
+      "type": "sergeant"
+    },
+    {
+      "x": 31,
+      "y": 9,
+      "facing": "left",
+      "type": "heavy_flamer"
+    },
+    {
+      "x": 8,
+      "y": 25,
+      "facing": "up"
+    },
+    {
+      "x": 8,
+      "y": 26,
+      "facing": "up"
+    },
+    {
+      "x": 8,
+      "y": 27,
+      "facing": "up"
+    },
+    {
+      "x": 11,
+      "y": 25,
+      "facing": "up",
+      "type": "sergeant"
+    },
+    {
+      "x": 11,
+      "y": 26,
+      "facing": "up",
+      "type": "heavy_flamer"
+    }
   ],
+  "initialBlips": 0,
+  "blipsPerTurn": 3,
   "width": 33,
   "height": 30,
   "squares": [

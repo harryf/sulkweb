@@ -7,8 +7,12 @@ import { test, expect, type Page } from '@playwright/test';
  */
 
 async function waitForGame(page: Page) {
-  // ?seed pins the whole game from construction — deterministic playthrough
-  await page.goto('/?seed=5');
+  // ?seed pins the whole game from construction — deterministic playthrough.
+  // NOTE this spec idles turn 1 before its real DONE click, so its trajectory
+  // differs from the plain-autoplay scan — seeds were scanned under THIS
+  // pattern (2026-08-15 original map): seed 3 ends in a loss, keeping this the
+  // defeat-path regression; win.spec covers victory. Rescan if dice order changes.
+  await page.goto('/?seed=3');
   await expect(page.locator('canvas')).toBeVisible();
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
 }
@@ -64,7 +68,7 @@ test('Mission 1 plays start-to-finish and reaches a result', async ({ page }) =>
              kills: scene.hud.casualtyText.text };
   });
 
-  expect(['win', 'loss']).toContain(result.result); // a complete game, either way
+  expect(result.result).toBe('loss'); // pinned defeat path — win.spec covers victory
   expect(errors).toHaveLength(0);
   await page.screenshot({ path: 'test-results/playthrough-final.png' });
   console.log('PLAYTHROUGH:', JSON.stringify(result));

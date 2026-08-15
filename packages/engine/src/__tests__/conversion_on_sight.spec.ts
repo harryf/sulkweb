@@ -1,6 +1,5 @@
 import { it, expect, describe } from 'vitest';
 import { GameEngine } from '../GameEngine.js';
-import { loadMission } from '../missions/missionLoader.js';
 import { Blip } from '../pieces/Blip.js';
 import { RollQueue } from '../core/Dice.js';
 import { PieceEvents } from '../events/PieceEvents.js';
@@ -33,15 +32,28 @@ describe('blips convert immediately when a marine action reveals them', () => {
     expect(board.pieces.filter(p => (p as any).kind === 'stealer')).toHaveLength(2); // value 2 → both spawn
   });
 
+  // Corridor fixture with a door edge (10,5)↑ and a marine at (10,4) facing it
+  const doorMission = {
+    name: 'door-sight-test', width: 12, height: 10,
+    squares: [
+      { x: 10, y: 4, kind: 'corridor' },
+      { x: 10, y: 5, kind: 'corridor', doorFacing: 'up' },
+      { x: 10, y: 6, kind: 'corridor' },
+      { x: 10, y: 7, kind: 'corridor' },
+    ],
+    marineDeployment: [{ x: 10, y: 4, facing: 'down' }],
+    initialBlips: 0, entryPoints: [], objective: 'exterminate',
+  } as unknown as CompiledMission;
+
   it('REPLAYED events never re-trigger conversion against the final board', () => {
     // Advisor finding 2026-08-14: the client re-emits captured stealer-phase
     // events for animation; those describe PAST states and must not run the
     // sight-conversion rule against the (already final) board.
-    const engine = new GameEngine({ ...loadMission('space_hulk_1'), initialBlips: 0 });
+    const engine = new GameEngine(doorMission);
     const board = engine.state.board;
     board.dice = new RollQueue([1, 1, 1, 1, 1, 1]);
-    const marine = engine.marines.find(m => m.pos.c === 10 && m.pos.r === 4)!;
-    marine.useDoor(); // open (10,5) — no blip behind yet
+    const marine = engine.marines[0];
+    marine.useDoor(); // open (10,5)↑ — no blip behind yet
     const blip = new Blip(board, { c: 10, r: 7 }, 1);
     // Craft the situation: blip IS currently visible through the open door, so a
     // LIVE doorToggled would convert it. A REPLAYED one must not.
@@ -52,11 +64,11 @@ describe('blips convert immediately when a marine action reveals them', () => {
   });
 
   it('opening a door that reveals a blip converts it on the spot', () => {
-    const engine = new GameEngine({ ...loadMission('space_hulk_1'), initialBlips: 0 });
+    const engine = new GameEngine(doorMission);
     const board = engine.state.board;
     board.dice = new RollQueue([1, 1, 1, 1, 1, 1]);
-    const marine = engine.marines.find(m => m.pos.c === 10 && m.pos.r === 4)!;
-    const blip = new Blip(board, { c: 10, r: 6 }, 1); // behind the closed door at (10,5)
+    const marine = engine.marines[0];
+    const blip = new Blip(board, { c: 10, r: 6 }, 1); // behind the closed door edge (10,5)↑
     expect(blip.alive).toBe(true); // door blocks LOS
 
     expect(marine.useDoor()).toBe(true); // open the door ahead

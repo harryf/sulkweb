@@ -43,7 +43,12 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
 - Blips: hidden 1–3 stealers, convert the moment they are sighted — including
   when a kill vacates the square that was blocking the sight line; overflow lost
 - Turn cycle: CP roll (1d6), marine phase (2:00 timer), reinforcements, stealer AI, victory checks
-- Mission 1 carries a finite genestealer force (2 initial + 10 reinforcement blips): win by extermination or by reaching the exit; both outcomes verified (a pinned-seed autopilot win is part of the e2e suite)
+- Mission 1 board is the ORIGINAL Sulk "Suicide Mission" layout (98 squares, 7 doors,
+  6 stealer entries, three rooms, marines deployed at BEGINPLACE (14,20)), verified
+  square-for-square against the Pygame source by `mission1_fidelity.spec`
+- Objective is adapted: without the heavy flamer, "reach Launch Control (20,20)" stands in
+  for "set the room on fire" (exterminate also wins; blips 2 initial + 1/turn per the
+  original, capped at 10 reinforcements); both win and loss verified at pinned seeds
 
 ## Development
 
@@ -81,9 +86,12 @@ packages/
 
 ## Known gaps / residue
 
-- Balance is first-pass: with the BFS stealer AI (2026-08-14) the scripted
-  autopilot wins ~52% of seeds (62/120, fully deterministic scan) and every game reaches a
-  decisive result; difficulty is playable but untuned.
+- Balance reflects the adapted objective, not original difficulty: on the original
+  map (2026-08-15) the scripted autopilot wins 85% of seeds (102/120, all by reaching
+  Launch Control, zero by extermination) because BEGINPLACE starts the squad six squares
+  from the objective and the original counterweight — the flamer-ammo loss condition —
+  is not modeled. Every game reaches a decisive result. Implementing the heavy flamer
+  and its ammo economy is the real fix; difficulty tuning before then is provisional.
 - Marine interrupt actions (CP spending during the stealer phase) not implemented.
 - FPS measurement deferred (needs a visible-tab recording session).
 - Cross-vendor code audit pending — revisit against tag `v0.1` when available.

@@ -39,6 +39,11 @@ pnpm --filter ./packages/engine example  # CLI engine tour
   legal-actions scripted player used by the deterministic e2e tests.
 - Mission schema: `engine/src/missions/missionTypes.ts`; Mission 1 JSON has squares,
   doors (`doorFacing`), `entryPoints`, `exitPoints`, `marineDeployment`, `objective`.
+- **Mission 1 geometry is the ORIGINAL Sulk BOARD** (user-supplied `MISH_space_hulk_1.py`,
+  2026-08-15): 98 squares, 7 door edges, 6 entries, marines at BEGINPLACE (14,20), objective
+  room = Launch Control with exit (20,20). `mission1_fidelity.spec.ts` is the square-for-square
+  guard — edit the map only with the original source in hand, and keep that spec in sync.
+  Dynamics are documented deviations (no flamer → reach-objective win; see ISA Decisions).
 
 ## Testing policy (this is why the project survived)
 
@@ -49,11 +54,13 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
    never assertions against seeds. `SeededRng` is for gameplay/e2e determinism only.
 2. **Anything visual/interactive → real browser** (Playwright in `packages/client/tests/`,
    which is e2e-only — never put vitest specs there, the runners conflict).
-3. Pinned-seed e2e: win.spec (?seed=1 → MISSION COMPLETE) and playthrough.spec (?seed=5 → loss).
+3. Pinned-seed e2e: win.spec (?seed=1 → MISSION COMPLETE) and playthrough.spec (?seed=3 → loss).
    These are determinism fixtures, NOT balance evidence; balance = unpinned seed sweep
-   (2026-08-14 baseline: 62 win / 58 loss / 0 stalemate over 120 construction-seeded games).
-   If a rules change alters dice-consumption order, re-scan seeds (autopilot loop over
-   `new SeededRng(n)`, see ISA Decisions) and re-pin.
+   (2026-08-15 original-map baseline: 102 win / 18 loss / 0 stalemate over 120 games —
+   ALL wins by reaching Launch Control; the rate measures the adapted objective, see ISA).
+   CAUTION: playthrough.spec idles turn 1 before its DONE click, so it consumes dice
+   differently from plain autoplay — scan loss seeds under THAT pattern (endMarinePhase
+   first, then autoplay). If a rules change alters dice-consumption order, re-scan and re-pin.
 4. `window.sulk` in the client exposes `{ engine, Selection, scene, SeededRng, autoplay,
    runMarineTurn }` for e2e and console debugging.
 

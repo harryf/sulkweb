@@ -118,6 +118,6 @@ describe('mission schema', () => {
     expect(m.entryPoints!.length).toBeGreaterThanOrEqual(3);
     expect(m.exitPoints).toHaveLength(1);
     expect(m.objective).toBe('exterminate-or-exit');
-    expect(m.blipsPerTurn).toBe(2);
+    expect(m.blipsPerTurn).toBe(1); // original BLIPS = (2, 1)
   });
 });

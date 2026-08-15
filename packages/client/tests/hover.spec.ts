@@ -26,22 +26,22 @@ test('hover readout shows square coordinate and contents in the HUD (ISC-106..10
   });
   const before = await stateSnapshot();
 
-  // Scroll the camera to the top-left so the deployment area is on screen
-  await page.evaluate(() => (window as any).sulk.scene.cameras.main.setScroll(0, 0));
+  // Scroll the camera so the southern half (deployment + doors) is on screen
+  await page.evaluate(() => (window as any).sulk.scene.cameras.main.setScroll(0, 500));
 
-  // A marine stands at (10,4) in mission 1 — hover it (ISC-107 + ISC-108 occupant)
-  let { px, py } = await tileCenter(page, 10, 4);
+  // The lead marine stands at BEGINPLACE (14,20) — hover it (ISC-107 + ISC-108 occupant)
+  let { px, py } = await tileCenter(page, 14, 20);
   await page.mouse.move(px, py);
-  await page.waitForFunction(() => (window as any).sulk.scene.hoverInfo.includes('(10,4)'), undefined, { timeout: 5000 });
+  await page.waitForFunction(() => (window as any).sulk.scene.hoverInfo.includes('(14,20)'), undefined, { timeout: 5000 });
   const marineInfo = await page.evaluate(() => (window as any).sulk.scene.hoverInfo);
-  expect(marineInfo).toContain('(10,4)');
+  expect(marineInfo).toContain('(14,20)');
   expect(marineInfo).toContain('corridor tile');
   expect(marineInfo).toContain('marine');
 
-  // Door anchor square at (10,5) shows its edge (ISC-108)
-  ({ px, py } = await tileCenter(page, 10, 5));
+  // Door anchor square at (13,15) shows its edge (ISC-108)
+  ({ px, py } = await tileCenter(page, 13, 15));
   await page.mouse.move(px, py);
-  await page.waitForFunction(() => (window as any).sulk.scene.hoverInfo.includes('(10,5)'), undefined, { timeout: 5000 });
+  await page.waitForFunction(() => (window as any).sulk.scene.hoverInfo.includes('(13,15)'), undefined, { timeout: 5000 });
   const doorInfo = await page.evaluate(() => (window as any).sulk.scene.hoverInfo);
   expect(doorInfo).toContain('door');
   expect(doorInfo).toContain('closed');
@@ -49,7 +49,7 @@ test('hover readout shows square coordinate and contents in the HUD (ISC-106..10
   // The HUD text object displays the readout, positioned below the controls (ISC-106)
   const hudCheck = await page.evaluate(() => {
     const hud = (window as any).sulk.scene.hud;
-    const hover = hud.list.find((c: any) => c.text && c.text.startsWith('(10,5)'));
+    const hover = hud.list.find((c: any) => c.text && c.text.startsWith('(13,15)'));
     const controls = hud.list.find((c: any) => c.text && c.text.includes('Click marine to select'));
     return hover && controls ? { hoverY: hover.y, controlsY: controls.y, text: hover.text } : null;
   });
@@ -57,8 +57,13 @@ test('hover readout shows square coordinate and contents in the HUD (ISC-106..10
   expect(hudCheck!.hoverY).toBeGreaterThan(hudCheck!.controlsY); // below the instructions
   await page.screenshot({ path: 'test-results/hover-readout.png' });
 
-  // Off-map square reads as rock (ISC-107 boundary case)
-  ({ px, py } = await tileCenter(page, 0, 0));
+  // A stealer entry square names itself (ISC-108)
+  ({ px, py } = await tileCenter(page, 14, 26));
+  await page.mouse.move(px, py);
+  await page.waitForFunction(() => (window as any).sulk.scene.hoverInfo.includes('stealer entry'), undefined, { timeout: 5000 });
+
+  // Old-map residue reads as rock — (15,13) held a door in the invented map (ISC-119)
+  ({ px, py } = await tileCenter(page, 15, 13));
   await page.mouse.move(px, py);
   await page.waitForFunction(() => (window as any).sulk.scene.hoverInfo.includes('rock'), undefined, { timeout: 5000 });
 

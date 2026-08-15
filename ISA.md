@@ -3,8 +3,8 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: 109/110 (ISC-71 deferred; ISC-102..110 kill-reveals conversion + hover readout verified)
+phase: build
+progress: 109/119 (ISC-71 deferred; ISC-111..119 in flight: original-map fidelity rebuild)
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-15T00:10:00Z
@@ -197,6 +197,18 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - [x] ISC-109: Anti: hovering never mutates game state — engine piece positions/AP identical before and after mousemove sweep (Playwright e2e)
 - [x] ISC-110: Invariant test: at every settled marine-phase boundary of autoplayed games (seeds 1-10), no surviving blip sits inside marine sight (vitest)
 
+### Original-map fidelity (2026-08-15, user-supplied Pygame MISH_space_hulk_1)
+
+- [x] ISC-111: Mission JSON square set is exactly the 98 coordinates of the original BOARD tuples — no extras, none missing (vitest set-equality)
+- [x] ISC-112: The seven door edges match the original: (10,5)↑ (8,7)→ (10,9)↑ (3,7)→ (1,9)↑ (13,15)↑ (18,20)→ (vitest) [refined: hand count missed (10,9)↑; generator transcription surfaced it]
+- [x] ISC-113: The six stealer entry points match: (0,11) (2,11) (2,19) (2,21) (9,26) (14,26) (vitest)
+- [x] ISC-114: Room squares are exactly the three 3×3 blocks (9-11×6-8, 0-2×6-8, 19-21×19-21); every other square is corridor (vitest)
+- [x] ISC-115: Five marines deploy at/behind BEGINPLACE (14,20) in the X-junction, facing the objective (vitest + browser)
+- [x] ISC-116: Objective adaptation — exit point is the Launch Control square (20,20); blip flow 2 initial + 1/turn per original BLIPS=(2,1) (vitest)
+- [x] ISC-117: Board validator passes and full suites are green on the new map (Bash)
+- [x] ISC-118: Re-pinned deterministic win and loss seeds verified in-browser via win.spec/playthrough.spec (Playwright)
+- [x] ISC-119: Anti: no invented square from the old map survives — e.g. (15,13) reads as rock in the hover probe (Playwright)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
@@ -232,6 +244,9 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 
 ## Decisions
 
+- 2026-08-15 (map rebuild — DOCUMENTED DEVIATIONS from the original MISH_space_hulk_1, per advisor): static board topology (98 squares, 7 doors, 6 entries, 3 rooms, BEGINPLACE) is verbatim-faithful and spec-verified; DYNAMICS are adapted. (1) Objective: "reach Launch Control (20,20)" replaces "flame the room" — no heavy flamer/ammo model yet, so the original loss condition (flamer dry/dead) is unmodeled. (2) `exterminate-or-exit` adds a win path the original lacks; win-reason breakdown over 120 seeds: 102 exit / 0 extermination / 18 losses — the extermination path and its `totalBlips: 10` cap are currently theoretical for the autopilot. (3) Marine facings: source specifies BEGINPLACE only; uniform 'right' (toward the objective) is our choice. (4) Consequence: autopilot win rate 85% vs 52% on the invented map — measures the adapted dash objective, NOT original difficulty; honest scoping in README, flamer + balance remain Known Gaps.
+- 2026-08-15 (map rebuild — door translation): original doors are square-occupying Features ("Closed blocks move+LOS", Pygame analysis doc) at the listed coordinates; UP/RIGHT is the corridor-axis orientation. Our edge model is the USER-DIRECTED deviation from the 2026-08-14 remodel ("doors should be on the edge between two grid squares") — translation keeps the authored facing as the edge (e.g. (10,5)↑ = edge (10,5)-(10,4)); either adjacent edge preserves the choke, the anchor square stays standable by design. Advisor's "directed-door" concern refuted: `doorBetween` is symmetric (doors.spec asserts both directions) and the AI opens (3,7)→ from its anchor side and (13,15)↑ from the far side in ai_pathing.spec.
+- 2026-08-15 (map rebuild): advisor's stale `--auto-state` ISA pointer is a known artifact — the tool reads MEMORY/WORK task ISAs; THIS project ISA (sulkweb/ISA.md, ISC-111..119) is the criteria record. Delegation floor (E3 ≥2) relaxed again: codex CLI absent; the generator + independent fidelity spec stand in for a second implementer. Correlated-transcription risk accepted: generator and spec were written in one session, but the browser screenshot against the physical-map reference is a third, visual check.
 - 2026-08-15 (advisor adjudication, kill-reveals run): ADOPTED — (1) invariant test replacing trigger-list faith: ISC-110 asserts "no blip in marine sight at any settled phase boundary" across 10 full autoplayed games; (2) over-conversion negative guard: marine turns fire the sweep while the stealer still blocks LOS — blip must stay hidden (in kill_reveals.spec). REFUTED with evidence — "sweep path unexercised by the scan": `runStealerActions` is pure engine (`ai/StealerAI.ts`), called by `endMarinePhase`, which `autoplay` calls; the scan exercises it in every game. "Parallel implementations risk": both halves call the SAME `convertRevealedBlips` function — there is exactly one implementation of the rule; the two call sites differ only in trigger. "Hover info leak": readout prints `piece.kind` only — a blip reads as "blip" (public knowledge on the physical board); the hidden value is never in the string, and there is no fog-of-war to leak through. WAIVED — capture() queue-and-flush redesign (would collapse the two trigger sites into one): correct instinct, but it changes replay semantics for all view handlers; deferred with the invariant test standing guard against drift. Baseline clarified: byte-identity is against the PRE-change 2026-08-14 scan; mechanism (conversion consumes no dice; autopilot's action density) recorded in Verification.
 - 2026-08-15: Kill-reveals fix placed at TWO levels by necessity, not redundancy: (a) `GameEngine` subscribes `pieceDied` → `convertRevealedBlips` (covers live marine-phase kills; skips `PieceEvents.replaying`); (b) `runStealerActions` calls `convertRevealedBlips` after each AI action (covers the animated stealer phase, where `capture()` suppresses ALL handlers). While tracing (b), found a LATENT divergence: live engine runs converted blips on AI door-openings via the `doorToggled` handler, but captured (browser-animated) runs skipped that handler — same seed could differ between engine scan and browser. The per-action engine-internal sweep closes it. Conversion timing changes dice flow → seed re-scan + re-pin planned.
 - 2026-08-15: Delegation floor (E2 ≥1) relaxed — show-your-math: Forge/Cato need the codex CLI, absent all session; work is a two-file engine change plus one HUD line, single-author with full context already loaded. What Forge would have done (independent implementation of the conversion sweep) is covered by regression tests ISC-102..105.
@@ -375,6 +390,13 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - ISC-101: doors.spec — `isPassable(anchor)` true with closed door present
 - ISC-102: kill_reveals.spec — shot kills stealer at (4,6); blip at (4,4) `alive === false`, 2 stealers spawned; negative guard: marine turns (sweep fires, LOS still blocked) leave blip alive
 - ISC-110: kill_reveals.spec — 10 autoplayed games, zero "visible blip at phase boundary" violations (112 engine tests green)
+- ISC-111..114: mission1_fidelity.spec — set-equality vs independently transcribed BOARD: 98 squares, 7 door edges, 6 entries, 27 room squares all match (120 engine tests green)
+- ISC-115: fidelity spec (deployment shape) + markers-and-objective.png (squad visible in the X-junction at rows 19-21, cols 12-14)
+- ISC-116: fidelity spec — exitPoints [(20,20)], initialBlips 2, blipsPerTurn 1
+- ISC-117: `new GameEngine(m)` constructs, `allDoors()` length 7; suites 120 engine / 6 client / 8 e2e green; `pnpm build` clean
+- ISC-118: win.spec ?seed=1 → MISSION COMPLETE; playthrough.spec ?seed=3 → loss (13 turns, squad wiped) — seed 3 scanned under the spec's own idle-turn-1 pattern (plain-autoplay scan and playthrough pattern consume dice differently; seed 11 loses under one, wins under the other)
+- ISC-119: hover.spec — (15,13) (a door square of the invented map) reads "— rock"
+- Balance baseline (2026-08-15, original map): 120-seed scan 102W/18L/0; ALL 102 wins are exit wins (win-reason instrumented scan), 0 extermination — rate measures the adapted objective, see Decisions deviations entry
 - ISC-103: kill_reveals.spec — CC outcome 'attacker', stealer dead, blip behind converted
 - ISC-104: kill_reveals.spec — `PieceEvents.capture(() => engine.endMarinePhase())`: overwatch kill → blip converted, `blipConverted` in captured stream
 - ISC-105: kill_reveals.spec — `PieceEvents.replay(pieceDied)` leaves visible blip alive; identical live emit converts it

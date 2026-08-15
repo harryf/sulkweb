@@ -75,56 +75,66 @@
     {
       "x": 13,
       "y": 1,
-      "facing": "down"
+      "facing": "down",
+      "squad": "Luther"
     },
     {
       "x": 14,
       "y": 1,
-      "facing": "down"
+      "facing": "down",
+      "squad": "Luther"
     },
     {
       "x": 15,
       "y": 1,
-      "facing": "down"
+      "facing": "down",
+      "squad": "Snow"
     },
     {
       "x": 13,
       "y": 2,
-      "facing": "down"
+      "facing": "down",
+      "squad": "Luther"
     },
     {
       "x": 14,
       "y": 2,
-      "facing": "down"
+      "facing": "down",
+      "squad": "Snow"
     },
     {
       "x": 15,
       "y": 2,
-      "facing": "down"
+      "facing": "down",
+      "squad": "Snow"
     },
     {
       "x": 13,
       "y": 3,
       "facing": "down",
-      "type": "sergeant"
+      "type": "sergeant",
+      "squad": "Luther"
     },
     {
       "x": 15,
       "y": 3,
       "facing": "down",
-      "type": "sergeant"
+      "type": "sergeant",
+      "squad": "Snow"
     },
     {
       "x": 13,
       "y": 9,
       "facing": "down",
-      "type": "heavy_flamer"
+      "type": "heavy_flamer",
+      "squad": "Luther"
     },
     {
       "x": 15,
       "y": 9,
       "facing": "down",
-      "type": "heavy_flamer"
+      "type": "heavy_flamer",
+      "squad": "Snow"
     }
   ],
   "initialBlips": 2,
@@ -1303,55 +1313,68 @@
   "entryPoints": [
     {
       "x": 14,
-      "y": 29
+      "y": 29,
+      "facing": "down"
     },
     {
       "x": 3,
-      "y": 2
+      "y": 2,
+      "facing": "up"
     },
     {
       "x": 2,
-      "y": 3
+      "y": 3,
+      "facing": "left"
     },
     {
       "x": 4,
-      "y": 3
+      "y": 3,
+      "facing": "right"
     },
     {
       "x": 0,
-      "y": 6
+      "y": 6,
+      "facing": "left"
     },
     {
       "x": 2,
-      "y": 13
+      "y": 13,
+      "facing": "left"
     },
     {
       "x": 25,
-      "y": 2
+      "y": 2,
+      "facing": "up"
     },
     {
       "x": 26,
-      "y": 3
+      "y": 3,
+      "facing": "right"
     },
     {
       "x": 24,
-      "y": 3
+      "y": 3,
+      "facing": "left"
     },
     {
       "x": 28,
-      "y": 6
+      "y": 6,
+      "facing": "right"
     },
     {
       "x": 26,
-      "y": 13
+      "y": 13,
+      "facing": "right"
     },
     {
       "x": 7,
-      "y": 30
+      "y": 30,
+      "facing": "down"
     },
     {
       "x": 21,
-      "y": 30
+      "y": 30,
+      "facing": "down"
     }
   ]
 }

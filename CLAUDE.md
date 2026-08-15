@@ -116,6 +116,20 @@ pnpm --filter ./packages/engine example  # CLI engine tour
   calls OUT of the pre-HUD markers block, the create()-order bug bit both runs).
 - **Client default mission is `debug_1`;** `?mission=<name>` (any registry key) selects
   another — the space_hulk_1 e2e specs pass `?mission=space_hulk_1` explicitly.
+- **Mission metadata (entry/exit `facing`, deployment `squad`) is written ONLY by
+  `scripts/patchMissionMeta.ts`** from the original .mish sources (idempotent;
+  aborts on mismatch; space_hulk_6's interleaved columns are hand-arbitrated in
+  its SQUAD_OVERRIDES). `mission_meta.spec.ts` guards the invariants hermetically
+  (facing must point at rock; every deploy square named). Fidelity specs that
+  deep-equal deployment objects must include `squad`.
+- **RosterPanel (client/src/ui/RosterPanel.ts) is DOM, not Phaser** — a flex
+  sibling of the canvas. `buildRoster` zips `engine.marines` with
+  `marineDeployment` BY INDEX **at scene start only** (both are insertion-
+  ordered; after a death `engine.marines` shrinks, so never re-zip later —
+  cards key on piece id). Names are static/deterministic (`marineNames.ts`
+  pool + mission-name offset). Entry triangles/exit arrows draw one square
+  OFF-board (`facing` = original efacing, rotation `idx*π/2`); the camera
+  bounds carry a one-tile margin so edge triangles stay visible.
 
 ## Testing policy (this is why the project survived)
 

@@ -62,7 +62,7 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
 
 | Input | Action |
 |-------|--------|
-| Click marine | Select |
+| Click marine / roster card | Select (card click also pans the camera to him) |
 | `W` / `S` | Move forward / backward |
 | `A` / `D` | Turn left / right |
 | `O` | Open/close door ahead |
@@ -77,6 +77,21 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
 | `Esc` | Pause |
 | Arrows / drag | Pan camera |
 | Mouse hover | Square coordinate + contents in the HUD (below the controls) |
+
+### Marine roster panel
+
+A card grid to the right of the canvas shows the whole strike force, one row
+per squad (original squad names — Calvin, Constantine, Sakharov…), sergeant
+and special-weapon marines first. Each card carries the marine's icon, a
+static Deathwing-flavoured name (`Sgt. Gideon`, `Bro. Claudio`), live AP and
+ammo, weapon label, and state badges (overwatch, jam, C.A.T. carried). Cards
+grey out `KIA` as marines die — the thinning roster IS the pressure gauge —
+and mark `ESCAPED` separately on escape missions. The selected marine's card
+glows gold; clicking a card selects him on the map and pans the camera.
+
+Stealer entry points render as the original off-board `entry.png` triangles
+(exits get `exit.png` arrows) pointing onto the board, replacing the old
+purple squares.
 
 ## Rules implemented (per the original Sulk manual in `docs/`)
 
@@ -205,7 +220,9 @@ packages/
   a real mission-1 marine tool in the original (Space key), and the biggest
   named gap for a human trying to win space_hulk_1.
 - Blips spawn ON entry squares instead of lurking off-board in the original's
-  entry-triangle limbo (documented simplification; entries sit far from the fight).
+  entry-triangle limbo (documented simplification; entries sit far from the
+  fight). The off-board entry TRIANGLES themselves are now drawn per the
+  original, but the limbo squares behind them remain unimplemented.
 - FPS measurement deferred (needs a visible-tab recording session).
 - Cross-vendor code audit pending — revisit against tag `v0.1` when available.
 - `docs/` retains the original Sulk manual; edge rules (parry, autofire, psi)

@@ -602,27 +602,33 @@
   "entryPoints": [
     {
       "x": 0,
-      "y": 11
+      "y": 11,
+      "facing": "left"
     },
     {
       "x": 2,
-      "y": 11
+      "y": 11,
+      "facing": "right"
     },
     {
       "x": 2,
-      "y": 19
+      "y": 19,
+      "facing": "up"
     },
     {
       "x": 2,
-      "y": 21
+      "y": 21,
+      "facing": "down"
     },
     {
       "x": 9,
-      "y": 26
+      "y": 26,
+      "facing": "left"
     },
     {
       "x": 14,
-      "y": 26
+      "y": 26,
+      "facing": "right"
     }
   ],
   "exitPoints": [
@@ -635,7 +641,8 @@
     {
       "x": 10,
       "y": 4,
-      "facing": "down"
+      "facing": "down",
+      "squad": "Calvin"
     }
   ],
   "initialBlips": 0,

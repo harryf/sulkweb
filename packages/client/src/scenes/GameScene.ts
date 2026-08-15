@@ -3,12 +3,16 @@ import { GameEngine, loadMission, missions, Square, Piece, StormBolterMarine, He
 import { Minimap } from '../ui/Minimap.js';
 import { HighlightSprite } from '../ui/HighlightSprite.js';
 import { HudPanel } from '../ui/HudPanel.js';
+import { RosterPanel, type PieceStats } from '../ui/RosterPanel.js';
+import { buildRoster } from '../ui/marineNames.js';
 import { HUD_WIDTH } from '../config.js';
 
 const TILE_SIZE = 40
 
 export default class GameScene extends Phaser.Scene {
   private hud!: import('../ui/HudPanel.js').HudPanel;
+  /** DOM roster card panel — public for the e2e suite. */
+  roster!: RosterPanel;
 
   private tileSize: number = TILE_SIZE;
   private readonly engine: GameEngine
@@ -59,6 +63,8 @@ export default class GameScene extends Phaser.Scene {
   preload() {
     this.load.image('square_corridor', 'assets/themes/default/square_corridor.png');
     this.load.image('square_room', 'assets/themes/default/square_room.png');
+    this.load.image('entry', 'assets/themes/default/entry.png');
+    this.load.image('exit', 'assets/themes/default/exit.png');
     this.load.image('mini_square', 'assets/themes/default/mini_square.png');
     this.load.image('select', 'assets/themes/default/select.png');
     this.load.image('door_closed', 'assets/themes/default/door_closed.png');
@@ -101,9 +107,11 @@ export default class GameScene extends Phaser.Scene {
     const { board, pieces } = this.engine.state
     const { width, height } = board
 
-    // Canvas: board viewport (capped so it fits a normal window) + HUD strip on the right
-    const viewW = Math.min(width * TILE_SIZE, 880)
-    const viewH = Math.min(height * TILE_SIZE, 720)
+    // Canvas: board viewport (capped so it fits a normal window) + HUD strip on
+    // the right. One tile of margin all round so off-board entry triangles /
+    // exit arrows are visible at board edges.
+    const viewW = Math.min((width + 2) * TILE_SIZE, 880)
+    const viewH = Math.min((height + 2) * TILE_SIZE, 720)
     this.scale.resize(viewW + HUD_WIDTH, viewH)
 
     board.allSquares().forEach((sq: Square) => {
@@ -133,16 +141,29 @@ export default class GameScene extends Phaser.Scene {
     });
     PieceEvents.on('closeCombat', () => this.sfx('snd_cc', 0.5));
 
-    // Mission markers: stealer entry points (purple), exit objective (green),
-    // marine deployment (blue outline). Drawn under pieces, over squares.
+    // Mission markers: stealer entry triangles + exit arrows (theme art, drawn
+    // one square OFF-board per the original EntryTriangle/ExitArrow — `facing`
+    // is efacing, the off-board direction; the graphic points back onto the
+    // board via rotate(-90°·efacing)), exit squares (green), marine deployment
+    // (blue outline). Drawn under pieces, over squares.
     const markers = this.add.graphics().setDepth(0.4);
     const mission = this.engine.mission;
     const T = this.tileSize;
-    for (const e of mission.entryPoints ?? []) {
-      markers.fillStyle(0x9932cc, 0.30).fillRect(e.x * T, e.y * T, T, T);
-      markers.lineStyle(2, 0x9932cc, 0.9).strokeRect(e.x * T + 1, e.y * T + 1, T - 2, T - 2);
-    }
+    const FACING_IDX: Record<string, number> = { up: 0, right: 1, down: 2, left: 3 };
+    const OFF: Record<string, { dx: number; dy: number }> = {
+      up: { dx: 0, dy: -1 }, right: { dx: 1, dy: 0 }, down: { dx: 0, dy: 1 }, left: { dx: -1, dy: 0 },
+    };
+    const placeMarker = (texture: string, p: { x: number; y: number; facing?: string }) => {
+      if (!p.facing) return; // adapted mid-board point: flat marker only
+      const o = OFF[p.facing];
+      this.add.image((p.x + o.dx) * T + T / 2, (p.y + o.dy) * T + T / 2, texture)
+        .setDepth(0.4)
+        .setRotation(FACING_IDX[p.facing] * Math.PI / 2)
+        .setName(texture === 'entry' ? 'entry-triangle' : 'exit-arrow');
+    };
+    for (const e of mission.entryPoints ?? []) placeMarker('entry', e);
     for (const e of mission.exitPoints ?? []) {
+      placeMarker('exit', e);
       markers.fillStyle(0x00cc44, 0.35).fillRect(e.x * T, e.y * T, T, T);
       markers.lineStyle(2, 0x00ff55, 1).strokeRect(e.x * T + 1, e.y * T + 1, T - 2, T - 2);
       this.add.text(e.x * T + T / 2, e.y * T + T / 2, 'EXIT', {
@@ -350,8 +371,8 @@ export default class GameScene extends Phaser.Scene {
     this.wasd = this.input.keyboard!.addKeys('W,A,S,D,O,F,C,V,U,P,X,T,R,G') as any
     this.input.keyboard!.on('keydown-ENTER', () => this.endTurn());
     this.input.keyboard!.on('keydown-ESC', () => this.togglePause());
-    // Camera bounds to exclude HUD area
-    this.cameras.main.setBounds(0, 0, width * TILE_SIZE, height * TILE_SIZE)
+    // Camera bounds to exclude HUD area — one-tile margin for off-board markers
+    this.cameras.main.setBounds(-TILE_SIZE, -TILE_SIZE, (width + 2) * TILE_SIZE, (height + 2) * TILE_SIZE)
 
     const centerX = Math.floor(width / 2) * TILE_SIZE
     const centerY = Math.floor(height / 2) * TILE_SIZE
@@ -374,6 +395,25 @@ export default class GameScene extends Phaser.Scene {
     this.hud.setPosition(this.scale.width - HUD_WIDTH, 0);
     this.hud.setDepth(10);
     this.add.existing(this.hud);
+
+    // Marine roster card panel (DOM, right of the canvas): squad-grouped cards
+    // with live AP/ammo/state; card click selects the marine and pans to him.
+    this.roster = new RosterPanel(
+      buildRoster(this.engine, this.engine.mission),
+      (id): PieceStats | undefined => {
+        const p = this.engine.findPiece(id) as StormBolterMarine | undefined;
+        if (!p) return { alive: false, apRemaining: 0, apInitial: 4, overwatch: false, jammed: false };
+        return {
+          alive: p.alive,
+          apRemaining: p.apRemaining,
+          apInitial: p.apInitial,
+          ammo: p instanceof HeavyFlamerMarine || p instanceof AssaultCannonMarine ? p.ammo : undefined,
+          overwatch: p.overwatch ?? false,
+          jammed: p.jammed ?? false,
+        };
+      },
+      (id) => this.selectFromRoster(id),
+    );
 
     const objectiveLabel: Record<string, string> = {
       'exterminate': 'Objective: kill every genestealer',
@@ -513,6 +553,22 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
+  /** Roster card click: select the marine, sync map highlight + HUD, pan to him. */
+  private selectFromRoster(id: string): void {
+    if (this.paused || this.animating || this.engine.state.result !== 'ongoing') return;
+    const piece = this.engine.findPiece(id);
+    if (!piece) return;
+    Selection.select(id);
+    this.updateHighlight();
+    PieceEvents.emit('selected', {
+      pieceId: id,
+      ap: { apRemaining: piece.apRemaining, apInitial: piece.apInitial },
+      ammo: piece instanceof HeavyFlamerMarine || piece instanceof AssaultCannonMarine ? piece.ammo : undefined
+    });
+    const sprite = this.pieceSprites[id];
+    if (sprite) this.cameras.main.pan(sprite.x, sprite.y, 250, 'Sine.easeInOut');
+  }
+
   /** Human-readable contents of a board square — powers the HUD hover readout. */
   describeSquare(x: number, y: number): string {
     const board = this.engine.state.board;
@@ -568,11 +624,12 @@ export default class GameScene extends Phaser.Scene {
     if (this.cursors.up.isDown) cam.scrollY -= speed;
     if (this.cursors.down.isDown) cam.scrollY += speed;
 
-    const worldW = this.engine.state.board.width * this.tileSize;
-    const worldH = this.engine.state.board.height * this.tileSize;
-    // Clamp so left edge never goes past HUD
-    cam.scrollX = Phaser.Math.Clamp(cam.scrollX, 0, worldW - cam.width + HUD_WIDTH);
-    cam.scrollY = Phaser.Math.Clamp(cam.scrollY, 0, worldH - cam.height);
+    const T = this.tileSize;
+    const worldW = this.engine.state.board.width * T;
+    const worldH = this.engine.state.board.height * T;
+    // Clamp so left edge never goes past HUD; one-tile margin for off-board markers
+    cam.scrollX = Phaser.Math.Clamp(cam.scrollX, -T, worldW + T - cam.width + HUD_WIDTH);
+    cam.scrollY = Phaser.Math.Clamp(cam.scrollY, -T, worldH + T - cam.height);
   }
 
   private createSprite(pieceId: string, kind: string, x: number, y: number, facing: number) {
@@ -696,6 +753,7 @@ export default class GameScene extends Phaser.Scene {
     this.timerRemaining = this.engine.marinePhaseSeconds;
     this.hud.setTimer(this.timerRemaining);
     this.updateHighlight();
+    this.roster.refreshAll(); // post-replay engine truth (fresh AP, deaths)
   }
 
   /** F key: bolters shoot the nearest enemy in fire arc + LOS; the flamer

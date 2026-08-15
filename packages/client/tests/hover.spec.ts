@@ -48,7 +48,7 @@ test('hover readout shows square coordinate and contents in the HUD (ISC-106..10
   const hudCheck = await page.evaluate(() => {
     const hud = (window as any).sulk.scene.hud;
     const hover = hud.list.find((c: any) => c.text && c.text.startsWith('(13,15)'));
-    const controls = hud.list.find((c: any) => c.text && c.text.includes('Click marine to select'));
+    const controls = hud.list.find((c: any) => c.text && c.text.includes('Click marine or card to select'));
     return hover && controls ? { hoverY: hover.y, controlsY: controls.y, text: hover.text } : null;
   });
   expect(hudCheck).not.toBeNull();

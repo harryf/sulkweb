@@ -5,36 +5,42 @@
   "exitPoints": [
     {
       "x": 33,
-      "y": 8
+      "y": 8,
+      "facing": "right"
     }
   ],
   "marineDeployment": [
     {
       "x": 0,
       "y": 9,
-      "facing": "right"
+      "facing": "right",
+      "squad": "Lawer"
     },
     {
       "x": 1,
       "y": 9,
-      "facing": "right"
+      "facing": "right",
+      "squad": "Lawer"
     },
     {
       "x": 2,
       "y": 9,
-      "facing": "right"
+      "facing": "right",
+      "squad": "Lawer"
     },
     {
       "x": 0,
       "y": 10,
       "facing": "right",
-      "type": "sergeant"
+      "type": "sergeant",
+      "squad": "Lawer"
     },
     {
       "x": 1,
       "y": 10,
       "facing": "right",
-      "type": "heavy_flamer"
+      "type": "heavy_flamer",
+      "squad": "Lawer"
     }
   ],
   "initialBlips": 2,
@@ -1219,19 +1225,23 @@
   "entryPoints": [
     {
       "x": 7,
-      "y": 0
+      "y": 0,
+      "facing": "up"
     },
     {
       "x": 6,
-      "y": 1
+      "y": 1,
+      "facing": "left"
     },
     {
       "x": 26,
-      "y": 23
+      "y": 23,
+      "facing": "right"
     },
     {
       "x": 23,
-      "y": 0
+      "y": 0,
+      "facing": "right"
     }
   ]
 }

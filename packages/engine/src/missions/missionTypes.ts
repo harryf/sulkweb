@@ -9,6 +9,12 @@ export interface SquareJSON {
 
 export interface CoordJSON { x: number; y: number }
 
+/** Entry/exit square: `facing` is the original `efacing` — the direction OFF
+ *  the board where the EntryTriangle/ExitArrow graphic sits (misc.py). */
+export interface EntrySquareJSON extends CoordJSON {
+  facing?: 'up'|'right'|'down'|'left'
+}
+
 export type MarineType = 'storm_bolter' | 'sergeant' | 'heavy_flamer'
   | 'assault_cannon' | 'chain_fist' | 'sergeant_sword'
 
@@ -16,6 +22,8 @@ export interface DeploySquareJSON extends CoordJSON {
   facing?: 'up'|'right'|'down'|'left'
   /** Marine variant deployed here; defaults to storm_bolter. */
   type?: MarineType
+  /** Original squad name (MARINES roster) — cosmetic grouping for the roster UI. */
+  squad?: string
 }
 
 export interface RawMissionJSON_v2 {
@@ -24,9 +32,9 @@ export interface RawMissionJSON_v2 {
   height: number
   squares: SquareJSON[]
   /** Genestealer blip entry squares. */
-  entryPoints?: CoordJSON[]
+  entryPoints?: EntrySquareJSON[]
   /** Marine escape squares — reaching one completes the exit objective. */
-  exitPoints?: CoordJSON[]
+  exitPoints?: EntrySquareJSON[]
   /** Marine starting squares, in deployment order. */
   marineDeployment?: DeploySquareJSON[]
   /** Blips placed before turn 1. */

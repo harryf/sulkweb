@@ -11,57 +11,67 @@
     {
       "x": 7,
       "y": 1,
-      "facing": "down"
+      "facing": "down",
+      "squad": "Sakharov"
     },
     {
       "x": 7,
       "y": 2,
-      "facing": "down"
+      "facing": "down",
+      "squad": "Sakharov"
     },
     {
       "x": 7,
       "y": 3,
-      "facing": "down"
+      "facing": "down",
+      "squad": "Sakharov"
     },
     {
       "x": 7,
       "y": 4,
       "facing": "down",
-      "type": "sergeant"
+      "type": "sergeant",
+      "squad": "Sakharov"
     },
     {
       "x": 7,
       "y": 5,
       "facing": "down",
-      "type": "assault_cannon"
+      "type": "assault_cannon",
+      "squad": "Sakharov"
     },
     {
       "x": 12,
       "y": 1,
-      "facing": "down"
+      "facing": "down",
+      "squad": "Sternfeld"
     },
     {
       "x": 12,
       "y": 2,
-      "facing": "down"
+      "facing": "down",
+      "squad": "Sternfeld"
     },
     {
       "x": 12,
       "y": 3,
       "facing": "down",
-      "type": "chain_fist"
+      "type": "chain_fist",
+      "squad": "Sternfeld"
     },
     {
       "x": 12,
       "y": 4,
       "facing": "down",
-      "type": "sergeant_sword"
+      "type": "sergeant_sword",
+      "squad": "Sternfeld"
     },
     {
       "x": 12,
       "y": 5,
       "facing": "down",
-      "type": "heavy_flamer"
+      "type": "heavy_flamer",
+      "squad": "Sternfeld"
     }
   ],
   "initialBlips": 1,
@@ -1146,39 +1156,48 @@
   "entryPoints": [
     {
       "x": 18,
-      "y": 3
+      "y": 3,
+      "facing": "up"
     },
     {
       "x": 1,
-      "y": 10
+      "y": 10,
+      "facing": "left"
     },
     {
       "x": 21,
-      "y": 12
+      "y": 12,
+      "facing": "up"
     },
     {
       "x": 22,
-      "y": 13
+      "y": 13,
+      "facing": "right"
     },
     {
       "x": 6,
-      "y": 19
+      "y": 19,
+      "facing": "left"
     },
     {
       "x": 3,
-      "y": 22
+      "y": 22,
+      "facing": "left"
     },
     {
       "x": 20,
-      "y": 18
+      "y": 18,
+      "facing": "right"
     },
     {
       "x": 16,
-      "y": 32
+      "y": 32,
+      "facing": "down"
     },
     {
       "x": 19,
-      "y": 32
+      "y": 32,
+      "facing": "down"
     }
   ]
 }

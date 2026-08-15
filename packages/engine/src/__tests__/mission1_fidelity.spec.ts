@@ -91,8 +91,8 @@ describe('Mission 1 fidelity vs original Sulk BOARD', () => {
     // FORCES: 3 storm bolters, the sergeant, the heavy flamer (flamer leads)
     const types = m.marineDeployment!.map(d => d.type ?? 'storm_bolter');
     expect(types.filter(t => t === 'storm_bolter')).toHaveLength(3);
-    expect(m.marineDeployment!.find(d => d.type === 'sergeant')).toEqual({ x: 10, y: 3, facing: 'down', type: 'sergeant' });
-    expect(m.marineDeployment!.find(d => d.type === 'heavy_flamer')).toEqual({ x: 10, y: 4, facing: 'down', type: 'heavy_flamer' });
+    expect(m.marineDeployment!.find(d => d.type === 'sergeant')).toEqual({ x: 10, y: 3, facing: 'down', type: 'sergeant', squad: 'Calvin' });
+    expect(m.marineDeployment!.find(d => d.type === 'heavy_flamer')).toEqual({ x: 10, y: 4, facing: 'down', type: 'heavy_flamer', squad: 'Calvin' });
   });
 
   it('ORIGINAL objective: flame Launch Control (20,20); blip flow 2 initial + 1/turn, uncapped (ISC-116/145)', () => {

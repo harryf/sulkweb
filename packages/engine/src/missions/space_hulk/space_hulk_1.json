@@ -602,27 +602,33 @@
   "entryPoints": [
     {
       "x": 0,
-      "y": 11
+      "y": 11,
+      "facing": "left"
     },
     {
       "x": 2,
-      "y": 11
+      "y": 11,
+      "facing": "right"
     },
     {
       "x": 2,
-      "y": 19
+      "y": 19,
+      "facing": "up"
     },
     {
       "x": 2,
-      "y": 21
+      "y": 21,
+      "facing": "down"
     },
     {
       "x": 9,
-      "y": 26
+      "y": 26,
+      "facing": "left"
     },
     {
       "x": 14,
-      "y": 26
+      "y": 26,
+      "facing": "right"
     }
   ],
   "marineDeployment": [
@@ -630,31 +636,36 @@
       "x": 10,
       "y": 0,
       "facing": "down",
-      "type": "storm_bolter"
+      "type": "storm_bolter",
+      "squad": "Calvin"
     },
     {
       "x": 10,
       "y": 1,
       "facing": "down",
-      "type": "storm_bolter"
+      "type": "storm_bolter",
+      "squad": "Calvin"
     },
     {
       "x": 10,
       "y": 2,
       "facing": "down",
-      "type": "storm_bolter"
+      "type": "storm_bolter",
+      "squad": "Calvin"
     },
     {
       "x": 10,
       "y": 3,
       "facing": "down",
-      "type": "sergeant"
+      "type": "sergeant",
+      "squad": "Calvin"
     },
     {
       "x": 10,
       "y": 4,
       "facing": "down",
-      "type": "heavy_flamer"
+      "type": "heavy_flamer",
+      "squad": "Calvin"
     }
   ],
   "initialBlips": 2,

@@ -34,7 +34,7 @@ describe('debug_1 mission (MISH_debug_1)', () => {
   });
 
   it('forces per source: one marine on an original M square, blips 0 initial + 1/turn (ISC-122/146)', () => {
-    expect(debug.marineDeployment).toEqual([{ x: 10, y: 4, facing: 'down' }]);
+    expect(debug.marineDeployment).toEqual([{ x: 10, y: 4, facing: 'down', squad: 'Calvin' }]);
     expect(debug.initialBlips).toBe(0);
     expect(debug.blipsPerTurn).toBe(1);
     expect(debug.name).toBe('Suicide Mission with no forces');

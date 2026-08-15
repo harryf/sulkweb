@@ -7,28 +7,33 @@
       "x": 13,
       "y": 15,
       "facing": "right",
-      "type": "heavy_flamer"
+      "type": "heavy_flamer",
+      "squad": "Constantine"
     },
     {
       "x": 6,
       "y": 15,
       "facing": "right",
-      "type": "sergeant"
+      "type": "sergeant",
+      "squad": "Constantine"
     },
     {
       "x": 13,
       "y": 1,
-      "facing": "right"
+      "facing": "right",
+      "squad": "Constantine"
     },
     {
       "x": 6,
       "y": 23,
-      "facing": "down"
+      "facing": "down",
+      "squad": "Constantine"
     },
     {
       "x": 16,
       "y": 23,
-      "facing": "down"
+      "facing": "down",
+      "squad": "Constantine"
     }
   ],
   "initialBlips": 0,
@@ -1283,47 +1288,58 @@
   "entryPoints": [
     {
       "x": 30,
-      "y": 4
+      "y": 4,
+      "facing": "right"
     },
     {
       "x": 29,
-      "y": 0
+      "y": 0,
+      "facing": "up"
     },
     {
       "x": 30,
-      "y": 1
+      "y": 1,
+      "facing": "right"
     },
     {
       "x": 30,
-      "y": 7
+      "y": 7,
+      "facing": "right"
     },
     {
       "x": 29,
-      "y": 8
+      "y": 8,
+      "facing": "down"
     },
     {
       "x": 10,
-      "y": 36
+      "y": 36,
+      "facing": "right"
     },
     {
       "x": 10,
-      "y": 39
+      "y": 39,
+      "facing": "right"
     },
     {
       "x": 9,
-      "y": 40
+      "y": 40,
+      "facing": "down"
     },
     {
       "x": 6,
-      "y": 40
+      "y": 40,
+      "facing": "down"
     },
     {
       "x": 2,
-      "y": 39
+      "y": 39,
+      "facing": "left"
     },
     {
       "x": 3,
-      "y": 40
+      "y": 40,
+      "facing": "down"
     }
   ]
 }

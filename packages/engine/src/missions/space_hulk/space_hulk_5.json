@@ -5,7 +5,8 @@
   "exitPoints": [
     {
       "x": 9,
-      "y": 28
+      "y": 28,
+      "facing": "right"
     }
   ],
   "marineDeployment": [
@@ -13,55 +14,65 @@
       "x": 10,
       "y": 10,
       "facing": "down",
-      "type": "heavy_flamer"
+      "type": "heavy_flamer",
+      "squad": "Abraham"
     },
     {
       "x": 11,
       "y": 10,
       "facing": "down",
-      "type": "sergeant"
+      "type": "sergeant",
+      "squad": "Abraham"
     },
     {
       "x": 12,
       "y": 10,
-      "facing": "down"
+      "facing": "down",
+      "squad": "Abraham"
     },
     {
       "x": 13,
       "y": 10,
-      "facing": "down"
+      "facing": "down",
+      "squad": "Abraham"
     },
     {
       "x": 14,
       "y": 10,
-      "facing": "down"
+      "facing": "down",
+      "squad": "Abraham"
     },
     {
       "x": 23,
       "y": 13,
       "facing": "left",
-      "type": "heavy_flamer"
+      "type": "heavy_flamer",
+      "squad": "Harken"
     },
     {
       "x": 24,
       "y": 13,
       "facing": "left",
-      "type": "sergeant"
+      "type": "sergeant",
+      "squad": "Harken"
     },
     {
       "x": 25,
       "y": 13,
-      "facing": "left"
+      "facing": "left",
+      "squad": "Harken"
     },
     {
       "x": 26,
       "y": 13,
-      "facing": "left"
+      "facing": "left",
+      "squad": "Harken"
     },
     {
       "x": 27,
       "y": 13,
-      "facing": "left"
+      "facing": "left",
+      "squad": "Harken"
     }
   ],
   "initialBlips": 3,
@@ -1038,31 +1049,38 @@
   "entryPoints": [
     {
       "x": 15,
-      "y": 0
+      "y": 0,
+      "facing": "left"
     },
     {
       "x": 17,
-      "y": 0
+      "y": 0,
+      "facing": "right"
     },
     {
       "x": 28,
-      "y": 9
+      "y": 9,
+      "facing": "up"
     },
     {
       "x": 31,
-      "y": 18
+      "y": 18,
+      "facing": "up"
     },
     {
       "x": 32,
-      "y": 19
+      "y": 19,
+      "facing": "right"
     },
     {
       "x": 0,
-      "y": 22
+      "y": 22,
+      "facing": "left"
     },
     {
       "x": 6,
-      "y": 16
+      "y": 16,
+      "facing": "right"
     }
   ]
 }

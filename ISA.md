@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: 268/269 (beta_2 run ISC-246..267 verified; ISC-71 deferred)
+phase: verify
+progress: 286/287 (roster-panel run ISC-270..287 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-15T15:45:00Z
+updated: 2026-08-15T12:45:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -404,6 +404,27 @@ Mission + closure:
 - [x] ISC-266: Anti: registry guard passes with beta_2 registered (no draft/todo, objective set) (vitest)
 - [x] ISC-267: README/CLAUDE updated — campaign 8/8 complete, weapons documented, honest balance (Read)
 
+### Entry triangles + marine roster panel (2026-08-15 run)
+
+- [x] ISC-270: GameScene preloads `entry.png` and `exit.png` theme textures (Grep)
+- [x] ISC-271: every mission JSON's entryPoints carry `facing` extracted from the original `E:` tags; a spec cross-checks all 9 registered missions against the .mish sources (vitest)
+- [x] ISC-272: entry triangles render one square OFF-board in the facing direction, rotated to point into the board per original EntryTriangle (`rotate(-90*efacing)` + FACEMAP offset); the purple square fill/stroke is gone (Grep + screenshot)
+- [x] ISC-273: exit squares additionally render the `exit.png` arrow with the same off-board placement (original ExitArrow reuses EntryTriangle code) (screenshot)
+- [x] ISC-274: every mission JSON's marineDeployment entries carry `squad` names from the original rosters; positional chunking is verified by type-sequence equality per squad (vitest)
+- [x] ISC-275: client maps deployment `squad` + static thematic names onto engine marines BY ID at scene start (positional zip before any death can shrink the list) (vitest unit)
+- [x] ISC-276: name generation is deterministic and static — same mission always yields the same names; sergeants get "Sgt." style, brothers "Bro." style, Space Hulk flavour (vitest unit)
+- [x] ISC-277: a roster DOM panel renders to the RIGHT of the canvas: one row per squad (stacked vertically), cards ordered sergeant → specials → bolters within a row (Playwright)
+- [x] ISC-278: each card shows the marine's theme icon, name, live AP `n/m`, ammo for flamer/assault-cannon, and a special-weapon label (Playwright)
+- [x] ISC-279: a marine dying greys out its card (grayscale/dimmed + KIA), and it is no longer clickable-to-select (Playwright)
+- [x] ISC-280: clicking a card selects that marine (Selection + map highlight) and pans the camera to him (Playwright)
+- [x] ISC-281: clicking a marine on the map highlights his card; the selected card is visually distinct from unselected ones (Playwright)
+- [x] ISC-282: the C.A.T. carrier's card shows a carry badge while carried, cleared on drop (vitest unit or Playwright)
+- [x] ISC-283: an escaped marine's card shows ESCAPED styling distinct from KIA (vitest unit or Playwright)
+- [x] ISC-284: overwatch and jam states surface on the card (badges) live (Playwright)
+- [x] ISC-285: HUD legend/controls text updated — no stale "purple = stealer entry" claim (Grep)
+- [x] ISC-286: Anti: engine stays Phaser/DOM-free — import grep guard still passes; roster is client-only (Grep)
+- [x] ISC-287: Anti: all existing suites stay green (engine + client unit + e2e) and the build is clean after the change (Bash)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
@@ -456,8 +477,14 @@ Mission + closure:
 | sergeant-mission-truth | Sergeant piece, timer bonus, original deployment + flame objective | ISC-142..147 | sections-flamer | no |
 | client-fidelity | Flames/jam markers, ammo + dice HUD, sounds, flamer keys | ISC-148..153 | sergeant-mission-truth | partially |
 | fidelity-closure | Pins re-scanned, suites green, docs updated | ISC-154..157 | all above | no |
+| mission-meta | entry/exit facings + squad names extracted from .mish into mission JSONs via patch script | ISC-271,274 | — | yes |
+| entry-triangles | entry.png/exit.png off-board triangles per original EntryTriangle/ExitArrow; purple squares gone | ISC-270,272,273,285 | mission-meta | yes |
+| roster-panel | DOM card grid right of canvas: squad rows, names, AP/ammo, badges, death/escape states, two-way selection + camera pan | ISC-275..284 | mission-meta | no |
+| roster-closure | Full suites + build + browser verification | ISC-286,287 | all above | no |
 
 ## Decisions
+
+- 2026-08-15 (roster run, PLAN): entry/exit facings + squad names come from the ORIGINAL .mish sources via an idempotent patch script on parseMish (never hand-edited); the verifying spec checks the internal invariant "facing points off-board" (neighbor square in facing direction is rock) so it stays hermetic — no test-time dependency on the archive path. Squad→marine mapping is a positional zip captured BY ID at scene start (engine deploys marineDeployment in order; `engine.marines` filters insertion-ordered pieces), so later deaths can't shift names. Roster panel is DOM (flex sibling of the canvas), not Phaser — cards, greying, and scrolling are native CSS, and Playwright probes them directly. Entry triangles render one square OFF-board per the original (`FACEMAP` offset + `rotate(-90*efacing)` → Phaser `setRotation(idx*π/2)`); camera bounds/canvas gain a one-tile margin so edge triangles are visible. Delegation floor (E3 ≥2) relaxed, show-the-math: `which codex` fails (Forge/Cato unavailable on this machine, as in all prior runs) and the work is a single-package UI feature where a second writer would fork one file (GameScene) — Interceptor/Chrome verification remains the delegated leg.
 
 - 2026-08-15 (mission library): missions now live at `engine/src/missions/<family>/<name>.json` mirroring the original `data/missions/` tree at `~/Code/personal/sulk/archive/sulk-0.29-snapshot-20030623/`; static registry in `missions/index.ts` is the only import site. Client default is `debug_1` per the user's explicit switch instruction; `?mission=<registry key>` selects others (param indexes the bundled registry object — never concatenated into a path, so no traversal surface; unknown → default). Squad-scenario e2e specs name `?mission=space_hulk_1` explicitly — coverage of the 5-marine path is retained under the param, accepted since the default choice is user-directed. debug_1 deviations: source has NO blip cap (we keep totalBlips 10 for finite extermination) and NO stealer-win clause (we inherit engine loss-on-squad-wipe); BEGINPLACE collapsed to a fixed square as with space_hulk_1. Advisor round: adopted registry manifest test + provenance notes; refuted path-traversal, implicit-default engine loads (grep clean), seed-parity smell (mixed parity), silent fallback on missing file (bundled import = build error). Delegation floor relaxed — codex CLI absent.
 - 2026-08-15 (map rebuild — DOCUMENTED DEVIATIONS from the original MISH_space_hulk_1, per advisor): static board topology (98 squares, 7 doors, 6 entries, 3 rooms, BEGINPLACE) is verbatim-faithful and spec-verified; DYNAMICS are adapted. (1) Objective: "reach Launch Control (20,20)" replaces "flame the room" — no heavy flamer/ammo model yet, so the original loss condition (flamer dry/dead) is unmodeled. (2) `exterminate-or-exit` adds a win path the original lacks; win-reason breakdown over 120 seeds: 102 exit / 0 extermination / 18 losses — the extermination path and its `totalBlips: 10` cap are currently theoretical for the autopilot. (3) Marine facings: source specifies BEGINPLACE only; uniform 'right' (toward the objective) is our choice. (4) Consequence: autopilot win rate 85% vs 52% on the invented map — measures the adapted dash objective, NOT original difficulty; honest scoping in README, flamer + balance remain Known Gaps.
@@ -785,3 +812,18 @@ beta_2 completion (2026-08-15):
 - ISC-265: Bash — 231 engine / 6 unit / 18 e2e green AFTER the combat.ts parry fix (full-campaign re-verification), build clean, all pins intact
 - ISC-266: vitest — registry guard sweeps NINE missions clean
 - ISC-267: Read — README (campaign COMPLETE, weapons) + CLAUDE (weapon invariants, twice-bitten create()-order gotcha)
+- ISC-270: Grep/Playwright — GameScene preloads entry+exit; e2e asserts `textures.exists('entry'/'exit')` true
+- ISC-271: vitest mission_meta.spec — all 9 missions: every entryPoint has `facing` AND the facing-neighbor square is rock (hermetic invariant); patchMissionMeta.ts run twice, idempotent, zero mismatches
+- ISC-272: Playwright + Chrome screenshot — 11 `entry-triangle` images on space_hulk_2; beta_2 screenshot shows white triangles one square off-board pointing in; purple fill code deleted (Grep)
+- ISC-273: Playwright roster.spec — space_hulk_3's two EXIT:DOWN squares each have an `exit-arrow` at (x, y+1) off-board
+- ISC-274: vitest mission_meta.spec — every deployment square named; squad names/sizes spot-checked vs all 9 original rosters (Calvin, Constantine, Abel/Ilyich, Pilgrim/Stone, Abraham/Harken, Luther/Snow, Lawer, Sakharov/Sternfeld); s6 interleave hand-arbitrated in SQUAD_OVERRIDES
+- ISC-275/276: vitest roster.spec (client unit) — id-zip matches engine.marines, deterministic identical rosters across engines, unique names, Sgt./Bro. titles, weapon labels
+- ISC-277/278: Playwright + Chrome zoom screenshot — squad rows Sakharov/Sternfeld stacked, sergeant→specials→bolters order, icon+name+AP 4/4+Ammo 10/6+weapon labels visible
+- ISC-279: Playwright + Chrome — engine `die()` greys the card (grayscale, KIA), click no longer selects
+- ISC-280: Playwright + live Chrome — card click sets Selection to that piece id, card gets `selected` class, camera panEffect runs toward the sprite (scrollY 291→180 observed; RAF-throttled in background tabs only)
+- ISC-281: Playwright — map-side selection moves the single `selected` highlight to the right card
+- ISC-282/283: vitest — catPickedUp badges the carrier card, catDropped clears; marineEscaped applies `escaped` (not `dead`) with ESCAPED label
+- ISC-284: Playwright — overwatchOn() puts an OW badge on the card live
+- ISC-285: Grep/Playwright — legend reads "▲ = stealer entry"; hover.spec updated probe passes
+- ISC-286: Bash — engine suite (incl. import grep guard) 236/236; roster code lives entirely in client/src/ui
+- ISC-287: Bash — 236 engine + 12 client unit + 21 e2e green, `pnpm -r build` clean

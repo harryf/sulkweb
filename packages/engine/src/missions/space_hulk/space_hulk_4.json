@@ -16,55 +16,65 @@
       "x": 29,
       "y": 10,
       "facing": "left",
-      "type": "heavy_flamer"
+      "type": "heavy_flamer",
+      "squad": "Pilgrim"
     },
     {
       "x": 30,
       "y": 10,
       "facing": "left",
-      "type": "sergeant"
+      "type": "sergeant",
+      "squad": "Pilgrim"
     },
     {
       "x": 31,
       "y": 10,
-      "facing": "left"
+      "facing": "left",
+      "squad": "Pilgrim"
     },
     {
       "x": 32,
       "y": 10,
-      "facing": "left"
+      "facing": "left",
+      "squad": "Pilgrim"
     },
     {
       "x": 33,
       "y": 10,
-      "facing": "left"
+      "facing": "left",
+      "squad": "Pilgrim"
     },
     {
       "x": 29,
       "y": 13,
       "facing": "left",
-      "type": "heavy_flamer"
+      "type": "heavy_flamer",
+      "squad": "Stone"
     },
     {
       "x": 30,
       "y": 13,
       "facing": "left",
-      "type": "sergeant"
+      "type": "sergeant",
+      "squad": "Stone"
     },
     {
       "x": 31,
       "y": 13,
-      "facing": "left"
+      "facing": "left",
+      "squad": "Stone"
     },
     {
       "x": 32,
       "y": 13,
-      "facing": "left"
+      "facing": "left",
+      "squad": "Stone"
     },
     {
       "x": 33,
       "y": 13,
-      "facing": "left"
+      "facing": "left",
+      "squad": "Stone"
     }
   ],
   "initialBlips": 0,
@@ -1186,35 +1196,43 @@
   "entryPoints": [
     {
       "x": 21,
-      "y": 3
+      "y": 3,
+      "facing": "up"
     },
     {
       "x": 3,
-      "y": 6
+      "y": 6,
+      "facing": "up"
     },
     {
       "x": 26,
-      "y": 3
+      "y": 3,
+      "facing": "up"
     },
     {
       "x": 28,
-      "y": 3
+      "y": 3,
+      "facing": "right"
     },
     {
       "x": 3,
-      "y": 17
+      "y": 17,
+      "facing": "down"
     },
     {
       "x": 26,
-      "y": 20
+      "y": 20,
+      "facing": "down"
     },
     {
       "x": 28,
-      "y": 20
+      "y": 20,
+      "facing": "right"
     },
     {
       "x": 21,
-      "y": 20
+      "y": 20,
+      "facing": "down"
     }
   ]
 }

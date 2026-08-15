@@ -80,9 +80,11 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
 
 ### Marine roster panel
 
-A card grid to the right of the canvas shows the whole strike force, one row
-per squad (original squad names — Calvin, Constantine, Sakharov…), sergeant
-and special-weapon marines first. Each card carries the marine's icon, a
+A card grid to the right of the canvas shows the whole force, one row per
+squad — titled after its sergeant per the Space Hulk convention ("Squad
+Hectarion"), with the original mission squad key (Calvin, Constantine,
+Sakharov…) kept as the grouping identity — sergeant and special-weapon
+marines first. Each card carries the marine's icon, a
 static Deathwing-flavoured name (`Sgt. Gideon`, `Bro. Claudio`), live AP and
 ammo, weapon label, and state badges (overwatch, jam, C.A.T. carried). Cards
 grey out `KIA` as marines die — the thinning roster IS the pressure gauge —

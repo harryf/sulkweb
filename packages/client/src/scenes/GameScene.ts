@@ -31,6 +31,8 @@ export default class GameScene extends Phaser.Scene {
   private pauseOverlay?: Phaser.GameObjects.Container;
   private losOverlay!: Phaser.GameObjects.Graphics;
   private losVisible = false;
+  /** Last hover readout string — public for the e2e suite to assert against. */
+  hoverInfo = '';
 
   constructor() {
     super('GameScene')
@@ -213,6 +215,16 @@ export default class GameScene extends Phaser.Scene {
     };
     this.hud.setObjective(objectiveLabel[this.engine.mission.objective ?? 'exterminate-or-exit'] ?? '');
 
+    // Hover readout: coordinate + contents of the square under the cursor,
+    // shown in the HUD below the controls (map design / reference aid).
+    this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+      if (p.isDown) return; // dragging = panning; leave the readout as-is
+      this.hoverInfo = p.x > this.scale.width - HUD_WIDTH
+        ? ''
+        : this.describeSquare(Math.floor(p.worldX / TILE_SIZE), Math.floor(p.worldY / TILE_SIZE));
+      this.hud.setHoverInfo(this.hoverInfo);
+    });
+
     PieceEvents.emit('cpChanged', { cp: this.engine.cp }); // HUD subscribed after the initial roll
 
     // Marine-phase turn timer
@@ -301,6 +313,23 @@ export default class GameScene extends Phaser.Scene {
         PieceEvents.emit('apChanged', { pieceId: piece.id, apRemaining: piece.apRemaining, apInitial: piece.apInitial });
       }
     });
+  }
+
+  /** Human-readable contents of a board square — powers the HUD hover readout. */
+  describeSquare(x: number, y: number): string {
+    const board = this.engine.state.board;
+    const sq = board.get(x, y);
+    if (!sq) return `(${x},${y}) — rock`;
+    const parts = [`(${x},${y}) ${sq.kind} tile`];
+    const ARROW = ['↑', '→', '↓', '←'];
+    for (const door of board.doorsAt({ c: x, r: y })) {
+      parts.push(`door ${ARROW[door.facing]} ${door.isOpen ? 'open' : 'closed'}`);
+    }
+    const piece = board.pieceAt({ c: x, r: y }) as Piece | undefined;
+    if (piece) parts.push(piece.kind);
+    if (this.engine.mission.entryPoints?.some(e => e.x === x && e.y === y)) parts.push('stealer entry');
+    if (this.engine.mission.exitPoints?.some(e => e.x === x && e.y === y)) parts.push('EXIT');
+    return parts.join(' · ');
   }
 
   update() {

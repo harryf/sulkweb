@@ -184,8 +184,14 @@ export function runStealerActions(board: Board): void {
         const v = DIR_VEC[p.facing];
         const ahead = { c: p.pos.c + v.dc, r: p.pos.r + v.dr };
         if (ahead.c === marine.pos.c && ahead.r === marine.pos.r) {
-          if (!closeCombat(p, marine)) break;
+          const survived = closeCombat(p, marine);
+          // A CC death vacates a square — sight lines may open onto a blip.
+          // This runs inside capture() during the animated phase, where event
+          // handlers are suppressed, so the sight re-check must live HERE.
+          convertRevealedBlips(board);
+          if (!survived) break;
           overwatchReactions(board, p);
+          convertRevealedBlips(board);
           continue;
         }
       }
@@ -195,14 +201,15 @@ export function runStealerActions(board: Board): void {
       if (step === 'none') {
         // No path at all — last-resort safety net: open any adjacent door.
         if (!openAdjacentDoor(board, p)) break;
+        convertRevealedBlips(board); // the opened door may expose a blip
         continue; // door opened; try stepping again next iteration
       }
       overwatchReactions(board, p);
+      // The step (and any door it opened, and any overwatch death) changed
+      // sight lines — convert every blip a marine now sees, including p itself
+      // if it just stepped into view. Idempotent; converted pieces go !alive.
+      convertRevealedBlips(board);
       if (!p.alive) break;
-      if (p.kind === 'blip' && squareSeenByMarine(board, p.pos)) {
-        (p as Blip).convert();
-        break;
-      }
     }
   }
 }

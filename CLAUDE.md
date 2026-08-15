@@ -20,9 +20,9 @@ Resuming work = extend `ISA.md` (new ISCs, decisions, changelog) — don't inven
 ```bash
 pnpm install
 pnpm --filter ./packages/client dev      # play at localhost:5173
-pnpm --filter ./packages/engine test     # 107 unit tests + coverage (~95% lines)
+pnpm --filter ./packages/engine test     # 112 unit tests + coverage (~95% lines)
 pnpm --filter ./packages/client test     # HUD/minimap units (vitest, --dir src only)
-pnpm --filter ./packages/client e2e      # Playwright no-mock suite (7 tests, incl. win+loss playthroughs + stealer-phase animation)
+pnpm --filter ./packages/client e2e      # Playwright no-mock suite (8 tests, incl. win+loss playthroughs, stealer-phase animation, HUD hover readout)
 pnpm build                               # engine tsc -b + client vite build
 pnpm --filter ./packages/engine example  # CLI engine tour
 ```
@@ -86,6 +86,11 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
   Two invariants: engine logic must not depend on event delivery inside the captured
   section, and state-mutating handlers (sight-conversion) must skip `PieceEvents.replaying`
   — replayed events describe PAST board states.
+- **Sight-conversion lives at TWO levels, both required:** `GameEngine` handlers on
+  `pieceMoved`/`doorToggled`/`pieceDied` cover live marine-phase actions (a kill vacates a
+  square and can reveal a blip); `runStealerActions` calls `convertRevealedBlips` after every
+  AI action because `capture()` suppresses handlers during the animated stealer phase.
+  Removing either half silently diverges browser games from engine seed scans.
 - **Determinism covers the RNG's whole lifetime:** blip values + first CP roll consume dice
   at engine CONSTRUCTION — swapping `board.dice` afterwards leaves them random. Pin with
   `?seed=N` (installs the source at construction), never a post-hoc dice swap.

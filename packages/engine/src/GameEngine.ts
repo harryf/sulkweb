@@ -66,6 +66,15 @@ export class GameEngine {
       if (PieceEvents.replaying) return // animation replays past events — not new sight lines
       if (this.state.result === 'ongoing') convertRevealedBlips(this.state.board)
     })
+    // A death vacates a square, which can OPEN sight lines: a marine shooting
+    // the stealer in front of a blip must flip that blip at once. Covers
+    // shooting and close-combat kills in the marine phase. (Stealer-phase
+    // deaths happen inside capture(), where handlers are suppressed —
+    // runStealerActions re-checks sight itself after every AI action.)
+    PieceEvents.on('pieceDied', () => {
+      if (PieceEvents.replaying) return
+      if (this.state.result === 'ongoing') convertRevealedBlips(this.state.board)
+    })
   }
 
   findPiece(id: string): Piece | undefined {

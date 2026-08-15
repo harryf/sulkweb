@@ -14,9 +14,15 @@ export class HudPanel extends Phaser.GameObjects.Container {
   private kills = 0
   private losses = 0
   private objectiveText!: Phaser.GameObjects.Text
+  private hoverText!: Phaser.GameObjects.Text
 
   setObjective(text: string) {
     this.objectiveText.setText(text)
+  }
+
+  /** Coordinate + contents of the square under the cursor (below the controls). */
+  setHoverInfo(text: string) {
+    this.hoverText.setText(text || 'Hover a square for info')
   }
 
   setTimer(seconds: number) {
@@ -122,6 +128,13 @@ export class HudPanel extends Phaser.GameObjects.Container {
       'Click marine to select\nW/S move · A/D turn\nO door · F fire · C melee\nV overwatch · U unjam\nP spend CP · L show LOS\nEnter end turn · Esc pause\n\nMap: purple = stealer entry\ngreen = mission exit',
       { fontFamily: 'Kanit', fontSize: '12px', color: '#8a8a8a', lineSpacing: 3, fixedWidth: HUD_WIDTH - 16 })
     this.add(controls)
+
+    // Hover readout — square coordinate + contents, below the controls
+    this.hoverText = scene.add.text(8, controls.y + controls.height + 10, 'Hover a square for info', {
+      fontFamily: 'Kanit', fontSize: '13px', color: '#b8c6d8', lineSpacing: 2,
+      fixedWidth: HUD_WIDTH - 16, wordWrap: { width: HUD_WIDTH - 16 }
+    })
+    this.add(this.hoverText)
 
     // subscribe — payloads carry everything; the HUD never reaches into the engine
     PieceEvents.on('selected', ({ pieceId, ap }) => {

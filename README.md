@@ -28,6 +28,7 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
 | `Enter` / DONE | End marine phase |
 | `Esc` | Pause |
 | Arrows / drag | Pan camera |
+| Mouse hover | Square coordinate + contents in the HUD (below the controls) |
 
 ## Rules implemented (per the original Sulk manual in `docs/`)
 
@@ -39,14 +40,15 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
 - Storm bolter: 2d6 kill-on-6, sustained fire (+1 per miss, max +3), range 12
 - Overwatch reaction fire, jams on doubles, 1 AP unjam
 - Close combat: highest die, stealer 3d6 front / 2d6 flank, tie both survive
-- Blips: hidden 1–3 stealers, convert on being sighted, overflow lost
+- Blips: hidden 1–3 stealers, convert the moment they are sighted — including
+  when a kill vacates the square that was blocking the sight line; overflow lost
 - Turn cycle: CP roll (1d6), marine phase (2:00 timer), reinforcements, stealer AI, victory checks
 - Mission 1 carries a finite genestealer force (2 initial + 10 reinforcement blips): win by extermination or by reaching the exit; both outcomes verified (a pinned-seed autopilot win is part of the e2e suite)
 
 ## Development
 
 ```bash
-pnpm --filter ./packages/engine test   # 92 unit tests (rules, AI, game flow)
+pnpm --filter ./packages/engine test   # 112 unit tests (rules, AI, game flow)
 pnpm --filter ./packages/client test   # HUD + minimap unit tests
 pnpm --filter ./packages/client e2e    # Playwright smoke: real browser, no mocks
 pnpm build                             # engine tsc + client vite build

@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: 100/101 (ISC-71 deferred; ISC-77..101 bug sweep, animated stealer phase, edge-model doors all verified)
+phase: verify
+progress: 100/109 (ISC-71 deferred; ISC-102..109 in flight: kill-reveals-blip conversion + hover square readout)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-14T20:15:00Z
+updated: 2026-08-15T00:10:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -185,6 +185,18 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - [x] ISC-100: Door sprites render ON the boundary between their two squares, rotated along it (browser screenshot)
 - [x] ISC-101: Anti: no door blocks or occupies a square — every door anchor square is passable (vitest)
 
+### Kill-reveals conversion + hover readout (2026-08-15)
+
+- [x] ISC-102: A marine shot that kills a stealer blocking LOS to a blip converts that blip immediately (vitest)
+- [x] ISC-103: A close-combat kill that unblocks LOS to a blip converts it immediately (vitest)
+- [x] ISC-104: An overwatch kill during the stealer phase (inside event capture) that reveals a blip converts it — despite capture buffering suppressing handlers (vitest)
+- [x] ISC-105: Anti: a REPLAYED `pieceDied` event does not trigger blip conversion — animation replays describe past states (vitest)
+- [x] ISC-106: HUD shows a hover readout line positioned below the controls text in the bottom-right panel (Playwright e2e + screenshot)
+- [x] ISC-107: Hovering a board square displays its (x,y) coordinate and tile kind (corridor/room) (Playwright e2e)
+- [x] ISC-108: Hover readout includes the occupant kind when a piece stands on the square, and door edges anchored there (Playwright e2e)
+- [x] ISC-109: Anti: hovering never mutates game state — engine piece positions/AP identical before and after mousemove sweep (Playwright e2e)
+- [x] ISC-110: Invariant test: at every settled marine-phase boundary of autoplayed games (seeds 1-10), no surviving blip sits inside marine sight (vitest)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
@@ -198,6 +210,8 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 | ISC-67 | types | tsc --noEmit both packages | 0 errors | Bash |
 | ISC-69 | coverage | vitest coverage lines | ≥90% engine | Bash |
 | ISC-70,71 | UI perf | console + recording | 0 errors, no jank | Interceptor |
+| ISC-102..105 | engine unit | vitest assertion (RollQueue-pinned kills) | pass | Bash vitest |
+| ISC-106..109 | UI | Playwright mousemove + HUD text read + state diff | pass + screenshot | Bash playwright |
 
 ## Features
 
@@ -213,9 +227,15 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 | mission-1 | Real mission JSON, deployment, objective, reinforcements | ISC-54..59 | phase-cycle | partially |
 | polish-pause | Pause, controls help, README | ISC-60,61,64 | mission-1 | yes |
 | release | Clean build, e2e, commits per milestone | ISC-62,63,65 | all | no |
+| kill-reveals | Death/AI actions re-check sight → blips convert; replay-safe | ISC-102..105 | blips-ai | no |
+| hover-readout | HUD line below controls: hovered square coord + contents | ISC-106..109 | polish-pause | yes |
 
 ## Decisions
 
+- 2026-08-15 (advisor adjudication, kill-reveals run): ADOPTED — (1) invariant test replacing trigger-list faith: ISC-110 asserts "no blip in marine sight at any settled phase boundary" across 10 full autoplayed games; (2) over-conversion negative guard: marine turns fire the sweep while the stealer still blocks LOS — blip must stay hidden (in kill_reveals.spec). REFUTED with evidence — "sweep path unexercised by the scan": `runStealerActions` is pure engine (`ai/StealerAI.ts`), called by `endMarinePhase`, which `autoplay` calls; the scan exercises it in every game. "Parallel implementations risk": both halves call the SAME `convertRevealedBlips` function — there is exactly one implementation of the rule; the two call sites differ only in trigger. "Hover info leak": readout prints `piece.kind` only — a blip reads as "blip" (public knowledge on the physical board); the hidden value is never in the string, and there is no fog-of-war to leak through. WAIVED — capture() queue-and-flush redesign (would collapse the two trigger sites into one): correct instinct, but it changes replay semantics for all view handlers; deferred with the invariant test standing guard against drift. Baseline clarified: byte-identity is against the PRE-change 2026-08-14 scan; mechanism (conversion consumes no dice; autopilot's action density) recorded in Verification.
+- 2026-08-15: Kill-reveals fix placed at TWO levels by necessity, not redundancy: (a) `GameEngine` subscribes `pieceDied` → `convertRevealedBlips` (covers live marine-phase kills; skips `PieceEvents.replaying`); (b) `runStealerActions` calls `convertRevealedBlips` after each AI action (covers the animated stealer phase, where `capture()` suppresses ALL handlers). While tracing (b), found a LATENT divergence: live engine runs converted blips on AI door-openings via the `doorToggled` handler, but captured (browser-animated) runs skipped that handler — same seed could differ between engine scan and browser. The per-action engine-internal sweep closes it. Conversion timing changes dice flow → seed re-scan + re-pin planned.
+- 2026-08-15: Delegation floor (E2 ≥1) relaxed — show-your-math: Forge/Cato need the codex CLI, absent all session; work is a two-file engine change plus one HUD line, single-author with full context already loaded. What Forge would have done (independent implementation of the conversion sweep) is covered by regression tests ISC-102..105.
+- 2026-08-15: Hover readout is scene-driven (scene reads engine, passes a formatted string to `HudPanel.setHoverInfo`) preserving the "HUD never reaches into the engine" pattern; placed below the controls text per user's mid-turn note.
 - 2026-08-14: Seeded via ISA Seed workflow from README, roadmap, prompts/ milestone docs, git history (23 commits), and test inventory. Sources: `prompts/Sulk Web Roadmap.md`, `prompts/PROJECT_AND_TOOLING.md`, milestone docs M0–M3.
 - 2026-08-14: Scope decision — "finish it" defined as verified-playable v0.1 slice (roadmap M3→M6 complete, M7 scoped to Mission 1, M8 hygiene), not full 6-mission campaign with all piece types. Flamer/Assault Cannon/Librarian/Chain-Fist/CAT deferred; recorded in Out of Scope implicitly via Mission-1-only scoping. Rationale: playable game loop is the value inflection the roadmap never reached.
 - 2026-08-14: ISC count 76 vs E4 soft floor 128 — show-your-math: criteria are milestone-verifiable behaviors; padding to 128 would split browser probes into sub-pixel assertions with no added information. Soft floor relaxed; hard gates (completeness, thinking floor) met.
@@ -351,4 +371,14 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - ISC-99: doors.spec — straight-ahead toggle 1 AP, front-diagonal-incident edge reachable, behind edges (incl. own rear edge) unreachable; ai_pathing door test: blip opens edge (10,15)|(10,16) on contact and continues
 - ISC-100: Playwright markers-and-objective.png — door bars straddle square boundaries on col-10 corridor and row-13 arm (previously centered in squares)
 - ISC-101: doors.spec — `isPassable(anchor)` true with closed door present
+- ISC-102: kill_reveals.spec — shot kills stealer at (4,6); blip at (4,4) `alive === false`, 2 stealers spawned; negative guard: marine turns (sweep fires, LOS still blocked) leave blip alive
+- ISC-110: kill_reveals.spec — 10 autoplayed games, zero "visible blip at phase boundary" violations (112 engine tests green)
+- ISC-103: kill_reveals.spec — CC outcome 'attacker', stealer dead, blip behind converted
+- ISC-104: kill_reveals.spec — `PieceEvents.capture(() => engine.endMarinePhase())`: overwatch kill → blip converted, `blipConverted` in captured stream
+- ISC-105: kill_reveals.spec — `PieceEvents.replay(pieceDied)` leaves visible blip alive; identical live emit converts it
+- ISC-106: hover.spec + test-results/hover-readout.png — HUD line "(10,5) corridor tile · door ↑ closed" rendered below controls text (hoverY > controlsY asserted)
+- ISC-107: hover.spec — hover (10,4) → "(10,4) … corridor tile"; off-map (0,0) → "rock"
+- ISC-108: hover.spec — readout contains "marine" on occupied square, "door … closed" on door anchor
+- ISC-109: hover.spec — piece id:pos:ap snapshot identical before/after mousemove sweep; zero page errors
+- Seed re-scan post kill-reveals (2026-08-15): 62W/58L/0 over 120 construction-seeded games — IDENTICAL to baseline; mechanism: conversion consumes no dice, and the autopilot's dense marine actions meant reveal-timing shifts never altered the dice stream across all 120 seeds. Pins seed 1 (win) / seed 5 (loss) re-verified in-browser via win.spec + playthrough.spec.
 - Sweep: engine 104/104, client units 6/6, e2e 7/7, build clean; deterministic seed scan UNCHANGED (62W/58L/0 — dice order preserved), pins ?seed=1/?seed=5 still valid

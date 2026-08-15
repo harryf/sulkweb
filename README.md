@@ -2,7 +2,16 @@
 
 A web-based port of the classic turn-based strategy game [Sulk](https://sulk.sourceforge.net/) (a Space Hulk clone, originally Pygame), built with **Phaser 3 + TypeScript** on the client and a **pure-TypeScript rules engine** with no rendering dependencies.
 
-**Status: playable v0.1 slice.** Mission 1 ("Suicide Mission") boots with a five-marine squad, genestealer blips enter from mission entry points, the stealer AI hunts the squad, and the game ends in victory (reach the exit or exterminate) or defeat (squad wiped).
+**Status: playable v0.1 slice.** Two missions transcribed from the original game's
+sources (`data/missions/<family>/MISH_*.py`), sharing the original Suicide Mission board:
+
+- **`debug_1`** (default): "Suicide Mission with no forces" — one storm-bolter marine
+  vs a one-blip-per-turn trickle. `http://localhost:5173/`
+- **`space_hulk_1`**: the full scenario — five-marine squad, 2 starting blips plus
+  reinforcements. `http://localhost:5173/?mission=space_hulk_1`
+
+Blips enter from the mission entry points, the stealer AI hunts the squad, and the game
+ends in victory (reach Launch Control or exterminate) or defeat (squad wiped).
 
 ## Play
 
@@ -43,9 +52,10 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
 - Blips: hidden 1–3 stealers, convert the moment they are sighted — including
   when a kill vacates the square that was blocking the sight line; overflow lost
 - Turn cycle: CP roll (1d6), marine phase (2:00 timer), reinforcements, stealer AI, victory checks
-- Mission 1 board is the ORIGINAL Sulk "Suicide Mission" layout (98 squares, 7 doors,
+- The board is the ORIGINAL Sulk "Suicide Mission" layout (98 squares, 7 doors,
   6 stealer entries, three rooms, marines deployed at BEGINPLACE (14,20)), verified
-  square-for-square against the Pygame source by `mission1_fidelity.spec`
+  square-for-square against the Pygame source by `mission1_fidelity.spec`; debug_1
+  shares it byte-for-byte per the original sources
 - Objective is adapted: without the heavy flamer, "reach Launch Control (20,20)" stands in
   for "set the room on fire" (exterminate also wins; blips 2 initial + 1/turn per the
   original, capped at 10 reinforcements); both win and loss verified at pinned seeds

@@ -1,7 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 
 async function waitForGame(page: Page) {
-  await page.goto('/?seed=1'); // pinned — deterministic replay content
+  // space_hulk_1: two initial blips guarantee visible stealer-phase motion
+  await page.goto('/?mission=space_hulk_1&seed=1'); // pinned — deterministic replay content
   await expect(page.locator('canvas')).toBeVisible();
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
 }

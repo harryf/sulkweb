@@ -1,0 +1,547 @@
+{
+  "name": "Suicide Mission with no forces",
+  "width": 22,
+  "height": 27,
+  "squares": [
+    {
+      "x": 10,
+      "y": 0,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 1,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 2,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 3,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 4,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 5,
+      "kind": "corridor",
+      "doorFacing": "up"
+    },
+    {
+      "x": 9,
+      "y": 6,
+      "kind": "room"
+    },
+    {
+      "x": 10,
+      "y": 6,
+      "kind": "room"
+    },
+    {
+      "x": 11,
+      "y": 6,
+      "kind": "room"
+    },
+    {
+      "x": 8,
+      "y": 7,
+      "kind": "corridor",
+      "doorFacing": "right"
+    },
+    {
+      "x": 9,
+      "y": 7,
+      "kind": "room"
+    },
+    {
+      "x": 10,
+      "y": 7,
+      "kind": "room"
+    },
+    {
+      "x": 11,
+      "y": 7,
+      "kind": "room"
+    },
+    {
+      "x": 9,
+      "y": 8,
+      "kind": "room"
+    },
+    {
+      "x": 10,
+      "y": 8,
+      "kind": "room"
+    },
+    {
+      "x": 11,
+      "y": 8,
+      "kind": "room"
+    },
+    {
+      "x": 10,
+      "y": 9,
+      "kind": "corridor",
+      "doorFacing": "up"
+    },
+    {
+      "x": 4,
+      "y": 7,
+      "kind": "corridor"
+    },
+    {
+      "x": 5,
+      "y": 7,
+      "kind": "corridor"
+    },
+    {
+      "x": 6,
+      "y": 7,
+      "kind": "corridor"
+    },
+    {
+      "x": 7,
+      "y": 7,
+      "kind": "corridor"
+    },
+    {
+      "x": 0,
+      "y": 6,
+      "kind": "room"
+    },
+    {
+      "x": 1,
+      "y": 6,
+      "kind": "room"
+    },
+    {
+      "x": 2,
+      "y": 6,
+      "kind": "room"
+    },
+    {
+      "x": 0,
+      "y": 7,
+      "kind": "room"
+    },
+    {
+      "x": 1,
+      "y": 7,
+      "kind": "room"
+    },
+    {
+      "x": 2,
+      "y": 7,
+      "kind": "room"
+    },
+    {
+      "x": 3,
+      "y": 7,
+      "kind": "corridor",
+      "doorFacing": "right"
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "kind": "room"
+    },
+    {
+      "x": 1,
+      "y": 8,
+      "kind": "room"
+    },
+    {
+      "x": 2,
+      "y": 8,
+      "kind": "room"
+    },
+    {
+      "x": 1,
+      "y": 9,
+      "kind": "corridor",
+      "doorFacing": "up"
+    },
+    {
+      "x": 1,
+      "y": 10,
+      "kind": "corridor"
+    },
+    {
+      "x": 0,
+      "y": 11,
+      "kind": "corridor"
+    },
+    {
+      "x": 1,
+      "y": 11,
+      "kind": "corridor"
+    },
+    {
+      "x": 2,
+      "y": 11,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 10,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 11,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 12,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 13,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 14,
+      "kind": "corridor"
+    },
+    {
+      "x": 11,
+      "y": 14,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 15,
+      "kind": "corridor"
+    },
+    {
+      "x": 12,
+      "y": 14,
+      "kind": "corridor"
+    },
+    {
+      "x": 13,
+      "y": 14,
+      "kind": "corridor"
+    },
+    {
+      "x": 13,
+      "y": 15,
+      "kind": "corridor",
+      "doorFacing": "up"
+    },
+    {
+      "x": 10,
+      "y": 16,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 17,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 18,
+      "kind": "corridor"
+    },
+    {
+      "x": 13,
+      "y": 16,
+      "kind": "corridor"
+    },
+    {
+      "x": 13,
+      "y": 17,
+      "kind": "corridor"
+    },
+    {
+      "x": 13,
+      "y": 18,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 19,
+      "kind": "corridor"
+    },
+    {
+      "x": 9,
+      "y": 20,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 20,
+      "kind": "corridor"
+    },
+    {
+      "x": 11,
+      "y": 20,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 21,
+      "kind": "corridor"
+    },
+    {
+      "x": 13,
+      "y": 19,
+      "kind": "corridor"
+    },
+    {
+      "x": 12,
+      "y": 20,
+      "kind": "corridor"
+    },
+    {
+      "x": 13,
+      "y": 20,
+      "kind": "corridor"
+    },
+    {
+      "x": 14,
+      "y": 20,
+      "kind": "corridor"
+    },
+    {
+      "x": 13,
+      "y": 21,
+      "kind": "corridor"
+    },
+    {
+      "x": 4,
+      "y": 20,
+      "kind": "corridor"
+    },
+    {
+      "x": 5,
+      "y": 20,
+      "kind": "corridor"
+    },
+    {
+      "x": 6,
+      "y": 20,
+      "kind": "corridor"
+    },
+    {
+      "x": 7,
+      "y": 20,
+      "kind": "corridor"
+    },
+    {
+      "x": 8,
+      "y": 20,
+      "kind": "corridor"
+    },
+    {
+      "x": 2,
+      "y": 19,
+      "kind": "corridor"
+    },
+    {
+      "x": 2,
+      "y": 20,
+      "kind": "corridor"
+    },
+    {
+      "x": 3,
+      "y": 20,
+      "kind": "corridor"
+    },
+    {
+      "x": 2,
+      "y": 21,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 22,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 23,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 24,
+      "kind": "corridor"
+    },
+    {
+      "x": 13,
+      "y": 22,
+      "kind": "corridor"
+    },
+    {
+      "x": 13,
+      "y": 23,
+      "kind": "corridor"
+    },
+    {
+      "x": 13,
+      "y": 24,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 25,
+      "kind": "corridor"
+    },
+    {
+      "x": 9,
+      "y": 26,
+      "kind": "corridor"
+    },
+    {
+      "x": 10,
+      "y": 26,
+      "kind": "corridor"
+    },
+    {
+      "x": 11,
+      "y": 26,
+      "kind": "corridor"
+    },
+    {
+      "x": 13,
+      "y": 25,
+      "kind": "corridor"
+    },
+    {
+      "x": 12,
+      "y": 26,
+      "kind": "corridor"
+    },
+    {
+      "x": 13,
+      "y": 26,
+      "kind": "corridor"
+    },
+    {
+      "x": 14,
+      "y": 26,
+      "kind": "corridor"
+    },
+    {
+      "x": 15,
+      "y": 20,
+      "kind": "corridor"
+    },
+    {
+      "x": 16,
+      "y": 20,
+      "kind": "corridor"
+    },
+    {
+      "x": 17,
+      "y": 20,
+      "kind": "corridor"
+    },
+    {
+      "x": 19,
+      "y": 19,
+      "kind": "room"
+    },
+    {
+      "x": 20,
+      "y": 19,
+      "kind": "room"
+    },
+    {
+      "x": 21,
+      "y": 19,
+      "kind": "room"
+    },
+    {
+      "x": 18,
+      "y": 20,
+      "kind": "corridor",
+      "doorFacing": "right"
+    },
+    {
+      "x": 19,
+      "y": 20,
+      "kind": "room"
+    },
+    {
+      "x": 20,
+      "y": 20,
+      "kind": "room"
+    },
+    {
+      "x": 21,
+      "y": 20,
+      "kind": "room"
+    },
+    {
+      "x": 19,
+      "y": 21,
+      "kind": "room"
+    },
+    {
+      "x": 20,
+      "y": 21,
+      "kind": "room"
+    },
+    {
+      "x": 21,
+      "y": 21,
+      "kind": "room"
+    }
+  ],
+  "entryPoints": [
+    {
+      "x": 0,
+      "y": 11
+    },
+    {
+      "x": 2,
+      "y": 11
+    },
+    {
+      "x": 2,
+      "y": 19
+    },
+    {
+      "x": 2,
+      "y": 21
+    },
+    {
+      "x": 9,
+      "y": 26
+    },
+    {
+      "x": 14,
+      "y": 26
+    }
+  ],
+  "exitPoints": [
+    {
+      "x": 20,
+      "y": 20
+    }
+  ],
+  "marineDeployment": [
+    {
+      "x": 14,
+      "y": 20,
+      "facing": "right"
+    }
+  ],
+  "initialBlips": 0,
+  "blipsPerTurn": 1,
+  "objective": "exterminate-or-exit",
+  "totalBlips": 10
+}

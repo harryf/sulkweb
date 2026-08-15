@@ -3,8 +3,8 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: 118/119 (ISC-71 deferred; ISC-111..119 original-map rebuild verified)
+phase: think
+progress: 118/125 (ISC-71 deferred; ISC-120..125 in flight: mission library + debug_1 switch)
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-15T00:10:00Z
@@ -208,6 +208,15 @@ From the abandoned mid-M3 state, reach a verified-playable Sulk v0.1 slice: all 
 - [x] ISC-117: Board validator passes and full suites are green on the new map (Bash)
 - [x] ISC-118: Re-pinned deterministic win and loss seeds verified in-browser via win.spec/playthrough.spec (Playwright)
 - [x] ISC-119: Anti: no invented square from the old map survives — e.g. (15,13) reads as rock in the hover probe (Playwright)
+
+### Mission library structure + debug_1 switch (2026-08-15)
+
+- [ ] ISC-120: Missions live in family subdirs mirroring the original `data/missions/` (space_hulk/, debug/); loader resolves both names (vitest)
+- [ ] ISC-121: debug_1 board is square/door/entry-identical to space_hulk_1 — mirrors the source diff (vitest)
+- [ ] ISC-122: debug_1 forces per source: one storm-bolter marine at BEGINPLACE (14,20), initialBlips 0, blipsPerTurn 1 (vitest)
+- [ ] ISC-123: Client loads debug_1 by default; `?mission=` URL param selects any registered mission (Playwright)
+- [ ] ISC-124: Pins re-established: debug_1 win pin in win.spec; space_hulk_1 loss pin retained via `?mission=` in playthrough.spec (Playwright)
+- [ ] ISC-125: Anti: the space_hulk_1 fidelity guard is untouched and still green after the move (vitest)
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|

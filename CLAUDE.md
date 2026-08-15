@@ -39,11 +39,17 @@ pnpm --filter ./packages/engine example  # CLI engine tour
   legal-actions scripted player used by the deterministic e2e tests.
 - Mission schema: `engine/src/missions/missionTypes.ts`; Mission 1 JSON has squares,
   doors (`doorFacing`), `entryPoints`, `exitPoints`, `marineDeployment`, `objective`.
-- **Mission 1 geometry is the ORIGINAL Sulk BOARD** (user-supplied `MISH_space_hulk_1.py`,
-  2026-08-15): 98 squares, 7 door edges, 6 entries, marines at BEGINPLACE (14,20), objective
-  room = Launch Control with exit (20,20). `mission1_fidelity.spec.ts` is the square-for-square
-  guard — edit the map only with the original source in hand, and keep that spec in sync.
-  Dynamics are documented deviations (no flamer → reach-objective win; see ISA Decisions).
+- **Mission geometry comes from the ORIGINAL Sulk sources** at
+  `~/Code/personal/sulk/archive/sulk-0.29-snapshot-20030623/data/missions/<family>/MISH_*.py`.
+  Our JSONs mirror that structure: `engine/src/missions/space_hulk/space_hulk_1.json`,
+  `engine/src/missions/debug/debug_1.json` — registry in `missions/index.ts`. debug_1 and
+  space_hulk_1 share a byte-identical 98-square BOARD (verified by diffing the sources);
+  they differ only in forces (debug_1: ONE marine at BEGINPLACE, blips 0 initial + 1/turn).
+  `mission1_fidelity.spec.ts` is the square-for-square guard — edit maps only with the
+  original source in hand. Dynamics are documented deviations (no flamer →
+  reach-Launch-Control win; see ISA Decisions).
+- **Client default mission is `debug_1`;** `?mission=<name>` (any registry key) selects
+  another — the space_hulk_1 e2e specs pass `?mission=space_hulk_1` explicitly.
 
 ## Testing policy (this is why the project survived)
 
@@ -54,10 +60,11 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
    never assertions against seeds. `SeededRng` is for gameplay/e2e determinism only.
 2. **Anything visual/interactive → real browser** (Playwright in `packages/client/tests/`,
    which is e2e-only — never put vitest specs there, the runners conflict).
-3. Pinned-seed e2e: win.spec (?seed=1 → MISSION COMPLETE) and playthrough.spec (?seed=3 → loss).
-   These are determinism fixtures, NOT balance evidence; balance = unpinned seed sweep
-   (2026-08-15 original-map baseline: 102 win / 18 loss / 0 stalemate over 120 games —
-   ALL wins by reaching Launch Control; the rate measures the adapted objective, see ISA).
+3. Pinned-seed e2e: win.spec (debug_1 default, ?seed=1 → MISSION COMPLETE) and
+   playthrough.spec (?mission=space_hulk_1&seed=3 → loss).
+   These are determinism fixtures, NOT balance evidence; balance = unpinned seed sweep.
+   2026-08-15 baselines — space_hulk_1: 102W/18L/0 over 120 (ALL wins by reaching Launch
+   Control; rate measures the adapted objective, see ISA); debug_1: 30W/30L/0 over 60.
    CAUTION: playthrough.spec idles turn 1 before its DONE click, so it consumes dice
    differently from plain autoplay — scan loss seeds under THAT pattern (endMarinePhase
    first, then autoplay). If a rules change alters dice-consumption order, re-scan and re-pin.

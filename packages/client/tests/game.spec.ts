@@ -6,11 +6,28 @@ import { test, expect, type Page } from '@playwright/test';
  * asserted the mocks, not the game.
  */
 
-async function waitForGame(page: Page) {
-  await page.goto('/');
+async function waitForGame(page: Page, url = '/?mission=space_hulk_1') {
+  // This spec exercises the full space_hulk_1 scenario (squad of five, two
+  // blips); the client's DEFAULT mission is debug_1 — covered separately below.
+  await page.goto(url);
   await expect(page.locator('canvas')).toBeVisible();
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
 }
+
+test('default mission is debug_1; ?mission= selects space_hulk_1', async ({ page }) => {
+  await waitForGame(page, '/');
+  const dbg = await page.evaluate(() => {
+    const { engine } = (window as any).sulk;
+    return { name: engine.mission.name, marines: engine.marines.length, enemies: engine.stealerSide.length };
+  });
+  expect(dbg.name).toBe('Suicide Mission with no forces');
+  expect(dbg.marines).toBe(1); // lone storm-bolter marine at BEGINPLACE
+  expect(dbg.enemies).toBe(0); // BLIPS = (0, 1)
+
+  await waitForGame(page, '/?mission=space_hulk_1');
+  const hulk = await page.evaluate(() => (window as any).sulk.engine.mission.name);
+  expect(hulk).toBe('Suicide Mission');
+});
 
 test('boots Mission 1: board, squad of five, two blips, zero errors', async ({ page }) => {
   const errors: string[] = [];

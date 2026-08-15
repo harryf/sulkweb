@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { GameEngine, MARINE_PHASE_SECONDS, loadMission, Square, Piece, StormBolterMarine, Genestealer, Selection, PieceEvents, visibleSquares, canShoot, closeCombat, DIR_VEC, SeededRng, autoplay, runMarineTurn } from "@sulk/engine/index.js";
+import { GameEngine, MARINE_PHASE_SECONDS, loadMission, missions, Square, Piece, StormBolterMarine, Genestealer, Selection, PieceEvents, visibleSquares, canShoot, closeCombat, DIR_VEC, SeededRng, autoplay, runMarineTurn } from "@sulk/engine/index.js";
 import { Minimap } from '../ui/Minimap.js';
 import { HighlightSprite } from '../ui/HighlightSprite.js';
 import { HudPanel } from '../ui/HudPanel.js';
@@ -39,9 +39,13 @@ export default class GameScene extends Phaser.Scene {
     // The engine builds the board, deploys the squad, and seeds the first blips.
     // `?seed=N` pins the WHOLE game (blip values + CP roll included) — used by
     // the deterministic e2e suite and handy for bug reports.
-    const seedParam = new URLSearchParams(window.location.search).get('seed');
+    // `?mission=<name>` selects any registered mission (default: debug_1).
+    const params = new URLSearchParams(window.location.search);
+    const seedParam = params.get('seed');
     const dice = seedParam ? new SeededRng(Number(seedParam)) : undefined;
-    this.engine = new GameEngine(loadMission('space_hulk_1'), [], dice);
+    const missionParam = params.get('mission') ?? 'debug_1';
+    const missionName = (missionParam in missions ? missionParam : 'debug_1') as keyof typeof missions;
+    this.engine = new GameEngine(loadMission(missionName), [], dice);
     (window as any).sulk = { engine: this.engine, Selection, scene: this, SeededRng, autoplay, runMarineTurn }; // dev/debug + autoplay handle
   }
 

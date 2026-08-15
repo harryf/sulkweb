@@ -95,14 +95,23 @@ export function displayOrder(entries: RosterEntry[]): RosterEntry[] {
   return [...entries].sort((a, b) => rank(a.type) - rank(b.type));
 }
 
-/** Group by squad, preserving first-appearance order. */
-export function groupBySquad(entries: RosterEntry[]): { squad: string; members: RosterEntry[] }[] {
-  const rows: { squad: string; members: RosterEntry[] }[] = [];
+/**
+ * Group by squad, preserving first-appearance order. Rows are TITLED after
+ * their leader per the Space Hulk convention (the original names squads for
+ * their sergeant — "Squad Lorenzo"): the display-ordered first member is the
+ * sergeant when one exists, so his first name becomes the row title. The
+ * mission's own squad key stays as the grouping identity (`squad`).
+ */
+export function groupBySquad(entries: RosterEntry[]): { squad: string; title: string; members: RosterEntry[] }[] {
+  const rows: { squad: string; title: string; members: RosterEntry[] }[] = [];
   for (const e of entries) {
     let row = rows.find(r => r.squad === e.squad);
-    if (!row) { row = { squad: e.squad, members: [] }; rows.push(row); }
+    if (!row) { row = { squad: e.squad, title: '', members: [] }; rows.push(row); }
     row.members.push(e);
   }
-  for (const row of rows) row.members = displayOrder(row.members);
+  for (const row of rows) {
+    row.members = displayOrder(row.members);
+    row.title = `Squad ${row.members[0].name.replace(/^(Sgt|Bro)\. /, '')}`;
+  }
   return rows;
 }

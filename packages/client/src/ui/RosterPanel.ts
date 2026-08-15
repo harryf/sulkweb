@@ -47,7 +47,7 @@ export class RosterPanel {
     this.root = document.createElement('aside');
     this.root.id = 'roster-panel';
     const title = document.createElement('h2');
-    title.textContent = 'Strike Force';
+    title.textContent = 'Marine Roster';
     this.root.appendChild(title);
 
     for (const row of groupBySquad(entries)) {
@@ -55,7 +55,7 @@ export class RosterPanel {
       section.className = 'squad-row';
       section.dataset.squad = row.squad;
       const h = document.createElement('h3');
-      h.textContent = `Squad ${row.squad}`;
+      h.textContent = row.title;
       section.appendChild(h);
       const cards = document.createElement('div');
       cards.className = 'cards';

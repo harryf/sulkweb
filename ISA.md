@@ -3,8 +3,8 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: 290/291 (card-polish ISC-288..291 verified; ISC-71 deferred)
+phase: verify
+progress: 295/296 (marker-visibility run ISC-292..296 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-15T12:45:00Z
@@ -424,6 +424,14 @@ Mission + closure:
 - [x] ISC-285: HUD legend/controls text updated — no stale "purple = stealer entry" claim (Grep)
 - [x] ISC-286: Anti: engine stays Phaser/DOM-free — import grep guard still passes; roster is client-only (Grep)
 - [x] ISC-287: Anti: all existing suites stay green (engine + client unit + e2e) and the build is clean after the change (Bash)
+
+### Marker visibility + roster naming (2026-08-15 evening)
+
+- [x] ISC-292: camera bounds include a HUD-width dead zone on the right — max pan brings the rightmost off-board marker fully into the board-view area (vitest-free geometry, Playwright probe)
+- [x] ISC-293: permanent e2e guard sweeps ALL registered missions: every entry-triangle/exit-arrow rotated display bound lies within the reachable camera range (Playwright)
+- [x] ISC-294: roster panel title reads "Marine Roster" (Playwright)
+- [x] ISC-295: squad rows are titled after their leader — "Squad <sergeant first name>", fallback first member; data-squad keeps the original mission squad key (vitest + Playwright)
+- [x] ISC-296: Anti: all suites green and the build clean after the change (Bash)
 
 ### Card polish — facing, CP, ammo line (2026-08-15 follow-up)
 
@@ -846,3 +854,8 @@ beta_2 completion (2026-08-15):
 - ISC-289: vitest + Playwright — stats line reads "AP n/m · CP p", updates on cpChanged (unit exact-match) and shows the seeded pool in e2e
 - ISC-290: Playwright + wide screenshot — .m-ammo is its own element+line ("Ammo 10"/"Ammo 6" under the weapon cards), .m-stats contains no Ammo, nothing truncated at 92px
 - ISC-291: Bash — 236 engine + 14 client unit + 21 e2e green, build clean
+- ISC-292: Playwright probe — pre-fix measurement: s2 maxX 200 left 2 triangles unreachable, s3 maxX 280 cut the (28,22) triangle at world-x 1160 (user report CONFIRMED); post-fix bounds carry +HUD_WIDTH and the corner screenshot shows the triangle whole at max pan
+- ISC-293: Playwright markers.spec — permanent 9-mission sweep, rotation-aware getBounds vs settled min/max scroll: 0 unreachable everywhere
+- ISC-294: Playwright + screenshot — h2 reads "Marine Roster"
+- ISC-295: vitest + Playwright + screenshot — rows titled "Squad <sergeant>" (SQUAD HECTARION / SQUAD CLAUDIO seen live), data-squad keeps the original mission key
+- ISC-296: Bash — 236 engine + 14 client unit + 30 e2e green, build clean

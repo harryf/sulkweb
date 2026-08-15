@@ -111,7 +111,7 @@ export default class GameScene extends Phaser.Scene {
     // the right. One tile of margin all round so off-board entry triangles /
     // exit arrows are visible at board edges.
     const viewW = Math.min((width + 2) * TILE_SIZE, 880)
-    const viewH = Math.min((height + 2) * TILE_SIZE, 720)
+    const viewH = Math.min((height + 2) * TILE_SIZE, 760)
     this.scale.resize(viewW + HUD_WIDTH, viewH)
 
     board.allSquares().forEach((sq: Square) => {
@@ -371,8 +371,13 @@ export default class GameScene extends Phaser.Scene {
     this.wasd = this.input.keyboard!.addKeys('W,A,S,D,O,F,C,V,U,P,X,T,R,G') as any
     this.input.keyboard!.on('keydown-ENTER', () => this.endTurn());
     this.input.keyboard!.on('keydown-ESC', () => this.togglePause());
-    // Camera bounds to exclude HUD area — one-tile margin for off-board markers
-    this.cameras.main.setBounds(-TILE_SIZE, -TILE_SIZE, (width + 2) * TILE_SIZE, (height + 2) * TILE_SIZE)
+    // Camera bounds: one-tile margin for off-board markers, PLUS a HUD-width
+    // dead zone on the right. Phaser clamps scroll to bounds − FULL canvas
+    // width, but the right 200px of canvas is the opaque HUD strip — without
+    // the dead zone the rightmost markers can never pan out from under it
+    // (space_hulk_3's (28,22) entry triangle was the reported casualty).
+    this.cameras.main.setBounds(-TILE_SIZE, -TILE_SIZE,
+      (width + 2) * TILE_SIZE + HUD_WIDTH, (height + 2) * TILE_SIZE)
 
     const centerX = Math.floor(width / 2) * TILE_SIZE
     const centerY = Math.floor(height / 2) * TILE_SIZE

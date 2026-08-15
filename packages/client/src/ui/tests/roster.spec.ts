@@ -58,6 +58,12 @@ describe('marine identities (ISC-275/276)', () => {
     expect(rows[1].members.map(e => e.type)).toEqual(
       ['sergeant_sword', 'chain_fist', 'heavy_flamer', 'storm_bolter', 'storm_bolter'])
     expect(nameOffset('beta_2')).toBeLessThan(NAME_POOL.length)
+    // Rows are titled after their sergeant (ISC-295); grouping key stays original
+    for (const row of rows) {
+      const sgt = row.members.find(m => m.name.startsWith('Sgt. '))!
+      expect(row.title).toBe(`Squad ${sgt.name.slice(5)}`)
+    }
+    expect(rows.map(r => r.squad)).toEqual(['Sakharov', 'Sternfeld'])
   })
 })
 

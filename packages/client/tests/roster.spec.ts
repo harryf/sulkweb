@@ -26,7 +26,11 @@ test('space_hulk_2: entry triangles render; cards select, update, and grey out o
 
   // Panel: one squad row (Constantine), five cards, sergeant first (ISC-277/278)
   await expect(page.locator('#roster-panel .squad-row')).toHaveCount(1);
-  await expect(page.locator('.squad-row h3')).toHaveText('Squad Constantine');
+  // Row titled after its leader (Space Hulk convention) — the sergeant's own name
+  const leader = (await page.locator('.marine-card .m-name').first().textContent())!.replace(/^Sgt\. /, '');
+  await expect(page.locator('.squad-row h3')).toHaveText(`Squad ${leader}`);
+  await expect(page.locator('.squad-row').first()).toHaveAttribute('data-squad', 'Constantine'); // original key kept as identity
+  await expect(page.locator('#roster-panel h2')).toHaveText('Marine Roster');
   const cards = page.locator('.marine-card');
   await expect(cards).toHaveCount(5);
   await expect(cards.nth(0).locator('.m-name')).toContainText('Sgt.');
@@ -119,8 +123,12 @@ test('beta_2: two squad rows with all special-weapon labels; overwatch badge liv
 
   const rows = page.locator('#roster-panel .squad-row');
   await expect(rows).toHaveCount(2);
-  await expect(rows.nth(0).locator('h3')).toHaveText('Squad Sakharov');
-  await expect(rows.nth(1).locator('h3')).toHaveText('Squad Sternfeld');
+  for (const i of [0, 1]) {
+    const sgtName = (await rows.nth(i).locator('.m-name').first().textContent())!.replace(/^Sgt\. /, '');
+    await expect(rows.nth(i).locator('h3')).toHaveText(`Squad ${sgtName}`);
+  }
+  await expect(rows.nth(0)).toHaveAttribute('data-squad', 'Sakharov');
+  await expect(rows.nth(1)).toHaveAttribute('data-squad', 'Sternfeld');
   await expect(page.locator('.marine-card')).toHaveCount(10);
   const weapons = await page.locator('.m-weapon').allTextContents();
   expect(weapons.sort()).toEqual(['Assault Cannon', 'Chain Fist', 'Heavy Flamer', 'Power Sword']);

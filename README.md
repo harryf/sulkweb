@@ -127,6 +127,13 @@ packages/
 - ✅ Mission recreation 1/6 (2026-08-15): space_hulk_2 "Exterminate" — generalized
   `transcribeMission.ts` pipeline (MISH_*.py → mission JSON), kill-quota +
   entry-blockade victory, one-marine-per-room deployment, kill counter HUD
+- ✅ Batch migration (2026-08-15): `scripts/migrateMissions.ts` converted ALL
+  remaining originals (space_hulk 3–6, beta 1–2) into structured drafts at
+  `engine/src/missions/drafts/` — boards, sections, doors, entries, exits,
+  objective squares, ducting, blips, squad rosters, name/info/story, default
+  deployments, cross-checked against an independent source reading (zero
+  discrepancies). Each draft carries a `todo` list naming its unscripted
+  semantics; drafts are NOT registered — the registry stays the playability gate
 
 ## Known gaps / residue
 

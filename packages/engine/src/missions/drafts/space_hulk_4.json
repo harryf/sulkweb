@@ -1,0 +1,1288 @@
+{
+  "name": "space_hulk_4",
+  "draft": true,
+  "originalName": "Cleanse and Burn",
+  "family": "space_hulk",
+  "info": "The Space Marines must cleanse each of two Gene Banks with a flamer hit. The Genestealers must prevent this.",
+  "story": "Techmarine squad 3 has been captured by the Stealers and cryogenically stored in Gene Banks. The Blood Angels' gene seed could not be allowed to fall into enemy hands, but there was not enough time to rescue the Techmarines. Squads Pilgrim and Stone were sent to put them out of their misery.",
+  "flags": [],
+  "squads": [
+    {
+      "name": "Pilgrim",
+      "pieces": [
+        {
+          "type": "storm_bolter"
+        },
+        {
+          "type": "storm_bolter"
+        },
+        {
+          "type": "storm_bolter"
+        },
+        {
+          "type": "sergeant"
+        },
+        {
+          "type": "heavy_flamer"
+        }
+      ]
+    },
+    {
+      "name": "Stone",
+      "pieces": [
+        {
+          "type": "storm_bolter"
+        },
+        {
+          "type": "storm_bolter"
+        },
+        {
+          "type": "storm_bolter"
+        },
+        {
+          "type": "sergeant"
+        },
+        {
+          "type": "heavy_flamer"
+        }
+      ]
+    }
+  ],
+  "marineDeployment": [
+    {
+      "x": 29,
+      "y": 10,
+      "facing": "down",
+      "type": "heavy_flamer"
+    },
+    {
+      "x": 29,
+      "y": 13,
+      "facing": "down",
+      "type": "sergeant"
+    },
+    {
+      "x": 30,
+      "y": 10,
+      "facing": "down"
+    },
+    {
+      "x": 31,
+      "y": 10,
+      "facing": "down"
+    },
+    {
+      "x": 32,
+      "y": 10,
+      "facing": "down"
+    },
+    {
+      "x": 33,
+      "y": 10,
+      "facing": "down",
+      "type": "heavy_flamer"
+    },
+    {
+      "x": 30,
+      "y": 13,
+      "facing": "down",
+      "type": "sergeant"
+    },
+    {
+      "x": 31,
+      "y": 13,
+      "facing": "down"
+    },
+    {
+      "x": 32,
+      "y": 13,
+      "facing": "down"
+    },
+    {
+      "x": 33,
+      "y": 13,
+      "facing": "down"
+    }
+  ],
+  "initialBlips": 0,
+  "blipsPerTurn": 2,
+  "objectiveSquares": [
+    {
+      "x": 9,
+      "y": 6,
+      "id": 1
+    },
+    {
+      "x": 9,
+      "y": 17,
+      "id": 1
+    }
+  ],
+  "comments": [
+    {
+      "x": 9,
+      "y": 6,
+      "text": "Gene Bank"
+    },
+    {
+      "x": 9,
+      "y": 17,
+      "text": "Gene Bank"
+    }
+  ],
+  "todo": [
+    "victory: flame BOTH Gene Bank objective squares (O:1 at (9,6) and (9,17)) — needs multi-point flame-objective with per-point cleansed persistence",
+    "TWO squads (Pilgrim, Stone) deploy — engine deploys a flat marine list; squad identity is cosmetic so far",
+    "check pre_deploy_rule before finalizing marineDeployment",
+    "deployment squares + facings are mechanical defaults — hand-review against pre_deploy_rule and the mission tactics",
+    "victory rule not migrated — implement from victory_check, then register in missions/index.ts + fidelity spec"
+  ],
+  "width": 34,
+  "height": 24,
+  "squares": [
+    {
+      "x": 13,
+      "y": 0,
+      "kind": "corridor",
+      "section": 0
+    },
+    {
+      "x": 13,
+      "y": 1,
+      "kind": "corridor",
+      "section": 0
+    },
+    {
+      "x": 13,
+      "y": 2,
+      "kind": "corridor",
+      "section": 0
+    },
+    {
+      "x": 13,
+      "y": 3,
+      "kind": "corridor",
+      "section": 0
+    },
+    {
+      "x": 13,
+      "y": 4,
+      "kind": "corridor",
+      "section": 0
+    },
+    {
+      "x": 13,
+      "y": 5,
+      "kind": "corridor",
+      "section": 1
+    },
+    {
+      "x": 12,
+      "y": 6,
+      "kind": "corridor",
+      "section": 1
+    },
+    {
+      "x": 13,
+      "y": 6,
+      "kind": "corridor",
+      "section": 1
+    },
+    {
+      "x": 14,
+      "y": 6,
+      "kind": "corridor",
+      "section": 1
+    },
+    {
+      "x": 8,
+      "y": 5,
+      "kind": "corridor",
+      "section": 2
+    },
+    {
+      "x": 9,
+      "y": 5,
+      "kind": "corridor",
+      "section": 2
+    },
+    {
+      "x": 10,
+      "y": 5,
+      "kind": "corridor",
+      "section": 2
+    },
+    {
+      "x": 8,
+      "y": 6,
+      "kind": "corridor",
+      "section": 2
+    },
+    {
+      "x": 9,
+      "y": 6,
+      "kind": "corridor",
+      "section": 2
+    },
+    {
+      "x": 10,
+      "y": 6,
+      "kind": "corridor",
+      "section": 2
+    },
+    {
+      "x": 11,
+      "y": 6,
+      "kind": "corridor",
+      "section": 2,
+      "doorFacing": "right"
+    },
+    {
+      "x": 8,
+      "y": 7,
+      "kind": "corridor",
+      "section": 2
+    },
+    {
+      "x": 9,
+      "y": 7,
+      "kind": "corridor",
+      "section": 2
+    },
+    {
+      "x": 10,
+      "y": 7,
+      "kind": "corridor",
+      "section": 2
+    },
+    {
+      "x": 9,
+      "y": 8,
+      "kind": "corridor",
+      "section": 2,
+      "doorFacing": "up"
+    },
+    {
+      "x": 16,
+      "y": 5,
+      "kind": "corridor",
+      "section": 3
+    },
+    {
+      "x": 17,
+      "y": 5,
+      "kind": "corridor",
+      "section": 3
+    },
+    {
+      "x": 18,
+      "y": 5,
+      "kind": "corridor",
+      "section": 3
+    },
+    {
+      "x": 15,
+      "y": 6,
+      "kind": "corridor",
+      "section": 3,
+      "doorFacing": "right"
+    },
+    {
+      "x": 16,
+      "y": 6,
+      "kind": "corridor",
+      "section": 3
+    },
+    {
+      "x": 17,
+      "y": 6,
+      "kind": "corridor",
+      "section": 3
+    },
+    {
+      "x": 18,
+      "y": 6,
+      "kind": "corridor",
+      "section": 3
+    },
+    {
+      "x": 19,
+      "y": 6,
+      "kind": "corridor",
+      "section": 3,
+      "doorFacing": "right"
+    },
+    {
+      "x": 16,
+      "y": 7,
+      "kind": "corridor",
+      "section": 3
+    },
+    {
+      "x": 17,
+      "y": 7,
+      "kind": "corridor",
+      "section": 3
+    },
+    {
+      "x": 18,
+      "y": 7,
+      "kind": "corridor",
+      "section": 3
+    },
+    {
+      "x": 17,
+      "y": 8,
+      "kind": "corridor",
+      "section": 3,
+      "doorFacing": "up"
+    },
+    {
+      "x": 21,
+      "y": 5,
+      "kind": "corridor",
+      "section": 4
+    },
+    {
+      "x": 20,
+      "y": 6,
+      "kind": "corridor",
+      "section": 4
+    },
+    {
+      "x": 21,
+      "y": 6,
+      "kind": "corridor",
+      "section": 4
+    },
+    {
+      "x": 21,
+      "y": 3,
+      "kind": "corridor",
+      "section": 5
+    },
+    {
+      "x": 21,
+      "y": 4,
+      "kind": "corridor",
+      "section": 5
+    },
+    {
+      "x": 0,
+      "y": 10,
+      "kind": "corridor",
+      "section": 6
+    },
+    {
+      "x": 1,
+      "y": 10,
+      "kind": "corridor",
+      "section": 6
+    },
+    {
+      "x": 0,
+      "y": 11,
+      "kind": "corridor",
+      "section": 6
+    },
+    {
+      "x": 3,
+      "y": 9,
+      "kind": "corridor",
+      "section": 7
+    },
+    {
+      "x": 2,
+      "y": 10,
+      "kind": "corridor",
+      "section": 7
+    },
+    {
+      "x": 3,
+      "y": 10,
+      "kind": "corridor",
+      "section": 7
+    },
+    {
+      "x": 4,
+      "y": 10,
+      "kind": "corridor",
+      "section": 7
+    },
+    {
+      "x": 3,
+      "y": 6,
+      "kind": "corridor",
+      "section": 8
+    },
+    {
+      "x": 3,
+      "y": 7,
+      "kind": "corridor",
+      "section": 8
+    },
+    {
+      "x": 3,
+      "y": 8,
+      "kind": "corridor",
+      "section": 8
+    },
+    {
+      "x": 5,
+      "y": 10,
+      "kind": "corridor",
+      "section": 9
+    },
+    {
+      "x": 6,
+      "y": 10,
+      "kind": "corridor",
+      "section": 9,
+      "doorFacing": "right"
+    },
+    {
+      "x": 7,
+      "y": 10,
+      "kind": "corridor",
+      "section": 9
+    },
+    {
+      "x": 9,
+      "y": 9,
+      "kind": "corridor",
+      "section": 10
+    },
+    {
+      "x": 8,
+      "y": 10,
+      "kind": "corridor",
+      "section": 10
+    },
+    {
+      "x": 9,
+      "y": 10,
+      "kind": "corridor",
+      "section": 10
+    },
+    {
+      "x": 10,
+      "y": 10,
+      "kind": "corridor",
+      "section": 10
+    },
+    {
+      "x": 9,
+      "y": 11,
+      "kind": "corridor",
+      "section": 10
+    },
+    {
+      "x": 11,
+      "y": 10,
+      "kind": "corridor",
+      "section": 11
+    },
+    {
+      "x": 12,
+      "y": 10,
+      "kind": "corridor",
+      "section": 11
+    },
+    {
+      "x": 13,
+      "y": 10,
+      "kind": "corridor",
+      "section": 12
+    },
+    {
+      "x": 14,
+      "y": 10,
+      "kind": "corridor",
+      "section": 12
+    },
+    {
+      "x": 15,
+      "y": 10,
+      "kind": "corridor",
+      "section": 12
+    },
+    {
+      "x": 17,
+      "y": 9,
+      "kind": "corridor",
+      "section": 13
+    },
+    {
+      "x": 16,
+      "y": 10,
+      "kind": "corridor",
+      "section": 13,
+      "doorFacing": "right"
+    },
+    {
+      "x": 17,
+      "y": 10,
+      "kind": "corridor",
+      "section": 13
+    },
+    {
+      "x": 18,
+      "y": 10,
+      "kind": "corridor",
+      "section": 13,
+      "doorFacing": "right"
+    },
+    {
+      "x": 17,
+      "y": 11,
+      "kind": "corridor",
+      "section": 13
+    },
+    {
+      "x": 19,
+      "y": 10,
+      "kind": "corridor",
+      "section": 14
+    },
+    {
+      "x": 20,
+      "y": 10,
+      "kind": "corridor",
+      "section": 14
+    },
+    {
+      "x": 21,
+      "y": 10,
+      "kind": "corridor",
+      "section": 14
+    },
+    {
+      "x": 20,
+      "y": 11,
+      "kind": "corridor",
+      "section": 14
+    },
+    {
+      "x": 22,
+      "y": 10,
+      "kind": "corridor",
+      "section": 15,
+      "doorFacing": "right"
+    },
+    {
+      "x": 23,
+      "y": 10,
+      "kind": "corridor",
+      "section": 15
+    },
+    {
+      "x": 24,
+      "y": 10,
+      "kind": "corridor",
+      "section": 15
+    },
+    {
+      "x": 25,
+      "y": 10,
+      "kind": "corridor",
+      "section": 15
+    },
+    {
+      "x": 27,
+      "y": 9,
+      "kind": "corridor",
+      "section": 16
+    },
+    {
+      "x": 26,
+      "y": 10,
+      "kind": "corridor",
+      "section": 16
+    },
+    {
+      "x": 27,
+      "y": 10,
+      "kind": "corridor",
+      "section": 16
+    },
+    {
+      "x": 28,
+      "y": 10,
+      "kind": "corridor",
+      "section": 16
+    },
+    {
+      "x": 27,
+      "y": 11,
+      "kind": "corridor",
+      "section": 16
+    },
+    {
+      "x": 27,
+      "y": 5,
+      "kind": "corridor",
+      "section": 17
+    },
+    {
+      "x": 27,
+      "y": 6,
+      "kind": "corridor",
+      "section": 17
+    },
+    {
+      "x": 27,
+      "y": 7,
+      "kind": "corridor",
+      "section": 17
+    },
+    {
+      "x": 27,
+      "y": 8,
+      "kind": "corridor",
+      "section": 17
+    },
+    {
+      "x": 26,
+      "y": 3,
+      "kind": "corridor",
+      "section": 18
+    },
+    {
+      "x": 27,
+      "y": 3,
+      "kind": "corridor",
+      "section": 18
+    },
+    {
+      "x": 28,
+      "y": 3,
+      "kind": "corridor",
+      "section": 18
+    },
+    {
+      "x": 27,
+      "y": 4,
+      "kind": "corridor",
+      "section": 18
+    },
+    {
+      "x": 29,
+      "y": 10,
+      "kind": "room",
+      "section": 19
+    },
+    {
+      "x": 30,
+      "y": 10,
+      "kind": "room",
+      "section": 19
+    },
+    {
+      "x": 31,
+      "y": 10,
+      "kind": "room",
+      "section": 19
+    },
+    {
+      "x": 32,
+      "y": 10,
+      "kind": "room",
+      "section": 19
+    },
+    {
+      "x": 33,
+      "y": 10,
+      "kind": "room",
+      "section": 19
+    },
+    {
+      "x": 0,
+      "y": 12,
+      "kind": "corridor",
+      "section": 20
+    },
+    {
+      "x": 0,
+      "y": 13,
+      "kind": "corridor",
+      "section": 20
+    },
+    {
+      "x": 1,
+      "y": 13,
+      "kind": "corridor",
+      "section": 20
+    },
+    {
+      "x": 2,
+      "y": 13,
+      "kind": "corridor",
+      "section": 21
+    },
+    {
+      "x": 3,
+      "y": 13,
+      "kind": "corridor",
+      "section": 21
+    },
+    {
+      "x": 4,
+      "y": 13,
+      "kind": "corridor",
+      "section": 21
+    },
+    {
+      "x": 3,
+      "y": 14,
+      "kind": "corridor",
+      "section": 21
+    },
+    {
+      "x": 3,
+      "y": 15,
+      "kind": "corridor",
+      "section": 22
+    },
+    {
+      "x": 3,
+      "y": 16,
+      "kind": "corridor",
+      "section": 22
+    },
+    {
+      "x": 3,
+      "y": 17,
+      "kind": "corridor",
+      "section": 22
+    },
+    {
+      "x": 5,
+      "y": 13,
+      "kind": "corridor",
+      "section": 23
+    },
+    {
+      "x": 6,
+      "y": 13,
+      "kind": "corridor",
+      "section": 23,
+      "doorFacing": "right"
+    },
+    {
+      "x": 7,
+      "y": 13,
+      "kind": "corridor",
+      "section": 23
+    },
+    {
+      "x": 9,
+      "y": 12,
+      "kind": "corridor",
+      "section": 24
+    },
+    {
+      "x": 8,
+      "y": 13,
+      "kind": "corridor",
+      "section": 24
+    },
+    {
+      "x": 9,
+      "y": 13,
+      "kind": "corridor",
+      "section": 24
+    },
+    {
+      "x": 10,
+      "y": 13,
+      "kind": "corridor",
+      "section": 24
+    },
+    {
+      "x": 9,
+      "y": 14,
+      "kind": "corridor",
+      "section": 24
+    },
+    {
+      "x": 11,
+      "y": 13,
+      "kind": "corridor",
+      "section": 25
+    },
+    {
+      "x": 12,
+      "y": 13,
+      "kind": "corridor",
+      "section": 25
+    },
+    {
+      "x": 13,
+      "y": 13,
+      "kind": "corridor",
+      "section": 26
+    },
+    {
+      "x": 14,
+      "y": 13,
+      "kind": "corridor",
+      "section": 26
+    },
+    {
+      "x": 15,
+      "y": 13,
+      "kind": "corridor",
+      "section": 26
+    },
+    {
+      "x": 17,
+      "y": 12,
+      "kind": "corridor",
+      "section": 27
+    },
+    {
+      "x": 16,
+      "y": 13,
+      "kind": "corridor",
+      "section": 27,
+      "doorFacing": "right"
+    },
+    {
+      "x": 17,
+      "y": 13,
+      "kind": "corridor",
+      "section": 27
+    },
+    {
+      "x": 18,
+      "y": 13,
+      "kind": "corridor",
+      "section": 27,
+      "doorFacing": "right"
+    },
+    {
+      "x": 17,
+      "y": 14,
+      "kind": "corridor",
+      "section": 27
+    },
+    {
+      "x": 20,
+      "y": 12,
+      "kind": "corridor",
+      "section": 28
+    },
+    {
+      "x": 19,
+      "y": 13,
+      "kind": "corridor",
+      "section": 28
+    },
+    {
+      "x": 20,
+      "y": 13,
+      "kind": "corridor",
+      "section": 28
+    },
+    {
+      "x": 21,
+      "y": 13,
+      "kind": "corridor",
+      "section": 28
+    },
+    {
+      "x": 22,
+      "y": 13,
+      "kind": "corridor",
+      "section": 29,
+      "doorFacing": "right"
+    },
+    {
+      "x": 23,
+      "y": 13,
+      "kind": "corridor",
+      "section": 29
+    },
+    {
+      "x": 24,
+      "y": 13,
+      "kind": "corridor",
+      "section": 29
+    },
+    {
+      "x": 25,
+      "y": 13,
+      "kind": "corridor",
+      "section": 29
+    },
+    {
+      "x": 27,
+      "y": 12,
+      "kind": "corridor",
+      "section": 30
+    },
+    {
+      "x": 26,
+      "y": 13,
+      "kind": "corridor",
+      "section": 30
+    },
+    {
+      "x": 27,
+      "y": 13,
+      "kind": "corridor",
+      "section": 30
+    },
+    {
+      "x": 28,
+      "y": 13,
+      "kind": "corridor",
+      "section": 30
+    },
+    {
+      "x": 27,
+      "y": 14,
+      "kind": "corridor",
+      "section": 30
+    },
+    {
+      "x": 27,
+      "y": 15,
+      "kind": "corridor",
+      "section": 31
+    },
+    {
+      "x": 27,
+      "y": 16,
+      "kind": "corridor",
+      "section": 31
+    },
+    {
+      "x": 27,
+      "y": 17,
+      "kind": "corridor",
+      "section": 31
+    },
+    {
+      "x": 27,
+      "y": 18,
+      "kind": "corridor",
+      "section": 31
+    },
+    {
+      "x": 27,
+      "y": 19,
+      "kind": "corridor",
+      "section": 32
+    },
+    {
+      "x": 26,
+      "y": 20,
+      "kind": "corridor",
+      "section": 32
+    },
+    {
+      "x": 27,
+      "y": 20,
+      "kind": "corridor",
+      "section": 32
+    },
+    {
+      "x": 28,
+      "y": 20,
+      "kind": "corridor",
+      "section": 32
+    },
+    {
+      "x": 29,
+      "y": 13,
+      "kind": "room",
+      "section": 33
+    },
+    {
+      "x": 30,
+      "y": 13,
+      "kind": "room",
+      "section": 33
+    },
+    {
+      "x": 31,
+      "y": 13,
+      "kind": "room",
+      "section": 33
+    },
+    {
+      "x": 32,
+      "y": 13,
+      "kind": "room",
+      "section": 33
+    },
+    {
+      "x": 33,
+      "y": 13,
+      "kind": "room",
+      "section": 33
+    },
+    {
+      "x": 13,
+      "y": 19,
+      "kind": "corridor",
+      "section": 34
+    },
+    {
+      "x": 13,
+      "y": 20,
+      "kind": "corridor",
+      "section": 34
+    },
+    {
+      "x": 13,
+      "y": 21,
+      "kind": "corridor",
+      "section": 34
+    },
+    {
+      "x": 13,
+      "y": 22,
+      "kind": "corridor",
+      "section": 34
+    },
+    {
+      "x": 13,
+      "y": 23,
+      "kind": "corridor",
+      "section": 34
+    },
+    {
+      "x": 12,
+      "y": 17,
+      "kind": "corridor",
+      "section": 35
+    },
+    {
+      "x": 13,
+      "y": 17,
+      "kind": "corridor",
+      "section": 35
+    },
+    {
+      "x": 14,
+      "y": 17,
+      "kind": "corridor",
+      "section": 35
+    },
+    {
+      "x": 13,
+      "y": 18,
+      "kind": "corridor",
+      "section": 35
+    },
+    {
+      "x": 9,
+      "y": 15,
+      "kind": "corridor",
+      "section": 36,
+      "doorFacing": "up"
+    },
+    {
+      "x": 8,
+      "y": 16,
+      "kind": "corridor",
+      "section": 36
+    },
+    {
+      "x": 9,
+      "y": 16,
+      "kind": "corridor",
+      "section": 36
+    },
+    {
+      "x": 10,
+      "y": 16,
+      "kind": "corridor",
+      "section": 36
+    },
+    {
+      "x": 8,
+      "y": 17,
+      "kind": "corridor",
+      "section": 36
+    },
+    {
+      "x": 9,
+      "y": 17,
+      "kind": "corridor",
+      "section": 36
+    },
+    {
+      "x": 10,
+      "y": 17,
+      "kind": "corridor",
+      "section": 36
+    },
+    {
+      "x": 11,
+      "y": 17,
+      "kind": "corridor",
+      "section": 36,
+      "doorFacing": "right"
+    },
+    {
+      "x": 8,
+      "y": 18,
+      "kind": "corridor",
+      "section": 36
+    },
+    {
+      "x": 9,
+      "y": 18,
+      "kind": "corridor",
+      "section": 36
+    },
+    {
+      "x": 10,
+      "y": 18,
+      "kind": "corridor",
+      "section": 36
+    },
+    {
+      "x": 17,
+      "y": 15,
+      "kind": "corridor",
+      "section": 37,
+      "doorFacing": "up"
+    },
+    {
+      "x": 16,
+      "y": 16,
+      "kind": "corridor",
+      "section": 37
+    },
+    {
+      "x": 17,
+      "y": 16,
+      "kind": "corridor",
+      "section": 37
+    },
+    {
+      "x": 18,
+      "y": 16,
+      "kind": "corridor",
+      "section": 37
+    },
+    {
+      "x": 15,
+      "y": 17,
+      "kind": "corridor",
+      "section": 37,
+      "doorFacing": "right"
+    },
+    {
+      "x": 16,
+      "y": 17,
+      "kind": "corridor",
+      "section": 37
+    },
+    {
+      "x": 17,
+      "y": 17,
+      "kind": "corridor",
+      "section": 37
+    },
+    {
+      "x": 18,
+      "y": 17,
+      "kind": "corridor",
+      "section": 37
+    },
+    {
+      "x": 19,
+      "y": 17,
+      "kind": "corridor",
+      "section": 37,
+      "doorFacing": "right"
+    },
+    {
+      "x": 16,
+      "y": 18,
+      "kind": "corridor",
+      "section": 37
+    },
+    {
+      "x": 17,
+      "y": 18,
+      "kind": "corridor",
+      "section": 37
+    },
+    {
+      "x": 18,
+      "y": 18,
+      "kind": "corridor",
+      "section": 37
+    },
+    {
+      "x": 20,
+      "y": 17,
+      "kind": "corridor",
+      "section": 38
+    },
+    {
+      "x": 21,
+      "y": 17,
+      "kind": "corridor",
+      "section": 38
+    },
+    {
+      "x": 21,
+      "y": 18,
+      "kind": "corridor",
+      "section": 38
+    },
+    {
+      "x": 21,
+      "y": 19,
+      "kind": "corridor",
+      "section": 39
+    },
+    {
+      "x": 21,
+      "y": 20,
+      "kind": "corridor",
+      "section": 39
+    }
+  ],
+  "entryPoints": [
+    {
+      "x": 21,
+      "y": 3
+    },
+    {
+      "x": 3,
+      "y": 6
+    },
+    {
+      "x": 26,
+      "y": 3
+    },
+    {
+      "x": 28,
+      "y": 3
+    },
+    {
+      "x": 3,
+      "y": 17
+    },
+    {
+      "x": 26,
+      "y": 20
+    },
+    {
+      "x": 28,
+      "y": 20
+    },
+    {
+      "x": 21,
+      "y": 20
+    }
+  ]
+}

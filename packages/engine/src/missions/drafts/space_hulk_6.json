@@ -1,0 +1,1448 @@
+{
+  "name": "space_hulk_6",
+  "draft": true,
+  "originalName": "Defend",
+  "family": "space_hulk",
+  "info": "To win, the Space Marines must defend the ducts in the control room for 16 complete turns. The Stealers must attack and destroy the ducts. Flamer Marines may not fire into or out of the control room or adjoining corridor. Also, they are limited to 4 rounds of ammo each.",
+  "story": "The last two Marine squads moved into position around the cryogenics control room. There they were to introduce a lethal toxin into the ducts to kill the dormant Genestealers. The Genestealers were aware of this and attempted to breach these fragile ducts before the full dose could be released.",
+  "flags": [],
+  "squads": [
+    {
+      "name": "Luther",
+      "pieces": [
+        {
+          "type": "storm_bolter"
+        },
+        {
+          "type": "storm_bolter"
+        },
+        {
+          "type": "storm_bolter"
+        },
+        {
+          "type": "sergeant"
+        },
+        {
+          "type": "heavy_flamer"
+        }
+      ]
+    },
+    {
+      "name": "Snow",
+      "pieces": [
+        {
+          "type": "storm_bolter"
+        },
+        {
+          "type": "storm_bolter"
+        },
+        {
+          "type": "storm_bolter"
+        },
+        {
+          "type": "sergeant"
+        },
+        {
+          "type": "heavy_flamer"
+        }
+      ]
+    }
+  ],
+  "marineDeployment": [
+    {
+      "x": 13,
+      "y": 1,
+      "facing": "down",
+      "type": "heavy_flamer"
+    },
+    {
+      "x": 14,
+      "y": 5,
+      "facing": "down",
+      "type": "sergeant"
+    },
+    {
+      "x": 14,
+      "y": 8,
+      "facing": "down"
+    },
+    {
+      "x": 13,
+      "y": 17,
+      "facing": "down"
+    },
+    {
+      "x": 13,
+      "y": 23,
+      "facing": "down"
+    },
+    {
+      "x": 13,
+      "y": 28,
+      "facing": "down",
+      "type": "heavy_flamer"
+    },
+    {
+      "x": 11,
+      "y": 8,
+      "facing": "down",
+      "type": "sergeant"
+    },
+    {
+      "x": 10,
+      "y": 6,
+      "facing": "down"
+    },
+    {
+      "x": 5,
+      "y": 6,
+      "facing": "down"
+    },
+    {
+      "x": 3,
+      "y": 5,
+      "facing": "down"
+    }
+  ],
+  "initialBlips": 2,
+  "blipsPerTurn": 2,
+  "objectiveSquares": [
+    {
+      "x": 13,
+      "y": 0,
+      "id": 2
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "id": 2
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "id": 2
+    },
+    {
+      "x": 13,
+      "y": 1,
+      "id": 1
+    },
+    {
+      "x": 14,
+      "y": 1,
+      "id": 1
+    },
+    {
+      "x": 15,
+      "y": 1,
+      "id": 1
+    },
+    {
+      "x": 13,
+      "y": 2,
+      "id": 1
+    },
+    {
+      "x": 14,
+      "y": 2,
+      "id": 1
+    },
+    {
+      "x": 15,
+      "y": 2,
+      "id": 1
+    },
+    {
+      "x": 13,
+      "y": 3,
+      "id": 1
+    },
+    {
+      "x": 14,
+      "y": 3,
+      "id": 1
+    },
+    {
+      "x": 15,
+      "y": 3,
+      "id": 1
+    },
+    {
+      "x": 14,
+      "y": 4,
+      "id": 1
+    },
+    {
+      "x": 14,
+      "y": 5,
+      "id": 1
+    },
+    {
+      "x": 14,
+      "y": 6,
+      "id": 1
+    },
+    {
+      "x": 14,
+      "y": 7,
+      "id": 1
+    }
+  ],
+  "ducting": [
+    {
+      "x": 13,
+      "y": 0,
+      "facing": "right"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "facing": "right"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "facing": "right"
+    }
+  ],
+  "comments": [
+    {
+      "x": 14,
+      "y": 2,
+      "text": "Control room"
+    }
+  ],
+  "todo": [
+    "victory: marines win by surviving to turn 16 (sulkgame.turnnumber == 16) — engine has no turn-limit objective",
+    "O:1 Control-room squares + O:2 DUCTING squares drive the defend rule — DUCTING feature not implemented",
+    "post_deploy_script overrides heavy-flamer ammo to 4 — engine has no per-mission ammo override",
+    "nearly the whole map is M-tagged (deploy almost anywhere) — the kind:room heuristic mis-paints it; hand-review square kinds",
+    "deployment squares + facings are mechanical defaults — hand-review against pre_deploy_rule and the mission tactics",
+    "victory rule not migrated — implement from victory_check, then register in missions/index.ts + fidelity spec"
+  ],
+  "width": 29,
+  "height": 31,
+  "squares": [
+    {
+      "x": 13,
+      "y": 0,
+      "kind": "corridor",
+      "section": 0
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "kind": "corridor",
+      "section": 0
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "kind": "corridor",
+      "section": 0
+    },
+    {
+      "x": 13,
+      "y": 1,
+      "kind": "room",
+      "section": 0
+    },
+    {
+      "x": 14,
+      "y": 1,
+      "kind": "room",
+      "section": 0
+    },
+    {
+      "x": 15,
+      "y": 1,
+      "kind": "room",
+      "section": 0
+    },
+    {
+      "x": 13,
+      "y": 2,
+      "kind": "room",
+      "section": 0
+    },
+    {
+      "x": 14,
+      "y": 2,
+      "kind": "room",
+      "section": 0
+    },
+    {
+      "x": 15,
+      "y": 2,
+      "kind": "room",
+      "section": 0
+    },
+    {
+      "x": 13,
+      "y": 3,
+      "kind": "room",
+      "section": 0
+    },
+    {
+      "x": 14,
+      "y": 3,
+      "kind": "room",
+      "section": 0
+    },
+    {
+      "x": 15,
+      "y": 3,
+      "kind": "room",
+      "section": 0
+    },
+    {
+      "x": 14,
+      "y": 4,
+      "kind": "room",
+      "section": 0,
+      "doorFacing": "up"
+    },
+    {
+      "x": 14,
+      "y": 5,
+      "kind": "room",
+      "section": 1
+    },
+    {
+      "x": 14,
+      "y": 6,
+      "kind": "room",
+      "section": 1
+    },
+    {
+      "x": 14,
+      "y": 7,
+      "kind": "room",
+      "section": 1
+    },
+    {
+      "x": 14,
+      "y": 8,
+      "kind": "room",
+      "section": 2
+    },
+    {
+      "x": 13,
+      "y": 9,
+      "kind": "room",
+      "section": 2
+    },
+    {
+      "x": 14,
+      "y": 9,
+      "kind": "room",
+      "section": 2
+    },
+    {
+      "x": 15,
+      "y": 9,
+      "kind": "room",
+      "section": 2
+    },
+    {
+      "x": 13,
+      "y": 17,
+      "kind": "room",
+      "section": 3
+    },
+    {
+      "x": 14,
+      "y": 17,
+      "kind": "room",
+      "section": 3
+    },
+    {
+      "x": 15,
+      "y": 17,
+      "kind": "room",
+      "section": 3
+    },
+    {
+      "x": 13,
+      "y": 23,
+      "kind": "room",
+      "section": 4
+    },
+    {
+      "x": 14,
+      "y": 23,
+      "kind": "room",
+      "section": 4
+    },
+    {
+      "x": 15,
+      "y": 23,
+      "kind": "room",
+      "section": 4
+    },
+    {
+      "x": 13,
+      "y": 28,
+      "kind": "room",
+      "section": 5
+    },
+    {
+      "x": 14,
+      "y": 28,
+      "kind": "room",
+      "section": 5
+    },
+    {
+      "x": 15,
+      "y": 28,
+      "kind": "room",
+      "section": 5
+    },
+    {
+      "x": 14,
+      "y": 29,
+      "kind": "room",
+      "section": 5
+    },
+    {
+      "x": 11,
+      "y": 8,
+      "kind": "room",
+      "section": 6
+    },
+    {
+      "x": 11,
+      "y": 9,
+      "kind": "room",
+      "section": 6
+    },
+    {
+      "x": 12,
+      "y": 9,
+      "kind": "room",
+      "section": 6,
+      "doorFacing": "right"
+    },
+    {
+      "x": 11,
+      "y": 10,
+      "kind": "room",
+      "section": 6
+    },
+    {
+      "x": 10,
+      "y": 6,
+      "kind": "room",
+      "section": 7
+    },
+    {
+      "x": 11,
+      "y": 6,
+      "kind": "room",
+      "section": 7
+    },
+    {
+      "x": 11,
+      "y": 7,
+      "kind": "room",
+      "section": 7
+    },
+    {
+      "x": 5,
+      "y": 6,
+      "kind": "room",
+      "section": 8
+    },
+    {
+      "x": 6,
+      "y": 6,
+      "kind": "room",
+      "section": 8
+    },
+    {
+      "x": 7,
+      "y": 6,
+      "kind": "room",
+      "section": 8
+    },
+    {
+      "x": 8,
+      "y": 6,
+      "kind": "room",
+      "section": 8
+    },
+    {
+      "x": 9,
+      "y": 6,
+      "kind": "room",
+      "section": 8
+    },
+    {
+      "x": 3,
+      "y": 5,
+      "kind": "room",
+      "section": 9
+    },
+    {
+      "x": 2,
+      "y": 6,
+      "kind": "room",
+      "section": 9
+    },
+    {
+      "x": 3,
+      "y": 6,
+      "kind": "room",
+      "section": 9
+    },
+    {
+      "x": 4,
+      "y": 6,
+      "kind": "room",
+      "section": 9
+    },
+    {
+      "x": 3,
+      "y": 7,
+      "kind": "room",
+      "section": 9
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "kind": "room",
+      "section": 10
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "kind": "room",
+      "section": 10
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "kind": "room",
+      "section": 10
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "kind": "room",
+      "section": 10
+    },
+    {
+      "x": 3,
+      "y": 4,
+      "kind": "room",
+      "section": 10
+    },
+    {
+      "x": 0,
+      "y": 6,
+      "kind": "room",
+      "section": 11
+    },
+    {
+      "x": 1,
+      "y": 6,
+      "kind": "room",
+      "section": 11
+    },
+    {
+      "x": 3,
+      "y": 8,
+      "kind": "room",
+      "section": 12
+    },
+    {
+      "x": 3,
+      "y": 9,
+      "kind": "room",
+      "section": 12
+    },
+    {
+      "x": 3,
+      "y": 10,
+      "kind": "room",
+      "section": 12
+    },
+    {
+      "x": 3,
+      "y": 11,
+      "kind": "room",
+      "section": 12
+    },
+    {
+      "x": 3,
+      "y": 12,
+      "kind": "room",
+      "section": 13
+    },
+    {
+      "x": 2,
+      "y": 13,
+      "kind": "room",
+      "section": 13
+    },
+    {
+      "x": 3,
+      "y": 13,
+      "kind": "room",
+      "section": 13
+    },
+    {
+      "x": 4,
+      "y": 13,
+      "kind": "room",
+      "section": 13
+    },
+    {
+      "x": 5,
+      "y": 13,
+      "kind": "room",
+      "section": 14
+    },
+    {
+      "x": 6,
+      "y": 13,
+      "kind": "room",
+      "section": 14
+    },
+    {
+      "x": 7,
+      "y": 13,
+      "kind": "room",
+      "section": 14
+    },
+    {
+      "x": 8,
+      "y": 13,
+      "kind": "room",
+      "section": 14
+    },
+    {
+      "x": 11,
+      "y": 11,
+      "kind": "room",
+      "section": 15,
+      "doorFacing": "up"
+    },
+    {
+      "x": 10,
+      "y": 12,
+      "kind": "room",
+      "section": 15
+    },
+    {
+      "x": 11,
+      "y": 12,
+      "kind": "room",
+      "section": 15
+    },
+    {
+      "x": 12,
+      "y": 12,
+      "kind": "room",
+      "section": 15
+    },
+    {
+      "x": 9,
+      "y": 13,
+      "kind": "room",
+      "section": 15,
+      "doorFacing": "right"
+    },
+    {
+      "x": 10,
+      "y": 13,
+      "kind": "room",
+      "section": 15
+    },
+    {
+      "x": 11,
+      "y": 13,
+      "kind": "room",
+      "section": 15
+    },
+    {
+      "x": 12,
+      "y": 13,
+      "kind": "room",
+      "section": 15
+    },
+    {
+      "x": 10,
+      "y": 14,
+      "kind": "room",
+      "section": 15
+    },
+    {
+      "x": 11,
+      "y": 14,
+      "kind": "room",
+      "section": 15
+    },
+    {
+      "x": 12,
+      "y": 14,
+      "kind": "room",
+      "section": 15
+    },
+    {
+      "x": 11,
+      "y": 15,
+      "kind": "room",
+      "section": 15,
+      "doorFacing": "up"
+    },
+    {
+      "x": 17,
+      "y": 8,
+      "kind": "room",
+      "section": 16
+    },
+    {
+      "x": 16,
+      "y": 9,
+      "kind": "room",
+      "section": 16,
+      "doorFacing": "right"
+    },
+    {
+      "x": 17,
+      "y": 9,
+      "kind": "room",
+      "section": 16
+    },
+    {
+      "x": 17,
+      "y": 10,
+      "kind": "room",
+      "section": 16
+    },
+    {
+      "x": 17,
+      "y": 6,
+      "kind": "room",
+      "section": 17
+    },
+    {
+      "x": 18,
+      "y": 6,
+      "kind": "room",
+      "section": 17
+    },
+    {
+      "x": 17,
+      "y": 7,
+      "kind": "room",
+      "section": 17
+    },
+    {
+      "x": 23,
+      "y": 6,
+      "kind": "room",
+      "section": 18
+    },
+    {
+      "x": 22,
+      "y": 6,
+      "kind": "room",
+      "section": 18
+    },
+    {
+      "x": 21,
+      "y": 6,
+      "kind": "room",
+      "section": 18
+    },
+    {
+      "x": 20,
+      "y": 6,
+      "kind": "room",
+      "section": 18
+    },
+    {
+      "x": 19,
+      "y": 6,
+      "kind": "room",
+      "section": 18
+    },
+    {
+      "x": 25,
+      "y": 5,
+      "kind": "room",
+      "section": 19
+    },
+    {
+      "x": 26,
+      "y": 6,
+      "kind": "room",
+      "section": 19
+    },
+    {
+      "x": 25,
+      "y": 6,
+      "kind": "room",
+      "section": 19
+    },
+    {
+      "x": 24,
+      "y": 6,
+      "kind": "room",
+      "section": 19
+    },
+    {
+      "x": 25,
+      "y": 7,
+      "kind": "room",
+      "section": 19
+    },
+    {
+      "x": 25,
+      "y": 2,
+      "kind": "room",
+      "section": 20
+    },
+    {
+      "x": 26,
+      "y": 3,
+      "kind": "room",
+      "section": 20
+    },
+    {
+      "x": 25,
+      "y": 3,
+      "kind": "room",
+      "section": 20
+    },
+    {
+      "x": 24,
+      "y": 3,
+      "kind": "room",
+      "section": 20
+    },
+    {
+      "x": 25,
+      "y": 4,
+      "kind": "room",
+      "section": 20
+    },
+    {
+      "x": 28,
+      "y": 6,
+      "kind": "room",
+      "section": 21
+    },
+    {
+      "x": 27,
+      "y": 6,
+      "kind": "room",
+      "section": 21
+    },
+    {
+      "x": 25,
+      "y": 8,
+      "kind": "room",
+      "section": 22
+    },
+    {
+      "x": 25,
+      "y": 9,
+      "kind": "room",
+      "section": 22
+    },
+    {
+      "x": 25,
+      "y": 10,
+      "kind": "room",
+      "section": 22
+    },
+    {
+      "x": 25,
+      "y": 11,
+      "kind": "room",
+      "section": 22
+    },
+    {
+      "x": 25,
+      "y": 12,
+      "kind": "room",
+      "section": 23
+    },
+    {
+      "x": 26,
+      "y": 13,
+      "kind": "room",
+      "section": 23
+    },
+    {
+      "x": 25,
+      "y": 13,
+      "kind": "room",
+      "section": 23
+    },
+    {
+      "x": 24,
+      "y": 13,
+      "kind": "room",
+      "section": 23
+    },
+    {
+      "x": 23,
+      "y": 13,
+      "kind": "room",
+      "section": 24
+    },
+    {
+      "x": 22,
+      "y": 13,
+      "kind": "room",
+      "section": 24
+    },
+    {
+      "x": 21,
+      "y": 13,
+      "kind": "room",
+      "section": 24
+    },
+    {
+      "x": 20,
+      "y": 13,
+      "kind": "room",
+      "section": 24
+    },
+    {
+      "x": 17,
+      "y": 11,
+      "kind": "room",
+      "section": 25,
+      "doorFacing": "up"
+    },
+    {
+      "x": 18,
+      "y": 12,
+      "kind": "room",
+      "section": 25
+    },
+    {
+      "x": 17,
+      "y": 12,
+      "kind": "room",
+      "section": 25
+    },
+    {
+      "x": 16,
+      "y": 12,
+      "kind": "room",
+      "section": 25
+    },
+    {
+      "x": 19,
+      "y": 13,
+      "kind": "room",
+      "section": 25,
+      "doorFacing": "right"
+    },
+    {
+      "x": 18,
+      "y": 13,
+      "kind": "room",
+      "section": 25
+    },
+    {
+      "x": 17,
+      "y": 13,
+      "kind": "room",
+      "section": 25
+    },
+    {
+      "x": 16,
+      "y": 13,
+      "kind": "room",
+      "section": 25
+    },
+    {
+      "x": 18,
+      "y": 14,
+      "kind": "room",
+      "section": 25
+    },
+    {
+      "x": 17,
+      "y": 14,
+      "kind": "room",
+      "section": 25
+    },
+    {
+      "x": 16,
+      "y": 14,
+      "kind": "room",
+      "section": 25
+    },
+    {
+      "x": 17,
+      "y": 15,
+      "kind": "room",
+      "section": 25,
+      "doorFacing": "up"
+    },
+    {
+      "x": 11,
+      "y": 16,
+      "kind": "room",
+      "section": 26
+    },
+    {
+      "x": 11,
+      "y": 17,
+      "kind": "room",
+      "section": 26
+    },
+    {
+      "x": 12,
+      "y": 17,
+      "kind": "room",
+      "section": 26
+    },
+    {
+      "x": 11,
+      "y": 18,
+      "kind": "room",
+      "section": 26
+    },
+    {
+      "x": 11,
+      "y": 19,
+      "kind": "room",
+      "section": 27
+    },
+    {
+      "x": 11,
+      "y": 20,
+      "kind": "room",
+      "section": 27,
+      "doorFacing": "up"
+    },
+    {
+      "x": 11,
+      "y": 21,
+      "kind": "room",
+      "section": 27
+    },
+    {
+      "x": 11,
+      "y": 22,
+      "kind": "room",
+      "section": 28
+    },
+    {
+      "x": 10,
+      "y": 23,
+      "kind": "room",
+      "section": 28
+    },
+    {
+      "x": 11,
+      "y": 23,
+      "kind": "room",
+      "section": 28
+    },
+    {
+      "x": 12,
+      "y": 23,
+      "kind": "room",
+      "section": 28
+    },
+    {
+      "x": 11,
+      "y": 24,
+      "kind": "room",
+      "section": 28
+    },
+    {
+      "x": 6,
+      "y": 22,
+      "kind": "room",
+      "section": 29
+    },
+    {
+      "x": 7,
+      "y": 22,
+      "kind": "room",
+      "section": 29
+    },
+    {
+      "x": 8,
+      "y": 22,
+      "kind": "room",
+      "section": 29
+    },
+    {
+      "x": 6,
+      "y": 23,
+      "kind": "room",
+      "section": 29
+    },
+    {
+      "x": 7,
+      "y": 23,
+      "kind": "room",
+      "section": 29
+    },
+    {
+      "x": 8,
+      "y": 23,
+      "kind": "room",
+      "section": 29
+    },
+    {
+      "x": 9,
+      "y": 23,
+      "kind": "room",
+      "section": 29,
+      "doorFacing": "right"
+    },
+    {
+      "x": 6,
+      "y": 24,
+      "kind": "room",
+      "section": 29
+    },
+    {
+      "x": 7,
+      "y": 24,
+      "kind": "room",
+      "section": 29
+    },
+    {
+      "x": 8,
+      "y": 24,
+      "kind": "room",
+      "section": 29
+    },
+    {
+      "x": 7,
+      "y": 25,
+      "kind": "room",
+      "section": 29,
+      "doorFacing": "up"
+    },
+    {
+      "x": 7,
+      "y": 26,
+      "kind": "room",
+      "section": 30
+    },
+    {
+      "x": 7,
+      "y": 27,
+      "kind": "room",
+      "section": 30
+    },
+    {
+      "x": 7,
+      "y": 28,
+      "kind": "room",
+      "section": 30
+    },
+    {
+      "x": 7,
+      "y": 29,
+      "kind": "room",
+      "section": 30
+    },
+    {
+      "x": 7,
+      "y": 30,
+      "kind": "room",
+      "section": 30
+    },
+    {
+      "x": 11,
+      "y": 25,
+      "kind": "room",
+      "section": 31
+    },
+    {
+      "x": 11,
+      "y": 26,
+      "kind": "room",
+      "section": 31
+    },
+    {
+      "x": 11,
+      "y": 27,
+      "kind": "room",
+      "section": 32
+    },
+    {
+      "x": 11,
+      "y": 28,
+      "kind": "room",
+      "section": 32
+    },
+    {
+      "x": 12,
+      "y": 28,
+      "kind": "room",
+      "section": 32
+    },
+    {
+      "x": 17,
+      "y": 16,
+      "kind": "room",
+      "section": 33
+    },
+    {
+      "x": 16,
+      "y": 17,
+      "kind": "room",
+      "section": 33
+    },
+    {
+      "x": 17,
+      "y": 17,
+      "kind": "room",
+      "section": 33
+    },
+    {
+      "x": 17,
+      "y": 18,
+      "kind": "room",
+      "section": 33
+    },
+    {
+      "x": 17,
+      "y": 19,
+      "kind": "room",
+      "section": 34
+    },
+    {
+      "x": 17,
+      "y": 20,
+      "kind": "room",
+      "section": 34,
+      "doorFacing": "up"
+    },
+    {
+      "x": 17,
+      "y": 21,
+      "kind": "room",
+      "section": 34
+    },
+    {
+      "x": 17,
+      "y": 22,
+      "kind": "room",
+      "section": 35
+    },
+    {
+      "x": 16,
+      "y": 23,
+      "kind": "room",
+      "section": 35
+    },
+    {
+      "x": 17,
+      "y": 23,
+      "kind": "room",
+      "section": 35
+    },
+    {
+      "x": 18,
+      "y": 23,
+      "kind": "room",
+      "section": 35
+    },
+    {
+      "x": 17,
+      "y": 24,
+      "kind": "room",
+      "section": 35
+    },
+    {
+      "x": 20,
+      "y": 22,
+      "kind": "room",
+      "section": 36
+    },
+    {
+      "x": 21,
+      "y": 22,
+      "kind": "room",
+      "section": 36
+    },
+    {
+      "x": 22,
+      "y": 22,
+      "kind": "room",
+      "section": 36
+    },
+    {
+      "x": 19,
+      "y": 23,
+      "kind": "room",
+      "section": 36,
+      "doorFacing": "right"
+    },
+    {
+      "x": 20,
+      "y": 23,
+      "kind": "room",
+      "section": 36
+    },
+    {
+      "x": 21,
+      "y": 23,
+      "kind": "room",
+      "section": 36
+    },
+    {
+      "x": 22,
+      "y": 23,
+      "kind": "room",
+      "section": 36
+    },
+    {
+      "x": 20,
+      "y": 24,
+      "kind": "room",
+      "section": 36
+    },
+    {
+      "x": 21,
+      "y": 24,
+      "kind": "room",
+      "section": 36
+    },
+    {
+      "x": 22,
+      "y": 24,
+      "kind": "room",
+      "section": 36
+    },
+    {
+      "x": 21,
+      "y": 25,
+      "kind": "room",
+      "section": 36,
+      "doorFacing": "up"
+    },
+    {
+      "x": 21,
+      "y": 26,
+      "kind": "room",
+      "section": 37
+    },
+    {
+      "x": 21,
+      "y": 27,
+      "kind": "room",
+      "section": 37
+    },
+    {
+      "x": 21,
+      "y": 28,
+      "kind": "room",
+      "section": 37
+    },
+    {
+      "x": 21,
+      "y": 29,
+      "kind": "room",
+      "section": 37
+    },
+    {
+      "x": 21,
+      "y": 30,
+      "kind": "room",
+      "section": 37
+    },
+    {
+      "x": 17,
+      "y": 25,
+      "kind": "room",
+      "section": 38
+    },
+    {
+      "x": 17,
+      "y": 26,
+      "kind": "room",
+      "section": 38
+    },
+    {
+      "x": 17,
+      "y": 27,
+      "kind": "room",
+      "section": 39
+    },
+    {
+      "x": 16,
+      "y": 28,
+      "kind": "room",
+      "section": 39
+    },
+    {
+      "x": 17,
+      "y": 28,
+      "kind": "room",
+      "section": 39
+    }
+  ],
+  "entryPoints": [
+    {
+      "x": 14,
+      "y": 29
+    },
+    {
+      "x": 3,
+      "y": 2
+    },
+    {
+      "x": 2,
+      "y": 3
+    },
+    {
+      "x": 4,
+      "y": 3
+    },
+    {
+      "x": 0,
+      "y": 6
+    },
+    {
+      "x": 2,
+      "y": 13
+    },
+    {
+      "x": 25,
+      "y": 2
+    },
+    {
+      "x": 26,
+      "y": 3
+    },
+    {
+      "x": 24,
+      "y": 3
+    },
+    {
+      "x": 28,
+      "y": 6
+    },
+    {
+      "x": 26,
+      "y": 13
+    },
+    {
+      "x": 7,
+      "y": 30
+    },
+    {
+      "x": 21,
+      "y": 30
+    }
+  ]
+}

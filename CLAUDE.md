@@ -47,13 +47,20 @@ pnpm --filter ./packages/engine example  # CLI engine tour
   they differ only in forces/objective. `mission{1,2}_fidelity.spec.ts` are the
   square-for-square guards — edit maps only with the original source in hand.
 - **New missions transcribe mechanically**: `bun scripts/transcribeMission.ts
-  <MISH_*.py> <target.json>` parses the BOARD (sections, doors, entries, M/room
-  squares) and patches the target's board fields in place, preserving hand-written
-  forces/objective fields — idempotent, rerunnable for missions 3–6. Seed the
-  target with name/deployment/objective first, then transcribe. Each mission's
-  fidelity spec gets its expected data from an INDEPENDENT reading of the source
-  (mission 2's came from a separate Explore-agent transcription), never from the
-  script's own output.
+  <MISH_*.py> <target.json>` patches a single mission's board fields in place,
+  preserving hand-written forces/objective fields; `bun scripts/migrateMissions.ts`
+  batch-converts ALL remaining originals (space_hulk 3–6, beta 1–2) into drafts
+  at `src/missions/drafts/` — both share `scripts/lib/parseMish.ts`, which
+  parses MULTI-tag square dicts (`{O:1,M:None}`, quoted COMMENT strings) that
+  single-tag regexes silently drop. Drafts carry everything mechanical (board,
+  entries, exits, O/DUCTING squares, blips, squad rosters, info/story, default
+  deployment) plus a `todo` list of unscripted semantics (victory_check is
+  arbitrary Python; CAT/lurking/turn-limit/ambush/assault-cannon are unbuilt).
+  Drafts are NEVER registered in `missions/index.ts` — the registry is the
+  playability gate. Finishing a mission = implement its todos, move the JSON to
+  its family folder, register, add a fidelity spec whose expected data comes
+  from an INDEPENDENT reading of the source (missions 1/2 precedent), never
+  from the script's own output.
 - **space_hulk_2 "Exterminate" victory** (`objective: kill-quota`): marines win at
   `board.stealerCasualties >= killQuota` (counted in `Piece.die()` — stealer +1,
   blip +VALUE, conversion counts NOTHING) OR when every entry square has a marine

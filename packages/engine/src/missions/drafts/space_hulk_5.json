@@ -1,0 +1,1120 @@
+{
+  "name": "space_hulk_5",
+  "draft": true,
+  "originalName": "Decoy",
+  "family": "space_hulk",
+  "info": "To win, the Space Marines must get 5 Marines off the map. The Stealers must prevent this.",
+  "story": "Four squads were committed to attack the main cryogenics control room. The area was heavily occupied. To buy time for this attack, squads Abraham and Harken conducted a decoy action.",
+  "flags": [],
+  "squads": [
+    {
+      "name": "Abraham",
+      "pieces": [
+        {
+          "type": "storm_bolter"
+        },
+        {
+          "type": "storm_bolter"
+        },
+        {
+          "type": "storm_bolter"
+        },
+        {
+          "type": "sergeant"
+        },
+        {
+          "type": "heavy_flamer"
+        }
+      ]
+    },
+    {
+      "name": "Harken",
+      "pieces": [
+        {
+          "type": "storm_bolter"
+        },
+        {
+          "type": "storm_bolter"
+        },
+        {
+          "type": "storm_bolter"
+        },
+        {
+          "type": "sergeant"
+        },
+        {
+          "type": "heavy_flamer"
+        }
+      ]
+    }
+  ],
+  "marineDeployment": [
+    {
+      "x": 10,
+      "y": 10,
+      "facing": "down",
+      "type": "heavy_flamer"
+    },
+    {
+      "x": 23,
+      "y": 13,
+      "facing": "down",
+      "type": "sergeant"
+    },
+    {
+      "x": 11,
+      "y": 10,
+      "facing": "down"
+    },
+    {
+      "x": 12,
+      "y": 10,
+      "facing": "down"
+    },
+    {
+      "x": 13,
+      "y": 10,
+      "facing": "down"
+    },
+    {
+      "x": 14,
+      "y": 10,
+      "facing": "down",
+      "type": "heavy_flamer"
+    },
+    {
+      "x": 24,
+      "y": 13,
+      "facing": "down",
+      "type": "sergeant"
+    },
+    {
+      "x": 25,
+      "y": 13,
+      "facing": "down"
+    },
+    {
+      "x": 26,
+      "y": 13,
+      "facing": "down"
+    },
+    {
+      "x": 27,
+      "y": 13,
+      "facing": "down"
+    }
+  ],
+  "initialBlips": 3,
+  "blipsPerTurn": 2,
+  "exitPoints": [
+    {
+      "x": 9,
+      "y": 28
+    }
+  ],
+  "todo": [
+    "victory: ≥5 marines LURKING off-board win (get_numlurking) — lurking/exit-arrow limbo not implemented",
+    "end_script + pre_deploy_rule hooks unread in depth — read before finalizing",
+    "deployment squares + facings are mechanical defaults — hand-review against pre_deploy_rule and the mission tactics",
+    "victory rule not migrated — implement from victory_check, then register in missions/index.ts + fidelity spec"
+  ],
+  "width": 33,
+  "height": 30,
+  "squares": [
+    {
+      "x": 15,
+      "y": 0,
+      "kind": "corridor",
+      "section": 0
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "kind": "corridor",
+      "section": 0
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "kind": "corridor",
+      "section": 0
+    },
+    {
+      "x": 16,
+      "y": 1,
+      "kind": "corridor",
+      "section": 0
+    },
+    {
+      "x": 16,
+      "y": 2,
+      "kind": "corridor",
+      "section": 1
+    },
+    {
+      "x": 16,
+      "y": 3,
+      "kind": "corridor",
+      "section": 1
+    },
+    {
+      "x": 16,
+      "y": 4,
+      "kind": "corridor",
+      "section": 1
+    },
+    {
+      "x": 16,
+      "y": 5,
+      "kind": "corridor",
+      "section": 1
+    },
+    {
+      "x": 16,
+      "y": 6,
+      "kind": "corridor",
+      "section": 2
+    },
+    {
+      "x": 16,
+      "y": 7,
+      "kind": "corridor",
+      "section": 2,
+      "doorFacing": "up"
+    },
+    {
+      "x": 16,
+      "y": 8,
+      "kind": "corridor",
+      "section": 2
+    },
+    {
+      "x": 16,
+      "y": 9,
+      "kind": "corridor",
+      "section": 3
+    },
+    {
+      "x": 15,
+      "y": 10,
+      "kind": "corridor",
+      "section": 3
+    },
+    {
+      "x": 16,
+      "y": 10,
+      "kind": "corridor",
+      "section": 3
+    },
+    {
+      "x": 17,
+      "y": 10,
+      "kind": "corridor",
+      "section": 3
+    },
+    {
+      "x": 16,
+      "y": 11,
+      "kind": "corridor",
+      "section": 3
+    },
+    {
+      "x": 10,
+      "y": 10,
+      "kind": "room",
+      "section": 4
+    },
+    {
+      "x": 11,
+      "y": 10,
+      "kind": "room",
+      "section": 4
+    },
+    {
+      "x": 12,
+      "y": 10,
+      "kind": "room",
+      "section": 4
+    },
+    {
+      "x": 13,
+      "y": 10,
+      "kind": "room",
+      "section": 4
+    },
+    {
+      "x": 14,
+      "y": 10,
+      "kind": "room",
+      "section": 4
+    },
+    {
+      "x": 18,
+      "y": 10,
+      "kind": "corridor",
+      "section": 5
+    },
+    {
+      "x": 19,
+      "y": 10,
+      "kind": "corridor",
+      "section": 5
+    },
+    {
+      "x": 20,
+      "y": 10,
+      "kind": "corridor",
+      "section": 6
+    },
+    {
+      "x": 21,
+      "y": 10,
+      "kind": "corridor",
+      "section": 6
+    },
+    {
+      "x": 22,
+      "y": 10,
+      "kind": "corridor",
+      "section": 6
+    },
+    {
+      "x": 21,
+      "y": 11,
+      "kind": "corridor",
+      "section": 6
+    },
+    {
+      "x": 23,
+      "y": 10,
+      "kind": "corridor",
+      "section": 7
+    },
+    {
+      "x": 24,
+      "y": 10,
+      "kind": "corridor",
+      "section": 7
+    },
+    {
+      "x": 25,
+      "y": 10,
+      "kind": "corridor",
+      "section": 7
+    },
+    {
+      "x": 26,
+      "y": 10,
+      "kind": "corridor",
+      "section": 7
+    },
+    {
+      "x": 28,
+      "y": 9,
+      "kind": "corridor",
+      "section": 8
+    },
+    {
+      "x": 27,
+      "y": 10,
+      "kind": "corridor",
+      "section": 8
+    },
+    {
+      "x": 28,
+      "y": 10,
+      "kind": "corridor",
+      "section": 8
+    },
+    {
+      "x": 16,
+      "y": 12,
+      "kind": "corridor",
+      "section": 9
+    },
+    {
+      "x": 16,
+      "y": 13,
+      "kind": "corridor",
+      "section": 9
+    },
+    {
+      "x": 17,
+      "y": 13,
+      "kind": "corridor",
+      "section": 9,
+      "doorFacing": "right"
+    },
+    {
+      "x": 16,
+      "y": 14,
+      "kind": "corridor",
+      "section": 9
+    },
+    {
+      "x": 18,
+      "y": 13,
+      "kind": "corridor",
+      "section": 10
+    },
+    {
+      "x": 19,
+      "y": 13,
+      "kind": "corridor",
+      "section": 10
+    },
+    {
+      "x": 21,
+      "y": 12,
+      "kind": "corridor",
+      "section": 11,
+      "doorFacing": "up"
+    },
+    {
+      "x": 20,
+      "y": 13,
+      "kind": "corridor",
+      "section": 11
+    },
+    {
+      "x": 21,
+      "y": 13,
+      "kind": "corridor",
+      "section": 11
+    },
+    {
+      "x": 22,
+      "y": 13,
+      "kind": "corridor",
+      "section": 11
+    },
+    {
+      "x": 21,
+      "y": 14,
+      "kind": "corridor",
+      "section": 11,
+      "doorFacing": "up"
+    },
+    {
+      "x": 23,
+      "y": 13,
+      "kind": "room",
+      "section": 12
+    },
+    {
+      "x": 24,
+      "y": 13,
+      "kind": "room",
+      "section": 12
+    },
+    {
+      "x": 25,
+      "y": 13,
+      "kind": "room",
+      "section": 12
+    },
+    {
+      "x": 26,
+      "y": 13,
+      "kind": "room",
+      "section": 12
+    },
+    {
+      "x": 27,
+      "y": 13,
+      "kind": "room",
+      "section": 12
+    },
+    {
+      "x": 16,
+      "y": 15,
+      "kind": "corridor",
+      "section": 13
+    },
+    {
+      "x": 16,
+      "y": 16,
+      "kind": "corridor",
+      "section": 13
+    },
+    {
+      "x": 16,
+      "y": 17,
+      "kind": "corridor",
+      "section": 13
+    },
+    {
+      "x": 16,
+      "y": 18,
+      "kind": "corridor",
+      "section": 13
+    },
+    {
+      "x": 16,
+      "y": 19,
+      "kind": "corridor",
+      "section": 13
+    },
+    {
+      "x": 21,
+      "y": 15,
+      "kind": "corridor",
+      "section": 14
+    },
+    {
+      "x": 21,
+      "y": 16,
+      "kind": "corridor",
+      "section": 14
+    },
+    {
+      "x": 21,
+      "y": 17,
+      "kind": "corridor",
+      "section": 14
+    },
+    {
+      "x": 21,
+      "y": 18,
+      "kind": "corridor",
+      "section": 14
+    },
+    {
+      "x": 21,
+      "y": 19,
+      "kind": "corridor",
+      "section": 14
+    },
+    {
+      "x": 16,
+      "y": 20,
+      "kind": "corridor",
+      "section": 15,
+      "doorFacing": "up"
+    },
+    {
+      "x": 15,
+      "y": 21,
+      "kind": "corridor",
+      "section": 15
+    },
+    {
+      "x": 16,
+      "y": 21,
+      "kind": "corridor",
+      "section": 15
+    },
+    {
+      "x": 17,
+      "y": 21,
+      "kind": "corridor",
+      "section": 15
+    },
+    {
+      "x": 14,
+      "y": 22,
+      "kind": "corridor",
+      "section": 15,
+      "doorFacing": "right"
+    },
+    {
+      "x": 15,
+      "y": 22,
+      "kind": "corridor",
+      "section": 15
+    },
+    {
+      "x": 16,
+      "y": 22,
+      "kind": "corridor",
+      "section": 15
+    },
+    {
+      "x": 17,
+      "y": 22,
+      "kind": "corridor",
+      "section": 15
+    },
+    {
+      "x": 18,
+      "y": 22,
+      "kind": "corridor",
+      "section": 15,
+      "doorFacing": "right"
+    },
+    {
+      "x": 15,
+      "y": 23,
+      "kind": "corridor",
+      "section": 15
+    },
+    {
+      "x": 16,
+      "y": 23,
+      "kind": "corridor",
+      "section": 15
+    },
+    {
+      "x": 17,
+      "y": 23,
+      "kind": "corridor",
+      "section": 15
+    },
+    {
+      "x": 21,
+      "y": 20,
+      "kind": "corridor",
+      "section": 16,
+      "doorFacing": "up"
+    },
+    {
+      "x": 20,
+      "y": 21,
+      "kind": "corridor",
+      "section": 16
+    },
+    {
+      "x": 21,
+      "y": 21,
+      "kind": "corridor",
+      "section": 16
+    },
+    {
+      "x": 22,
+      "y": 21,
+      "kind": "corridor",
+      "section": 16
+    },
+    {
+      "x": 19,
+      "y": 22,
+      "kind": "corridor",
+      "section": 16,
+      "doorFacing": "right"
+    },
+    {
+      "x": 20,
+      "y": 22,
+      "kind": "corridor",
+      "section": 16
+    },
+    {
+      "x": 21,
+      "y": 22,
+      "kind": "corridor",
+      "section": 16
+    },
+    {
+      "x": 22,
+      "y": 22,
+      "kind": "corridor",
+      "section": 16
+    },
+    {
+      "x": 23,
+      "y": 22,
+      "kind": "corridor",
+      "section": 16,
+      "doorFacing": "right"
+    },
+    {
+      "x": 20,
+      "y": 23,
+      "kind": "corridor",
+      "section": 16
+    },
+    {
+      "x": 21,
+      "y": 23,
+      "kind": "corridor",
+      "section": 16
+    },
+    {
+      "x": 22,
+      "y": 23,
+      "kind": "corridor",
+      "section": 16
+    },
+    {
+      "x": 24,
+      "y": 22,
+      "kind": "corridor",
+      "section": 17
+    },
+    {
+      "x": 25,
+      "y": 22,
+      "kind": "corridor",
+      "section": 17,
+      "doorFacing": "right"
+    },
+    {
+      "x": 26,
+      "y": 22,
+      "kind": "corridor",
+      "section": 17
+    },
+    {
+      "x": 28,
+      "y": 21,
+      "kind": "corridor",
+      "section": 18,
+      "doorFacing": "up"
+    },
+    {
+      "x": 27,
+      "y": 22,
+      "kind": "corridor",
+      "section": 18
+    },
+    {
+      "x": 28,
+      "y": 22,
+      "kind": "corridor",
+      "section": 18
+    },
+    {
+      "x": 29,
+      "y": 22,
+      "kind": "corridor",
+      "section": 18
+    },
+    {
+      "x": 31,
+      "y": 21,
+      "kind": "corridor",
+      "section": 19
+    },
+    {
+      "x": 30,
+      "y": 22,
+      "kind": "corridor",
+      "section": 19
+    },
+    {
+      "x": 31,
+      "y": 22,
+      "kind": "corridor",
+      "section": 19
+    },
+    {
+      "x": 28,
+      "y": 19,
+      "kind": "corridor",
+      "section": 20
+    },
+    {
+      "x": 29,
+      "y": 19,
+      "kind": "corridor",
+      "section": 20
+    },
+    {
+      "x": 28,
+      "y": 20,
+      "kind": "corridor",
+      "section": 20
+    },
+    {
+      "x": 31,
+      "y": 18,
+      "kind": "corridor",
+      "section": 21
+    },
+    {
+      "x": 30,
+      "y": 19,
+      "kind": "corridor",
+      "section": 21
+    },
+    {
+      "x": 31,
+      "y": 19,
+      "kind": "corridor",
+      "section": 21
+    },
+    {
+      "x": 32,
+      "y": 19,
+      "kind": "corridor",
+      "section": 21
+    },
+    {
+      "x": 31,
+      "y": 20,
+      "kind": "corridor",
+      "section": 21
+    },
+    {
+      "x": 10,
+      "y": 22,
+      "kind": "corridor",
+      "section": 22
+    },
+    {
+      "x": 11,
+      "y": 22,
+      "kind": "corridor",
+      "section": 22
+    },
+    {
+      "x": 12,
+      "y": 22,
+      "kind": "corridor",
+      "section": 22
+    },
+    {
+      "x": 13,
+      "y": 22,
+      "kind": "corridor",
+      "section": 22
+    },
+    {
+      "x": 7,
+      "y": 22,
+      "kind": "corridor",
+      "section": 23
+    },
+    {
+      "x": 8,
+      "y": 22,
+      "kind": "corridor",
+      "section": 23
+    },
+    {
+      "x": 9,
+      "y": 22,
+      "kind": "corridor",
+      "section": 23
+    },
+    {
+      "x": 8,
+      "y": 23,
+      "kind": "corridor",
+      "section": 23
+    },
+    {
+      "x": 3,
+      "y": 22,
+      "kind": "corridor",
+      "section": 24
+    },
+    {
+      "x": 4,
+      "y": 22,
+      "kind": "corridor",
+      "section": 24
+    },
+    {
+      "x": 5,
+      "y": 22,
+      "kind": "corridor",
+      "section": 24
+    },
+    {
+      "x": 6,
+      "y": 22,
+      "kind": "corridor",
+      "section": 24
+    },
+    {
+      "x": 1,
+      "y": 21,
+      "kind": "corridor",
+      "section": 25
+    },
+    {
+      "x": 0,
+      "y": 22,
+      "kind": "corridor",
+      "section": 25
+    },
+    {
+      "x": 1,
+      "y": 22,
+      "kind": "corridor",
+      "section": 25
+    },
+    {
+      "x": 2,
+      "y": 22,
+      "kind": "corridor",
+      "section": 25,
+      "doorFacing": "right"
+    },
+    {
+      "x": 1,
+      "y": 23,
+      "kind": "corridor",
+      "section": 25
+    },
+    {
+      "x": 1,
+      "y": 19,
+      "kind": "corridor",
+      "section": 26
+    },
+    {
+      "x": 1,
+      "y": 20,
+      "kind": "corridor",
+      "section": 26
+    },
+    {
+      "x": 0,
+      "y": 15,
+      "kind": "corridor",
+      "section": 27
+    },
+    {
+      "x": 1,
+      "y": 15,
+      "kind": "corridor",
+      "section": 27
+    },
+    {
+      "x": 2,
+      "y": 15,
+      "kind": "corridor",
+      "section": 27
+    },
+    {
+      "x": 0,
+      "y": 16,
+      "kind": "corridor",
+      "section": 27
+    },
+    {
+      "x": 1,
+      "y": 16,
+      "kind": "corridor",
+      "section": 27
+    },
+    {
+      "x": 2,
+      "y": 16,
+      "kind": "corridor",
+      "section": 27
+    },
+    {
+      "x": 3,
+      "y": 16,
+      "kind": "corridor",
+      "section": 27,
+      "doorFacing": "right"
+    },
+    {
+      "x": 0,
+      "y": 17,
+      "kind": "corridor",
+      "section": 27
+    },
+    {
+      "x": 1,
+      "y": 17,
+      "kind": "corridor",
+      "section": 27
+    },
+    {
+      "x": 2,
+      "y": 17,
+      "kind": "corridor",
+      "section": 27
+    },
+    {
+      "x": 1,
+      "y": 18,
+      "kind": "corridor",
+      "section": 27,
+      "doorFacing": "up"
+    },
+    {
+      "x": 4,
+      "y": 16,
+      "kind": "corridor",
+      "section": 28
+    },
+    {
+      "x": 5,
+      "y": 16,
+      "kind": "corridor",
+      "section": 28
+    },
+    {
+      "x": 6,
+      "y": 16,
+      "kind": "corridor",
+      "section": 28
+    },
+    {
+      "x": 1,
+      "y": 24,
+      "kind": "corridor",
+      "section": 29
+    },
+    {
+      "x": 1,
+      "y": 25,
+      "kind": "corridor",
+      "section": 29
+    },
+    {
+      "x": 1,
+      "y": 26,
+      "kind": "corridor",
+      "section": 30,
+      "doorFacing": "up"
+    },
+    {
+      "x": 0,
+      "y": 27,
+      "kind": "corridor",
+      "section": 30
+    },
+    {
+      "x": 1,
+      "y": 27,
+      "kind": "corridor",
+      "section": 30
+    },
+    {
+      "x": 2,
+      "y": 27,
+      "kind": "corridor",
+      "section": 30
+    },
+    {
+      "x": 0,
+      "y": 28,
+      "kind": "corridor",
+      "section": 30
+    },
+    {
+      "x": 1,
+      "y": 28,
+      "kind": "corridor",
+      "section": 30
+    },
+    {
+      "x": 2,
+      "y": 28,
+      "kind": "corridor",
+      "section": 30
+    },
+    {
+      "x": 3,
+      "y": 28,
+      "kind": "corridor",
+      "section": 30,
+      "doorFacing": "right"
+    },
+    {
+      "x": 0,
+      "y": 29,
+      "kind": "corridor",
+      "section": 30
+    },
+    {
+      "x": 1,
+      "y": 29,
+      "kind": "corridor",
+      "section": 30
+    },
+    {
+      "x": 2,
+      "y": 29,
+      "kind": "corridor",
+      "section": 30
+    },
+    {
+      "x": 4,
+      "y": 28,
+      "kind": "corridor",
+      "section": 31
+    },
+    {
+      "x": 5,
+      "y": 28,
+      "kind": "corridor",
+      "section": 31
+    },
+    {
+      "x": 6,
+      "y": 28,
+      "kind": "corridor",
+      "section": 31
+    },
+    {
+      "x": 8,
+      "y": 24,
+      "kind": "corridor",
+      "section": 32
+    },
+    {
+      "x": 8,
+      "y": 25,
+      "kind": "corridor",
+      "section": 32
+    },
+    {
+      "x": 8,
+      "y": 26,
+      "kind": "corridor",
+      "section": 32
+    },
+    {
+      "x": 8,
+      "y": 27,
+      "kind": "corridor",
+      "section": 33
+    },
+    {
+      "x": 7,
+      "y": 28,
+      "kind": "corridor",
+      "section": 33
+    },
+    {
+      "x": 8,
+      "y": 28,
+      "kind": "corridor",
+      "section": 33
+    },
+    {
+      "x": 9,
+      "y": 28,
+      "kind": "corridor",
+      "section": 33
+    }
+  ],
+  "entryPoints": [
+    {
+      "x": 15,
+      "y": 0
+    },
+    {
+      "x": 17,
+      "y": 0
+    },
+    {
+      "x": 28,
+      "y": 9
+    },
+    {
+      "x": 31,
+      "y": 18
+    },
+    {
+      "x": 32,
+      "y": 19
+    },
+    {
+      "x": 0,
+      "y": 22
+    },
+    {
+      "x": 6,
+      "y": 16
+    }
+  ]
+}

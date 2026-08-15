@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: 191/192 (mission-2 run ISC-158..190 + 169.1 + 176.1 verified; ISC-71 deferred)
+phase: verify
+progress: 204/205 (batch-migration ISC-191..203 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-15T11:05:00Z
+updated: 2026-08-15T11:45:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -306,6 +306,21 @@ Closure:
 - [x] ISC-189: README + CLAUDE.md document mission 2: forces, victory, adaptations (Read)
 - [x] ISC-190: ISA Decisions records the stealer-placed-marine adaptation + no-lurk note (Read)
 
+Batch migration of remaining missions (2026-08-15, "migrate all the rest"):
+- [x] ISC-191: shared BOARD parser extracted to a module used by both transcribeMission and the batch migrator — no duplicated parse logic (Grep)
+- [x] ISC-192: parser extracts EXIT-tagged squares as exitPoints and O-tagged squares as objective squares (vitest or script probe)
+- [x] ISC-193: `migrateMissions.ts` converts ALL six remaining missions (space_hulk 3–6, beta 1–2) in one run (Bash)
+- [x] ISC-194: each draft carries board data: squares with sections/kinds, doors, entries, exits, objective squares, bbox (Read)
+- [x] ISC-195: each draft carries mechanically-extracted BLIPS (initial, perTurn) matching the source tuples (Read vs source)
+- [x] ISC-196: each draft carries the squad roster(s): names, piece types mapped to our MarineType, unknown types + stealer-placed pieces flagged, mission 6 HF-ammo-4 override noted (Read)
+- [x] ISC-197: each draft carries a default one-marine-per-room deployment where roster and rooms allow, flagged for hand review (Read)
+- [x] ISC-198: each draft carries a `todo` list naming its unscripted semantics (victory rule, escort/lurk/turn-limit/ambush features, exotic equipment) (Read)
+- [x] ISC-199: draft counts cross-checked against an INDEPENDENT agent reading of all six sources — discrepancy count reported (Bash diff)
+- [x] ISC-200: Anti: no draft mission is registered in missions/index.ts or reachable via ?mission= — the registry stays a playability gate (Grep + Read)
+- [x] ISC-201: Anti: existing missions/suites untouched — 168 engine / 6 unit / 11 e2e still green, build clean (Bash)
+- [x] ISC-202: migrator is idempotent — rerun produces byte-identical drafts (Bash md5)
+- [x] ISC-203: README/CLAUDE document the migrator, the drafts, and the per-mission semantic remainder (Read)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
@@ -333,6 +348,9 @@ Closure:
 | ISC-187 | static | engine import grep guard | 0 matches | Grep |
 | ISC-188 | tool | transcriber run reproduces space_hulk_2.json | byte-identical | Bash |
 | ISC-189,190 | docs | README/CLAUDE/ISA content | claims match shipped state | Read |
+| ISC-191..198,200,203 | tool/docs | migrator output + registry + docs read-back | consistent | Read/Grep/Bash |
+| ISC-199,202 | tool | independent-agent diff + rerun md5 | 0 unexplained diffs / identical | Bash |
+| ISC-201 | build/e2e | full suites + build | exit 0 | Bash |
 
 ## Features
 
@@ -449,6 +467,15 @@ Closure:
 - refuted by: unopposed probe (seed 1, blipsPerTurn 0) — all five marines clumped on the two nearest clusters, the southwest T-section entries (2,39)/(3,40) stayed uncovered, result still `ongoing` at turn 41.
 - learned: the entry blockade is a set-cover problem, not a nearest-target problem; a greedy post assignment (each marine takes its nearest UNCOVERED entry, whose ≤6 board-walk neighbours leave the pool) covers all 11 entries with 5 marines.
 - criterion now: ISC-178 — the autopilot advances on entry POSTS from greedy set-cover; unopposed it blockades by turn 7 (Decisions scan evidence).
+
+**2026-08-15 — Batch migration of remaining missions (ISC-191..203):**
+- The user asked whether one script could migrate "all the rest". Honest boundary established and shipped: everything MECHANICAL is scripted (boards, tags, blips, rosters, metadata, default deployments); everything SEMANTIC is not scriptable — each victory_check is arbitrary Python (escort+draw, dual flame, lurk-count, turn-16 defend, hold-square counter) and several engine features are unbuilt (CAT, lurking, DUCTING, ambush counters, assault cannon, chain fist, sword sergeant, per-mission ammo override). Each draft names its own remainder in a todo list.
+- Cross-check verdict (ISC-199): migrator vs independent Explore-agent reading of all six sources — 0 discrepancies across squares/sections/doors/entries/exits/objectives/ducting/M/blips/bbox AND the full entry/exit/objective coordinate lists. The independence caught two pre-run defects: mission 3 CAT is a 3-tuple (my 2-tuple regex would have silently dropped the escort), and my unlabeled BLIPS grep had scrambled file order (three missions would have gotten wrong blip counts — the agent was right on all six, confirmed by labeled re-grep).
+- Parser hardening: multi-tag square dicts ({O:1,M:None}, {O:2,DUCTING:RIGHT}) and quoted COMMENT strings occur in missions 4–6 — parseMish parses full dicts; the mission-1/2 single-tag path regenerates space_hulk_2.json byte-identically (regression md5 match).
+- Registry = playability gate (ISC-200): drafts live in src/missions/drafts/, never imported, never registered; finishing checklist stamped into every draft todo.
+- Mission-6 quirk recorded: 189/192 squares are M-tagged (deploy almost anywhere) — kind:room heuristic mis-paints it; flagged in its draft todo.
+
+**2026-08-15 — Advisor adjudication, batch-migration run:** advisor endorsed both design calls (drafts-with-todos over auto-generating victory logic; unregistered-drafts as the shipping line) and demanded negative evidence. Executed: (a) load-path audit — loadMission goes only through the registry object; ?mission= can only reach registry keys; the one path-based loader (loadMissionSync) is an explicit-filepath Node test utility, noted as residual; (b) NEGATIVE CONTROL — mutated a draft (entry coordinate shift + dropped roster piece), the cross-check comparison fired on both, draft restored byte-identical; (c) durable REGISTRY GUARD — the registry-manifest spec now iterates ALL registered missions and fails on draft flag / todo list / missing objective (it had been hardcoded to two names and was silently skipping space_hulk_2 — advisor pressure surfaced that too). Adjudicated as residual without action: parser silent-skip risk (compensating control = independent per-tag totals, all matched); runtime-dump oracle (original needs Python 2.2-era pygame — waiver carried from the fidelity run); agent blindness confirmed by construction (launched before the migrator existed, prompt scoped to the .py sources, read-only). Advisor auto-state again loaded an unrelated WORK ISA — project-ISA discovery is a known v6.2.x gap; criteria judged against sulkweb/ISA.md ISC-191..203.
 
 **2026-08-15 (mission 2, second entry) —**
 - conjectured: mid-phase victory checking scoped by "protect the pinned seeds" was a sound design rationale.
@@ -616,3 +643,14 @@ Mission-2 recreation (2026-08-15):
 - ISC-188: Bash — transcriber rerun byte-identical (md5 884b34c8… before/after)
 - ISC-189: Read — README (mission list, rules, roadmap, gaps) + CLAUDE.md (transcriber pipeline, kill-quota invariants, counts 164/11) updated
 - ISC-190: Read — Decisions entry records stealer-placed adaptation, no-lurk note, timing, scans, delegation show-math
+Batch migration (2026-08-15):
+- ISC-191: Grep — both scripts import scripts/lib/parseMish.ts; no duplicate BOARD walker
+- ISC-192: script probe — exits/objectives extracted (m3 2 exits, m4 2 obj, m6 16 obj + 3 duct)
+- ISC-193: Bash — one run converted all six missions
+- ISC-194..197: Read — drafts carry board/blips/rosters (CAT + exotics flagged)/default deployments
+- ISC-198: Read — per-draft todo lists (4–8 items each) name victory + feature remainder
+- ISC-199: Bash diff — 0 discrepancies vs independent agent reading (counts + coordinate lists); NEGATIVE CONTROL: mutated draft (coord shift + dropped piece) detected on both axes, then restored; agent blind by construction (launched pre-migrator, sources only)
+- ISC-200: Grep — zero draft references in missions/index.ts; durable guard: registry-manifest spec fails on draft/todo/missing-objective for EVERY registered mission (previously hardcoded to two names); load-path audit clean
+- ISC-201: Bash — 168 engine / 6 unit / 11 e2e green, build clean, mission-1/2 JSON md5 unchanged
+- ISC-202: Bash — rerun md5 identical (idempotent)
+- ISC-203: Read — README roadmap + CLAUDE.md pipeline docs updated

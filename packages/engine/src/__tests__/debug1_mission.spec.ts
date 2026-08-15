@@ -1,5 +1,6 @@
 import { it, expect, describe } from 'vitest';
 import { loadMission } from '../missions/missionLoader.js';
+import { missions } from '../missions/index.js';
 import { GameEngine } from '../GameEngine.js';
 
 /**
@@ -53,13 +54,20 @@ describe('debug_1 mission (MISH_debug_1)', () => {
     expect(engine.stealerSide.length).toBe(1); // the (0,1) trickle
   });
 
-  it('registry manifest: every registered mission compiles and boots (ISC-120)', () => {
-    // The guard that matters when mission #3 lands: each entry parses, passes
-    // the board validator, and deploys its marines without throwing.
-    for (const name of ['space_hulk_1', 'debug_1'] as const) {
+  it('registry manifest: every registered mission compiles, boots, and is no draft (ISC-120/200)', () => {
+    // The guard that matters as migrated missions land: each entry parses,
+    // passes the board validator, deploys its marines without throwing, and is
+    // FINISHED — batch-migrator drafts (draft flag / todo list / no objective)
+    // must never be registered. The registry is the playability gate.
+    const names = Object.keys(missions) as (keyof typeof missions)[];
+    expect(names.length).toBeGreaterThanOrEqual(3);
+    for (const name of names) {
       const m = loadMission(name);
       expect(m.squares!.length).toBeGreaterThan(0);
       expect(m.name!.length).toBeGreaterThan(0);
+      expect((m as Record<string, unknown>).draft, `${name} is a draft`).toBeUndefined();
+      expect((m as Record<string, unknown>).todo, `${name} has open todos`).toBeUndefined();
+      expect(m.objective, `${name} has no victory rule`).toBeDefined();
       const engine = new GameEngine(m);
       expect(engine.marines.length).toBe(m.marineDeployment!.length);
     }

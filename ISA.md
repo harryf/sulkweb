@@ -3,7 +3,7 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: verify
+phase: complete
 progress: 286/287 (roster-panel run ISC-270..287 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
@@ -484,6 +484,7 @@ Mission + closure:
 
 ## Decisions
 
+- 2026-08-15 (roster run, VERIFY/advisor): adopted from the advisor — (1) pair-wise weapon cross-check in buildRoster (deploy type vs engine sprite): the positional zip was correct by construction TODAY, but unverifiable against future deploy-order refactors, and space_hulk_6's hand-arbitration proved the correspondence isn't structurally derivable; mismatches downgrade to 'Unknown' loudly. (2) s6 roster map pinned as a fixture + negative test. (3) scrollIntoView on card highlight. (4) replay-truthfulness split documented on RosterPanel (HUD payload-only vs roster live-read + finishReplay reconcile). Deferred as polish (logged, not built): facing glyph on cards, CP-aware AP display, pending-entry state, badge tooltips, number-key card selection, resize re-derivation. Refuted/already-covered: cards are real <button>s (a11y), KIA/ESCAPED are text labels not color-only, escaped/dead clicks blocked, bolter ammo omission correct (engine bolters are unlimited), wheel-over-panel never reaches Phaser (DOM sits outside the canvas).
 - 2026-08-15 (roster run, PLAN): entry/exit facings + squad names come from the ORIGINAL .mish sources via an idempotent patch script on parseMish (never hand-edited); the verifying spec checks the internal invariant "facing points off-board" (neighbor square in facing direction is rock) so it stays hermetic — no test-time dependency on the archive path. Squad→marine mapping is a positional zip captured BY ID at scene start (engine deploys marineDeployment in order; `engine.marines` filters insertion-ordered pieces), so later deaths can't shift names. Roster panel is DOM (flex sibling of the canvas), not Phaser — cards, greying, and scrolling are native CSS, and Playwright probes them directly. Entry triangles render one square OFF-board per the original (`FACEMAP` offset + `rotate(-90*efacing)` → Phaser `setRotation(idx*π/2)`); camera bounds/canvas gain a one-tile margin so edge triangles are visible. Delegation floor (E3 ≥2) relaxed, show-the-math: `which codex` fails (Forge/Cato unavailable on this machine, as in all prior runs) and the work is a single-package UI feature where a second writer would fork one file (GameScene) — Interceptor/Chrome verification remains the delegated leg.
 
 - 2026-08-15 (mission library): missions now live at `engine/src/missions/<family>/<name>.json` mirroring the original `data/missions/` tree at `~/Code/personal/sulk/archive/sulk-0.29-snapshot-20030623/`; static registry in `missions/index.ts` is the only import site. Client default is `debug_1` per the user's explicit switch instruction; `?mission=<registry key>` selects others (param indexes the bundled registry object — never concatenated into a path, so no traversal surface; unknown → default). Squad-scenario e2e specs name `?mission=space_hulk_1` explicitly — coverage of the 5-marine path is retained under the param, accepted since the default choice is user-directed. debug_1 deviations: source has NO blip cap (we keep totalBlips 10 for finite extermination) and NO stealer-win clause (we inherit engine loss-on-squad-wipe); BEGINPLACE collapsed to a fixed square as with space_hulk_1. Advisor round: adopted registry manifest test + provenance notes; refuted path-traversal, implicit-default engine loads (grep clean), seed-parity smell (mixed parity), silent fallback on missing file (bundled import = build error). Delegation floor relaxed — codex CLI absent.
@@ -612,6 +613,12 @@ Mission + closure:
 - refuted by: the advisor demanding the ORIGINAL's timing; reading phases.py showed boundary-only checks AND that our engine was missing the marine-action-end check entirely (a marine-phase quota win would have let the stealers act first), plus a real divergence: blockade evaluated mid-phase on non-final positions.
 - learned: timing semantics must be justified from the source, never from test-fixture convenience; fixtures then pin whatever the source dictates. Also: a boundary check added for one objective family can be semantically wrong for adapted objectives (empty-board "extermination") — scope semantics to the objective they model.
 - criterion now: ISC-176 refined to ISC-176 (instant quota, outcome-equivalent) + ISC-176.1 (blockade never fires mid-phase; boundary check present at marine-action end).
+
+- 2026-08-15 (roster run C/R/L):
+  - conjectured: the positional zip of engine.marines to deployment metadata is sound "by construction" (both insertion-ordered), so no runtime validation is needed.
+  - refuted by: advisor 2026-08-15 — correctness today ≠ verifiability tomorrow; space_hulk_6's hand-arbitrated interleave PROVES the correspondence is not structurally derivable from the data, and a silent permutation renders plausible-but-wrong names that no screenshot or count-based test can catch.
+  - learned: when a pairing is positional, cross-check each pair on a property both sides carry independently (deploy type vs engine sprite) so silent cosmetic corruption becomes a loud failure; pin the one arbitrated case as an exact fixture plus a negative test proving the tripwire fires.
+  - criterion now: ISC-274/275 are guarded by the buildRoster weapon cross-check, the pinned space_hulk_6 (squad,type) map, and the reversed-deployment 'Unknown' negative test.
 
 ## Verification
 
@@ -827,3 +834,4 @@ beta_2 completion (2026-08-15):
 - ISC-285: Grep/Playwright — legend reads "▲ = stealer entry"; hover.spec updated probe passes
 - ISC-286: Bash — engine suite (incl. import grep guard) 236/236; roster code lives entirely in client/src/ui
 - ISC-287: Bash — 236 engine + 12 client unit + 21 e2e green, `pnpm -r build` clean
+- ISC-274/275 (advisor round): vitest — buildRoster weapon cross-check clean on all missions exercised; space_hulk_6 (squad,type) map PINNED pair-for-pair; reversed-deployment negative test proves the tripwire fires ('Unknown' downgrade). e2e re-run 3/3 after the change.

@@ -192,6 +192,15 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
   at engine CONSTRUCTION — swapping `board.dice` afterwards leaves them random. Pin with
   `?seed=N` (installs the source at construction), never a post-hoc dice swap.
 - Root `package.json` has `build`/`test` scripts; engine coverage artifacts are gitignored.
+- **Audio: `scripts/fetchAudio.ts` is the ONLY producer of fetched/derived audio.** Sources,
+  mission→track map, and credits live in `packages/client/src/audio/audioManifest.ts`; alien
+  cut points + role classification in `alienSegments.ts` (edit roles there, flip `guess` when
+  ear-confirmed). Downloaded/derived binaries are gitignored (copyrighted sources — CREDITS.md);
+  only the original PD `assets/sounds/` wavs are committed. `AudioManager` owns ALL playback —
+  never call `this.sound.play` from GameScene; every audible behaviour routes through the
+  pure-logic `audioLogic.ts` (vitest-covered) and cache-exists guards keep a no-audio clone
+  booting silently. Music is OGG **Opus** (this ffmpeg has no libvorbis; Playwright's
+  Chromium has no AAC — opus is the codec all our targets decode).
 
 ## Where work would continue (see README "Known gaps")
 

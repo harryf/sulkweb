@@ -95,6 +95,34 @@ Stealer entry points render as the original off-board `entry.png` triangles
 (exits get `exit.png` arrows) pointing onto the board, replacing the old
 purple squares.
 
+### Sound
+
+One command fetches and processes the whole audio set (requires `yt-dlp` +
+`ffmpeg` on PATH; downloads are cached in `.audio-cache/` and every output is
+gitignored — see `CREDITS.md` for sources and licensing):
+
+```sh
+pnpm fetch-audio
+```
+
+- **Ambient music** — a different [Music of 40K](https://www.youtube.com/@Musicof40K)
+  soundscape per mission, looping continuously, loudness-normalised, ducked
+  quiet during your phase and swelling while the stealers act (900ms fades —
+  the room literally gets louder when it isn't your turn).
+- **SFX** — the original Sulk public-domain wavs voice the marines; storm
+  bolters fire the *Aliens* M41A pulse-rifle burst; genestealers move, attack
+  and die with *Alien: Isolation* vocalisations (cut points + role guesses in
+  `src/audio/alienSegments.ts` — flagged `guess` until confirmed by ear).
+- **Motion tracker** — the *Aliens* tracker ping runs continuously, its
+  cadence and pitch tightening as the nearest blip closes on your marines:
+  a 2.4s idle sweep at 20+ squares, a 300ms panic tick at 2.
+- `M` mutes (persisted). Without fetched audio the game boots and plays
+  silently (original-wav bolter fallback aside) — audio is never load-bearing.
+
+The game never blocks on audio: playback starts on your first click (browser
+autoplay policy), all sounds are event-driven off the same engine event stream
+the replays use, so what you hear tracks what you see.
+
 ## Rules implemented (per the original Sulk manual in `docs/`)
 
 - AP economy: marines 4 AP (NO side-steps, per the original movemap), stealers 6 AP

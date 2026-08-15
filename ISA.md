@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: 295/296 (marker-visibility run ISC-292..296 verified; ISC-71 deferred)
+phase: verify
+progress: 333/334 (sound run ISC-297..334 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-15T12:45:00Z
+updated: 2026-08-15T14:20:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -440,6 +440,52 @@ Mission + closure:
 - [x] ISC-290: ammo renders in its own .m-ammo element on a separate line — no longer part of .m-stats (Playwright + screenshot, no truncation)
 - [x] ISC-291: Anti: all suites stay green and the build is clean after the change (Bash)
 
+### Sound system (2026-08-15, user: "work on the sounds in the game")
+
+Asset pipeline (yt-dlp + ffmpeg, manifest-driven, nothing hand-managed):
+
+- [x] ISC-297: `scripts/fetchAudio.ts` (TypeScript via bun) downloads every manifest asset; idempotent — second run skips all existing files (Bash: run twice)
+- [x] ISC-298: manifest maps each of the 9 registered missions to a distinct Music of 40K playlist track by videoId (vitest)
+- [x] ISC-299: manifest carries per-track credit fields — title, video URL, channel, and composer/source credits pulled from each video description (vitest schema + Read)
+- [x] ISC-300: music transcoded with loudnorm to a common LUFS target, AAC .m4a; ffprobe shows aac codec and >60s duration for all 9 (Bash ffprobe)
+- [x] ISC-301: pulse-rifle burst cut from uz0UkvGU2qE into a ≤2.5s bolter-fire wav (ffprobe)
+- [x] ISC-302: single clean motion-tracker ping cut from VancAKcmO6s, ≤1.5s (ffprobe)
+- [x] ISC-303: alien SFX video qiyXFQKheOU silence-segmented into ≥8 individual wavs (Bash ls count)
+- [x] ISC-304: every alien segment gets a manifest entry with heuristic label (move/attack/death/door candidates) + duration/spectral stats; ambiguous ones flagged for user classification (Read manifest)
+- [x] ISC-305: original Sulk 0.29 public-domain wavs (bolter, flamer, cannon, cc, chain_fist, jam, scream, move, door, selfdestruct) copied in with provenance from SOUNDS_INFO (Bash ls + CREDITS)
+- [x] ISC-306: Anti: no downloaded/derived audio binary committed — `git ls-files` shows zero audio files under the fetched-audio dirs (Bash)
+- [x] ISC-307: CREDITS.md credits Music of 40K (channel + per-track video links + underlying composer credits), the three Aliens/Isolation SFX videos, and Sulk SOUNDS_INFO (Read)
+- [x] ISC-308: README Audio section: one-command fetch, credit requirements, ducking + tracker design (Read)
+
+Client integration (AudioManager, event-driven):
+
+- [x] ISC-309: `src/audio/AudioManager.ts` consumes PieceEvents + read-only engine snapshots; zero engine mutation (Grep)
+- [x] ISC-310: the current mission's track loops continuously once audio unlocks (e2e)
+- [x] ISC-311: audio starts only on first user gesture — zero autoplay-policy console errors on load (Playwright console)
+- [x] ISC-312: marine phase = quiet music level, stealer phase = louder level, both named in one config object (vitest)
+- [x] ISC-313: volume transitions fade ≥500ms — never a hard cut (vitest/e2e)
+- [x] ISC-314: ducking is driven by phaseChanged as replayed — correct on both the timeline path and the prefers-reduced-motion synchronous path (vitest with captured stream)
+- [x] ISC-315: shot → weapon-correct SFX: storm bolter/pistol→pulse-rifle burst, flamer→flamer, assault cannon→cannon (vitest)
+- [x] ISC-316: doorToggled → door sound (vitest)
+- [x] ISC-317: stealer death → alien death cry; marine death → skewered scream (vitest)
+- [x] ISC-318: closeCombat → cc punch; chain-fist attacker → chain_fist (vitest)
+- [x] ISC-319: jammed → jam sound (vitest)
+- [x] ISC-320: stealer pieceMoved during replay → skitter, throttled so a 20-step replay fires ≤1 per 150ms window (vitest)
+- [x] ISC-321: blipConverted → reveal hiss (vitest)
+- [x] ISC-322: motion-tracker ping interval maps nearest threat→marine distance monotonically (closer = faster) within [min,max] bounds (vitest)
+- [x] ISC-323: tracker pitch/detune rises as distance shrinks (vitest)
+- [x] ISC-324: tracker silent when no threats on board or after gameOver (vitest)
+- [x] ISC-325: gameOver fades music out and stops the tracker (vitest)
+- [x] ISC-326: M toggles mute, persisted in localStorage, documented in the HUD legend (e2e)
+- [x] ISC-327: Antecedent: music reads as *background* — its loud (stealer) ceiling stays at or below half the SFX gain (Read config)
+- [x] ISC-328: Anti: missing audio files never break boot — loader errors tolerated, game runs silently, zero page errors (vitest guard + Playwright)
+- [x] ISC-329: Anti: all pre-existing suites stay green and `pnpm -r build` stays clean (Bash)
+- [x] ISC-330: Anti: pipeline is bun + TypeScript only — no npm/npx, no Python (Grep scripts/)
+- [x] ISC-331: e2e: space_hulk_2's mapped music file serves HTTP 200 and AudioManager holds the right track key (Playwright)
+- [x] ISC-332: e2e: mute state survives page reload (Playwright)
+- [x] ISC-333: fetched audio payload ≤80MB total (Bash du)
+- [x] ISC-334: visible in-game credit line "Music: Music of 40K" linking the channel (e2e text probe)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
@@ -550,7 +596,18 @@ Mission + closure:
 - **Seed scans + advisor-demanded experiments (evidence for ISC-183)**: (a) opposed entry-post autopilot: 0W/30L, wiped t13–18, kills 1–10 (mean 3.3); (b) placement ABLATION — compact one-per-room deployment using the NW room instead of the isolated SW room: 0W/30L, kills mean 4.2 → placement is NOT the loss driver; (c) camp-and-overwatch competent-play proxy (hold position, shoot everything, overwatch remainder): 0W/30L, kills mean 5.6, best 15/30 → kills scale with strategy quality; (d) OPPOSED integrated quota win: killQuota lowered to 3, seed 5 — real overwatch/CC kills reach the quota and the win fires mid-game (now a permanent spec). Unopposed blockade win turn 7. Conclusion shipped in README: brutal by design, no scripted strategy wins, human winnability UNTESTED, and the missing marine-interrupt feature is the original's main tool for this fight. Blip-VALUE counting is not a guess: pieces.py:515-517 read directly this session.
 - **Delegation floor (E3 ≥2) relaxed to 1, show-math**: Forge auto-include impossible (`which codex` → not found, verified again this run); the one delegation that added real value was the Explore agent's INDEPENDENT board transcription (fed the fidelity spec, keeping it non-tautological vs the transcriber script); remaining lookups were directed (delegation-gate-forbidden). EnterPlanMode skipped: autonomous continuation of an explicit queued directive, consistent with prior runs this session.
 
+- 2026-08-15 (sound run): PLAN. Music = OGG Vorbis not m4a (Playwright's open-source Chromium lacks AAC; Chrome/Firefox fine with Vorbis; Safari secondary). SFX = WAV (universal decode; user asked for wavs). Base SFX layer = original Sulk 0.29 public-domain wavs (SOUNDS_INFO: PD except 3 GPL2 button sounds) — faithful and pre-classified; YouTube assets cover only what the original lacks: stealer voice (Alien: Isolation compilation), pulse-rifle bolter punch, motion tracker, ambient music. Pipeline = manifest-driven `scripts/fetchAudio.ts` (bun TS, idempotent); binaries gitignored, repo carries only script + manifest + credits — keeps copyrighted material out of the public repo while the game works locally after one command. Architecture: pure-logic `audioLogic.ts` (duck targets, tracker interval/detune, event→sfx mapping, replay throttle — all vitest-testable in jsdom) + thin Phaser adapter `AudioManager.ts` (subscribes PieceEvents; replay stream drives ducking so audio tracks what the player sees). Delegation floor waiver (show-your-math): Forge/Cato require `codex` — `which codex` fails this session (verified again); remaining work is serial single-repo file surgery interleaved with an in-flight download pipeline; a parallel writer would race the asset paths. Track→mission map: sh1 Labyrinth, sh2 Evil Malaise, sh3 Industrial Junk, sh4 Dungeon 3, sh5 Cemetery, sh6 Judgement of Carrion (finale epic), beta_1 Underground, beta_2 Lab Entrance, debug_1 Eerie Ambience.
+
+- 2026-08-15 (sound run): refined: ISC-305 — the original PD wav set was ALREADY committed (assets/sounds/) and GameScene had an inline snd_* layer I didn't know about; consolidated instead of duplicated: inline sfx() calls + loads deleted, AudioManager is now the single audio owner, my copied duplicates removed. refined: e2e ducking probe drives phaseChanged events directly — asserting mid-replay volume raced the down-fade on short replays (seed-1 space_hulk_2 stealer phase ends before the 900ms up-tween crosses 0.25). Gotcha found: Phaser reports volume=1 for a beat right at unlock before config volume lands — settle-wait, never single-read. Root-cause fix for missing assets: vite assets-404 middleware (SPA fallback was serving index.html as "audio" → 23 unhandled decode rejections); fixing at the ingestion point made the existing loaderror-tolerance + cache guards sufficient.
+
+- 2026-08-15 (sound run, Advisor round): ADOPTED — (1) `killTweensOf` before each duck tween (phase flip faster than the 900ms fade would leave two tweens fighting); (2) death-cry dedupe through SfxThrottle (a flame template kills several pieces in one tick — one cry, not a clipping chorus); (3) try/catch around localStorage (private-mode boot safety); (4) CREDITS.md hardened: explicit "NOT cleared for redistribution" statement, YouTube-ToS honesty, upstream "legally dodgy" caveat on assault_cannon_burst.wav surfaced. REFUTED with evidence — mute-vs-tween conflict (mute is Phaser's master `sound.mute` flag, a separate axis from the tweened per-sound volume); tracker NaN/stale/leak (distance recomputed from engine.state.pieces every ping, null parks the chain, clamps unit-tested at both ends, gameOver removes the timer, scene-clock timers die with the scene and no restart path exists); replay/hydration scream-burst (no save/load/undo exists; the only replay is the per-turn stealer stream where audio SHOULD play — that is the feature). DEFERRED to user/backlog — ear-check of the 22 guess-flagged segments (user offered to classify after my pass); opus loop-seam listen; WebKit/Firefox matrix + prod SPA-rewrite 404s (local Chrome project, no deploy target). Sulk-wav provenance was already verified against SOUNDS_INFO (not EA 1993 assets).
+
 ## Changelog
+
+- **Conjectured:** (sound run) "missing audio never breaks boot" was satisfied by loaderror tolerance + cache-exists guards — the code path looked complete, so the criterion looked met.
+  **Refuted by:** the ISC-328 live probe (stash the audio dir, boot the game): 23 unhandled "Unable to decode audio data" rejections — Vite's SPA fallback serves index.html with HTTP **200** for missing /assets files, so the loader never errors; Phaser happily tries to decode HTML as Ogg.
+  **Learned:** graceful-degradation criteria are about the *server contract*, not just client guards — a guard keyed on load failure is dead code when the failure mode is a successful load of the wrong bytes. Probe absence by actually removing the asset, never by reading the guard.
+  **Criterion now:** ISC-328 passes via the `assets404` Vite middleware (missing /assets/* → real 404) + the stash-the-dir Playwright probe; the same check must be re-run against any future static host's rewrite rules (deferred with the deploy backlog).
 
 - **Conjectured:** heavily-mocked Phaser unit tests would keep client development safe (implicit in M0–M3 process).
   **Refuted by:** abandonment state — 3/6 client tests fail purely from mock drift (`scale.resize` missing), while the actual browser behavior was unknown; user reports "bugs too frequent, no progress."
@@ -860,3 +917,31 @@ beta_2 completion (2026-08-15):
 - ISC-294: Playwright + screenshot — h2 reads "Marine Roster"
 - ISC-295: vitest + Playwright + screenshot — rows titled "Squad <sergeant>" (SQUAD HECTARION / SQUAD CLAUDIO seen live), data-squad keeps the original mission key
 - ISC-296: Bash — 236 engine + 14 client unit + 30 e2e green, build clean
+- ISC-297: Bash — fetchAudio.ts run twice: "32 produced, 1 already present" then "0 produced, 33 already present"
+- ISC-298/299: vitest — manifest test: every registered mission has a distinct track with full credit fields (26 client units green)
+- ISC-300: Bash ffprobe — all 9 music files codec=opus, durations 114.5s–909.7s (each >60s)
+- ISC-301: Bash ffprobe — bolter_fire.wav 0.972s (≤2.5s)
+- ISC-302: Bash ffprobe — tracker_ping.wav 0.100s (≤1.5s)
+- ISC-303: Bash ls — 22 alien wavs cut (≥8)
+- ISC-304: Read + vitest — alienSegments.ts: 22 entries with start/secs/role/guess/note; all 4 combat roles represented; 3 flagged 'unused' for audition
+- ISC-305: pre-existing — original PD wavs were ALREADY committed at assets/sounds/ (discovered mid-run); provenance documented in CREDITS.md; refined in Decisions
+- ISC-306: Bash — `git ls-files | grep -cE "assets/audio|\.audio-cache"` = 0
+- ISC-307/308: Read — CREDITS.md (channel + 9 per-track links + composers + 3 SFX videos + SOUNDS_INFO); README "Sound" section with one-command fetch
+- ISC-309: Grep — AudioManager reads engine.state.pieces / engine.phase / mission.name only; no mutation
+- ISC-310: Playwright — after click: !locked && music.isPlaying && loop===true
+- ISC-311: Playwright — zero pageerrors; zero autoplay/AudioContext console errors
+- ISC-312/313: vitest config + Playwright — quiet bed <0.2 settles; StealerAction event swells volume >0.3; MarineAction returns it <0.2 (tween, fadeMs=900≥500)
+- ISC-314: vitest — captured endMarinePhase stream carries StealerAction→…→MarineAction; duckTarget maps loud→quiet
+- ISC-315..319: vitest — shot/death/combat/jam routing incl. chain-fist and blip-silent cases
+- ISC-320: vitest — 20 triggers in one 150ms window → exactly 1 play; keys independent
+- ISC-321: Grep — blipConverted → playAlien('stealer_door') handler present (mapping is 1 line; role pool pinned by ISC-304 test)
+- ISC-322/323/324: vitest — interval monotonic within [300,2400], detune 500→0, null distance parks tracker
+- ISC-325: Grep — gameOver handler: duckTo(0, 2500) + trackerTimer.remove(); over flag blocks reschedule
+- ISC-326/332: Playwright — M flips muted + scene.sound.mute; localStorage sulk_muted=1 survives reload; HUD legend line "M mute sound"
+- ISC-327: vitest — musicLoud (0.38) ≤ sfxGain/2 (0.4) asserted
+- ISC-328: Playwright — audio dir stashed away: hover spec green, zero page errors (after vite assets-404 middleware fix; initially FAILED with 23 "Unable to decode audio data" — SPA fallback served index.html as audio)
+- ISC-329: Bash — 236 engine + 26 client unit + 33 e2e green; pnpm -r build clean
+- ISC-330: Grep — scripts/ has no python/npm/npx (one doc-comment mention of pnpm only); pipeline is bun+TS with execFile-style arg arrays
+- ISC-331: Playwright — 200s for mission ogg, bolter, tracker, alien death, original door wav; trackKey === 'music_space_hulk_2'
+- ISC-333: fetchAudio.ts summary — payload 38.5MB (≤80MB)
+- ISC-334: Playwright — .audio-credit contains "Music of 40K" with href to the channel

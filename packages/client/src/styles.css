@@ -144,3 +144,11 @@ body {
 .marine-card.escaped .m-state { color: #00ff55; }
 
 .marine-card.has-cat { border-color: #7ec8ff; }
+
+/* Required soundtrack credit (see CREDITS.md) */
+.audio-credit {
+  margin-top: 10px;
+  font-size: 11px;
+  color: #888;
+}
+.audio-credit a { color: #7ec8ff; }

@@ -5,6 +5,7 @@ import { HighlightSprite } from '../ui/HighlightSprite.js';
 import { HudPanel } from '../ui/HudPanel.js';
 import { RosterPanel, type PieceStats } from '../ui/RosterPanel.js';
 import { buildRoster } from '../ui/marineNames.js';
+import { AudioManager } from '../audio/AudioManager.js';
 import { HUD_WIDTH } from '../config.js';
 
 const TILE_SIZE = 40
@@ -44,6 +45,8 @@ export default class GameScene extends Phaser.Scene {
   private losVisible = false;
   /** Last hover readout string — public for the e2e suite to assert against. */
   hoverInfo = '';
+  /** All game audio (music ducking, SFX, motion tracker) — public for e2e. */
+  audio!: AudioManager;
 
   constructor() {
     super('GameScene')
@@ -87,20 +90,9 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('terminator_chain_fist', 'assets/themes/default/terminator_chain_fist.png');
     this.load.image('terminator_sergeant_sword', 'assets/themes/default/terminator_sergeant_sword.png');
     this.load.image('ambush_counter', 'assets/themes/default/ambush_counter.png');
-    // Original GPL sound set (data/sounds in the Pygame source)
-    this.load.audio('snd_move', 'assets/sounds/marine_move.wav');
-    this.load.audio('snd_bolter', 'assets/sounds/marine_shoot_bolter.wav');
-    this.load.audio('snd_flamer', 'assets/sounds/marine_shoot_flamer.wav');
-    this.load.audio('snd_cc', 'assets/sounds/marine_cc.wav');
-    this.load.audio('snd_die', 'assets/sounds/marine_kill_skewered.wav');
-    this.load.audio('snd_jam', 'assets/sounds/marine_jam.wav');
-    this.load.audio('snd_door', 'assets/sounds/door_open.wav');
-    this.load.audio('snd_destruct', 'assets/sounds/marine_selfdestruct_flamer.wav');
-  }
-
-  /** Fire-and-forget sound: never let a locked/absent audio context break play. */
-  private sfx(key: string, volume = 0.5): void {
-    try { this.sound.play(key, { volume }); } catch { /* audio unavailable */ }
+    // All audio (mission music + original PD wavs + fetched cuts) queues via
+    // the AudioManager — see src/audio/. Missing fetched files are tolerated.
+    AudioManager.queueLoads(this, this.engine.mission.name);
   }
 
   create() {
@@ -137,10 +129,8 @@ export default class GameScene extends Phaser.Scene {
     });
     PieceEvents.on('doorToggled', ({ x, y, facing, open }) => {
       this.doorSprites[`${x},${y}:${facing}`]?.setTexture(open ? 'door_open' : 'door_closed');
-      this.sfx('snd_door', 0.4);
     });
-    PieceEvents.on('closeCombat', () => this.sfx('snd_cc', 0.5));
-
+    
     // Mission markers: stealer entry triangles + exit arrows (theme art, drawn
     // one square OFF-board per the original EntryTriangle/ExitArrow — `facing`
     // is efacing, the off-board direction; the graphic points back onto the
@@ -216,11 +206,9 @@ export default class GameScene extends Phaser.Scene {
         this.catMarker?.destroy();
         this.catMarker = this.add.image(x * T + T / 2 + 12, y * T + T / 2 - 12, 'marker_damage').setDepth(2);
       }
-      this.sfx('snd_cc', 0.4);
     });
     PieceEvents.on('ductingDestroyed', ({ x, y }) => {
       this.ductingSprites[`${x},${y}`]?.setTexture('ducting_destroyed');
-      this.sfx('snd_die', 0.5);
     });
     PieceEvents.on('marineEscaped', ({ pieceId, escaped }) => {
       const sprite = this.pieceSprites[pieceId];
@@ -238,7 +226,6 @@ export default class GameScene extends Phaser.Scene {
         this.updateHighlight();
         PieceEvents.emit('selected', { pieceId: null });
       }
-      this.sfx('snd_move', 0.4);
       this.hud.setStatus(this.escapeStatus(escaped));
     });
     PieceEvents.on('objectiveCleansed', ({ cleansedCount }) => {
@@ -249,10 +236,8 @@ export default class GameScene extends Phaser.Scene {
     PieceEvents.on('doorDestroyed', ({ x, y, facing }) => {
       this.doorSprites[`${x},${y}:${facing}`]?.destroy();
       delete this.doorSprites[`${x},${y}:${facing}`];
-      this.sfx('snd_cc', 0.6);
     });
-    PieceEvents.on('malfunction', () => this.sfx('snd_destruct'));
-    PieceEvents.on('downloadChanged', ({ counter, active }) => {
+        PieceEvents.on('downloadChanged', ({ counter, active }) => {
       const total = this.engine.mission.downloadTurns ?? 4;
       this.hud.setStatus(active ? `Downloading… ${counter}/${total}` : `Download reset (${total})`);
     });
@@ -271,10 +256,8 @@ export default class GameScene extends Phaser.Scene {
     // the only truthful intermediate positions.
     PieceEvents.on('pieceMoved', ({ pieceId, x, y, facing }) => {
       this.moveSprite(pieceId, x, y, facing);
-      this.sfx('snd_move', 0.25);
     });
     PieceEvents.on('pieceDied', ({ pieceId }) => {
-      this.sfx('snd_die', 0.4);
       const sprite = this.pieceSprites[pieceId];
       if (sprite) {
         this.tweens.killTweensOf(sprite);
@@ -292,7 +275,6 @@ export default class GameScene extends Phaser.Scene {
       }
     });
     PieceEvents.on('shot', ({ shooterId }) => {
-      this.sfx('snd_bolter', 0.35);
       const shooter = this.engine.findPiece(shooterId);
       if (!shooter) return;
       const v = DIR_VEC[shooter.facing];
@@ -320,21 +302,18 @@ export default class GameScene extends Phaser.Scene {
         if (!sprite) return;
         this.jamMarkers[pieceId]?.destroy();
         this.jamMarkers[pieceId] = this.add.image(sprite.x + 12, sprite.y - 12, 'marker_jam').setDepth(2);
-        this.sfx('snd_jam');
       } else {
         this.jamMarkers[pieceId]?.destroy();
         delete this.jamMarkers[pieceId];
       }
     });
     // Flames: render every burning square; clear on end-phase dispersal.
-    PieceEvents.on('sectionFlamed', ({ shooterId, squares, kills }) => {
+    PieceEvents.on('sectionFlamed', ({ squares }) => {
       for (const s of squares) {
         const key = `${s.x},${s.y}`;
         if (this.flameSprites[key]) continue;
         this.flameSprites[key] = this.add.image(s.x * T + T / 2, s.y * T + T / 2, 'flames').setDepth(0.9);
       }
-      // A self-destruct kills its own shooter — that gets the big boom.
-      this.sfx(kills.includes(shooterId) ? 'snd_destruct' : 'snd_flamer');
     });
     PieceEvents.on('flamesCleared', ({ squares }) => {
       for (const s of squares) {
@@ -427,6 +406,18 @@ export default class GameScene extends Phaser.Scene {
       },
       (id) => this.selectFromRoster(id),
     );
+
+    // All game audio: per-mission ambient bed (ducked by phase), event SFX,
+    // and the motion tracker. M toggles mute (persisted).
+    this.audio = new AudioManager(this, this.engine);
+    (window as any).sulk.audio = this.audio;
+    this.input.keyboard!.on('keydown-M', () => this.audio.toggleMute());
+    this.events.once('shutdown', () => this.audio.destroy());
+    // Required credit for the ambient soundtrack (see CREDITS.md).
+    const credit = document.createElement('div');
+    credit.className = 'audio-credit';
+    credit.innerHTML = 'Ambient music: <a href="https://www.youtube.com/@Musicof40K" target="_blank" rel="noopener">Music of 40K</a> · M = mute';
+    document.getElementById('roster-panel')?.appendChild(credit);
 
     const objectiveLabel: Record<string, string> = {
       'exterminate': 'Objective: kill every genestealer',

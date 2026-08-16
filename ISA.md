@@ -4,10 +4,10 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 424/425 (architecture + development guides verified; ISC-71 deferred)
+progress: 438/439 (rules reference verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-16T09:40:00Z
+updated: 2026-08-16T10:20:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -590,6 +590,22 @@ Client integration (AudioManager, event-driven):
 - [x] ISC-423: both docs pass the writing-guide banned-pattern scan including em dashes (Grep exit 1)
 - [x] ISC-424: docs cross-link each other and asset-index.md / writing-guide.md; all md links resolve (Bash link check, 0 missing)
 
+### Rules reference (docs/rules-reference.md, 2026-08-16)
+- [x] ISC-425: docs/rules-reference.md exists: complete implemented-rules reference, scoped as source material for a future manual (Read)
+- [x] ISC-426: turn structure documented: marine/stealer/end phases, 120s+30/sergeant clock, d6 CP pool, spendCP +1 AP, AP refresh (Read vs GameEngine)
+- [x] ISC-427: movement cost table per unit class matches CostTables, Genestealer.moveCost, Blip.moveCost, including illegal marine side-steps and the stealer free-turn repeat rule (Read)
+- [x] ISC-428: vision 180 / fire 90 with 45-degree inclusion, LOS blocking set (missing squares, pieces, closed door edges incl. behind-door), Chebyshev range (Read vs vision.ts/los.ts)
+- [x] ISC-429: all six marine types with exact numbers: bolter 2d 6+, sustained +1 max +4, MNS free shot, jam-on-overwatch-doubles only, unjam 1 AP; flamer 2AP/6 ammo/range 12/kill 2+/self-destruct; cannon 3d 5+/drum 10/reload 4AP/autofire 2AP+5 rounds 3+/malfunction triples past 10; chain fist 1 AP cut; sergeant +1 CC +30s; sword parry (Read vs piece classes)
+- [x] ISC-430: stealer 6 AP CC 3/2 dice; blip bag 8/4/9 of 21, sight/adjacency bars, conversion spill and lost-stealers rule, voluntary-convert conditions, killed-blip value credit (Read vs Genestealer/Blip)
+- [x] ISC-431: ambush counters: max 2, deploy constraints, 1-in-3 real (5+ draw), fake vanish + reflex fire with jam/malfunction risk (Read vs AmbushCounter)
+- [x] ISC-432: close combat: 1 AP, directly-ahead requirement, outcome table incl. defender-cannot-strike-back survival, parry decision rule (Read vs combat.ts)
+- [x] ISC-433: doors: edge model, front-3 operation rule, all four destruction paths, point-blank edge shot rule (Read vs Door.ts/Piece.findAdjacentDoor/StormBolter.doorInSight)
+- [x] ISC-434: flames: section flood stopped by closed doors, kill 2+, silent self-destruct kills, end-phase dispersal, permanent cleansing (Read vs flame.ts)
+- [x] ISC-435: special features complete: C.A.T. (pickup/drop/skewer/wander 3/escape win-draw), ducting + control-room booby trap, download counter start/decrement/reset, entry round-robin + totalBlips cap, exit behavior (Read vs exotic.ts/GameEngine)
+- [x] ISC-436: all 10 objectives in a win/loss table and all 9 missions with squad composition and config extracted from mission JSONs (Bash python extraction, quoted above in Decisions)
+- [x] ISC-437: stealer-phase AI behavior documented: attack priority, exotic step-ons, BFS pathing with door-on-contact, blip caution, per-action overwatch reactions and sight re-checks (Read vs StealerAI)
+- [x] ISC-438: Anti: no source file modified (git status: doc + README link + ISA only); banned-pattern scan exit 1; README links all resolve (Bash)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
@@ -755,6 +771,14 @@ Client integration (AudioManager, event-driven):
 - Unit-type recipe enumerates nine wiring points because the failure modes are quiet (EXPECTED_SPRITE drift only warns; missing shotSfx mapping silently falls back to bolter) — the list came from grep, not memory.
 - Verification was mechanical where possible: every backticked path/filename resolved via find (first pass flagged 44 "missing" that were bare filenames inside stated parent dirs — checker false negatives, re-verified repo-wide to 0); md links checked; banned-pattern scan clean on both docs.
 - Same floor waivers as the asset-index run (12 new ISCs vs E3 ≥32; delegation inline).
+
+### 2026-08-16 — rules reference (E3 via context-override, ISC-425..438)
+- Classifier returned E2 seeing the prompt alone; escalated to E3 per the conversation (largest doc extraction of the session, same class as the two prior E3 doc runs).
+- docs/rules-reference.md written from a full read of every rules module this session: CostTables, Piece, StormBolter/Sergeant/Sword, HeavyFlamer, AssaultCannon/ChainFist, Genestealer, Blip, AmbushCounter, combat, Door, flame, exotic, vision, los, StealerAI, GameEngine (CP, timer, endMarinePhase, checkVictory), plus a python extraction of all nine mission JSON configs.
+- Two precision fixes caught on self-review before commit: dropped an unverified cannot-re-flame claim; corrected overwatch reactions to fire-arc + LOS + range (canShoot), not merely sight.
+- Notable rules surfaced by the read that the reference now records: bolters jam ONLY on overwatch/reflex doubles (the canJam flag is false on aimed shots); the parry declines beatable ties; lost conversion stealers score nothing; blip bag is 8/4/9 over 21 via rejection sampling; the mission 6 control-room flamer booby trap.
+- User wrote "./doc/"; delivered to the established ./docs/ and said so. README Guides list extended with the new file (consistent with the prior explicit link-the-docs request).
+- 14 new ISCs vs E3 soft floor ≥32: same show-math (single doc; project total 438). Delegation waived, standing rationale.
 
 ## Changelog
 
@@ -1175,3 +1199,10 @@ beta_2 completion (2026-08-15):
 - ISC-410: git status after run: modified ISA.md, new docs/asset-index.md only
 - ISC-411: grep for dist/ and .DS_Store in the doc → no rows (walker skips .DS_Store; walk root is public/ so dist/ never entered)
 - ISC-412: grep -E banned-pattern scan (writing guide list + em dash) exit 1 on docs/asset-index.md
+
+### Rules reference (2026-08-16)
+- ISC-425..437: docs/rules-reference.md read end-to-end after writing; every number spot-audited by grep against engine constants (AP_PER_TURN 4, Genestealer AP 6, KILL_REQ 5, AUTO_KILL_REQ 3, AUTOFIRE 2AP/5 ammo, RELOAD 4, DRUM 10, flamer RANGE 12 / SHOT_COST 2 / ammo 6, OVERWATCH_RANGE 12, MAX_SUSTAINED 4, MARINE_PHASE_SECONDS 120, timerBonus 30, ccBonus 1, blip bag thresholds 8/12/21); mission table generated from the 9 JSONs by script
+- ISC-428 addendum: flames-block-LOS confirmed at los.ts (intermediate burning squares block; endpoints excluded) — a planned "flames do not block sight" claim was refuted by this probe before it entered the doc
+- ISC-429 addendum: overwatch persistence across turns confirmed (resetAP does not clear the flag; only own actions and jams do)
+- ISC-437 addendum: stealer-phase acting list is a snapshot ([...board.pieces] at loop start), so conversion-born stealers wait a phase — documented
+- ISC-438: git status shows docs/rules-reference.md + README + ISA only; banned-pattern grep exit 1; README doc links all resolve

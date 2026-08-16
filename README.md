@@ -184,6 +184,13 @@ pnpm --filter ./packages/engine example  # CLI engine tour
 
 The project ISA (`ISA.md`) is the system of record: goals, verified criteria, decisions, and changelog.
 
+### Guides
+
+- [docs/architecture.md](docs/architecture.md): how the packages fit together, the frontend/engine boundary (method calls in, `PieceEvents` out, stealer-phase capture/replay), and how to deploy.
+- [docs/development-guide.md](docs/development-guide.md): directory map and recipes for adding missions, marine types, objectives, and sounds.
+- [docs/asset-index.md](docs/asset-index.md): every asset under `packages/client/public`, what uses it, and the unused list.
+- [docs/writing-guide.md](docs/writing-guide.md): rules for all player-visible text.
+
 ## Structure
 
 ```

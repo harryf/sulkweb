@@ -63,15 +63,17 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
 | Input | Action |
 |-------|--------|
 | Click marine / roster card | Select (card click also pans the camera to him) |
-| `W` / `S` | Move forward / backward |
+| `W` / `S` | Move forward (1 AP) / backward (2 AP) |
+| `Q` / `E` | Move diagonally forward-left / forward-right (1 AP, facing kept) |
+| `Z` / `C` | Move diagonally back-right / back-left (2 AP, facing kept) |
 | `A` / `D` | Turn left / right |
-| `O` | Open/close door ahead |
+| `H` | Open/close door ahead |
 | `F` | Fire at the nearest target — or at a closed door under the cursor (bolter destroys on a 6, assault cannon on 5+) |
 | `F` (heavy flamer) | First press arms targeting: valid squares get a crosshair cursor and the blast section is previewed in orange; second press fires into the hovered square. Any action key cancels |
-| `C` | Close combat (enemy directly ahead) |
-| `V` | Overwatch on/off (2 AP) |
+| `X` | Close combat (enemy directly ahead) |
+| `O` | Overwatch on/off (2 AP) |
 | `U` | Unjam bolter |
-| `X` | Heavy flamer self-destruct (torches his own section) |
+| `B` `B` | Heavy flamer self-destruct — press twice to confirm (torches his own section) |
 | `P` | Spend a Command Point (+1 AP) |
 | `L` (hold) | Show line of sight |
 | `Enter` / DONE | End marine phase |

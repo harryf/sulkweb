@@ -3,8 +3,8 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: 360/361 (flamer targeting + shootable doors + ducting run verified; ISC-71 deferred)
+phase: execute
+progress: 360/376 (diagonal movement + key rebind run; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-16T04:30:00Z
@@ -518,6 +518,24 @@ Client integration (AudioManager, event-driven):
 - [x] ISC-358: space_hulk_6 (13,0)(14,0)(15,0) reads as one continuous horizontal pipe; ductingDestroyed keeps the rotation (Playwright)
 - [x] ISC-359: Anti: doors stay immune to flames (fl_kill_scorereq None in the original) — flameFlood still stops at closed door edges (vitest)
 - [x] ISC-360: all suites green: engine vitest, client vitest, Playwright e2e; `pnpm -r build` clean (Bash)
+
+### Diagonal movement + key rebind (2026-08-16, run 2)
+
+- [ ] ISC-361: Q moves the marine forward-left diagonally for 1 AP, facing unchanged (Playwright key press + engine unit)
+- [ ] ISC-362: E moves forward-right diagonally for 1 AP (Playwright + unit)
+- [ ] ISC-363: Z moves back-right and C moves back-left diagonally for 2 AP each — the user's explicit mapping (Playwright + unit)
+- [ ] ISC-364: a diagonal move counts as a MOVE — grants move-and-shoot, breaks overwatch, clears sustained fire (vitest)
+- [ ] ISC-365: Anti: strafing stays impossible for marines — stepLeft/stepRight refuse, no key binds a sideways move (vitest + grep)
+- [ ] ISC-366: Anti: a diagonal move cannot cut the corner of a closed door edge — (18,20)→(19,19) blocked while the Launch Control door is closed, legal once open (vitest on the real mission)
+- [ ] ISC-367: marine move costs match the original movemap exactly: F/FL/FR=1, B/BL/BR=2, L/R impossible (vitest cost probes)
+- [ ] ISC-368: B is the self-destruct key; X no longer detonates (Playwright)
+- [ ] ISC-369: self-destruct requires B twice within the confirm window — a single press never detonates (fidelity: original "Really self-destruct?" dialog) (Playwright)
+- [ ] ISC-370: O toggles overwatch (was V); V is unbound everywhere (Playwright + grep)
+- [ ] ISC-371: H toggles doors (was O) (Playwright)
+- [ ] ISC-372: X performs close combat (was C) (Playwright or unit)
+- [ ] ISC-373: HUD legend and README document the full new key map (Grep)
+- [ ] ISC-374: Anti: no key is bound to two actions across all keyboard handlers (grep audit of addKeys + keydown-*)
+- [ ] ISC-375: all suites green: engine vitest, client vitest, Playwright, tsc, build (Bash)
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|

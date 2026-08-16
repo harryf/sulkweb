@@ -26,7 +26,9 @@ function makeSceneStub() {
       rectangle: () => ({ x: 0, y: 0, setOrigin() { return this }, setInteractive() { return this }, on() { return this } }),
       text: (_x: number, _y: number, content: string) => ({
         text: content,
-        setText(next: string) { this.text = next; return this }
+        visible: true,
+        setText(next: string) { this.text = next; return this },
+        setVisible(v: boolean) { this.visible = v; return this }
       })
     }
   } as any

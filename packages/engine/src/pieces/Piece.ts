@@ -69,11 +69,15 @@ export abstract class Piece {
     const ignoreFlames = this.board.isFlaming(this.pos);
     if (!this.board.isPassable(dest, ignoreFlames) || this.board.isOccupied(dest)) return false;
     // Edge-model doors: an orthogonal move crossing a closed door edge is
-    // blocked. (Diagonals cannot cross an edge's interior — corridors here are
-    // one square wide, so no diagonal bypass exists on the shipped missions.)
+    // blocked. A diagonal move crosses the CORNER shared by four edges — if
+    // any of them carries a closed door, the move squeezes past the door's
+    // end through a gap the original's door SQUARE physically filled (e.g.
+    // (18,20)→(19,19) would slip into Launch Control past its closed door).
     if (dc === 0 || dr === 0) {
       const door = this.board.doorBetween(this.pos, dest);
       if (door && !door.isOpen) return false;
+    } else if (this.board.diagonalBlockedByDoor(this.pos, dest)) {
+      return false;
     }
 
     this.pos = dest;
@@ -172,6 +176,19 @@ export abstract class Piece {
   moveBackward()  { return this.tryMove(...dirToDelta(turn(this.facing, 2))); }
   stepLeft()      { return this.tryMove(...dirToDelta(turn(this.facing, -1))); }
   stepRight()     { return this.tryMove(...dirToDelta(turn(this.facing, 1))); }
+
+  /** Diagonal moves, facing-relative (original numpad KP7/KP9/KP1/KP3).
+   *  Costs come from MOVE_COST: forward diagonals price as a forward move,
+   *  backward diagonals as a backward move. Facing never changes. */
+  private moveDiag(side: -1 | 1, dir: 1 | -1): boolean {
+    const f = DIR_VEC[dir === 1 ? this.facing : turn(this.facing, 2)];
+    const s = DIR_VEC[turn(this.facing, side)];
+    return this.tryMove(f.dc + s.dc, f.dr + s.dr);
+  }
+  moveForwardLeft()  { return this.moveDiag(-1, 1); }
+  moveForwardRight() { return this.moveDiag(1, 1); }
+  moveBackLeft()     { return this.moveDiag(-1, -1); }
+  moveBackRight()    { return this.moveDiag(1, -1); }
 
   resetAP() { this.ap = this.apInitial; }
 

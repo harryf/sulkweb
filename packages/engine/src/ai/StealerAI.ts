@@ -94,6 +94,9 @@ function nextStepOnPath(board: Board, from: Coord, isGoal: (c: Coord) => boolean
         const nxt = { c: cur.c + dc, r: cur.r + dr };
         if (prev.has(key(nxt))) continue;
         if (!traversable(nxt) || marineAt(nxt)) continue;
+        // Same corner rule tryMove enforces — planning a corner-cut diagonal
+        // the mover would refuse leaves the piece 'wait'ing forever.
+        if (dc !== 0 && dr !== 0 && board.diagonalBlockedByDoor(cur, nxt)) continue;
         prev.set(key(nxt), cur);
         queue.push(nxt);
       }

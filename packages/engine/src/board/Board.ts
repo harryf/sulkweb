@@ -182,6 +182,23 @@ export class Board {
     return undefined;
   }
   
+  /** A diagonal step crosses the CORNER shared by four edges — a closed door
+   *  on any of them fills the gap the original's door SQUARE occupied, so the
+   *  step is blocked. Symmetric by construction (the four edges at the corner
+   *  are the same from either end). The single source of truth for movement
+   *  AND the stealer pathfinder — they must never diverge. */
+  diagonalBlockedByDoor(a: { c: number; r: number }, b: { c: number; r: number }): boolean {
+    const dc = b.c - a.c, dr = b.r - a.r;
+    if (dc === 0 || dr === 0) return false;
+    const x1 = { c: a.c + dc, r: a.r };
+    const x2 = { c: a.c, r: a.r + dr };
+    for (const [p, q] of [[a, x1], [a, x2], [x1, b], [x2, b]] as const) {
+      const door = this.doorBetween(p, q);
+      if (door && !door.isOpen) return true;
+    }
+    return false;
+  }
+
   // Alias for get to support legacy tests
   getSquare(x: number, y: number): Square | undefined { return this.get(x, y) }
   

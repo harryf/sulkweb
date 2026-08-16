@@ -42,8 +42,12 @@ export default class GameScene extends Phaser.Scene {
    *  as the blast preview and asserted by e2e. */
   flamePreview: { x: number; y: number }[] = [];
   private flamePreviewGfx!: Phaser.GameObjects.Graphics;
-  /** Last accepted fire intent (ms) — debounces Phaser keydown replays. */
-  private lastFireAt = 0;
+  /** First B press arms self-destruct; the second within the window fires.
+   *  0 = disarmed. Armed state is bound to ONE flamer — switching selection
+   *  must never carry the confirm to a different marine (Advisor 2026-08-16).
+   *  (Fidelity: the original shows a "Really self-destruct?" dialog.) */
+  private destructArmedAt = 0;
+  private destructArmedFor = '';
   /** Phaser's keyboard queue can re-emit the SAME native event across frames
    *  under load (headless e2e, stalled RAF) — every keydown handler dedupes
    *  through this set or single-press actions double-fire. */
@@ -370,7 +374,7 @@ export default class GameScene extends Phaser.Scene {
     pieces.forEach(p => this.createPieceSprite(p));
 
     this.cursors = this.input.keyboard!.createCursorKeys()
-    this.wasd = this.input.keyboard!.addKeys('W,A,S,D,O,F,C,V,U,P,X,T,R,G') as any
+    this.wasd = this.input.keyboard!.addKeys('W,A,S,D,Q,E,Z,C,O,F,X,B,H,U,P,T,R,G') as any
     this.input.keyboard!.on('keydown-ENTER', () => this.endTurn());
     this.input.keyboard!.on('keydown-ESC', () => this.togglePause());
     // Camera bounds — the SINGLE clamp for every scroll path (keys, drag,
@@ -525,6 +529,7 @@ export default class GameScene extends Phaser.Scene {
         Selection.clear();
       }
       this.setFlamerAiming(false); // any (de)selection disarms the flamer
+      this.destructArmedAt = 0;    // …and the self-destruct confirm
       this.updateHighlight();
 
       const selectedId = Selection.get();
@@ -560,25 +565,33 @@ export default class GameScene extends Phaser.Scene {
 
       // Any piece ACTION while the flamer is armed cancels targeting mode.
       // (Arrow-key camera panning, L overlay, and M mute keep the aim.)
-      if (this.flamerAiming && 'wsadocvuxtrgp'.includes(_event.key.toLowerCase())) {
+      if (this.flamerAiming && 'wsadqezchxoutrgpb'.includes(_event.key.toLowerCase())) {
         this.setFlamerAiming(false);
       }
+      // Likewise, anything that isn't the B confirm disarms self-destruct.
+      if (this.destructArmedAt && _event.key.toLowerCase() !== 'b') this.destructArmedAt = 0;
 
       let acted = false;
       if (Phaser.Input.Keyboard.JustDown(this.wasd.W))      acted = piece.moveForward();
       else if (Phaser.Input.Keyboard.JustDown(this.wasd.S)) acted = piece.moveBackward();
       else if (Phaser.Input.Keyboard.JustDown(this.wasd.A)) acted = piece.tryTurn(-1);
       else if (Phaser.Input.Keyboard.JustDown(this.wasd.D)) acted = piece.tryTurn(1);
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).O)) acted = piece.useDoor();
+      // Diagonal moves (original numpad 7/9/1/3) — user-specified layout:
+      // Q fwd-left, E fwd-right, Z back-RIGHT, C back-LEFT.
+      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).Q)) acted = piece.moveForwardLeft();
+      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).E)) acted = piece.moveForwardRight();
+      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).Z)) acted = piece.moveBackRight();
+      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).C)) acted = piece.moveBackLeft();
+      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).H)) acted = piece.useDoor();
       else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).F)) acted = this.handleFire(piece);
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).C)) acted = this.meleeAhead(piece);
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).V)) {
+      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).X)) acted = this.meleeAhead(piece);
+      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).O)) {
         const marine = piece as StormBolterMarine;
         if (marine.overwatch) { marine.overwatchOff(); acted = true; }
         else acted = marine.overwatchOn?.() ?? false;
       }
       else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).U)) acted = (piece as StormBolterMarine).unjam?.() ?? false;
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).X)) acted = piece instanceof HeavyFlamerMarine && piece.selfDestruct();
+      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).B)) acted = this.handleSelfDestruct(piece);
       else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).T)) acted = piece instanceof AssaultCannonMarine && piece.autofire();
       else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).R)) acted = piece instanceof AssaultCannonMarine && piece.reload();
       else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).G)) acted = piece instanceof ChainFistMarine && piece.cutDoor();
@@ -602,6 +615,7 @@ export default class GameScene extends Phaser.Scene {
     if (!piece) return;
     Selection.select(id);
     this.setFlamerAiming(false);
+    this.destructArmedAt = 0;
     this.updateHighlight();
     PieceEvents.emit('selected', {
       pieceId: id,
@@ -768,6 +782,7 @@ export default class GameScene extends Phaser.Scene {
     const stream = PieceEvents.capture(() => this.engine.endMarinePhase());
     Selection.clear();
     this.setFlamerAiming(false);
+    this.destructArmedAt = 0;
     this.updateHighlight();
     PieceEvents.emit('selected', { pieceId: null });
     // Accessibility: with prefers-reduced-motion, skip the timeline entirely
@@ -814,11 +829,9 @@ export default class GameScene extends Phaser.Scene {
    * otherwise auto-target the nearest enemy in fire arc + LOS.
    */
   private handleFire(piece: Piece): boolean {
-    // Phaser's keyboard queue can replay a keydown across frames under
-    // machine-speed input (headless e2e) — a fire intent within ~2 frames of
-    // the last is the same physical press, never a second trigger.
-    if (this.time.now - this.lastFireAt < 35) return false;
-    this.lastFireAt = this.time.now;
+    // Replay protection lives in the keydown handler's seenKeyEvents dedupe —
+    // no time-based debounce here: under load two LEGITIMATE presses can land
+    // in one stalled frame batch with identical time.now (2026-08-16).
     const board = this.engine.state.board;
     if (piece instanceof HeavyFlamerMarine) {
       if (!this.flamerAiming) {
@@ -908,7 +921,23 @@ export default class GameScene extends Phaser.Scene {
     return true; // AP was spent even on a miss
   }
 
-  /** C key: close combat against the piece directly ahead. */
+  /** B key, twice: self-destruct with confirmation — the original games this
+   *  ports asked "Really self-destruct?"; a single stray press must never
+   *  torch the squad (the old X binding sat between action keys). */
+  private handleSelfDestruct(piece: Piece): boolean {
+    if (!(piece instanceof HeavyFlamerMarine)) return false;
+    if (this.destructArmedAt && this.destructArmedFor === piece.id
+        && this.time.now - this.destructArmedAt < 2500) {
+      this.destructArmedAt = 0; // disarm BEFORE firing — no re-entrant repeat
+      return piece.selfDestruct();
+    }
+    this.destructArmedAt = this.time.now;
+    this.destructArmedFor = piece.id;
+    this.hud.flash('Press B again to SELF-DESTRUCT');
+    return false;
+  }
+
+  /** X key: close combat against the piece directly ahead. */
   private meleeAhead(piece: Piece): boolean {
     const v = DIR_VEC[piece.facing];
     const ahead = { c: piece.pos.c + v.dc, r: piece.pos.r + v.dr };

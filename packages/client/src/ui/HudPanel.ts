@@ -21,6 +21,15 @@ export class HudPanel extends Phaser.GameObjects.Container {
   private diceText!: Phaser.GameObjects.Text
   private currentAmmo: number | undefined
   private statusText!: Phaser.GameObjects.Text
+  private flashText!: Phaser.GameObjects.Text
+  private flashTimer?: Phaser.Time.TimerEvent
+
+  /** Transient warning line (self-destruct confirm, etc.) — fades on its own. */
+  flash(text: string, ms = 2000) {
+    this.flashText.setText(text).setVisible(true)
+    this.flashTimer?.remove()
+    this.flashTimer = this.scene.time.delayedCall(ms, () => this.flashText.setVisible(false))
+  }
 
   setObjective(text: string) {
     this.objectiveText.setText(text)
@@ -170,8 +179,15 @@ export class HudPanel extends Phaser.GameObjects.Container {
     })
     this.add(this.statusText)
 
+    // Transient warning line (self-destruct confirm) — sits over the dice row
+    this.flashText = scene.add.text(8, doneY + 78, '', {
+      fontFamily: 'Kanit', fontSize: '14px', color: '#ff5544', fontStyle: 'bold',
+      fixedWidth: HUD_WIDTH - 16,
+    }).setVisible(false)
+    this.add(this.flashText)
+
     const controls = scene.add.text(8, doneY + 114,
-      'Click marine or card to select\nW/S move · A/D turn\nO door · F fire · C melee\nF over a closed door shoots it\nFlamer: F aims (hover a square),\nF again fires · other key cancels\nV overwatch · U unjam\nX flamer self-destruct\nP spend CP · L show LOS\nEnter end turn · Esc pause\nM mute sound\n\nMap: ▲ = stealer entry\norange = objective · green = exit',
+      'Click marine or card to select\nW/S move · A/D turn\nQ/E diagonal forward L/R\nZ back-right · C back-left\nH door · F fire · X melee\nF over a closed door shoots it\nFlamer: F aims (hover a square),\nF again fires · other key cancels\nO overwatch · U unjam\nB×2 flamer self-destruct\nP spend CP · L show LOS\nEnter end turn · Esc pause\nM mute sound\n\nMap: ▲ = stealer entry\norange = objective · green = exit',
       { fontFamily: 'Kanit', fontSize: '12px', color: '#8a8a8a', lineSpacing: 3, fixedWidth: HUD_WIDTH - 16 })
     this.add(controls)
 

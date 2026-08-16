@@ -200,9 +200,11 @@ describe('mission 2 autopilot (ISC-178)', () => {
   it('OPPOSED integrated quota win: real kills reach a lowered quota (ISC-172 integration)', () => {
     // Advisor 2026-08-15: the headline win path must fire in an opposed game,
     // not only in unit surgery. Quota lowered to 3 so real overwatch/CC kills
-    // reach it before the wipe (seed 5 racked 10 kills in the 30-seed scan).
+    // reach it before the wipe. Re-pinned seed 5 → 7 on 2026-08-16: the
+    // diagonal door-corner rule reroutes stealer paths, shifting seeded
+    // outcomes (14-seed scan: 7/8/9 win, all games progress — no stalls).
     const engine = new GameEngine(
-      { ...loadMission('space_hulk_2'), killQuota: 3 }, [], new SeededRng(5));
+      { ...loadMission('space_hulk_2'), killQuota: 3 }, [], new SeededRng(7));
     autoplay(engine, 40);
     expect(engine.state.result).toBe('win');
     expect(engine.state.board.stealerCasualties).toBeGreaterThanOrEqual(3);

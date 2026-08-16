@@ -127,11 +127,14 @@ describe('beta_2 fidelity (ISC-261/262)', () => {
     expect(engine.turnNumber).toBeGreaterThan(1);
   });
 
-  it('PINNED opposed win: CP-boosted sergeant rush completes the download under full opposition (seed 4)', () => {
+  it('PINNED opposed win: CP-boosted sergeant rush completes the download under full opposition (seed 9)', () => {
     // Advisor 2026-08-15: an aggregate "3/40" is a statistic; a pinned seed is
     // evidence. Legal play only — the probe pumps command points into the
     // sergeant nearest the Data Room and lets the shipped autopilot fight.
-    const engine = new GameEngine(loadMission('beta_2'), [], new SeededRng(4));
+    // Re-pinned seed 4 → 9 on 2026-08-16: the diagonal door-corner rule
+    // reroutes stealers (seed 4 now loses honestly at turn 12 with the
+    // download at 1 — full progression, no stalls).
+    const engine = new GameEngine(loadMission('beta_2'), [], new SeededRng(9));
     let t = 0;
     while (engine.state.result === 'ongoing' && t++ < 45) {
       const dp = engine.mission.downloadPoint!;

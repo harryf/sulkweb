@@ -27,7 +27,19 @@ test('flamer two-press targeting: arm, aim with preview, fire into the square', 
       ap: { apRemaining: flamer.apRemaining, apInitial: flamer.apInitial },
       ammo: flamer.ammo,
     });
+    scene.cameras.main.centerOn(18 * 40, 20 * 40);
   });
+  // While armed, the game recomputes the hover from the REAL pointer every
+  // frame (camera-pan honesty) — so aim with real mouse moves, never by
+  // injecting hoverCoord.
+  const hover = async (x: number, y: number) => {
+    const pt = await page.evaluate(([tx, ty]) => {
+      const cam = (window as any).sulk.scene.cameras.main;
+      return { x: tx * 40 + 20 - cam.scrollX, y: ty * 40 + 20 - cam.scrollY };
+    }, [x, y]);
+    await page.mouse.move(pt.x, pt.y);
+    await page.waitForTimeout(150);
+  };
 
   // First F arms — no AP or ammo spent (ISC-338).
   await page.keyboard.press('f');
@@ -40,12 +52,11 @@ test('flamer two-press targeting: arm, aim with preview, fire into the square', 
   })).toEqual({ ap: 4, ammo: 6 });
 
   // Valid hover: crosshair + the engine's exact flood as preview (ISC-339/340).
+  await hover(20, 20);
   const valid = await page.evaluate(() => {
-    const { scene, engine } = (window as any).sulk;
-    scene.hoverCoord = { x: 20, y: 20 };
-    scene.refreshAimUI();
+    const { scene } = (window as any).sulk;
     return {
-      cursor: engine ? scene.game.canvas.style.cursor : '',
+      cursor: scene.game.canvas.style.cursor,
       preview: scene.flamePreview.length,
     };
   });
@@ -55,11 +66,7 @@ test('flamer two-press targeting: arm, aim with preview, fire into the square', 
   expect(valid.preview).toBe(10);
 
   // Invalid hover: not-allowed cursor; F stays armed and spends nothing (ISC-343).
-  await page.evaluate(() => {
-    const { scene } = (window as any).sulk;
-    scene.hoverCoord = { x: 17, y: 20 }; // the flamer's own square
-    scene.refreshAimUI();
-  });
+  await hover(17, 20); // the flamer's own square
   expect(await page.evaluate(() => (window as any).sulk.scene.game.canvas.style.cursor)).toBe('not-allowed');
   await page.keyboard.press('f');
   await page.waitForTimeout(80);
@@ -79,13 +86,9 @@ test('flamer two-press targeting: arm, aim with preview, fire into the square', 
   // Re-arm, hover the objective, second F fires INTO that square (ISC-341/346).
   await page.keyboard.press('f');
   await page.waitForTimeout(80);
-  await page.evaluate(() => {
-    const { scene } = (window as any).sulk;
-    scene.hoverCoord = { x: 20, y: 20 };
-    scene.refreshAimUI();
-  });
+  await hover(20, 20);
   await page.keyboard.press('f');
-  await page.waitForTimeout(80);
+  await page.waitForTimeout(120);
   const fired = await page.evaluate(() => {
     const { scene, engine } = (window as any).sulk;
     const flamer = engine.marines.find((m: any) => m.spriteKey === 'terminator_heavy_flamer');

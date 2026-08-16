@@ -4,10 +4,10 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 412/413 (asset index docs/asset-index.md verified; ISC-71 deferred)
+progress: 424/425 (architecture + development guides verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-16T09:05:00Z
+updated: 2026-08-16T09:40:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -576,6 +576,20 @@ Client integration (AudioManager, event-driven):
 - [x] ISC-411: Anti: no dist/ build output or .DS_Store rows appear in the index (Grep)
 - [x] ISC-412: doc prose passes the writing-guide banned-pattern scan, em dashes included (Grep exit 1)
 
+### Architecture + development guides (docs/, 2026-08-16)
+- [x] ISC-413: docs/architecture.md exists covering monorepo layout, engine internals, client internals, and the boundary (Read)
+- [x] ISC-414: architecture doc names all three interaction channels: client→engine method calls with read-only state, engine→client PieceEvents, capture/replay for the stealer phase with the replaying-flag rules (Read)
+- [x] ISC-415: architecture doc documents the vite `@sulk/engine`→`../engine/src` alias: dev needs no engine build, engine edits hot-reload (Read vs vite.config.ts)
+- [x] ISC-416: deploy section: pnpm build → static packages/client/dist; fetch-audio-before-build caveat; no `base` set so root hosting or add base; assets404 is dev-only (Read vs vite.config.ts, .gitignore)
+- [x] ISC-417: docs/development-guide.md exists with annotated directory maps for both packages plus root files (Read)
+- [x] ISC-418: add-a-mission recipe: JSON in missions/<family>/, register in missions/index.ts, schema fields from RawMissionJSON_v2, ?mission= URL, optional MUSIC_TRACKS entry, fidelity-spec test pattern, README listing (Read vs sources)
+- [x] ISC-419: add-a-unit-type recipe enumerates all nine wiring points: piece class + SPRITE_KEY, MarineType union, MARINE_CLASSES, index.ts export, sprite PNG + preload, EXPECTED_SPRITE/SPECIAL_LABEL, audioLogic sfx, keyboardHelp, tests (Read vs grep-verified touch points)
+- [x] ISC-420: both docs name the three test suites with exact commands and locations, including the vitest-vs-playwright directory split gotcha (Read)
+- [x] ISC-421: every path, filename, spec file, and directory referenced in both docs resolves in the repo (Bash find loop, 0 missing)
+- [x] ISC-422: Anti: no source file modified; git status shows only the two new docs + ISA (Bash)
+- [x] ISC-423: both docs pass the writing-guide banned-pattern scan including em dashes (Grep exit 1)
+- [x] ISC-424: docs cross-link each other and asset-index.md / writing-guide.md; all md links resolve (Bash link check, 0 missing)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
@@ -733,6 +747,14 @@ Client integration (AudioManager, event-driven):
 - Findings: 78 of 149 files dead (42 pygame UI images, 27 theme sprites, 4 sounds, 3 alien cuts, 2 fonts). ambush_counter.png is the sole loaded-but-never-drawn asset (boot-download dead weight; left in place — read-only scope, inventory only).
 - Accuracy corrections made against sources before generation: ducting objective belongs to space_hulk_6 (initially misattributed to space_hulk_4; mission JSON grep settled it); softened unverifiable claims (blip-conversion timing, C.A.T. selectability) to what the code shows.
 - E3 ISC floor (≥32) not met with 13 new ISCs — show-math: single-doc deliverable; the project ISA's 413 total far exceeds the floor. Delegation floor waived, same math as prior runs.
+
+### 2026-08-16 — architecture + development guides (E3, ISC-413..424)
+- Two docs added: docs/architecture.md (system + frontend↔engine boundary + deployment) and docs/development-guide.md (directory map + recipes for missions, unit types, objectives, sounds).
+- Every architectural claim read from source this session before writing: vite alias means the client compiles engine SOURCE (dev needs no engine build; engine's tsc dist exists for non-Vite consumers); the stealer turn is synchronous inside endMarinePhase() with the client capturing and replaying the event stream (GameScene:779); MARINE_CLASSES in GameEngine constructor is the deployment mapping; unregistered ?mission= falls back to debug_1.
+- Deploy section written to what exists: no CI, no Dockerfile, no vite `base` — static hosting of packages/client/dist, with the fetch-audio-before-build caveat (audio/ is gitignored; game degrades to silence) and the assets404-is-dev-only note.
+- Unit-type recipe enumerates nine wiring points because the failure modes are quiet (EXPECTED_SPRITE drift only warns; missing shotSfx mapping silently falls back to bolter) — the list came from grep, not memory.
+- Verification was mechanical where possible: every backticked path/filename resolved via find (first pass flagged 44 "missing" that were bare filenames inside stated parent dirs — checker false negatives, re-verified repo-wide to 0); md links checked; banned-pattern scan clean on both docs.
+- Same floor waivers as the asset-index run (12 new ISCs vs E3 ≥32; delegation inline).
 
 ## Changelog
 

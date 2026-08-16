@@ -156,6 +156,7 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
 
 ## Gotchas (hard-won)
 
+- **Never time-debounce keyboard input.** Under parallel-load frame stalls, two legitimate presses can share one frame's `time.now` — a time guard eats real input (it broke the flamer's second F). Replay protection is the `seenKeyEvents` WeakSet, full stop. Related: while the flamer is armed, `update()` recomputes hover from the REAL pointer every frame, so e2e must aim with `page.mouse.move`, never by injecting `hoverCoord`.
 - **Phaser replays keydown events across frames under load** (headless e2e, stalled RAF): one physical press can emit 2-3 'keydown' events carrying the SAME native event object, double-firing any single-press action (it double-toggled mute and re-armed the flamer). EVERY keydown handler in GameScene must dedupe through `this.seenKeyEvents` (WeakSet) — add the guard to any new handler. Symptom signature: e2e failures that MIGRATE between key-driven tests when the full suite runs in parallel.
 
 - **NodeNext imports:** engine files import with explicit `.js` extensions even for `.ts`

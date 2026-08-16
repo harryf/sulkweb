@@ -444,11 +444,8 @@ export default class GameScene extends Phaser.Scene {
       this.audio.toggleMute();
     });
     this.events.once('shutdown', () => this.audio.destroy());
-    // Required credit for the ambient soundtrack (see CREDITS.md).
-    const credit = document.createElement('div');
-    credit.className = 'audio-credit';
-    credit.innerHTML = 'Ambient music: <a href="https://www.youtube.com/@Musicof40K" target="_blank" rel="noopener">Music of 40K</a> · M = mute';
-    document.getElementById('roster-panel')?.appendChild(credit);
+    // The required Music of 40K credit lives in the roster panel's Credits
+    // section (RosterPanel buildCredits — see CREDITS.md).
 
     const objectiveLabel: Record<string, string> = {
       'exterminate': 'Objective: kill every genestealer',

@@ -79,7 +79,7 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
 | `Enter` / DONE | End marine phase |
 | `Esc` | Pause |
 | Arrows / drag | Pan camera |
-| Mouse hover | Square coordinate + contents in the HUD (below the controls) |
+| Mouse hover | Square coordinate + contents in the HUD (below the map legend) |
 
 ### Marine roster panel
 

@@ -44,15 +44,16 @@ test('hover readout shows square coordinate and contents in the HUD (ISC-106..10
   expect(doorInfo).toContain('door');
   expect(doorInfo).toContain('closed');
 
-  // The HUD text object displays the readout, positioned below the controls (ISC-106)
+  // The HUD text object displays the readout, positioned below the map legend
+  // (ISC-106; keyboard controls moved to the roster panel's collapsible help)
   const hudCheck = await page.evaluate(() => {
     const hud = (window as any).sulk.scene.hud;
     const hover = hud.list.find((c: any) => c.text && c.text.startsWith('(13,15)'));
-    const controls = hud.list.find((c: any) => c.text && c.text.includes('Click marine or card to select'));
-    return hover && controls ? { hoverY: hover.y, controlsY: controls.y, text: hover.text } : null;
+    const legend = hud.list.find((c: any) => c.text && c.text.includes('Map: ▲'));
+    return hover && legend ? { hoverY: hover.y, legendY: legend.y, text: hover.text } : null;
   });
   expect(hudCheck).not.toBeNull();
-  expect(hudCheck!.hoverY).toBeGreaterThan(hudCheck!.controlsY); // below the instructions
+  expect(hudCheck!.hoverY).toBeGreaterThan(hudCheck!.legendY); // below the legend
   await page.screenshot({ path: 'test-results/hover-readout.png' });
 
   // Old-map residue reads as rock — (15,13) held a door in the invented map (ISC-119)

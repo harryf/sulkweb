@@ -4,10 +4,10 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 383/384 (minimap narrow-map clamp verified; ISC-71 deferred)
+progress: 399/400 (HUD restructure: Mission Status, keyboard help, Credits verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-16T07:15:00Z
+updated: 2026-08-16T08:10:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -544,6 +544,22 @@ Client integration (AudioManager, event-driven):
 - [x] ISC-381: Anti: projected width/height never negative even when the minimap is smaller than the line width (vitest)
 - [x] ISC-382: live probe: e2e on space_hulk_1 AND beta_2, camera panned to 3 positions, drawn rect (Minimap.lastBox) inside minimap bounds (Playwright)
 - [x] ISC-383: full suites green after the fix: engine vitest, client vitest, Playwright e2e, tsc, build (Bash)
+- [x] ISC-384: canvas HUD header reads "Mission Status" (e2e text probe)
+- [x] ISC-385: HUD no longer renders AP or CP lines; apText/cpText fields gone (grep + e2e absence probe)
+- [x] ISC-386: flamer ammo readout lives on the roster card only; flamer-ui e2e asserts it there (Playwright)
+- [x] ISC-387: Mission Status keeps turn/phase, timer, kills/losses, objective, mission status line, dice, map legend, hover info, DONE (e2e)
+- [x] ISC-388: docs/writing-guide.md rules hard-wired into project CLAUDE.md (grep)
+- [x] ISC-389: displayed UI strings follow the guide: no em dashes as separators/emphasis in HUD/roster text (grep scan)
+- [x] ISC-390: keyboard help renders in the roster panel as keycap squares in QWERTY rows with physical stagger; unbound keys dimmed in place (e2e DOM probe)
+- [x] ISC-391: keyboard help expands/collapses via a native arrow control and toggles on click; toggling blurs the summary so Enter stays a gameplay key (e2e)
+- [x] ISC-392: every bound key (W A S D Q E Z C H F X O U B T R G P L M Enter Esc) appears exactly once with an action label (vitest on layout data)
+- [x] ISC-393: Credits section sits below the keyboard help crediting Toby Woodwark with a sulk.sourceforge.net link (e2e)
+- [x] ISC-394: music credit (Music of 40K link) lives inside Credits; the old GameScene-appended audio-credit is gone — exactly one music credit in the DOM (e2e count)
+- [x] ISC-395: Credits states the game is inspired by Space Hulk, first edition, a Games Workshop board game (e2e text)
+- [x] ISC-396: the original site's Legal text (GPL notice + Games Workshop trademark disclaimer) present, collapsed by default (e2e)
+- [x] ISC-397: Anti: no test still asserts AP/CP/keyboard legend inside the HUD — hud.spec, hover.spec, flamer-ui.spec updated and green (vitest + Playwright)
+- [x] ISC-398: Anti: roster cards unchanged — AP/CP stats line and ammo line still render (e2e, existing roster.spec)
+- [x] ISC-399: full suites green: engine vitest, client vitest, Playwright e2e, tsc, build (Bash)
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
@@ -685,6 +701,15 @@ Client integration (AudioManager, event-driven):
 - `Minimap.lastBox` added as a public e2e probe of the rect actually drawn — same pattern as `flamePreview`.
 - One e2e blip (40/41) in the first post-fix run, unidentified test, followed by 4 consecutive 41/41 runs; consistent with the known parallel-load flake class, logged honestly rather than hidden.
 - Delegation floor waived, same math as prior runs (codex absent; Advisor as second perspective on a 4-line single-file fix).
+
+### 2026-08-16 — HUD restructure: Mission Status, keyboard help, Credits (E3, ISC-384..399)
+- Split of concerns made explicit: the canvas HUD is MISSION-level (turn, timer, kills, objective, status, dice, map legend, hover); the DOM roster is MARINE-level (AP/CP/ammo per card) plus static reference (keyboard help, credits). The HUD's `selected`/`apChanged`/`ammoChanged` listeners were removed outright, not redirected.
+- Keyboard help is data-driven (`keyboardHelp.ts` KEY_ROWS) with unbound keys kept as dimmed aria-hidden spacers so bound keys sit at true physical positions; a vitest pins the 22-key binding inventory against GameScene's addKeys + dedicated handlers, so a future rebind that forgets the help fails a test.
+- Native `<details>` chosen over custom JS for collapse (arrow for free). Advisor caught the focus trap: a focused `<summary>` re-toggles on Enter, and Enter ends the turn — fixed by blurring on the async `toggle` event, and the e2e polls for the blur (asserting immediately after click races the queued event; first run of that assertion flaked before the poll).
+- Playwright `hasText` is substring + case-insensitive: filtering keycaps by 'W' matched "f**w**d left" — locate by exact `<kbd>` text instead.
+- Music credit consolidated into the Credits section; the GameScene DOM append deleted (single source, e2e counts exactly one link). Legal text carried verbatim from the original site inside a collapsed sub-details.
+- Writing guide: summarized into CLAUDE.md with the guide as canonical source ("read it before writing displayed text") — a pointer plus the ban list, accepting the advisor's divergence concern because the section defers explicitly. Displayed strings audited: `Turn N — Marines` → `Turn N: Marines`, dice `— KILL` → `· KILL`; remaining em dashes are code comments (exempt).
+- Delegation floor waived, same math as prior runs (codex absent; Advisor invoked as the second perspective; all touched files already in context).
 
 ## Changelog
 
@@ -1085,3 +1110,13 @@ beta_2 completion (2026-08-15):
 - ISC-381: vitest — 1×1 minimap with 4px stroke yields w,h ≥ 0
 - ISC-382: Playwright — both missions × 3 camera positions (hard left, centre, hard right): lastBox.x+w ≤ mini.width, y+h ≤ mini.height, x,y ≥ 0; screenshots (scratchpad minimap-*.png) show the box hugging but not crossing the right edge panned hard right
 - ISC-383: 257 engine / 31 client unit / 41 e2e (4 consecutive green after one unrelated-flake blip); tsc exit 0; pnpm -r build Done
+- ISC-384/385/387: e2e — hud.texts contains 'Mission Status', 'Turn 1:', 'Kills:', 'Map: ▲'; no 'AP:'/'CP:' strings; apText/cpText undefined
+- ISC-386: e2e — `.marine-card[data-piece-id=flamer] .m-ammo` reads 'Ammo 6'; hud.apText undefined
+- ISC-388: CLAUDE.md § "Writing style for ALL displayed text" with ban list + pointer to docs/writing-guide.md
+- ISC-389: grep — em dashes in HudPanel remain only in comments; phase line and dice line use ':' and '·'
+- ISC-390/391: e2e — 4 kb-rows, Q/A/Z row leads, stagger 0<14<30px, 6 aria-hidden unbound spacers, W keycap label 'forward'; summary click toggles open false→true, focus polled off SUMMARY, Enter leaves panel open
+- ISC-392: vitest keyboardHelp.spec — 22 bound keys match addKeys + L/M/Enter/Esc, no duplicates, all labeled; QWERTY stagger + movement-rose spot checks
+- ISC-393..396: e2e — Credits h3, sulk.sourceforge.net anchor text 'Sulk', 'Toby Woodwark', exactly 1 Music of 40K anchor, 'Space Hulk™, first edition' + 'board game published by Games Workshop', legal details closed then expands with 'no way endorsed by Games Workshop Limited' + 'Genestealers'
+- ISC-397: hud.spec rewritten to mission-level (4 tests), hover.spec anchors 'Map: ▲', flamer-ui asserts roster card — all green
+- ISC-398: roster.spec 'AP 4/4 · CP ' and 'Ammo 6' card assertions untouched, green
+- ISC-399: 257 engine / 35 client unit / 42 e2e ×3 consecutive; tsc 0 errors; pnpm -r build Done; screenshots roster-help.png, credits-legal.png, mission-status.png

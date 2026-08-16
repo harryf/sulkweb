@@ -38,7 +38,7 @@ function makeMiniMapStub() {
   return { y: 8, height: 226, setPosition() { return this } } as any
 }
 
-describe('HudPanel', () => {
+describe('HudPanel (Mission Status)', () => {
   let hud: HudPanel
 
   beforeEach(() => {
@@ -46,22 +46,30 @@ describe('HudPanel', () => {
     hud = new HudPanel(makeSceneStub(), makeMiniMapStub())
   })
 
-  it('shows AP from the selection payload', () => {
-    PieceEvents.emit('selected', { pieceId: 'm1', ap: { apRemaining: 3, apInitial: 4 } })
-    expect((hud as any).apText.text).toBe('AP: 3/4')
-  })
-
-  it('clears on deselect', () => {
-    PieceEvents.emit('selected', { pieceId: 'm1', ap: { apRemaining: 3, apInitial: 4 } })
-    PieceEvents.emit('selected', { pieceId: null })
-    expect((hud as any).apText.text).toBe('AP: --/--')
-  })
-
-  it('updates on apChanged only for the selected piece', () => {
-    PieceEvents.emit('selected', { pieceId: 'm1', ap: { apRemaining: 4, apInitial: 4 } })
-    PieceEvents.emit('apChanged', { pieceId: 'other', apRemaining: 1, apInitial: 4 })
-    expect((hud as any).apText.text).toBe('AP: 4/4')
+  it('is mission-level only: no AP or CP readouts exist (per-marine stats live on roster cards)', () => {
+    expect((hud as any).apText).toBeUndefined()
+    expect((hud as any).cpText).toBeUndefined()
+    // and it no longer listens to per-marine selection/AP/ammo channels
+    PieceEvents.emit('selected', { pieceId: 'm1', ap: { apRemaining: 3, apInitial: 4 }, ammo: 6 })
     PieceEvents.emit('apChanged', { pieceId: 'm1', apRemaining: 2, apInitial: 4 })
-    expect((hud as any).apText.text).toBe('AP: 2/4')
+    PieceEvents.emit('ammoChanged', { pieceId: 'm1', ammo: 5 })
+    // nothing to assert beyond "no crash": the HUD ignores these channels now
+  })
+
+  it('tracks casualties from pieceDied', () => {
+    PieceEvents.emit('pieceDied', { pieceId: 's1', kind: 'stealer', x: 0, y: 0 })
+    PieceEvents.emit('pieceDied', { pieceId: 'm1', kind: 'marine', x: 0, y: 0 })
+    expect((hud as any).casualtyText.text).toBe('Kills: 1   Losses: 1')
+  })
+
+  it('kill-quota missions show the value-weighted toll against the quota', () => {
+    hud.setKillQuota(30)
+    PieceEvents.emit('casualtiesChanged', { casualties: 3 })
+    expect((hud as any).casualtyText.text).toBe('Kills: 3/30   Losses: 0')
+  })
+
+  it('phase line follows phaseChanged with colon separator', () => {
+    PieceEvents.emit('phaseChanged', { phase: 'StealerAction', turn: 2 })
+    expect((hud as any).phaseText.text).toBe('Turn 2: Stealers')
   })
 })

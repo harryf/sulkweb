@@ -1,5 +1,6 @@
 import { PieceEvents } from '@sulk/engine/index.js';
 import { groupBySquad, type RosterEntry } from './marineNames.js';
+import { KEY_ROWS, SPECIAL_KEYS, KEY_NOTES } from './keyboardHelp.js';
 
 /** Live stats for one marine, read from the engine by the owner (GameScene). */
 export interface PieceStats {
@@ -84,6 +85,8 @@ export class RosterPanel {
       section.appendChild(cards);
       this.root.appendChild(section);
     }
+    this.root.appendChild(buildKeyboardHelp());
+    this.root.appendChild(buildCredits());
     parent.appendChild(this.root);
     this.refreshAll();
 
@@ -146,4 +149,83 @@ export class RosterPanel {
       if (on) card.scrollIntoView?.({ block: 'nearest' }); // panel can overflow — keep the highlight visible (absent in jsdom)
     }
   }
+}
+
+/**
+ * Collapsible keyboard help: keycap squares drawn in physical QWERTY rows
+ * (native <details> supplies the expand/collapse arrow).
+ */
+function buildKeyboardHelp(): HTMLElement {
+  const details = document.createElement('details');
+  details.className = 'kb-help';
+  details.open = true;
+  const summary = document.createElement('summary');
+  summary.textContent = 'Keyboard controls';
+  // A focused <summary> re-toggles on Enter/Space — which are gameplay keys
+  // (Enter ends the turn). Drop focus once toggled so play continues cleanly.
+  details.addEventListener('toggle', () => summary.blur());
+  details.appendChild(summary);
+
+  const board = document.createElement('div');
+  board.className = 'kb-board';
+  for (const row of KEY_ROWS) {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'kb-row';
+    rowEl.style.paddingLeft = `${row.offset * 40}px`;
+    for (const cap of row.caps) {
+      const capEl = document.createElement('span');
+      capEl.className = cap.label ? 'keycap' : 'keycap unbound';
+      capEl.innerHTML = `<kbd>${cap.key}</kbd>` + (cap.label ? `<i>${cap.label}</i>` : '');
+      if (!cap.label) capEl.setAttribute('aria-hidden', 'true'); // spacer, not content
+      rowEl.appendChild(capEl);
+    }
+    board.appendChild(rowEl);
+  }
+  const special = document.createElement('div');
+  special.className = 'kb-row kb-special';
+  for (const cap of SPECIAL_KEYS) {
+    const capEl = document.createElement('span');
+    capEl.className = 'keycap wide';
+    capEl.innerHTML = `<kbd>${cap.key}</kbd><i>${cap.label}</i>`;
+    special.appendChild(capEl);
+  }
+  board.appendChild(special);
+  details.appendChild(board);
+
+  const notes = document.createElement('ul');
+  notes.className = 'kb-notes';
+  for (const note of KEY_NOTES) {
+    const li = document.createElement('li');
+    li.textContent = note;
+    notes.appendChild(li);
+  }
+  details.appendChild(notes);
+  return details;
+}
+
+/** Credits: Sulk, music, Space Hulk inspiration, and the legal text. */
+function buildCredits(): HTMLElement {
+  const section = document.createElement('section');
+  section.className = 'credits';
+  section.innerHTML =
+    `<h3>Credits</h3>` +
+    `<p>A browser recreation of <a href="https://sulk.sourceforge.net/" target="_blank" rel="noopener">Sulk</a> ` +
+    `by Toby Woodwark. Sulk and its graphics are copyright 2002-3 Toby Woodwark, ` +
+    `distributed under the GNU General Public License.</p>` +
+    `<p class="audio-credit">Ambient music: <a href="https://www.youtube.com/@Musicof40K" target="_blank" rel="noopener">Music of 40K</a>, ` +
+    `used with credit under the channel's non-profit terms. Sound effects from the original Sulk sound set. M mutes sound.</p>` +
+    `<p>Inspired by Space Hulk&trade;, first edition. Space Hulk is a board game published by Games Workshop&trade;.</p>` +
+    `<details class="legal"><summary>Legal</summary>` +
+    `<p>This game and this page are completely unofficial and in no way endorsed by Games Workshop Limited.</p>` +
+    `<p>Adeptus Astartes, Black Templars, Blood Angels, Catachan Jungle Fighters, Chaos Space Marines, the Chaos device, ` +
+    `Dark Eldar, Dark Angels, the Double-Headed/Imperial Eagle device, Eldar, Eldar symbol devices, Genestealers, ` +
+    `the Games Workshop logo, Games Workshop, Inquisitor, the Inquisitor device, Khorne, Kroot, Leman Russ, Necron, ` +
+    `Nurgle, Slaanesh, Space Marine, Space Marine chapter logos, Space Wolves, Sisters of Battle, Space Hulk, ` +
+    `Steel Legion, Tau, the Tau caste designations, Terminators, Tyranid, Tyrannid, Tzeentch, Ultramarines, Warhammer, ` +
+    `Warhammer 40k Device, White Scars, and all associated marks, names, characters, illustrations and images from the ` +
+    `Space Hulk games and Warhammer 40,000 universes are either &reg;, &trade; and/or &copy; Games Workshop Ltd 2000-2003, ` +
+    `variably registered in the UK and other countries around the world. Used without permission. ` +
+    `No challenge to their status intended. All Rights Reserved.</p>` +
+    `</details>`;
+  return section;
 }

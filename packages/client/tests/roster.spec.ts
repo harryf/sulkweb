@@ -143,3 +143,77 @@ test('beta_2: two squad rows with all special-weapon labels; overwatch badge liv
 
   expect(errors).toHaveLength(0);
 });
+
+test('keyboard help draws staggered keycap rows, collapses on click; Credits sit below (ISC-384/390..396)', async ({ page }) => {
+  await page.goto('/?mission=space_hulk_1&seed=1');
+  await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
+
+  // Canvas HUD header renamed; AP/CP gone from it; mission info retained (ISC-384/385/387)
+  const hud = await page.evaluate(() => {
+    const h = (window as any).sulk.scene.hud;
+    const texts = h.list.filter((c: any) => c.text).map((c: any) => c.text as string);
+    return { texts, apText: (h as any).apText, cpText: (h as any).cpText };
+  });
+  expect(hud.apText).toBeUndefined();
+  expect(hud.cpText).toBeUndefined();
+  expect(hud.texts).toContain('Mission Status');
+  expect(hud.texts.some((t: string) => t.startsWith('Turn 1:'))).toBe(true);
+  expect(hud.texts.some((t: string) => t.startsWith('Kills:'))).toBe(true);
+  expect(hud.texts.some((t: string) => t.includes('Map: ▲'))).toBe(true);
+  expect(hud.texts.some((t: string) => t.startsWith('AP:') || t.startsWith('CP:'))).toBe(false);
+
+  // Keycap rows mirror the keyboard: 3 letter rows + special row, staggered (ISC-390)
+  const help = page.locator('#roster-panel .kb-help');
+  await expect(help.locator('summary')).toHaveText('Keyboard controls');
+  const rows = help.locator('.kb-row');
+  await expect(rows).toHaveCount(4);
+  await expect(rows.nth(0).locator('.keycap kbd').first()).toHaveText('Q');
+  await expect(rows.nth(1).locator('.keycap kbd').first()).toHaveText('A');
+  await expect(rows.nth(2).locator('.keycap kbd').first()).toHaveText('Z');
+  const stagger = await page.evaluate(() => {
+    const [r1, r2, r3] = Array.from(document.querySelectorAll('.kb-help .kb-row')).slice(0, 3);
+    return [r1, r2, r3].map(r => parseFloat((r as HTMLElement).style.paddingLeft));
+  });
+  expect(stagger[1]).toBeGreaterThan(stagger[0]);
+  expect(stagger[2]).toBeGreaterThan(stagger[1]);
+  await expect(help.locator('.keycap.unbound')).toHaveCount(6); // Y I J K V N spacers
+  // W keycap carries its action label ("fwd" also contains a w — match the <b> exactly)
+  const wLabel = help.locator('.keycap').filter({ has: page.locator('kbd', { hasText: /^W$/ }) }).locator('i');
+  await expect(wLabel).toHaveText('forward');
+
+  // Collapsible via the native details arrow (ISC-391)
+  expect(await help.evaluate(el => (el as HTMLDetailsElement).open)).toBe(true);
+  await help.locator('summary').click();
+  expect(await help.evaluate(el => (el as HTMLDetailsElement).open)).toBe(false);
+  await expect(help.locator('.kb-board')).toBeHidden();
+  await help.locator('summary').click();
+  expect(await help.evaluate(el => (el as HTMLDetailsElement).open)).toBe(true);
+  // Toggling must drop focus from the summary: Enter is a gameplay key (end
+  // turn) and a focused summary would re-toggle instead (advisor 2026-08-16).
+  // The toggle event (and its blur) fires async — poll, don't race it.
+  await page.waitForFunction(() => document.activeElement?.tagName !== 'SUMMARY');
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(150);
+  expect(await help.evaluate(el => (el as HTMLDetailsElement).open)).toBe(true); // unchanged
+
+  // Credits below the help: Sulk link, single music credit, inspiration, legal collapsed (ISC-393..396)
+  const credits = page.locator('#roster-panel .credits');
+  await expect(credits.locator('h3')).toHaveText('Credits');
+  await expect(credits.locator('a[href="https://sulk.sourceforge.net/"]')).toHaveText('Sulk');
+  await expect(credits).toContainText('Toby Woodwark');
+  await expect(page.locator('a[href="https://www.youtube.com/@Musicof40K"]')).toHaveCount(1); // no duplicate credit
+  await expect(credits).toContainText('Space Hulk™, first edition');
+  await expect(credits).toContainText('board game published by Games Workshop');
+  const legal = credits.locator('details.legal');
+  expect(await legal.evaluate(el => (el as HTMLDetailsElement).open)).toBe(false);
+  await legal.locator('summary').click();
+  await expect(legal).toContainText('no way endorsed by Games Workshop Limited');
+  await expect(legal).toContainText('Genestealers');
+  // help precedes credits in the panel (Credits "below the keyboard help")
+  const order = await page.evaluate(() => {
+    const kids = Array.from(document.getElementById('roster-panel')!.children).map(c => c.className || c.tagName);
+    return { kb: kids.findIndex(k => String(k).includes('kb-help')), cr: kids.findIndex(k => String(k).includes('credits')) };
+  });
+  expect(order.kb).toBeGreaterThanOrEqual(0);
+  expect(order.cr).toBeGreaterThan(order.kb);
+});

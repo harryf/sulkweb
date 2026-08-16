@@ -131,6 +131,24 @@ pnpm --filter ./packages/engine example  # CLI engine tour
   OFF-board (`facing` = original efacing, rotation `idx*π/2`); the camera
   bounds carry a one-tile margin so edge triangles stay visible.
 
+## Writing style for ALL displayed text (hard rule)
+
+Every string a player can read — HUD, roster, help, credits, overlays, README, docs —
+follows `docs/writing-guide.md`. Read it before writing or editing any displayed text.
+The short version:
+
+- Banned AI-tell vocabulary: pivotal/crucial/vital, underscore/highlight, showcase,
+  foster, garner, delve, tapestry/landscape, testament, vibrant/profound/intricate,
+  meticulous, "aligns with", "moving forward", "stands as / serves as",
+  "Additionally," openers, "Furthermore/Moreover", "In summary", "it is worth noting",
+  "not just X, but Y". Use the plain alternative from the guide's table.
+- No em dashes for dramatic emphasis or as separators in displayed strings — use a
+  colon, comma, `·`, or parenthesis (code comments are exempt).
+- Specifics beat generalities; no filler praise, no significance inflation, no rule-of-three
+  padding, no vague attribution, no lead-in preambles, no Capitalizing Every Heading Word.
+- Self-check: delete any sentence that only says the subject matters; collapse 3+ item
+  lists that could be one sentence.
+
 ## Testing policy (this is why the project survived)
 
 The project previously died from **mock-drift**: heavily-mocked Phaser unit tests asserted

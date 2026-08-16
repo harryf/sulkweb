@@ -145,10 +145,119 @@ body {
 
 .marine-card.has-cat { border-color: #7ec8ff; }
 
+/* ---- Keyboard help (collapsible, keycaps in physical rows) ---- */
+
+.kb-help {
+  margin-top: 12px;
+  border-top: 1px solid #2c2c2c;
+  padding-top: 8px;
+}
+
+.kb-help summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  color: #7ec8ff;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.kb-board { margin-top: 8px; }
+
+.kb-row {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 3px;
+}
+
+.kb-row.kb-special { margin-top: 6px; }
+
+.keycap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  width: 40px;
+  min-height: 34px;
+  padding: 2px 1px;
+  background: #242424;
+  border: 1px solid #4a4a4a;
+  border-bottom-width: 3px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.keycap kbd {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  color: #eee;
+  line-height: 1.1;
+}
+
+.keycap i {
+  font-style: normal;
+  font-size: 7.5px;
+  line-height: 1.15;
+  color: #b8c6d8;
+  font-weight: 400;
+}
+
+.keycap.unbound {
+  opacity: 0.22;
+}
+
+.keycap.wide { width: 62px; }
+
+.kb-notes {
+  margin: 8px 0 0;
+  padding-left: 16px;
+  font-size: 10.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: #8a8a8a;
+}
+
+/* ---- Credits ---- */
+
+.credits {
+  margin-top: 12px;
+  border-top: 1px solid #2c2c2c;
+  padding-top: 8px;
+  font-size: 10.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: #888;
+}
+
+.credits h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #7ec8ff;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.credits p { margin: 0 0 6px; }
+.credits a { color: #7ec8ff; }
+
+.credits .legal summary {
+  cursor: pointer;
+  color: #6a6a6a;
+  user-select: none;
+}
+
+.credits .legal p {
+  margin-top: 6px;
+  font-size: 9.5px;
+  color: #6a6a6a;
+}
+
 /* Required soundtrack credit (see CREDITS.md) */
 .audio-credit {
-  margin-top: 10px;
-  font-size: 11px;
+  font-size: 10.5px;
   color: #888;
 }
 .audio-credit a { color: #7ec8ff; }

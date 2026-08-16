@@ -23,20 +23,17 @@ test('sergeant & flamer render; flaming Launch Control wins with flames on scree
     'terminator_storm_bolter', 'terminator_storm_bolter', 'terminator_storm_bolter',
   ]);
 
-  // Selecting the flamer shows its ammo in the HUD AP line (ISC-150)
-  const apLine = await page.evaluate(() => {
-    const { engine, Selection, scene, PieceEvents } = (window as any).sulk;
-    const flamer = engine.marines.find((m: any) => m.spriteKey === 'terminator_heavy_flamer');
-    Selection.toggle(flamer.id);
-    PieceEvents.emit('selected', {
-      pieceId: flamer.id,
-      ap: { apRemaining: flamer.apRemaining, apInitial: flamer.apInitial },
-      ammo: flamer.ammo,
-    });
-    return { ammo: flamer.ammo, hudText: scene.hud.apText.text as string };
+  // The flamer's ammo readout lives on its ROSTER CARD; the HUD is
+  // mission-level only and carries no AP line (ISC-150 → ISC-385/386)
+  const flamerId = await page.evaluate(() => {
+    const { engine, scene } = (window as any).sulk;
+    return {
+      id: engine.marines.find((m: any) => m.spriteKey === 'terminator_heavy_flamer').id,
+      hudApText: (scene.hud as any).apText, // must be gone
+    };
   });
-  expect(apLine.ammo).toBe(6);
-  expect(apLine.hudText).toContain('Ammo 6');
+  expect(flamerId.hudApText).toBeUndefined();
+  await expect(page.locator(`.marine-card[data-piece-id="${flamerId.id}"] .m-ammo`)).toHaveText('Ammo 6');
 
   // Jam marker + dice readout wiring (ISC-149/151): pure event-view contracts
   const hudWiring = await page.evaluate(() => {

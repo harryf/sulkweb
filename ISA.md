@@ -3,8 +3,8 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: execute
-progress: 360/376 (diagonal movement + key rebind run; ISC-71 deferred)
+phase: verify
+progress: 375/376 (diagonal movement + key rebind verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-16T04:30:00Z
@@ -521,21 +521,21 @@ Client integration (AudioManager, event-driven):
 
 ### Diagonal movement + key rebind (2026-08-16, run 2)
 
-- [ ] ISC-361: Q moves the marine forward-left diagonally for 1 AP, facing unchanged (Playwright key press + engine unit)
-- [ ] ISC-362: E moves forward-right diagonally for 1 AP (Playwright + unit)
-- [ ] ISC-363: Z moves back-right and C moves back-left diagonally for 2 AP each — the user's explicit mapping (Playwright + unit)
-- [ ] ISC-364: a diagonal move counts as a MOVE — grants move-and-shoot, breaks overwatch, clears sustained fire (vitest)
-- [ ] ISC-365: Anti: strafing stays impossible for marines — stepLeft/stepRight refuse, no key binds a sideways move (vitest + grep)
-- [ ] ISC-366: Anti: a diagonal move cannot cut the corner of a closed door edge — (18,20)→(19,19) blocked while the Launch Control door is closed, legal once open (vitest on the real mission)
-- [ ] ISC-367: marine move costs match the original movemap exactly: F/FL/FR=1, B/BL/BR=2, L/R impossible (vitest cost probes)
-- [ ] ISC-368: B is the self-destruct key; X no longer detonates (Playwright)
-- [ ] ISC-369: self-destruct requires B twice within the confirm window — a single press never detonates (fidelity: original "Really self-destruct?" dialog) (Playwright)
-- [ ] ISC-370: O toggles overwatch (was V); V is unbound everywhere (Playwright + grep)
-- [ ] ISC-371: H toggles doors (was O) (Playwright)
-- [ ] ISC-372: X performs close combat (was C) (Playwright or unit)
-- [ ] ISC-373: HUD legend and README document the full new key map (Grep)
-- [ ] ISC-374: Anti: no key is bound to two actions across all keyboard handlers (grep audit of addKeys + keydown-*)
-- [ ] ISC-375: all suites green: engine vitest, client vitest, Playwright, tsc, build (Bash)
+- [x] ISC-361: Q moves the marine forward-left diagonally for 1 AP, facing unchanged (Playwright key press + engine unit)
+- [x] ISC-362: E moves forward-right diagonally for 1 AP (Playwright + unit)
+- [x] ISC-363: Z moves back-right and C moves back-left diagonally for 2 AP each — the user's explicit mapping (Playwright + unit)
+- [x] ISC-364: a diagonal move counts as a MOVE — grants move-and-shoot, breaks overwatch, clears sustained fire (vitest)
+- [x] ISC-365: Anti: strafing stays impossible for marines — stepLeft/stepRight refuse, no key binds a sideways move (vitest + grep)
+- [x] ISC-366: Anti: a diagonal move cannot cut the corner of a closed door edge — (18,20)→(19,19) blocked while the Launch Control door is closed, legal once open (vitest on the real mission)
+- [x] ISC-367: marine move costs match the original movemap exactly: F/FL/FR=1, B/BL/BR=2, L/R impossible (vitest cost probes)
+- [x] ISC-368: B is the self-destruct key; X no longer detonates (Playwright)
+- [x] ISC-369: self-destruct requires B twice within the confirm window — a single press never detonates (fidelity: original "Really self-destruct?" dialog) (Playwright)
+- [x] ISC-370: O toggles overwatch (was V); V is unbound everywhere (Playwright + grep)
+- [x] ISC-371: H toggles doors (was O) (Playwright)
+- [x] ISC-372: X performs close combat (was C) (Playwright or unit)
+- [x] ISC-373: HUD legend and README document the full new key map (Grep)
+- [x] ISC-374: Anti: no key is bound to two actions across all keyboard handlers (grep audit of addKeys + keydown-*)
+- [x] ISC-375: all suites green: engine vitest, client vitest, Playwright, tsc, build (Bash)
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
@@ -661,6 +661,15 @@ Client integration (AudioManager, event-driven):
 - Delegation floor (E3 ≥2) waived — show-the-math: `which codex` → not found (Forge/Cato/Anvil unavailable); tightly coupled engine↔client edits; Advisor invoked as the second perspective instead.
 - Aiming-cancel scope: only piece-action keys (wsadocvuxtrgp) cancel — arrow-key camera panning, L overlay, and M mute deliberately keep the aim (panning TO the target is part of aiming).
 
+### 2026-08-16 — Diagonal movement + key rebind run
+- Fidelity: original marine _movemap {F_L:1,F:1,F_R:1,L:None,R:None,B_L:2,B:2,B_R:2} — the user's spec IS the original rule; engine MOVE_COST already matched, only bindings + helpers were missing. Original numpad KP7/KP9/KP1/KP3 = the four diagonals; original self-destruct shows a "Really self-destruct?" dialog → B double-press confirm is fidelity, not invention.
+- refined: NEW corner rule — a diagonal step is blocked when a closed door sits on any of the four edges meeting the crossed corner (the original's door SQUARE filled that gap; edge-model translation left it open). Door-only by design: the original's cell model ALLOWED wall-corner squeezes, so walls stay permissive. Single predicate Board.diagonalBlockedByDoor consumed by tryMove AND the stealer BFS (Advisor blocker: divergence strands the AI in a forever-'wait').
+- Key conflicts resolved: melee C→X (no-ops without an adjacent target; X flanked by movement keys is now low-cost), door O→H ("hatch"), overwatch V→O, self-destruct X→B×2, V unbound. Z=back-right / C=back-left implemented exactly as the user wrote it — spatially crossed vs the keyboard (Z bottom-left maps RIGHT); flagged for a one-word flip if it was a transcription slip.
+- Advisor round: adopted arm-state-bound-to-piece-id, endTurn disarm, held-B e2e proof, AI/BFS shared predicate; refuted-by-code: auto-repeat detonation (Phaser JustDown fires once per physical press — proven by the held-B test); deferred: event.code layout-independence, modifier-key guards, text-input suppression (no text inputs exist) — all pre-existing scheme-wide choices.
+- Seeded drift: the corner rule reroutes stealers; beta_2 pin 4→9, quota pin 5→7. Diagnosed before re-pinning: seed-4 run progresses fully (18 casualties, download to 1, loss at turn 12) — fragility, not stalls.
+- refuted: my own 35ms handleFire debounce — under parallel load two LEGITIMATE presses land in one stalled frame with identical time.now; the WeakSet replay dedupe is the correct guard and the debounce swallowed real input. Removed.
+- Delegation floor waived, same math as prior run (codex absent; Advisor as second perspective).
+
 ## Changelog
 
 - **Conjectured:** (sound run) the cut pipeline was verified because ffprobe showed correct durations/codecs, the e2e suite heard state (isPlaying, volume), and the one hand-cut file sounded plausible.
@@ -763,6 +772,13 @@ Client integration (AudioManager, event-driven):
 **Refuted by:** instrumented e2e keylog — 3 DOM keydowns produced 5 Phaser emissions under machine-speed input (f@880, f@886, f@887-replay, a@888, f@898-replay); the trailing replayed 'f' re-armed the flamer after 'a' had cancelled, and under full-suite load the same replay double-fired keydown-M (mute true→false with the poll catching the intermediate), making failures MIGRATE between key-driven tests.
 **Learned:** Phaser's keyboard queue can re-emit the SAME native event object across frames when frames stall (headless parallelism, throttled RAF). Any single-press action wired to 'keydown' double-fires. The replay passes the identical event object, so a WeakSet dedupe at every handler boundary is a complete, timing-free fix — debounce-by-ms is the fallback, dedupe-by-identity is the cure. Also: a test failure that MOVES between tests under load is a shared-infrastructure symptom, never two unrelated flakes.
 **Criterion now:** ISC-360 (three consecutive full-suite runs green: 37/37 e2e), seenKeyEvents WeakSet guarding both keydown handlers + fire-intent debounce in handleFire.
+
+
+### 2026-08-16 — Time debounce vs event-identity dedupe for input replays
+**Conjectured:** a ~2-frame time debounce in handleFire is a harmless extra guard against Phaser keydown replays, alongside the WeakSet dedupe.
+**Refuted by:** intermittent full-suite-only failures of the two-press e2e — under parallel load two LEGITIMATE F presses 80ms apart in wall time were processed in one stalled frame batch with identical scene time, and the debounce swallowed the real second press (received state: re-armed instead of fired). Also refuted the synthetic-hover test pattern: with the flamer armed, update() recomputes hover from the REAL pointer every frame, so injected hoverCoord is overwritten frame-dependently — the e2e must aim with real mouse moves.
+**Learned:** guard against duplicate INPUT by identity (same event object → WeakSet), never by time — wall-time gaps and frame-time gaps diverge under load, and a time guard eventually eats a legitimate input. And when production code owns a piece of state (hover follows the pointer), tests must drive the real input, not inject the state.
+**Criterion now:** ISC-375 (five consecutive full-suite runs 40/40), handleFire carries a comment forbidding time-based debounce, flamer e2e aims via page.mouse.move.
 
 ## Verification
 
@@ -1032,3 +1048,18 @@ beta_2 completion (2026-08-15):
 - ISC-359: vitest flamer.spec — flood stops at closed door edges (both fixtures, still green)
 - ISC-360: engine 249/249, client unit 26/26, Playwright 37/37 × 3 consecutive runs, tsc clean both packages, pnpm -r build clean
 - Visual: test-results/flame-preview.png — armed flamer, whole section washed orange with brighter target square
+
+### Diagonal movement + key rebind (2026-08-16)
+- ISC-361..363: keymap.spec e2e — q (19,19) ap3, z (20,20) ap1, e (21,19) ap0, c refused at 0 AP, facing 0 throughout; diagonal_moves.spec unit mirrors all four with both facings
+- ISC-364: unit — moveForwardLeft cancels overwatch, sets freeShot
+- ISC-365: unit — MOVE_COST['±1,0'] undefined, stepLeft/stepRight refuse, AP untouched
+- ISC-366: unit on real space_hulk_1 — (18,20)→(19,19) refused with door closed, allowed once open, position asserted both ways
+- ISC-367: unit — MOVE_COST deep-equals the original movemap
+- ISC-368/369: keymap.spec — held B 700ms never detonates; single B (post-expiry) never detonates; second B inside window kills the flamer
+- ISC-370: e2e — o toggles overwatch on (2 AP) and off; grep: V absent from addKeys and all handlers
+- ISC-371: e2e — h opens the Launch Control door from (17,20)
+- ISC-372: e2e — x with a foe directly ahead emits closeCombat, all 5 marines alive
+- ISC-373: HudPanel legend + README controls table document Q/E/Z/C, H, O, X, B×2 (grep)
+- ISC-374: addKeys('W,A,S,D,Q,E,Z,C,O,F,X,B,H,U,P,T,R,G') — 18 unique keys, keydown-M/L/ENTER/ESC disjoint (grep audit)
+- ISC-375: 257 engine / 26 client unit / 40 e2e ×5 consecutive; tsc clean both; pnpm -r build clean
+- Seeded re-pins verified by scan: beta_2 seeds {9 win}, quota seeds {7,8,9 win}, every scanned game progresses to turn 8-14 with casualties accruing — no AI stalls

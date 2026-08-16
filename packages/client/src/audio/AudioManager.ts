@@ -56,8 +56,10 @@ export class AudioManager {
     }
   }
 
-  constructor(private scene: Phaser.Scene, private engine: GameEngine) {
-    this.trackKey = `music_${engine.mission.name}`;
+  /** `missionKey` is the REGISTRY key (space_hulk_1…), matching the manifest —
+   *  never `mission.name`, which is a display title ("Suicide Mission"). */
+  constructor(private scene: Phaser.Scene, private engine: GameEngine, missionKey: string) {
+    this.trackKey = `music_${missionKey}`;
     // localStorage can throw (private mode / storage disabled) — audio prefs
     // are never worth crashing the boot for.
     try { this.muted = localStorage.getItem(MUTE_KEY) === '1'; } catch { /* default unmuted */ }
@@ -66,6 +68,17 @@ export class AudioManager {
     const startAll = () => { this.startMusic(); this.scheduleTracker(); };
     if (scene.sound.locked) scene.sound.once(Phaser.Sound.Events.UNLOCKED, startAll);
     else startAll();
+
+    // Brave (and some Chrome states) can leave the AudioContext 'suspended'
+    // even when Phaser reports unlocked — everything then "plays" silently.
+    // Resume on any real gesture until the context is running.
+    const resumeCtx = () => {
+      const ctx = (scene.sound as { context?: AudioContext }).context;
+      if (ctx && ctx.state === 'suspended') void ctx.resume();
+    };
+    resumeCtx();
+    scene.input.on('pointerdown', resumeCtx);
+    scene.input.keyboard?.on('keydown', resumeCtx);
 
     this.on('phaseChanged', ({ phase }) => this.duckTo(duckTarget(phase)));
     this.on('shot', ({ shooterId }) => {

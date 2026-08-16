@@ -47,6 +47,9 @@ export default class GameScene extends Phaser.Scene {
   hoverInfo = '';
   /** All game audio (music ducking, SFX, motion tracker) — public for e2e. */
   audio!: AudioManager;
+  /** Mission REGISTRY key (space_hulk_1…) — the audio manifest keys on this,
+   *  NOT on mission.name (a display title like "Suicide Mission"). */
+  private readonly missionKey: string;
 
   constructor() {
     super('GameScene')
@@ -59,6 +62,7 @@ export default class GameScene extends Phaser.Scene {
     const dice = seedParam ? new SeededRng(Number(seedParam)) : undefined;
     const missionParam = params.get('mission') ?? 'debug_1';
     const missionName = (missionParam in missions ? missionParam : 'debug_1') as keyof typeof missions;
+    this.missionKey = missionName;
     this.engine = new GameEngine(loadMission(missionName), [], dice);
     (window as any).sulk = { engine: this.engine, Selection, scene: this, SeededRng, autoplay, runMarineTurn, PieceEvents }; // dev/debug + autoplay handle
   }
@@ -92,7 +96,7 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('ambush_counter', 'assets/themes/default/ambush_counter.png');
     // All audio (mission music + original PD wavs + fetched cuts) queues via
     // the AudioManager — see src/audio/. Missing fetched files are tolerated.
-    AudioManager.queueLoads(this, this.engine.mission.name);
+    AudioManager.queueLoads(this, this.missionKey);
   }
 
   create() {
@@ -409,7 +413,7 @@ export default class GameScene extends Phaser.Scene {
 
     // All game audio: per-mission ambient bed (ducked by phase), event SFX,
     // and the motion tracker. M toggles mute (persisted).
-    this.audio = new AudioManager(this, this.engine);
+    this.audio = new AudioManager(this, this.engine, this.missionKey);
     (window as any).sulk.audio = this.audio;
     this.input.keyboard!.on('keydown-M', () => this.audio.toggleMute());
     this.events.once('shutdown', () => this.audio.destroy());

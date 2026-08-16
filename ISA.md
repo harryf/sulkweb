@@ -4,7 +4,7 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 333/334 (sound run ISC-297..334 verified; ISC-71 deferred)
+progress: 336/337 (sound run + silent-audio fix verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-15T14:20:00Z
@@ -486,6 +486,12 @@ Client integration (AudioManager, event-driven):
 - [x] ISC-333: fetched audio payload ≤80MB total (Bash du)
 - [x] ISC-334: visible in-game credit line "Music: Music of 40K" linking the channel (e2e text probe)
 
+### Silent-audio fix (2026-08-16, user: "not hearing any of the new audio" + VLC-silent wav)
+
+- [x] ISC-335: every file fetchAudio produces carries real signal — script self-check throws on <−60 dB RMS output (Bash: regenerated set −15.9…−33.7 dB)
+- [x] ISC-336: music keys on the mission REGISTRY key — space_hulk_1 ("Suicide Mission") and debug_1 ("Demo Board") load their tracks (Playwright regression test)
+- [x] ISC-337: Anti: a suspended AudioContext (Brave) never leaves the game silently "playing" — gesture-driven resume; verified running in the user's own browser (Chrome MCP probe)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
@@ -603,6 +609,11 @@ Client integration (AudioManager, event-driven):
 - 2026-08-15 (sound run, Advisor round): ADOPTED — (1) `killTweensOf` before each duck tween (phase flip faster than the 900ms fade would leave two tweens fighting); (2) death-cry dedupe through SfxThrottle (a flame template kills several pieces in one tick — one cry, not a clipping chorus); (3) try/catch around localStorage (private-mode boot safety); (4) CREDITS.md hardened: explicit "NOT cleared for redistribution" statement, YouTube-ToS honesty, upstream "legally dodgy" caveat on assault_cannon_burst.wav surfaced. REFUTED with evidence — mute-vs-tween conflict (mute is Phaser's master `sound.mute` flag, a separate axis from the tweened per-sound volume); tracker NaN/stale/leak (distance recomputed from engine.state.pieces every ping, null parks the chain, clamps unit-tested at both ends, gameOver removes the timer, scene-clock timers die with the scene and no restart path exists); replay/hydration scream-burst (no save/load/undo exists; the only replay is the per-turn stealer stream where audio SHOULD play — that is the feature). DEFERRED to user/backlog — ear-check of the 22 guess-flagged segments (user offered to classify after my pass); opus loop-seam listen; WebKit/Firefox matrix + prod SPA-rewrite 404s (local Chrome project, no deploy target). Sulk-wav provenance was already verified against SOUNDS_INFO (not EA 1993 assets).
 
 ## Changelog
+
+- **Conjectured:** (sound run) the cut pipeline was verified because ffprobe showed correct durations/codecs, the e2e suite heard state (isPlaying, volume), and the one hand-cut file sounded plausible.
+  **Refuted by:** the user playing alien_attack_01.wav in VLC — pure silence. Every script-cut file was −inf dB: with `-ss` AFTER `-i` (output seeking), ffmpeg runs the `-af` fade chain on the FULL source timeline first, so `afade=out:st=0.2` silenced the entire 250s source and the seek extracted zeros. Duration/codec/state probes all pass on a perfectly-formed file of silence. Two more bugs hid behind it: trackKey built from `mission.name` (display title — "Suicide Mission" ≠ registry key, so space_hulk_1/debug_1 never queued music), and Brave leaving the AudioContext 'suspended' while Phaser reported unlocked.
+  **Learned:** for media pipelines, verify the SIGNAL, not the container — an RMS/peak assertion is to audio what a screenshot is to UI; state-level probes (isPlaying) are the "curl returns 200" of sound. And test the identity axis where names diverge: the e2e missions all happened to have name==key.
+  **Criterion now:** ISC-335 (silence self-check inside fetchAudio itself), ISC-336 (name≠key mission regression e2e asserting context 'running' + isPlaying), ISC-337 (gesture-driven context resume).
 
 - **Conjectured:** (sound run) "missing audio never breaks boot" was satisfied by loaderror tolerance + cache-exists guards — the code path looked complete, so the criterion looked met.
   **Refuted by:** the ISC-328 live probe (stash the audio dir, boot the game): 23 unhandled "Unable to decode audio data" rejections — Vite's SPA fallback serves index.html with HTTP **200** for missing /assets files, so the loader never errors; Phaser happily tries to decode HTML as Ogg.
@@ -945,3 +956,6 @@ beta_2 completion (2026-08-15):
 - ISC-331: Playwright — 200s for mission ogg, bolter, tracker, alien death, original door wav; trackKey === 'music_space_hulk_2'
 - ISC-333: fetchAudio.ts summary — payload 38.5MB (≤80MB)
 - ISC-334: Playwright — .audio-credit contains "Music of 40K" with href to the channel
+- ISC-335: Bash — fetchAudio silence self-check: all 24 regenerated cuts report −15.9…−33.7 dB RMS (was −inf across the board); guard throws on <−60 dB
+- ISC-336: Playwright — space_hulk_1 (name="Suicide Mission"): trackKey === 'music_space_hulk_1', cache hit, music isPlaying with context 'running'
+- ISC-337: Chrome MCP live probe in the user's Brave — ctxState "running", musicPlaying true, vol 0.16, all caches loaded (was: suspended context, no music queued, silent wavs)

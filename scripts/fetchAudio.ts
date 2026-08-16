@@ -48,13 +48,27 @@ const download = (videoId: string, stem: string): string => {
   return join(CACHE, got);
 };
 
+/** Overall RMS of a produced file, in dB. Digital silence reads -inf. */
+const rmsDb = (file: string): number => {
+  const p = Bun.spawnSync(['ffmpeg', '-hide_banner', '-i', file, '-t', '30',
+    '-af', 'astats=measure_overall=RMS_level:measure_perchannel=none', '-f', 'null', '-']);
+  const m = p.stderr.toString().match(/RMS level dB:\s*(-?[\d.]+|-inf)/g)?.pop();
+  const v = m?.split(':')[1].trim();
+  return v === '-inf' || v === undefined ? -Infinity : parseFloat(v);
+};
+
 let made = 0, skipped = 0;
 const emit = (out: string, produce: () => void): void => {
   if (existsSync(out)) { skipped++; return; }
   produce();
   if (!existsSync(out)) throw new Error(`expected output missing: ${out}`);
+  // Self-check: a cut that produced digital silence is a pipeline bug, not an
+  // asset. (This guard exists because output-seeking once ran the fade filters
+  // on the full source timeline and every cut extracted pure zeros.)
+  const db = rmsDb(out);
+  if (db < -60) throw new Error(`produced SILENT audio (${db} dB RMS): ${out}`);
   made++;
-  console.log(`  + ${out.replace(ROOT + '/', '')}`);
+  console.log(`  + ${out.replace(ROOT + '/', '')} (${db.toFixed(1)} dB)`);
 };
 
 for (const dir of [CACHE, join(AUDIO, 'music'), join(AUDIO, 'sfx'), join(AUDIO, 'alien')]) {
@@ -78,7 +92,11 @@ console.log('pulse rifle…');
 const pulse = SFX_SOURCES.find(s => s.id === 'pulse_rifle')!;
 emit(join(AUDIO, 'sfx', 'bolter_fire.wav'), () => {
   const raw = download(pulse.videoId, 'pulse_rifle_raw');
-  run(['ffmpeg', '-hide_banner', '-y', '-i', raw, '-ss', '0.30', '-t', '1.05',
+  // -ss/-t BEFORE -i (input seeking): the fade filters must see the trimmed
+  // clip starting at t=0, not the full source timeline. With output seeking
+  // the fade-out silences the whole source after st seconds and the seek then
+  // extracts pure silence — the bug that shipped 22 silent wavs on 2026-08-15.
+  run(['ffmpeg', '-hide_banner', '-y', '-ss', '0.30', '-t', '1.05', '-i', raw,
     '-af', 'afade=t=in:d=0.01,afade=t=out:st=0.90:d=0.15,loudnorm=I=-16:TP=-1',
     '-ar', '44100', '-ac', '1', join(AUDIO, 'sfx', 'bolter_fire.wav')]);
 });
@@ -88,7 +106,7 @@ console.log('motion tracker…');
 const tracker = SFX_SOURCES.find(s => s.id === 'motion_tracker')!;
 emit(join(AUDIO, 'sfx', 'tracker_ping.wav'), () => {
   const raw = download(tracker.videoId, 'tracker_raw');
-  run(['ffmpeg', '-hide_banner', '-y', '-i', raw, '-ss', '0.700', '-t', '0.10',
+  run(['ffmpeg', '-hide_banner', '-y', '-ss', '0.700', '-t', '0.10', '-i', raw,
     '-af', 'afade=t=in:d=0.004,afade=t=out:st=0.07:d=0.03,loudnorm=I=-16:TP=-1',
     '-ar', '44100', '-ac', '1', join(AUDIO, 'sfx', 'tracker_ping.wav')]);
 });
@@ -102,8 +120,8 @@ for (const seg of ALIEN_SEGMENTS) {
     // Quiet skitters keep a gentler target so their noise floor stays down.
     const target = seg.role === 'stealer_move' ? '-20' : '-16';
     const fadeOut = Math.max(0.05, seg.secs - 0.25).toFixed(2);
-    run(['ffmpeg', '-hide_banner', '-y', '-i', raw,
-      '-ss', String(seg.start), '-t', String(seg.secs),
+    run(['ffmpeg', '-hide_banner', '-y',
+      '-ss', String(seg.start), '-t', String(seg.secs), '-i', raw,
       '-af', `afade=t=in:d=0.02,afade=t=out:st=${fadeOut}:d=0.25,loudnorm=I=${target}:TP=-1.5`,
       '-ar', '44100', '-ac', '1', join(AUDIO, 'alien', seg.file)]);
   });

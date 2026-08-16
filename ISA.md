@@ -3,8 +3,8 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: execute
-progress: 336/360 (flamer targeting + shootable doors + ducting run; ISC-71 deferred)
+phase: verify
+progress: 360/361 (flamer targeting + shootable doors + ducting run verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-16T04:30:00Z
@@ -494,30 +494,30 @@ Client integration (AudioManager, event-driven):
 
 ### Flamer targeting + shootable doors + ducting orientation (2026-08-16)
 
-- [ ] ISC-338: F with a flamer selected enters targeting mode without spending AP or ammo (Playwright: aiming flag true, AP unchanged)
-- [ ] ISC-339: in targeting mode, hovering a valid in-range square sets the crosshair cursor; invalid hover sets not-allowed (Playwright canvas.style.cursor)
-- [ ] ISC-340: valid hover previews the exact flame-flood square set (Playwright: exposed preview list equals engine flameFlood)
-- [ ] ISC-341: second F on a valid hovered square fires flameAt into it — section burns (Playwright: board.isFlaming true, ammo −1, AP −2)
-- [ ] ISC-342: flaming a visible square kills a stealer hidden around a corner in the same section — no LOS to the stealer required (vitest, RollQueue-pinned)
-- [ ] ISC-343: second F on an invalid hover stays armed without firing — AP and ammo untouched, not-allowed cursor as feedback (refined per Advisor: silent exit punishes mis-aims) (Playwright)
-- [ ] ISC-344: targeting mode cancels on piece deselection or another action key (Playwright)
-- [ ] ISC-345: space_hulk_1's Launch Control (20,20) is flameable by aimed shot from outside its section — self-destruct no longer the only path (vitest on the real mission board)
-- [ ] ISC-346: Anti: the flamer never auto-fires at a "nearest enemy" fallback square — the second press fires only at the hovered square (Grep: fallback removed; vitest behavior)
-- [ ] ISC-347: HUD legend documents the two-press flamer flow (Grep HudPanel)
-- [ ] ISC-348: bolter aimed shot destroys a closed door on a D6 roll of 6 — original sh_kill_scorereq=6 (vitest, RollQueue)
-- [ ] ISC-349: a door shot costs 1 AP (free after move via move-and-shoot) and emits shot + doorDestroyed events (vitest)
-- [ ] ISC-350: bolter misses at the same door accrue sustained-fire +1 per miss, max +4, cleared on move/turn (vitest)
-- [ ] ISC-351: assault cannon aimed shot destroys a closed door on ≥5 (aburst_kill_scorereq=5), spends 1 ammo, counts toward malfunction (vitest, RollQueue)
-- [ ] ISC-352: doors outside the fire arc or without LOS to either flanking square cannot be shot (vitest)
-- [ ] ISC-352.1: a marine directly facing an adjacent closed door edge CAN shoot it point-blank — the door's own segment must not block the shot at itself (vitest)
-- [ ] ISC-353: open or already-destroyed doors are not shootable targets (vitest)
-- [ ] ISC-354: autofire destroys a closed door whose ANCHOR square lies on the far side of the edge — near-side LOS now counts (vitest regression)
-- [ ] ISC-355: client: hovering a shootable door square and pressing F shoots the door in preference to auto-targeting (Playwright, dice pinned)
-- [ ] ISC-356: Anti: a door shot never kills a piece and a piece shot never destroys a door — the two target paths stay disjoint (vitest event assertions)
-- [ ] ISC-357: ducting sprites orient to their run — a square with left/right ducting neighbors renders rotated 90° (Playwright: sprite rotation on space_hulk_6)
-- [ ] ISC-358: space_hulk_6 (13,0)(14,0)(15,0) reads as one continuous horizontal pipe; ductingDestroyed keeps the rotation (Playwright)
-- [ ] ISC-359: Anti: doors stay immune to flames (fl_kill_scorereq None in the original) — flameFlood still stops at closed door edges (vitest)
-- [ ] ISC-360: all suites green: engine vitest, client vitest, Playwright e2e; `pnpm -r build` clean (Bash)
+- [x] ISC-338: F with a flamer selected enters targeting mode without spending AP or ammo (Playwright: aiming flag true, AP unchanged)
+- [x] ISC-339: in targeting mode, hovering a valid in-range square sets the crosshair cursor; invalid hover sets not-allowed (Playwright canvas.style.cursor)
+- [x] ISC-340: valid hover previews the exact flame-flood square set (Playwright: exposed preview list equals engine flameFlood)
+- [x] ISC-341: second F on a valid hovered square fires flameAt into it — section burns (Playwright: board.isFlaming true, ammo −1, AP −2)
+- [x] ISC-342: flaming a visible square kills a stealer hidden around a corner in the same section — no LOS to the stealer required (vitest, RollQueue-pinned)
+- [x] ISC-343: second F on an invalid hover stays armed without firing — AP and ammo untouched, not-allowed cursor as feedback (refined per Advisor: silent exit punishes mis-aims) (Playwright)
+- [x] ISC-344: targeting mode cancels on piece deselection or another action key (Playwright)
+- [x] ISC-345: space_hulk_1's Launch Control (20,20) is flameable by aimed shot from outside its section — self-destruct no longer the only path (vitest on the real mission board)
+- [x] ISC-346: Anti: the flamer never auto-fires at a "nearest enemy" fallback square — the second press fires only at the hovered square (Grep: fallback removed; vitest behavior)
+- [x] ISC-347: HUD legend documents the two-press flamer flow (Grep HudPanel)
+- [x] ISC-348: bolter aimed shot destroys a closed door on a D6 roll of 6 — original sh_kill_scorereq=6 (vitest, RollQueue)
+- [x] ISC-349: a door shot costs 1 AP (free after move via move-and-shoot) and emits shot + doorDestroyed events (vitest)
+- [x] ISC-350: bolter misses at the same door accrue sustained-fire +1 per miss, max +4, cleared on move/turn (vitest)
+- [x] ISC-351: assault cannon aimed shot destroys a closed door on ≥5 (aburst_kill_scorereq=5), spends 1 ammo, counts toward malfunction (vitest, RollQueue)
+- [x] ISC-352: doors outside the fire arc or without LOS to either flanking square cannot be shot (vitest)
+- [x] ISC-352.1: a marine directly facing an adjacent closed door edge CAN shoot it point-blank — the door's own segment must not block the shot at itself (vitest)
+- [x] ISC-353: open or already-destroyed doors are not shootable targets (vitest)
+- [x] ISC-354: autofire destroys a closed door whose ANCHOR square lies on the far side of the edge — near-side LOS now counts (vitest regression)
+- [x] ISC-355: client: hovering a shootable door square and pressing F shoots the door in preference to auto-targeting (Playwright, dice pinned)
+- [x] ISC-356: Anti: a door shot never kills a piece and a piece shot never destroys a door — the two target paths stay disjoint (vitest event assertions)
+- [x] ISC-357: ducting sprites orient to their run — a square with left/right ducting neighbors renders rotated 90° (Playwright: sprite rotation on space_hulk_6)
+- [x] ISC-358: space_hulk_6 (13,0)(14,0)(15,0) reads as one continuous horizontal pipe; ductingDestroyed keeps the rotation (Playwright)
+- [x] ISC-359: Anti: doors stay immune to flames (fl_kill_scorereq None in the original) — flameFlood still stops at closed door edges (vitest)
+- [x] ISC-360: all suites green: engine vitest, client vitest, Playwright e2e; `pnpm -r build` clean (Bash)
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
@@ -635,6 +635,14 @@ Client integration (AudioManager, event-driven):
 
 - 2026-08-15 (sound run, Advisor round): ADOPTED — (1) `killTweensOf` before each duck tween (phase flip faster than the 900ms fade would leave two tweens fighting); (2) death-cry dedupe through SfxThrottle (a flame template kills several pieces in one tick — one cry, not a clipping chorus); (3) try/catch around localStorage (private-mode boot safety); (4) CREDITS.md hardened: explicit "NOT cleared for redistribution" statement, YouTube-ToS honesty, upstream "legally dodgy" caveat on assault_cannon_burst.wav surfaced. REFUTED with evidence — mute-vs-tween conflict (mute is Phaser's master `sound.mute` flag, a separate axis from the tweened per-sound volume); tracker NaN/stale/leak (distance recomputed from engine.state.pieces every ping, null parks the chain, clamps unit-tested at both ends, gameOver removes the timer, scene-clock timers die with the scene and no restart path exists); replay/hydration scream-burst (no save/load/undo exists; the only replay is the per-turn stealer stream where audio SHOULD play — that is the feature). DEFERRED to user/backlog — ear-check of the 22 guess-flagged segments (user offered to classify after my pass); opus loop-seam listen; WebKit/Firefox matrix + prod SPA-rewrite 404s (local Chrome project, no deploy target). Sulk-wav provenance was already verified against SOUNDS_INFO (not EA 1993 assets).
 
+### 2026-08-16 — Flamer targeting / door shooting / ducting run
+- PLAN: engine already targets SQUARES for the flamer (canFlame needs LOS to the square, not to a stealer) — root cause of "can only fire at visible stealers" was client UX only: no targeting mode, no cursor feedback, auto-fallback hid the mechanism. Fix = two-press F flow per user spec.
+- Fidelity (original Sulk 0.29 read): Shoot_Something targets `game.squares` for FLAMEGUN (squares, not enemies); closed-door scorereqs sh=6 / aburst=5 / aauto=3 / cc=6; fl=None (doors immune to flames). Aimed door shots implement sh/aburst; autofire already implemented aauto=3.
+- refined: edge-model door targetability = canShoot(anchor) OR canShoot(otherSide) OR point-blank (edge directly ahead). The OR is the faithful translation — original doors OCCUPY a square and legality was LOS to that square from either side. Point-blank special case needed because a marine's own square is never in his fire arc and the ray to the far square crosses the door's own segment.
+- Advisor round (pre-BUILD, backgrounded): adopted stay-armed-on-invalid-second-F (silent exit punishes mis-aims), arm-gate on ammo/AP, disarm on selected piece death, pan-stale hover recompute in update(), friendly-fire red wash in blast preview, malfunction-counter assertion. Refuted-by-code: single-slot sustained tracking, pure flameFlood, dual cannon thresholds — all already true. Deferred: honoring enemy hover for bolter aimed shots (pre-existing auto-nearest behavior, not in scope); richer doorShot/flameFired payloads (preview reuses pure engine fn, divergence impossible).
+- Delegation floor (E3 ≥2) waived — show-the-math: `which codex` → not found (Forge/Cato/Anvil unavailable); tightly coupled engine↔client edits; Advisor invoked as the second perspective instead.
+- Aiming-cancel scope: only piece-action keys (wsadocvuxtrgp) cancel — arrow-key camera panning, L overlay, and M mute deliberately keep the aim (panning TO the target is part of aiming).
+
 ## Changelog
 
 - **Conjectured:** (sound run) the cut pipeline was verified because ffprobe showed correct durations/codecs, the e2e suite heard state (isPlaying, volume), and the one hand-cut file sounded plausible.
@@ -730,6 +738,13 @@ Client integration (AudioManager, event-driven):
   - refuted by: advisor 2026-08-15 — correctness today ≠ verifiability tomorrow; space_hulk_6's hand-arbitrated interleave PROVES the correspondence is not structurally derivable from the data, and a silent permutation renders plausible-but-wrong names that no screenshot or count-based test can catch.
   - learned: when a pairing is positional, cross-check each pair on a property both sides carry independently (deploy type vs engine sprite) so silent cosmetic corruption becomes a loud failure; pin the one arbitrated case as an exact fixture plus a negative test proving the tripwire fires.
   - criterion now: ISC-274/275 are guarded by the buildRoster weapon cross-check, the pinned space_hulk_6 (squad,type) map, and the reversed-deployment 'Unknown' negative test.
+
+
+### 2026-08-16 — Phaser replays keydown events; dedupe at the handler boundary
+**Conjectured:** one physical key press = one Phaser 'keydown' emission, so raw-event checks and JustDown dispatch are equivalent and safe.
+**Refuted by:** instrumented e2e keylog — 3 DOM keydowns produced 5 Phaser emissions under machine-speed input (f@880, f@886, f@887-replay, a@888, f@898-replay); the trailing replayed 'f' re-armed the flamer after 'a' had cancelled, and under full-suite load the same replay double-fired keydown-M (mute true→false with the poll catching the intermediate), making failures MIGRATE between key-driven tests.
+**Learned:** Phaser's keyboard queue can re-emit the SAME native event object across frames when frames stall (headless parallelism, throttled RAF). Any single-press action wired to 'keydown' double-fires. The replay passes the identical event object, so a WeakSet dedupe at every handler boundary is a complete, timing-free fix — debounce-by-ms is the fallback, dedupe-by-identity is the cure. Also: a test failure that MOVES between tests under load is a shared-infrastructure symptom, never two unrelated flakes.
+**Criterion now:** ISC-360 (three consecutive full-suite runs green: 37/37 e2e), seenKeyEvents WeakSet guarding both keydown handlers + fire-intent debounce in handleFire.
 
 ## Verification
 
@@ -986,3 +1001,16 @@ beta_2 completion (2026-08-15):
 - ISC-335: Bash — fetchAudio silence self-check: all 24 regenerated cuts report −15.9…−33.7 dB RMS (was −inf across the board); guard throws on <−60 dB
 - ISC-336: Playwright — space_hulk_1 (name="Suicide Mission"): trackKey === 'music_space_hulk_1', cache hit, music isPlaying with context 'running'
 - ISC-337: Chrome MCP live probe in the user's Brave — ctxState "running", musicPlaying true, vol 0.16, all caches loaded (was: suspended context, no music queued, silent wavs)
+
+### Flamer targeting + doors + ducting (2026-08-16)
+- ISC-338/339/340/341/343/344/346: Playwright flamer-targeting.spec "two-press" — arm keeps AP 4/ammo 6, crosshair on valid hover, preview length 10 == engine flameFlood, invalid F stays armed at AP 4, 'a' cancels, final fire → isFlaming(20,20), result win, AP 0, ammo 5, cursor default, zero page errors
+- ISC-342: vitest door_shooting.spec — canShoot(hidden square)=false yet flameAt(visible mouth) kills the stealer at (0,5) behind rock
+- ISC-345: vitest flamer.spec flame-objective win (existing, still green) + the e2e two-press run ends in 'win' by aimed shot — X self-destruct not involved
+- ISC-347: HudPanel legend "Flamer: F aims (hover a square), F again fires · other key cancels" (grep)
+- ISC-348..353 incl 352.1, 356: vitest door_shooting.spec 13 tests — 6 destroys door (events shot+doorDestroyed, targetId door:1,5,0, AP 3), sustained +1 to a 6, reset on turn, free move-and-shoot, arc/LOS refusals, point-blank with both flanking canShoot=false, open/destroyed refused, cannon 5+ (ammo 9, shotsFired 1), 4s bounce, bystander stealer alive with no pieceDied
+- ISC-354: vitest — autofire destroys far-side-anchor door where canShoot(anchor)=false (fails on pre-fix code)
+- ISC-355: Playwright — hover door flank square + F → door.destroyed, AP 3, door sprite removed
+- ISC-357/358: Playwright — ducting rotations [π/2, π/2, π/2] on space_hulk_6, texture swap to ducting_destroyed keeps rotation; screenshot test-results/ducting-horizontal.png shows one continuous pipe
+- ISC-359: vitest flamer.spec — flood stops at closed door edges (both fixtures, still green)
+- ISC-360: engine 249/249, client unit 26/26, Playwright 37/37 × 3 consecutive runs, tsc clean both packages, pnpm -r build clean
+- Visual: test-results/flame-preview.png — armed flamer, whole section washed orange with brighter target square

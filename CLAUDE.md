@@ -156,6 +156,8 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
 
 ## Gotchas (hard-won)
 
+- **Phaser replays keydown events across frames under load** (headless e2e, stalled RAF): one physical press can emit 2-3 'keydown' events carrying the SAME native event object, double-firing any single-press action (it double-toggled mute and re-armed the flamer). EVERY keydown handler in GameScene must dedupe through `this.seenKeyEvents` (WeakSet) — add the guard to any new handler. Symptom signature: e2e failures that MIGRATE between key-driven tests when the full suite runs in parallel.
+
 - **NodeNext imports:** engine files import with explicit `.js` extensions even for `.ts`
   sources. Client tsconfig has `verbatimModuleSyntax` — type-only imports need `import type`.
 - **Background tabs freeze Phaser** (RAF throttled to zero): scenes don't finish `create()`,

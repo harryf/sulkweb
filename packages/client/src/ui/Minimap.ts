@@ -17,6 +17,8 @@ export class Minimap extends Phaser.GameObjects.Container {
   private boardPixelHeight: number;
   private mapScale: number;
   private viewportBox: Phaser.GameObjects.Graphics;
+  /** Last projected viewport rect, in minimap-local px — e2e probe surface. */
+  public lastBox: MiniRect | null = null;
 
   constructor(
     scene: Phaser.Scene,
@@ -75,7 +77,8 @@ export class Minimap extends Phaser.GameObjects.Container {
       h: this.miniMapHeight,
     };
 
-    const miniCamRect = projectCamToMini(camRect, boardSize, miniBounds, 2); 
+    const miniCamRect = projectCamToMini(camRect, boardSize, miniBounds, 2);
+    this.lastBox = miniCamRect;
 
     this.viewportBox.clear();
     this.viewportBox.lineStyle(2, 0xFFFFFF, 1); 

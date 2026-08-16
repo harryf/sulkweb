@@ -4,10 +4,10 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 375/376 (diagonal movement + key rebind verified; ISC-71 deferred)
+progress: 383/384 (minimap narrow-map clamp verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-16T04:30:00Z
+updated: 2026-08-16T07:15:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -536,6 +536,14 @@ Client integration (AudioManager, event-driven):
 - [x] ISC-373: HUD legend and README document the full new key map (Grep)
 - [x] ISC-374: Anti: no key is bound to two actions across all keyboard handlers (grep audit of addKeys + keydown-*)
 - [x] ISC-375: all suites green: engine vitest, client vitest, Playwright, tsc, build (Bash)
+- [x] ISC-376: projectCamToMini clamps projected width: camera wider than the board yields box width ≤ minimap width minus the line inset (vitest)
+- [x] ISC-377: projectCamToMini clamps projected height symmetrically for boards shorter than the camera view (vitest)
+- [x] ISC-378: real space_hulk_1 geometry (22×27 tiles, 184px minimap): box stroke extents stay inside the minimap (vitest)
+- [x] ISC-379: real beta_2 geometry (23×33 tiles): box stroke extents stay inside the minimap (vitest)
+- [x] ISC-380: Anti: wide-map regression — the three existing projectCamToMini cases pass unchanged (vitest)
+- [x] ISC-381: Anti: projected width/height never negative even when the minimap is smaller than the line width (vitest)
+- [x] ISC-382: live probe: e2e on space_hulk_1 AND beta_2, camera panned to 3 positions, drawn rect (Minimap.lastBox) inside minimap bounds (Playwright)
+- [x] ISC-383: full suites green after the fix: engine vitest, client vitest, Playwright e2e, tsc, build (Bash)
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
@@ -669,6 +677,14 @@ Client integration (AudioManager, event-driven):
 - Seeded drift: the corner rule reroutes stealers; beta_2 pin 4→9, quota pin 5→7. Diagnosed before re-pinning: seed-4 run progresses fully (18 casualties, download to 1, loss at turn 12) — fragility, not stalls.
 - refuted: my own 35ms handleFire debounce — under parallel load two LEGITIMATE presses land in one stalled frame with identical time.now; the WeakSet replay dedupe is the correct guard and the debounce swallowed real input. Removed.
 - Delegation floor waived, same math as prior run (codex absent; Advisor as second perspective).
+
+### 2026-08-16 — minimap viewport-box overflow on narrow maps (E2, ISC-376..383)
+- Root cause: `projectCamToMini` clamped the box's POSITION but never its SIZE. On boards narrower than the camera's world viewport (space_hulk_1 22 tiles, beta_2 23), the projected width exceeded the whole minimap; the x-clamp pinned x to the left inset and the excess spilled out the right edge. Repro'd numerically before touching code: +41.7px (space_hulk_1) and +30.2px (beta_2) overflow; space_hulk_6 (29 tiles) −22px, matching the user's "only these two missions" report exactly.
+- Fix at the ingestion point (the shared projection function), not per-map: clamp W/H to `mini − lineWidth` (floored at 0) BEFORE the position clamp, so the position math consumes the clamped extents. Camera-sees-more-world-than-board is intended behavior (small maps letterboxed, markers pannable) — the projection must absorb it, not the camera.
+- Advisor round: adopted stroke-extent assertions (path ± halfLine inside bounds — path-only checks can hide a half-line spill) and the eyeball check that the position clamp reads the clamped width (it does — consts declared above the clamp lines). Refuted-by-inspection: inverse-mapping drift (projectCamToMini has one caller; the minimap has no pointer handlers, no inverse exists) and downstream rounding (strokeRect gets the floats untouched). Declined: NaN guards for zero board dims — Minimap is constructed after mission load and every mission has ≥1 square; a guard would protect an unreachable state.
+- `Minimap.lastBox` added as a public e2e probe of the rect actually drawn — same pattern as `flamePreview`.
+- One e2e blip (40/41) in the first post-fix run, unidentified test, followed by 4 consecutive 41/41 runs; consistent with the known parallel-load flake class, logged honestly rather than hidden.
+- Delegation floor waived, same math as prior runs (codex absent; Advisor as second perspective on a 4-line single-file fix).
 
 ## Changelog
 
@@ -1063,3 +1079,9 @@ beta_2 completion (2026-08-15):
 - ISC-374: addKeys('W,A,S,D,Q,E,Z,C,O,F,X,B,H,U,P,T,R,G') — 18 unique keys, keydown-M/L/ENTER/ESC disjoint (grep audit)
 - ISC-375: 257 engine / 26 client unit / 40 e2e ×5 consecutive; tsc clean both; pnpm -r build clean
 - Seeded re-pins verified by scan: beta_2 seeds {9 win}, quota seeds {7,8,9 win}, every scanned game progresses to turn 8-14 with casualties accruing — no AI stalls
+- ISC-376/377: vitest — camera 2000/2000-wide vs 1000px board: w ≤ mini.w−2, stroke extents inside; symmetric height case passes
+- ISC-378/379: vitest — real dims (22×27 and 23×33 tiles, 184px minimap, 1080px camera): stroke extents inside both axes; numeric repro shows overflow +41.7/+30.2px before fix, −1px (inset) after
+- ISC-380: vitest — original 3 projectCamToMini cases pass unedited; space_hulk_6 repro numbers byte-identical pre/post fix (−22.2px, untouched)
+- ISC-381: vitest — 1×1 minimap with 4px stroke yields w,h ≥ 0
+- ISC-382: Playwright — both missions × 3 camera positions (hard left, centre, hard right): lastBox.x+w ≤ mini.width, y+h ≤ mini.height, x,y ≥ 0; screenshots (scratchpad minimap-*.png) show the box hugging but not crossing the right edge panned hard right
+- ISC-383: 257 engine / 31 client unit / 41 e2e (4 consecutive green after one unrelated-flake blip); tsc exit 0; pnpm -r build Done

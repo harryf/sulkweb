@@ -77,6 +77,32 @@ test('a full engine turn runs through the UI without errors', async ({ page }) =
   expect(errors).toHaveLength(0);
 });
 
+test('minimap viewport box stays inside the minimap on narrow maps (ISC-382)', async ({ page }) => {
+  // Regression (2026-08-16): on space_hulk_1/beta_2 the camera sees more
+  // world than the narrow board contains; the projected box overflowed the
+  // minimap's right edge. Probe the rect actually drawn (Minimap.lastBox).
+  for (const mission of ['space_hulk_1', 'beta_2']) {
+    await waitForGame(page, `/?mission=${mission}`);
+    for (const cx of [0, 0.5, 1]) {
+      const probe = await page.evaluate(async (frac: number) => {
+        const { scene, engine } = (window as any).sulk;
+        const cam = scene.cameras.main;
+        const boardW = engine.state.board.width * 40;
+        const boardH = engine.state.board.height * 40;
+        cam.centerOn(boardW * frac, boardH * frac);
+        await new Promise(r => setTimeout(r, 100)); // let updateCam run
+        const mini = scene.hud.miniMap;
+        return { box: mini.lastBox, w: mini.width, h: mini.height };
+      }, cx);
+      expect(probe.box).not.toBeNull();
+      expect(probe.box.x + probe.box.w).toBeLessThanOrEqual(probe.w);
+      expect(probe.box.y + probe.box.h).toBeLessThanOrEqual(probe.h);
+      expect(probe.box.x).toBeGreaterThanOrEqual(0);
+      expect(probe.box.y).toBeGreaterThanOrEqual(0);
+    }
+  }
+});
+
 test('death events reach the HUD casualty counter', async ({ page }) => {
   await waitForGame(page);
   const hudText = await page.evaluate(() => {

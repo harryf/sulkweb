@@ -13,10 +13,14 @@ export function projectCamToMini(
 
   let miniCamX = cam.x * scaleX;
   let miniCamY = cam.y * scaleY;
-  const miniCamW = cam.w * scaleX;
-  const miniCamH = cam.h * scaleY;
 
   const halfLineWidth = lineWidth / 2;
+
+  // The camera can see more world than a narrow board contains, projecting a
+  // box wider than the minimap itself — clamp SIZE before position, or the
+  // excess spills past the right/bottom edge.
+  const miniCamW = Math.min(cam.w * scaleX, Math.max(0, mini.w - lineWidth));
+  const miniCamH = Math.min(cam.h * scaleY, Math.max(0, mini.h - lineWidth));
 
   // Clamp to minimap bounds, accounting for line width
   // The path should be inset by half the line width from the visual edge

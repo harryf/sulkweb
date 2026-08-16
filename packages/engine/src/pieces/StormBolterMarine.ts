@@ -1,8 +1,9 @@
 import { Piece, type Coord } from './Piece.js';
 import { Board } from '../board/Board.js';
-import { Dir } from '../core/Direction.js';
+import { Dir, DIR_VEC } from '../core/Direction.js';
 import { canShoot } from '../board/vision.js';
 import { PieceEvents } from '../events/PieceEvents.js';
+import type { Door } from '../rules/Door.js';
 
 export class StormBolterMarine extends Piece {
 
@@ -68,6 +69,63 @@ export class StormBolterMarine extends Piece {
   /** Cancelling overwatch is free. */
   overwatchOff(): void {
     this.clearOverwatch();
+  }
+
+  /** Stable identity for sustained-fire tracking of door targets — doors have
+   *  no piece id, so the edge coordinates stand in. */
+  protected static doorKey(door: Door): string {
+    return `door:${door.square.x},${door.square.y},${door.facing}`;
+  }
+
+  /**
+   * The closed door's edge is shootable: in the fire arc with clear LOS.
+   * EDGE-MODEL subtlety: a closed door blocks any sight line crossing its own
+   * segment — including the line to its far flanking square — so test BOTH
+   * flanking squares; and a marine standing at the edge (which is never in
+   * his own fire arc) can always shoot the door directly ahead point-blank.
+   */
+  protected doorInSight(door: Door): boolean {
+    const v = DIR_VEC[this.facing];
+    if (this.board.doorBetween(this.pos, { c: this.pos.c + v.dc, r: this.pos.r + v.dr }) === door) return true;
+    const other = door.otherSide();
+    return [this.board.get(door.square.x, door.square.y), this.board.get(other.c, other.r)]
+      .some(sq => sq !== undefined && canShoot(this.board, this, sq));
+  }
+
+  /** Legality of an aimed shot at a door: closed, affordable, edge in sight. */
+  canShootDoor(door: Door | undefined): door is Door {
+    if (!door || door.destroyed || door.isOpen) return false;
+    if (this.board.locked || this.jammed) return false;
+    if (!this.freeShot && this.ap < 1) return false;
+    return this.doorInSight(door);
+  }
+
+  /**
+   * Aimed fire at a closed door (original: features carry sh_kill_scorereq=6):
+   * 1 AP (or the move-and-shoot free shot), 2 dice, destroyed on any die ≥ 6.
+   * Misses at the same door accrue the sustained-fire bonus like any target.
+   */
+  shootDoor(door: Door): boolean {
+    if (!this.canShootDoor(door)) return false;
+    const free = this.freeShot;
+    if (free) this.freeShot = false;
+    else this.ap -= 1;
+    this.clearOverwatch();
+    const key = StormBolterMarine.doorKey(door);
+    const bonus = !free && this.sustainedTargetId === key ? this.sustainedBonus : 0;
+    this.sustainedTargetId = key;
+    const rolls = [this.board.dice.roll(), this.board.dice.roll()].map(r => r + bonus);
+    const hit = rolls.some(r => r >= 6);
+    PieceEvents.emit('shot', { shooterId: this.id, targetId: key, x: door.square.x, y: door.square.y, rolls, hit });
+    if (hit) {
+      door.destroy();
+      PieceEvents.emit('doorDestroyed', { x: door.square.x, y: door.square.y, facing: door.facing });
+      this.sustainedTargetId = null;
+      this.sustainedBonus = 0;
+    } else if (!free) {
+      this.sustainedBonus = Math.min(bonus + 1, StormBolterMarine.MAX_SUSTAINED);
+    }
+    return hit;
   }
 
   /** A fake ambush counter revealed itself: every overwatcher who saw it

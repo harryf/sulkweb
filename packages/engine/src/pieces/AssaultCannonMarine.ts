@@ -91,10 +91,11 @@ export class AssaultCannonMarine extends StormBolterMarine {
         PieceEvents.emit('shot', { shooterId: this.id, targetId: p.id, x: p.pos.c, y: p.pos.r, rolls, hit });
         if (hit) { p.die(); somethingKilled = true; }
       }
-      // Closed doors in arc + LOS (via their anchor square)
+      // Closed doors in arc + LOS. doorInSight tests BOTH flanking squares —
+      // the anchor alone misses doors whose anchor sits behind the edge.
       for (const door of this.board.allDoors()) {
         if (door.isOpen || door.destroyed) continue;
-        if (!canShoot(this.board, this, door.square)) continue;
+        if (!this.doorInSight(door)) continue;
         const rolls = [this.board.dice.roll(), this.board.dice.roll(), this.board.dice.roll()];
         if (Math.max(...rolls) >= AssaultCannonMarine.AUTO_KILL_REQ) {
           door.destroy();
@@ -106,6 +107,44 @@ export class AssaultCannonMarine extends StormBolterMarine {
     }
     this.maybeMalfunction([this.board.dice.roll(), this.board.dice.roll(), this.board.dice.roll()]);
     return true;
+  }
+
+  /** Cannon door shots also need a round in the drum. */
+  override canShootDoor(door: Door | undefined): door is Door {
+    return this.ammo >= 1 && super.canShootDoor(door);
+  }
+
+  /**
+   * Aimed cannon fire at a closed door (original aburst_kill_scorereq=5):
+   * 3 dice, destroyed on any ≥ 5 (sustained lowers the requirement), 1 ammo,
+   * and the shot counts toward the malfunction clock like any other.
+   */
+  override shootDoor(door: Door): boolean {
+    if (!this.canShootDoor(door)) return false;
+    const free = this.freeShot;
+    if (free) this.freeShot = false;
+    else this.ap -= 1;
+    this.clearOverwatch();
+    const key = StormBolterMarine.doorKey(door);
+    const bonus = !free && this.sustainedTargetId === key ? this.sustainedBonus : 0;
+    this.sustainedTargetId = key;
+    this.ammo -= 1;
+    PieceEvents.emit('ammoChanged', { pieceId: this.id, ammo: this.ammo });
+    const rolls = [this.board.dice.roll(), this.board.dice.roll(), this.board.dice.roll()];
+    const req = Math.max(1, AssaultCannonMarine.KILL_REQ - bonus);
+    const hit = rolls.some(r => r >= req);
+    PieceEvents.emit('shot', { shooterId: this.id, targetId: key, x: door.square.x, y: door.square.y, rolls, hit });
+    if (hit) {
+      door.destroy();
+      PieceEvents.emit('doorDestroyed', { x: door.square.x, y: door.square.y, facing: door.facing });
+      this.sustainedTargetId = null;
+      this.sustainedBonus = 0;
+    } else if (!free) {
+      this.sustainedBonus = Math.min(bonus + 1, StormBolterMarine.MAX_SUSTAINED);
+    }
+    this.shotsFired += 1;
+    this.maybeMalfunction(rolls);
+    return hit;
   }
 
   canReload(): boolean {

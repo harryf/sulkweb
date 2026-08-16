@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { GameEngine, loadMission, missions, Square, Piece, StormBolterMarine, HeavyFlamerMarine, AssaultCannonMarine, ChainFistMarine, Genestealer, Selection, PieceEvents, visibleSquares, canShoot, closeCombat, DIR_VEC, SeededRng, autoplay, runMarineTurn } from "@sulk/engine/index.js";
+import { GameEngine, loadMission, missions, Square, Piece, StormBolterMarine, HeavyFlamerMarine, AssaultCannonMarine, ChainFistMarine, Genestealer, Selection, PieceEvents, visibleSquares, canShoot, closeCombat, DIR_VEC, SeededRng, autoplay, runMarineTurn, flameFlood, Door } from "@sulk/engine/index.js";
 import { Minimap } from '../ui/Minimap.js';
 import { HighlightSprite } from '../ui/HighlightSprite.js';
 import { HudPanel } from '../ui/HudPanel.js';
@@ -35,6 +35,19 @@ export default class GameScene extends Phaser.Scene {
   private catMarker?: Phaser.GameObjects.Image;
   /** Board coordinate under the mouse — the flamer's F-key target. */
   private hoverCoord: { x: number; y: number } | null = null;
+  /** Two-press flamer targeting: first F arms, second F fires at the hovered
+   *  square. Public for the e2e suite. */
+  flamerAiming = false;
+  /** Squares the armed flamer would set alight at the current hover — drawn
+   *  as the blast preview and asserted by e2e. */
+  flamePreview: { x: number; y: number }[] = [];
+  private flamePreviewGfx!: Phaser.GameObjects.Graphics;
+  /** Last accepted fire intent (ms) — debounces Phaser keydown replays. */
+  private lastFireAt = 0;
+  /** Phaser's keyboard queue can re-emit the SAME native event across frames
+   *  under load (headless e2e, stalled RAF) — every keydown handler dedupes
+   *  through this set or single-press actions double-fire. */
+  private seenKeyEvents = new WeakSet<KeyboardEvent>();
   private timerRemaining = 120;
   private timerEvent?: Phaser.Time.TimerEvent;
   private paused = false;
@@ -182,9 +195,14 @@ export default class GameScene extends Phaser.Scene {
     for (const r of mission.roomSquares ?? []) {
       markers.lineStyle(2, 0xff4040, 0.6).strokeRect(r.x * T + 2, r.y * T + 2, T - 4, T - 4);
     }
+    // Ducting art is a vertical pipe; rotate squares whose run continues
+    // left/right so a horizontal duct reads as one continuous pipe.
+    const ductKeys = new Set((mission.ductingSquares ?? []).map(d => `${d.x},${d.y}`));
     for (const d of mission.ductingSquares ?? []) {
+      const horizontal = ductKeys.has(`${d.x - 1},${d.y}`) || ductKeys.has(`${d.x + 1},${d.y}`);
       this.ductingSprites[`${d.x},${d.y}`] =
-        this.add.image(d.x * T + T / 2, d.y * T + T / 2, 'ducting').setDepth(0.5);
+        this.add.image(d.x * T + T / 2, d.y * T + T / 2, 'ducting')
+          .setDepth(0.5).setRotation(horizontal ? Math.PI / 2 : 0);
     }
     for (const d of mission.marineDeployment ?? []) {
       markers.lineStyle(2, 0x3b82f6, 0.7).strokeRect(d.x * T + 3, d.y * T + 3, T - 6, T - 6);
@@ -274,6 +292,7 @@ export default class GameScene extends Phaser.Scene {
       delete this.jamMarkers[pieceId];
       if (Selection.get() === pieceId) {
         Selection.clear();
+        this.setFlamerAiming(false); // an armed flamer can die mid-aim
         this.updateHighlight();
         PieceEvents.emit('selected', { pieceId: null });
       }
@@ -415,7 +434,11 @@ export default class GameScene extends Phaser.Scene {
     // and the motion tracker. M toggles mute (persisted).
     this.audio = new AudioManager(this, this.engine, this.missionKey);
     (window as any).sulk.audio = this.audio;
-    this.input.keyboard!.on('keydown-M', () => this.audio.toggleMute());
+    this.input.keyboard!.on('keydown-M', (e: KeyboardEvent) => {
+      if (this.seenKeyEvents.has(e)) return; // Phaser replay — one toggle per press
+      this.seenKeyEvents.add(e);
+      this.audio.toggleMute();
+    });
     this.events.once('shutdown', () => this.audio.destroy());
     // Required credit for the ambient soundtrack (see CREDITS.md).
     const credit = document.createElement('div');
@@ -464,6 +487,7 @@ export default class GameScene extends Phaser.Scene {
         this.hoverInfo = this.describeSquare(hx, hy);
       }
       this.hud.setHoverInfo(this.hoverInfo);
+      if (this.flamerAiming) this.refreshAimUI();
     });
 
     PieceEvents.emit('cpChanged', { cp: this.engine.cp }); // HUD subscribed after the initial roll
@@ -486,6 +510,7 @@ export default class GameScene extends Phaser.Scene {
     // Set-up selection
     this.highlight = new HighlightSprite(this, this.tileSize);
     this.add.existing(this.highlight);
+    this.flamePreviewGfx = this.add.graphics().setDepth(0.85);
 
     // Input handler for piece selection
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
@@ -499,6 +524,7 @@ export default class GameScene extends Phaser.Scene {
       } else {
         Selection.clear();
       }
+      this.setFlamerAiming(false); // any (de)selection disarms the flamer
       this.updateHighlight();
 
       const selectedId = Selection.get();
@@ -523,6 +549,8 @@ export default class GameScene extends Phaser.Scene {
 
     // Keyboard handler for piece movement
     this.input.keyboard!.on('keydown', (_event: KeyboardEvent) => {
+      if (this.seenKeyEvents.has(_event)) return; // Phaser replay of a handled press
+      this.seenKeyEvents.add(_event);
       if (this.paused || this.animating || this.engine.state.result !== 'ongoing') return;
       const selectedId = Selection.get();
       if (!selectedId) return;
@@ -530,13 +558,19 @@ export default class GameScene extends Phaser.Scene {
       const piece = this.engine.findPiece(selectedId);
       if (!piece) return;
 
+      // Any piece ACTION while the flamer is armed cancels targeting mode.
+      // (Arrow-key camera panning, L overlay, and M mute keep the aim.)
+      if (this.flamerAiming && 'wsadocvuxtrgp'.includes(_event.key.toLowerCase())) {
+        this.setFlamerAiming(false);
+      }
+
       let acted = false;
       if (Phaser.Input.Keyboard.JustDown(this.wasd.W))      acted = piece.moveForward();
       else if (Phaser.Input.Keyboard.JustDown(this.wasd.S)) acted = piece.moveBackward();
       else if (Phaser.Input.Keyboard.JustDown(this.wasd.A)) acted = piece.tryTurn(-1);
       else if (Phaser.Input.Keyboard.JustDown(this.wasd.D)) acted = piece.tryTurn(1);
       else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).O)) acted = piece.useDoor();
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).F)) acted = this.shootNearest(piece);
+      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).F)) acted = this.handleFire(piece);
       else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).C)) acted = this.meleeAhead(piece);
       else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).V)) {
         const marine = piece as StormBolterMarine;
@@ -567,6 +601,7 @@ export default class GameScene extends Phaser.Scene {
     const piece = this.engine.findPiece(id);
     if (!piece) return;
     Selection.select(id);
+    this.setFlamerAiming(false);
     this.updateHighlight();
     PieceEvents.emit('selected', {
       pieceId: id,
@@ -631,6 +666,17 @@ export default class GameScene extends Phaser.Scene {
     if (this.cursors.right.isDown) cam.scrollX += speed;
     if (this.cursors.up.isDown) cam.scrollY -= speed;
     if (this.cursors.down.isDown) cam.scrollY += speed;
+
+    // Camera panning moves the world under a stationary pointer — while the
+    // flamer is armed, keep the hover target and preview honest.
+    if (this.flamerAiming) {
+      const p = this.input.activePointer;
+      const hx = Math.floor(p.worldX / TILE_SIZE), hy = Math.floor(p.worldY / TILE_SIZE);
+      if (!this.hoverCoord || this.hoverCoord.x !== hx || this.hoverCoord.y !== hy) {
+        this.hoverCoord = { x: hx, y: hy };
+        this.refreshAimUI();
+      }
+    }
 
     // No manual clamp here: the camera bounds set in create() are the single
     // source of truth — Phaser clamps every scroll path against them.
@@ -721,6 +767,7 @@ export default class GameScene extends Phaser.Scene {
     if (this.engine.state.result !== 'ongoing' || this.paused || this.animating) return;
     const stream = PieceEvents.capture(() => this.engine.endMarinePhase());
     Selection.clear();
+    this.setFlamerAiming(false);
     this.updateHighlight();
     PieceEvents.emit('selected', { pieceId: null });
     // Accessibility: with prefers-reduced-motion, skip the timeline entirely
@@ -760,21 +807,92 @@ export default class GameScene extends Phaser.Scene {
     this.roster.refreshAll(); // post-replay engine truth (fresh AP, deaths)
   }
 
-  /** F key: bolters shoot the nearest enemy in fire arc + LOS; the flamer
-   *  torches the hovered square (fallback: the nearest enemy's square). */
-  private shootNearest(piece: Piece): boolean {
+  /**
+   * F key. Flamer: two-press targeting — the first F arms (no AP), the second
+   * fires at the hovered square; an invalid second press just disarms.
+   * Bolter/cannon: a shootable closed door under the cursor takes priority,
+   * otherwise auto-target the nearest enemy in fire arc + LOS.
+   */
+  private handleFire(piece: Piece): boolean {
+    // Phaser's keyboard queue can replay a keydown across frames under
+    // machine-speed input (headless e2e) — a fire intent within ~2 frames of
+    // the last is the same physical press, never a second trigger.
+    if (this.time.now - this.lastFireAt < 35) return false;
+    this.lastFireAt = this.time.now;
     const board = this.engine.state.board;
     if (piece instanceof HeavyFlamerMarine) {
+      if (!this.flamerAiming) {
+        // Arming is free (AP is spent by the shot) but pointless dry or broke.
+        if (piece.ammo >= 1 && piece.ap >= HeavyFlamerMarine.SHOT_COST) this.setFlamerAiming(true);
+        return false;
+      }
       const hovered = this.hoverCoord ? board.get(this.hoverCoord.x, this.hoverCoord.y) : undefined;
-      if (piece.canFlame(hovered)) return piece.flameAt(hovered) !== undefined;
-      const enemySquares = board.pieces
-        .filter((p): p is Piece => (p as Piece).kind !== 'marine')
-        .map(p => board.get(p.pos.c, p.pos.r))
-        .filter((sq): sq is Square => sq !== undefined && piece.canFlame(sq));
-      if (!enemySquares[0]) return false;
-      return piece.flameAt(enemySquares[0]) !== undefined;
+      // Invalid aim: stay armed — the not-allowed cursor is the feedback, and a
+      // mis-click must not force re-arming (Advisor 2026-08-16).
+      if (!piece.canFlame(hovered)) return false;
+      this.setFlamerAiming(false);
+      return piece.flameAt(hovered) !== undefined;
     }
     if (!(piece instanceof StormBolterMarine)) return false;
+    const door = this.hoveredDoorFor(piece);
+    if (door) { piece.shootDoor(door); return true; } // AP spent even on a miss
+    return this.shootNearest(piece);
+  }
+
+  /** A closed, shootable door on an edge of the hovered square. */
+  private hoveredDoorFor(piece: StormBolterMarine): Door | undefined {
+    if (!this.hoverCoord) return undefined;
+    const { x, y } = this.hoverCoord;
+    return this.engine.state.board.allDoors()
+      .filter(d => (d.square.x === x && d.square.y === y) ||
+        (d.otherSide().c === x && d.otherSide().r === y))
+      .find(d => piece.canShootDoor(d));
+  }
+
+  /** Arm/disarm the flamer targeting mode — single owner of cursor + preview. */
+  private setFlamerAiming(on: boolean): void {
+    if (!this.flamerAiming && !on) return;
+    this.flamerAiming = on;
+    this.refreshAimUI();
+  }
+
+  /** Cursor + blast-preview overlay for the armed flamer. The preview IS the
+   *  engine's flameFlood — never a client-side approximation. */
+  private refreshAimUI(): void {
+    this.flamePreviewGfx.clear();
+    this.flamePreview = [];
+    if (!this.flamerAiming) {
+      this.input.setDefaultCursor('default');
+      return;
+    }
+    const board = this.engine.state.board;
+    const selectedId = Selection.get();
+    const piece = selectedId ? this.engine.findPiece(selectedId) : undefined;
+    const hovered = this.hoverCoord ? board.get(this.hoverCoord.x, this.hoverCoord.y) : undefined;
+    if (!(piece instanceof HeavyFlamerMarine) || !piece.canFlame(hovered)) {
+      this.input.setDefaultCursor('not-allowed');
+      return;
+    }
+    this.input.setDefaultCursor('crosshair');
+    const T = this.tileSize;
+    this.flamePreview = flameFlood(board, hovered).map(s => ({ x: s.x, y: s.y }));
+    for (const s of this.flamePreview) {
+      const target = s.x === hovered.x && s.y === hovered.y;
+      this.flamePreviewGfx.fillStyle(0xff6600, target ? 0.65 : 0.4)
+        .fillRect(s.x * T, s.y * T, T, T)
+        .lineStyle(2, 0xffaa00, 0.9).strokeRect(s.x * T + 1, s.y * T + 1, T - 2, T - 2);
+      // A battle-brother in the blast gets a red warning wash — the flood
+      // rolls to kill marines exactly like stealers (Advisor 2026-08-16).
+      const p = board.pieceAt({ c: s.x, r: s.y }) as Piece | undefined;
+      if (p?.alive && p.kind === 'marine') {
+        this.flamePreviewGfx.fillStyle(0xff0000, 0.45).fillRect(s.x * T, s.y * T, T, T);
+      }
+    }
+  }
+
+  /** Auto-target: shoot the nearest enemy in fire arc + LOS. */
+  private shootNearest(piece: StormBolterMarine): boolean {
+    const board = this.engine.state.board;
     const enemies = board.pieces
       .filter((p): p is Piece => (p as Piece).kind !== 'marine')
       .filter(p => {

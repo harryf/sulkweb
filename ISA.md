@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: 336/337 (sound run + silent-audio fix verified; ISC-71 deferred)
+phase: execute
+progress: 336/360 (flamer targeting + shootable doors + ducting run; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-15T14:20:00Z
+updated: 2026-08-16T04:30:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -491,6 +491,33 @@ Client integration (AudioManager, event-driven):
 - [x] ISC-335: every file fetchAudio produces carries real signal — script self-check throws on <−60 dB RMS output (Bash: regenerated set −15.9…−33.7 dB)
 - [x] ISC-336: music keys on the mission REGISTRY key — space_hulk_1 ("Suicide Mission") and debug_1 ("Demo Board") load their tracks (Playwright regression test)
 - [x] ISC-337: Anti: a suspended AudioContext (Brave) never leaves the game silently "playing" — gesture-driven resume; verified running in the user's own browser (Chrome MCP probe)
+
+### Flamer targeting + shootable doors + ducting orientation (2026-08-16)
+
+- [ ] ISC-338: F with a flamer selected enters targeting mode without spending AP or ammo (Playwright: aiming flag true, AP unchanged)
+- [ ] ISC-339: in targeting mode, hovering a valid in-range square sets the crosshair cursor; invalid hover sets not-allowed (Playwright canvas.style.cursor)
+- [ ] ISC-340: valid hover previews the exact flame-flood square set (Playwright: exposed preview list equals engine flameFlood)
+- [ ] ISC-341: second F on a valid hovered square fires flameAt into it — section burns (Playwright: board.isFlaming true, ammo −1, AP −2)
+- [ ] ISC-342: flaming a visible square kills a stealer hidden around a corner in the same section — no LOS to the stealer required (vitest, RollQueue-pinned)
+- [ ] ISC-343: second F on an invalid hover stays armed without firing — AP and ammo untouched, not-allowed cursor as feedback (refined per Advisor: silent exit punishes mis-aims) (Playwright)
+- [ ] ISC-344: targeting mode cancels on piece deselection or another action key (Playwright)
+- [ ] ISC-345: space_hulk_1's Launch Control (20,20) is flameable by aimed shot from outside its section — self-destruct no longer the only path (vitest on the real mission board)
+- [ ] ISC-346: Anti: the flamer never auto-fires at a "nearest enemy" fallback square — the second press fires only at the hovered square (Grep: fallback removed; vitest behavior)
+- [ ] ISC-347: HUD legend documents the two-press flamer flow (Grep HudPanel)
+- [ ] ISC-348: bolter aimed shot destroys a closed door on a D6 roll of 6 — original sh_kill_scorereq=6 (vitest, RollQueue)
+- [ ] ISC-349: a door shot costs 1 AP (free after move via move-and-shoot) and emits shot + doorDestroyed events (vitest)
+- [ ] ISC-350: bolter misses at the same door accrue sustained-fire +1 per miss, max +4, cleared on move/turn (vitest)
+- [ ] ISC-351: assault cannon aimed shot destroys a closed door on ≥5 (aburst_kill_scorereq=5), spends 1 ammo, counts toward malfunction (vitest, RollQueue)
+- [ ] ISC-352: doors outside the fire arc or without LOS to either flanking square cannot be shot (vitest)
+- [ ] ISC-352.1: a marine directly facing an adjacent closed door edge CAN shoot it point-blank — the door's own segment must not block the shot at itself (vitest)
+- [ ] ISC-353: open or already-destroyed doors are not shootable targets (vitest)
+- [ ] ISC-354: autofire destroys a closed door whose ANCHOR square lies on the far side of the edge — near-side LOS now counts (vitest regression)
+- [ ] ISC-355: client: hovering a shootable door square and pressing F shoots the door in preference to auto-targeting (Playwright, dice pinned)
+- [ ] ISC-356: Anti: a door shot never kills a piece and a piece shot never destroys a door — the two target paths stay disjoint (vitest event assertions)
+- [ ] ISC-357: ducting sprites orient to their run — a square with left/right ducting neighbors renders rotated 90° (Playwright: sprite rotation on space_hulk_6)
+- [ ] ISC-358: space_hulk_6 (13,0)(14,0)(15,0) reads as one continuous horizontal pipe; ductingDestroyed keeps the rotation (Playwright)
+- [ ] ISC-359: Anti: doors stay immune to flames (fl_kill_scorereq None in the original) — flameFlood still stops at closed door edges (vitest)
+- [ ] ISC-360: all suites green: engine vitest, client vitest, Playwright e2e; `pnpm -r build` clean (Bash)
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|

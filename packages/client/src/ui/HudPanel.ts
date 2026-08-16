@@ -171,7 +171,7 @@ export class HudPanel extends Phaser.GameObjects.Container {
     this.add(this.statusText)
 
     const controls = scene.add.text(8, doneY + 114,
-      'Click marine or card to select\nW/S move · A/D turn\nO door · F fire/flame · C melee\nV overwatch · U unjam\nX flamer self-destruct\nP spend CP · L show LOS\nEnter end turn · Esc pause\nM mute sound\n\nMap: ▲ = stealer entry\norange = objective · green = exit',
+      'Click marine or card to select\nW/S move · A/D turn\nO door · F fire · C melee\nF over a closed door shoots it\nFlamer: F aims (hover a square),\nF again fires · other key cancels\nV overwatch · U unjam\nX flamer self-destruct\nP spend CP · L show LOS\nEnter end turn · Esc pause\nM mute sound\n\nMap: ▲ = stealer entry\norange = objective · green = exit',
       { fontFamily: 'Kanit', fontSize: '12px', color: '#8a8a8a', lineSpacing: 3, fixedWidth: HUD_WIDTH - 16 })
     this.add(controls)
 

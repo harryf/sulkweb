@@ -153,6 +153,25 @@ test('mission music fades in from silence after the unlock gesture', async ({ pa
   expect(early).toBeLessThan(0.16);     // started below the quiet duck target
 });
 
+test('hiding the tab pauses the music; returning resumes it with a fade', async ({ page }) => {
+  await page.goto('/?mission=debug_1&seed=1');
+  await waitForScene(page);
+  await page.locator('canvas').click({ position: { x: 40, y: 40 } });
+  await page.waitForFunction(() => ((window as any).sulk.audio as any)?.music?.isPlaying === true, undefined, { timeout: 5000 });
+
+  const setVisibility = (state: 'hidden' | 'visible') =>
+    page.evaluate(s => {
+      Object.defineProperty(document, 'visibilityState', { value: s, configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    }, state);
+
+  await setVisibility('hidden');
+  expect(await page.evaluate(() => ((window as any).sulk.audio as any).music.isPaused)).toBe(true);
+
+  await setVisibility('visible');
+  await page.waitForFunction(() => ((window as any).sulk.audio as any).music.isPlaying === true, undefined, { timeout: 3000 });
+});
+
 test('every page links the marine favicon', async ({ page }) => {
   for (const path of ['/', '/manual.html', '/credits.html']) {
     await page.goto(path);

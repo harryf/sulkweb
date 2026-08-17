@@ -808,6 +808,10 @@ export default class GameScene extends Phaser.Scene {
         delete this.pieceSprites[id];
         this.owMarkers[id]?.destroy();
         delete this.owMarkers[id];
+        // Symmetry with removePieceSprite: a piece that vanished without its
+        // death event replayed must not leave an orphaned JAM marker behind.
+        this.jamMarkers[id]?.destroy();
+        delete this.jamMarkers[id];
       }
     }
     this.timerRemaining = this.engine.marinePhaseSeconds;

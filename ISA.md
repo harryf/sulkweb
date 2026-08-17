@@ -4,7 +4,7 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 534/535 (pages-deploy run ISC-515..534 verified; ISC-71 deferred)
+progress: 553/554 (audio-ship run ISC-535..553 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-17T10:55:00Z
@@ -719,6 +719,28 @@ Build & regression:
 - [x] ISC-533: local suites still green after changes (client unit + home.spec e2e) (Bash)
 - [x] ISC-534: work committed with a clean tree (Bash git status)
 
+### Audio ships with attribution (deploy v0.3.0)
+
+- [x] ISC-535: .gitignore no longer excludes assets/audio; all fetched audio tracked (git ls-files ≥33 files)
+- [x] ISC-536: credits.html is a third Vite MPA input with its own entry module (Read)
+- [x] ISC-537: credits page renders one music row per MUSIC_TRACKS entry, each linking its YouTube video (e2e count 9)
+- [x] ISC-538: music rows show track title, original work, artist, and mission display name (e2e spot checks)
+- [x] ISC-539: SFX section lists the Sulk-original set and all SFX_SOURCES with YouTube links (e2e)
+- [x] ISC-540: Music of 40K channel credit, playlist link, and non-profit terms are stated on the page (e2e)
+- [x] ISC-541: homepage credits line links the audio-credits page (e2e)
+- [x] ISC-542: manual footer links the audio-credits page (e2e)
+- [x] ISC-543: credits page has a back-to-game link (e2e)
+- [x] ISC-544: Anti: zero pageerrors on the credits page (e2e)
+- [x] ISC-545: CREDITS.md rewritten to the ships-with-attribution posture (Read)
+- [x] ISC-546: README no longer claims the deploy is audio-silent; links the credits page (Grep)
+- [x] ISC-547: deploy.yml header comment matches the new posture (Read)
+- [x] ISC-548: local gates green: client tsc, unit 43, e2e including the new credits spec (Bash)
+- [x] ISC-549: tag v0.3.0 deploy run concluded success (gh run)
+- [x] ISC-550: live credits.html returns 200 and contains the YouTube links (curl)
+- [x] ISC-551: live assets/audio/music/space_hulk_1.ogg returns 200 (curl)
+- [x] ISC-552: live game constructs AudioManager with zero console errors in real Chrome (browser)
+- [x] ISC-553: work committed with a clean tree (git status)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
 | ISC-439..441 | baseline/regression | unit + e2e suite exit codes pre/post | 0 failures | Bash vitest/playwright |
@@ -745,6 +767,12 @@ Build & regression:
 | ISC-529..531 | deploy | curl live URLs + version probe | 200 + v0.2.0 | Bash curl |
 | ISC-532 | console | real-Chrome console on live site | 0 errors | Browser |
 | ISC-534 | repo | git status | clean tree | Bash git |
+| ISC-535,553 | repo | git ls-files / status | ≥33 audio files tracked / clean | Bash git |
+| ISC-536,545..547 | static | file/config read-back | matches posture | Read/Grep |
+| ISC-537..544 | e2e | new credits.spec + home/manual link asserts | exit 0 | Bash playwright |
+| ISC-548 | build/unit/e2e | tsc + vitest + playwright | exit 0 | Bash |
+| ISC-549..551 | deploy | gh run + curl live URLs | success / 200 | Bash |
+| ISC-552 | console | real-Chrome console with audio present | 0 errors | Browser |
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
 | ISC-4..10 | UI | rendered state + console | 0 errors | Interceptor screenshot + console read |
 | ISC-11,12,65 | repo | git status/log | clean/commits exist | Bash git |
@@ -808,6 +836,9 @@ Build & regression:
 | pages-release-workflow | Tag-gated GitHub Actions deploy to Pages | ISC-519..523,528 | pages-build-config | no |
 | pages-repo-setup | Enable Pages, homepage + description, README links/release docs | ISC-524..527 | — | yes |
 | pages-live-verify | Live-site probes, console check, commit | ISC-529..534 | pages-release-workflow | no |
+| audio-ship | Track fetched audio in git; posture docs update (CREDITS/README/workflow) | ISC-535,545..547 | — | no |
+| credits-page | /credits.html generated from audioManifest + alienSegments; links from home/manual | ISC-536..544 | — | no |
+| audio-release | v0.3.0 tag, live probes incl. audio 200 + real-Chrome audio construct | ISC-548..553 | audio-ship, credits-page | no |
 
 ## Decisions
 
@@ -957,6 +988,17 @@ Build & regression:
 - ISC soft floor: 20 new ISCs this run; project total 535 far exceeds the E3 ≥32 floor.
 - Interceptor extension again reported "no extensions connected" (daemon up) — real-Chrome verification done via Claude-in-Chrome MCP, same fallback as the home-page run.
 - Commits: 9d83ca9 (feature: base/version/define, workflow, README, repo setup), e78900d (review hardening). Tag: v0.2.0 → run 32012182040 success.
+### 2026-08-17 — Audio-ship run (ISC-535..553, E3)
+
+- User decision (explicit, after options presented with CREDITS.md's "NOT cleared for redistribution" surfaced): ship ALL fetched audio with a per-source credits page. Music rides the Music of 40K non-profit-with-credit grant (the page satisfies its stated terms verbatim); the Aliens/Alien: Isolation cuts ship as short attributed excerpts with a rights-holder takedown offer. CREDITS.md rewritten to state this posture plainly rather than pretend a clean chain of title.
+- Design: /credits.html is generated from audioManifest.ts + alienSegments.ts — the same data fetchAudio.ts downloads from and AudioManager plays from. The reviewer correctly noted generation alone no longer guarantees coverage once binaries are hand-committed, so a unit test now asserts set-equality between the files on disk and the manifest, both directions (audioFiles.spec.ts).
+- Review agent findings, all fixed in 003877c: 8 stale "gitignored / ships no audio" claims across CREDITS.md itself, fetchAudio.ts, architecture.md (whose deployment section was ALSO stale on base './' and CI from the v0.2.0 run), CLAUDE.md, development-guide ×2, asset-index.md, AudioManager; the in-game RosterPanel credit under-crediting audible film/game cuts (now links credits.html); alien cut counts (22 ship, 19 play — page said 19); brittle hardcoded first-row asserts in credits.spec.
+- Gotcha (environmental): Chrome hidden-tab RAF pause freezes the PreloadScene→GameScene handoff, mimicking a deploy failure. Diagnosed via document.hidden=true; un-stuck by stepping phaserGame.loop manually. Affects verification tooling only, not users.
+- Layout: manual.css scopes its reading column to #manual — the credits page needed its own #credits column (860px); caught by live screenshot, shipped in v0.3.1.
+- Delegation floor (E3 ≥2) show-your-math: Forge waived (codex CLI absent, standing); one background diff-review agent ran and delivered (11 findings adopted); a second reviewer on the same diff judged redundant.
+- Commits: 6ce332c (audio + credits page + posture flip), 003877c (review fixes). Tags v0.3.0, v0.3.1 — both deploy runs green.
+- Advisor round (audio-ship): ADOPTED four closers, all green — gesture-unlocked playback on live (AudioContext "running", sfx_tracker_ping played, isPlaying true; audible, not merely constructed); 32 decoded cache keys rule out 404-HTML-as-audio; in-game credits link verified in the live DOM as relative href; repo-wide stale-phrase grep returns only the corrected CLAUDE.md sentence; no service worker exists anywhere (its cache-versioning concern is moot — the "32 keys" are Phaser's in-memory audio cache). DECLINED: Safari/iOS ogg support (pre-existing design since the audio run: Vorbis-only, cache guards degrade to silence; a Safari fallback is a feature request, not this run); repo size vs Pages limits (36M vs 1GB soft limit — non-issue).
+
 - Advisor round (8 items): ADOPTED the git-history audio check — `git log --diff-filter=A -- assets/audio/` empty and `git rev-list --objects --all` contains zero mp3/ogg/m4a/opus/webm objects; only the 15 tracked GPL `assets/sounds/*.wav` exist in history, so the copyright posture holds at the object level, not just the working tree. Items 2/3/5/6/7/8 already evidenced (needs-chain, negative trigger via e78900d push producing no run, tag-derived version env, no router, build_type workflow, hashed-filename freshness). Item 4 already done (play path exercised in real Chrome, zero errors). DECLINED: in-game copy explaining the missing web audio (the in-game credits' "Music of 40K" line slightly overpromises on the deployed site; README covers it — cosmetic follow-up, not blocking).
 
 ## Changelog
@@ -1452,3 +1494,18 @@ beta_2 completion (2026-08-15):
 - ISC-532: real-Chrome (Claude-in-Chrome) console after fresh load of `/` and after starting space_hulk_1: zero errors/exceptions; game fully playable (5 marines, HUD, timer, board render screenshot)
 - ISC-533: client tsc clean, engine tsc build clean, client unit 43/43, home.spec 9/9 (then 3/3 targeted rerun after review fixes)
 - ISC-534: commits 9d83ca9 + e78900d pushed; tree clean except ISA record (committed at LEARN)
+
+### Audio-ship run (2026-08-17, ISC-535..553)
+
+- ISC-535: `git ls-files packages/client/public/assets/audio | wc -l` → 33 (9 ogg, 22 alien wav, 2 sfx wav); .gitignore keeps only .audio-cache/
+- ISC-536: credits.html + src/credits/{main.ts,credits.css}; vite input {main,manual,credits}; built chunk 3.5K (no Phaser — reviewer verified only type-imports touch the engine)
+- ISC-537..540: credits.spec — 9 manifest-derived music rows each linking youtube.com/watch?v=<videoId>, 3 SFX rows, Music of 40K terms quote + channel/playlist links; live JS probe: musicRows 9, sfxRows 3, ytLinks 12
+- ISC-541/542: credits.spec asserts #credits-link href=credits.html in home overlay and manual footer
+- ISC-543/544: back-to-game navigates to /; pageerror capture 0
+- ISC-545: CREDITS.md rewritten (ships-with-attribution posture; good-faith statement; takedown offer); stale "gitignored" line inside it fixed per review
+- ISC-546/547: README + deploy.yml claims updated; review swept SIX more stale sites (fetchAudio.ts, architecture.md deployment section incl. stale base/CI points, CLAUDE.md invariant, development-guide ×2, asset-index.md, AudioManager comment) — all fixed in 003877c
+- ISC-548: tsc clean; client unit 45/45 (2 new audioFiles set-equality guards); credits.spec 2/2; home.spec 9/9 earlier
+- ISC-549: v0.3.0 run 32015294184 success; v0.3.1 run success (both jobs)
+- ISC-550/551: curl live: credits.html 200, music/space_hulk_1.ogg 200, alien/alien_attack_01.wav 200
+- ISC-552: real Chrome on live ?mission=space_hulk_1: AudioManager constructed, 32 audio keys in cache, hud up, zero console errors. Gotcha found: the hidden-tab RAF pause stalls PreloadScene→GameScene transition (environmental, all versions); un-stuck by manually stepping game.loop
+- ISC-553: commits 6ce332c (audio + credits page) + 003877c (review fixes); tags v0.3.0, v0.3.1; tree clean except ISA record

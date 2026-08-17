@@ -267,3 +267,14 @@ packages/
 - Cross-vendor code audit pending — revisit against tag `v0.1` when available.
 - `docs/` retains the original Sulk manual; edge rules (parry, autofire, psi)
   arrive with the missions that need them.
+
+## License
+
+Sulk Web is free software, licensed under the
+[GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html)
+(see [LICENSE](LICENSE)) — the same license as the original Sulk game it
+recreates. You may copy, modify, and redistribute it under the GPL's terms.
+Audio and music assets carry their own licenses, credited in
+[CREDITS.md](CREDITS.md). Space Hulk is a trademark of Games Workshop; this
+is an unaffiliated fan recreation of the open-source Sulk clone and claims
+no rights over Games Workshop's intellectual property.

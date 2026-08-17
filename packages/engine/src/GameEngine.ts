@@ -44,6 +44,9 @@ export class GameEngine {
   /** beta_2 download: counter 4→0 while a sergeant holds the Data Room. */
   downloadCounter = 4
   private downloadPieceId: string | null = null
+  /** Squares the marines are trying to reach — the hive's objective awareness.
+   *  Win RULES stay unknown to the AI; only the destination geography leaks. */
+  private readonly hiveObjectives: { c: number; r: number }[] = []
 
   constructor(mission: CompiledMission, extraPieces: Piece[] = [], dice?: DiceSource) {
     this.mission = mission
@@ -80,6 +83,17 @@ export class GameEngine {
       initDucting(board, mission.ductingSquares.map(d => ({ c: d.x, r: d.y })))
     }
     this.downloadCounter = mission.downloadTurns ?? 4
+    // Where the marines are HEADING, per mission geography: objective squares
+    // to flame, exits to escape through, the data room, blockade entries
+    // (kill-quota). Exterminate-style hunts have no destination — the hive
+    // stays purely reactive there.
+    const objs: { x: number; y: number }[] = []
+    if (mission.objectivePoint) objs.push(mission.objectivePoint)
+    objs.push(...(mission.objectivePoints ?? []))
+    if (mission.downloadPoint) objs.push(mission.downloadPoint)
+    objs.push(...(mission.exitPoints ?? []))
+    if (mission.objective === 'kill-quota') objs.push(...(mission.entryPoints ?? []))
+    this.hiveObjectives = objs.map(o => ({ c: o.x, r: o.y }))
     // Seed the first blips
     const entries = (mission.entryPoints ?? []).map(e => ({ c: e.x, r: e.y }))
     if (entries.length && (mission.initialBlips ?? 0) > 0) {
@@ -228,23 +242,27 @@ export class GameEngine {
     const board = this.state.board
     const entries = (this.mission.entryPoints ?? []).map(e => ({ c: e.x, r: e.y }))
 
-    // Reinforcement phase — bounded by the mission's total genestealer force
+    // Reinforcement phase — bounded by the mission's total genestealer force.
+    // The turn number rotates the entry round-robin so successive waves fan
+    // out from DIFFERENT entry points instead of hammering the first one.
     if (entries.length && (this.mission.blipsPerTurn ?? 0) > 0) {
       const budget = this.mission.totalBlips ?? Infinity
       const count = Math.min(this.mission.blipsPerTurn!, Math.max(0, budget - this.blipsSpawned))
       if (count > 0) {
-        this.blipsSpawned += spawnBlips(board, entries, count).length
+        this.blipsSpawned += spawnBlips(board, entries, count, this.turnNumber % entries.length).length
       }
     }
     convertRevealedBlips(board)
 
     // Stealer action phase (AI) — the hive plans with the turn number (tactic
-    // rotation) and the remaining blip budget (wave sizing vs. respawn rate).
+    // rotation), the remaining blip budget (wave sizing vs. respawn rate) and
+    // the marines' destination squares (urgency: reckless when they get close).
     runStealerActions(board, {
       turnNumber: this.turnNumber,
       blipsRemaining: this.mission.totalBlips === undefined
         ? undefined
         : Math.max(0, this.mission.totalBlips - this.blipsSpawned),
+      objectives: this.hiveObjectives,
     })
 
     // beta_2 ambush counters deploy at the END of the stealer phase (original

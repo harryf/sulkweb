@@ -20,11 +20,15 @@ import { chebyshev } from '../core/Direction.js';
  * comes from turn-number rotation, never from board.dice.
  */
 
-/** Per-turn info the engine passes down (both optional — direct test calls omit them). */
+/** Per-turn info the engine passes down (all optional — direct test calls omit them). */
 export interface HiveContext {
   turnNumber?: number;
   /** Reinforcement blips still in the mission budget; undefined = uncapped. */
   blipsRemaining?: number;
+  /** Squares the marines are trying to reach (objective points, exits, the
+   *  data room, blockade entries). The hive doesn't know the win RULES — just
+   *  where the marines want to go — and grows reckless as they get close. */
+  objectives?: Coord[];
 }
 
 export type HiveRole = 'assault' | 'stage' | 'block' | 'hold';
@@ -37,6 +41,10 @@ export interface HivePlan {
   huntTarget: Map<string, Coord>;
   /** Wave is live this turn — everyone staged goes in. */
   launched: boolean;
+  /** Pieces that have sat doing nothing too long — hunger wins: they attack,
+   *  and a frustrated blip may convert to break a deadlock (e.g. a queue
+   *  head refusing an exposure door with the marines far away). */
+  frustrated: Set<string>;
 }
 
 /** Squares marines threaten. `kill` = inside an un-jammed overwatcher's fire
@@ -62,20 +70,38 @@ const PATIENCE = 3;
 const STRAGGLER_GAP = 4;
 /** Graph distance within which pieces join a straggler hunt. */
 const HUNT_RANGE = 8;
+/** Hidden squares this close to a marine objective are worth camping — the
+ *  buildup blocks the destination even before the marines get near it. */
+const OBJ_RING = 6;
+/** Marines this close to their objective end the massing game: all-in. */
+const RECKLESS_DIST = 4;
+/** Rough marine advance per turn (4 AP, some spent on doors/turns) — converts
+ *  objective distance into "turns left" for wave budgeting. */
+const MARINE_SPEED = 3;
+/** A piece that has not moved for this many plans attacks — hunger wins. */
+const IDLE_CAP = 3;
+/** Absolute massing cap: growth resets patience, but never past this. Under
+ *  uncapped reinforcements the force otherwise "grows" every turn forever. */
+const HARD_PATIENCE = 6;
 
 /** Persistent hive memory per board (wave patience, current blocker). */
 interface HiveState {
   stagingTurns: number;
   /** Ready force seen by the previous plan — growth resets the patience clock. */
   lastForce: number;
+  /** Total turns spent massing since the last launch (never reset by growth). */
+  massingTurns: number;
   blockerId?: string;
+  /** Where each piece stood at the previous plan, and how long it has idled. */
+  lastPos: Map<string, Coord>;
+  idle: Map<string, number>;
 }
 const hiveStates = new WeakMap<Board, HiveState>();
 
 function hiveState(board: Board): HiveState {
   let s = hiveStates.get(board);
   if (!s) {
-    s = { stagingTurns: 0, lastForce: 0 };
+    s = { stagingTurns: 0, lastForce: 0, massingTurns: 0, lastPos: new Map(), idle: new Map() };
     hiveStates.set(board, s);
   }
   return s;
@@ -217,11 +243,18 @@ export function threatPenalty(threat: ThreatMap): (k: string) => number {
 /** Plain multi-source BFS distance to the nearest marine (pieces transparent,
  *  door edges traversable) — the "how close is this square to the fight" field. */
 export function marineDistanceField(board: Board): Map<string, number> {
+  return distanceField(board, marines(board).map(m => m.pos));
+}
+
+/** Multi-source BFS distance over the board graph (pieces transparent, door
+ *  edges traversable) from any set of source squares. */
+export function distanceField(board: Board, sources: Coord[]): Map<string, number> {
   const dist = new Map<string, number>();
   const queue: Coord[] = [];
-  for (const m of marines(board)) {
-    dist.set(key(m.pos), 0);
-    queue.push(m.pos);
+  for (const s of sources) {
+    if (!board.get(s.c, s.r) || dist.has(key(s))) continue;
+    dist.set(key(s), 0);
+    queue.push(s);
   }
   while (queue.length > 0) {
     const cur = queue.shift()!;
@@ -276,11 +309,38 @@ export function planHive(board: Board, threat: ThreatMap, ctx: HiveContext = {})
   const distField = marineDistanceField(board);
   const noThreat = threat.kill.size === 0;
 
-  // A piece is "staged" when it already sits hidden inside the strike ring.
+  // Idle bookkeeping: hunger is the default — a piece that has sat still for
+  // IDLE_CAP plans stops being clever and attacks (a frustrated blip may also
+  // convert to unjam a deadlocked queue; the executor handles that).
+  const frustrated = new Set<string>();
+  for (const p of pieces) {
+    const last = state.lastPos.get(p.id);
+    const idled = last !== undefined && last.c === p.pos.c && last.r === p.pos.r;
+    const n = idled ? (state.idle.get(p.id) ?? 0) + 1 : 0;
+    state.idle.set(p.id, n);
+    if (n >= IDLE_CAP) frustrated.add(p.id);
+  }
+  state.lastPos = new Map(pieces.map(p => [p.id, { ...p.pos }]));
+
+  // Objective awareness: the hive knows WHERE the marines are heading (not the
+  // win rules). objField measures every square's distance to that destination;
+  // the closest marine's value is the mission clock.
+  const objField = ctx.objectives?.length ? distanceField(board, ctx.objectives) : undefined;
+  const marineObjDist = objField && squad.length
+    ? Math.min(...squad.map(m => objField.get(key(m.pos)) ?? 99))
+    : undefined;
+  const turnsLeft = marineObjDist !== undefined
+    ? Math.max(1, Math.ceil(marineObjDist / MARINE_SPEED))
+    : undefined;
+
+  // A piece is "staged" when it sits hidden inside the strike ring around the
+  // marines OR camps the ring around their destination (blocking force).
   const isStaged = (p: Piece) => {
     const k = key(p.pos);
+    if (threat.seen.has(k) || threat.kill.has(k)) return false;
     const d = distField.get(k);
-    return d !== undefined && d <= STAGE_MAX && !threat.seen.has(k) && !threat.kill.has(k);
+    if (d !== undefined && d <= STAGE_MAX) return true;
+    return objField !== undefined && (objField.get(k) ?? 99) <= OBJ_RING;
   };
   // Blips hide 1-3 stealers (bag expectation ≈ 2) — they weigh double in the wave.
   const force = (p: Piece) => (p.kind === 'blip' ? 2 : 1);
@@ -289,18 +349,30 @@ export function planHive(board: Board, threat: ThreatMap, ctx: HiveContext = {})
   // Wave sizing: enough mass to swamp the squad, capped so a wave is never
   // hoarded; with the blip budget dry there is nothing to wait for. The
   // patience clock ticks only while the buildup is STALLED — as long as
-  // reinforcements keep the wave growing (respawn rate feeds it), keep
-  // massing; the moment growth stops for PATIENCE turns, go.
+  // reinforcements keep the wave growing, keep massing — but growth never
+  // buys more than HARD_PATIENCE turns (uncapped reinforcements "grow" every
+  // turn forever), and the mission clock overrides everything: the number of
+  // waves the hive can still launch is turnsLeft — when that reads one or two,
+  // "enough" is whatever it has. Sometimes the stealers just try their luck.
   const threshold = Math.max(3, Math.min(2 * squad.length, 8));
+  const effThreshold = turnsLeft !== undefined
+    ? Math.min(threshold, Math.max(2, turnsLeft))
+    : threshold;
   const budgetDry = ctx.blipsRemaining !== undefined && ctx.blipsRemaining <= 0;
-  if (readyForce > state.lastForce) state.stagingTurns = 0;
+  const reckless = marineObjDist !== undefined && marineObjDist <= RECKLESS_DIST;
+  if (readyForce > state.lastForce && (turnsLeft === undefined || turnsLeft > 3)) {
+    state.stagingTurns = 0;
+  }
   state.lastForce = readyForce;
   const launched =
     noThreat ||
-    readyForce >= threshold ||
+    reckless ||
+    readyForce >= effThreshold ||
     state.stagingTurns >= PATIENCE ||
+    state.massingTurns >= HARD_PATIENCE ||
     (budgetDry && readyForce >= squad.length);
   state.stagingTurns = launched ? 0 : state.stagingTurns + 1;
+  state.massingTurns = launched ? 0 : state.massingTurns + 1;
 
   // Straggler hunts fire regardless of wave state: ≥2 pieces in graph range
   // gang up on an isolated marine (his squad-mates cannot cover him).
@@ -320,7 +392,7 @@ export function planHive(board: Board, threat: ThreatMap, ctx: HiveContext = {})
   if (launched) {
     for (const p of pieces) if (!roles.has(p.id)) roles.set(p.id, 'assault');
     state.blockerId = undefined;
-    return { roles, stagingTarget, huntTarget, launched };
+    return { roles, stagingTarget, huntTarget, launched, frustrated };
   }
 
   // Staging candidates: hidden, unwatched squares in the strike ring, bucketed
@@ -338,7 +410,14 @@ export function planHive(board: Board, threat: ThreatMap, ctx: HiveContext = {})
     const c = { c: sq.x, r: sq.y };
     const k = key(c);
     const d = distField.get(k);
-    if (d === undefined || d < 2 || d > STAGE_MAX) continue;
+    const nearSquad = d !== undefined && d >= 2 && d <= STAGE_MAX;
+    // The destination ring: hidden squares near where the marines WANT to go
+    // are worth holding long before they arrive — the buildup becomes the
+    // roadblock (never closer than 2 to a marine already standing there).
+    const nearObjective = objField !== undefined
+      && (objField.get(k) ?? 99) <= OBJ_RING
+      && (d === undefined || d >= 2);
+    if (!nearSquad && !nearObjective) continue;
     if (threat.seen.has(k) || threat.kill.has(k)) continue;
     if (!board.isPassable(c)) continue;
     candidates.push(c);
@@ -391,6 +470,12 @@ export function planHive(board: Board, threat: ThreatMap, ctx: HiveContext = {})
       roles.set(p.id, 'assault');
       continue;
     }
+    // Hunger override: a piece that has done nothing for IDLE_CAP plans stops
+    // waiting for the perfect moment and attacks.
+    if (frustrated.has(p.id)) {
+      roles.set(p.id, 'assault');
+      continue;
+    }
     // Already in the ring and hidden: hold position (build the wave), unless a
     // useful door wants shutting — the executor handles that on 'stage'.
     const avoid = p.kind === 'blip'
@@ -413,7 +498,12 @@ export function planHive(board: Board, threat: ThreatMap, ctx: HiveContext = {})
       for (const c of byOctant.get(o)!) {
         const approach = reach!.get(key(c));
         if (approach === undefined) continue; // no fire-lane-free route to it
-        const score = approach + 2 * (distField.get(key(c)) ?? 99);
+        // Proximity to the fight OR to the marines' destination — whichever is
+        // nearer. Objective-ring squares score well even with the squad far.
+        const proximity = Math.min(
+          distField.get(key(c)) ?? 99,
+          objField ? (objField.get(key(c)) ?? 99) : 99);
+        const score = approach + 2 * proximity;
         if (score < bestScore) {
           bestScore = score;
           target = c;
@@ -472,5 +562,5 @@ export function planHive(board: Board, threat: ThreatMap, ctx: HiveContext = {})
     }
   }
 
-  return { roles, stagingTarget, huntTarget, launched };
+  return { roles, stagingTarget, huntTarget, launched, frustrated };
 }

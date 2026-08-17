@@ -203,7 +203,15 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
   diagonals pruned. Greedy stepping was removed — it stalls in concave pockets
   (`ai_pathing.spec.ts`). Behavior fixtures live in `hive.spec.ts`; re-pin
   pinned seeds only AFTER the last behavioral change (beta_2 got re-pinned twice
-  in one session for scanning too early).
+  in one session for scanning too early). Objective awareness (2026-08-18):
+  GameEngine passes the marines' DESTINATION squares (never win rules) — the
+  hive grows reckless as marines close on them, camps the ring around them,
+  shrinks wave thresholds to the remaining mission clock, and caps massing at
+  6 turns absolute (growth-keyed patience alone never fires under uncapped
+  reinforcements — learned from the (3,7) door-stack playtest). Idle pieces
+  force-assault after 3 stationary plans; a frustrated blocked blip CONVERTS
+  (stealers have no door caution — that is the deadlock breaker). spawnBlips
+  rotates entries by turn and prefers unseen ones.
 - **Doors are EDGES, not squares:** a `Door` anchors on a square + `doorFacing` and lives on
   the boundary to that neighbor. `Board.doorBetween(a,b)` is the lookup; movement blocks
   orthogonal crossings (`Piece.tryMove`), LOS does segment-intersection vs closed edges

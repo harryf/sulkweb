@@ -281,10 +281,13 @@ export function runStealerActions(board: Board, ctx: HiveContext = {}): void {
         // The blip cannot advance (marine sight / adjacency bars it, or it is
         // boxed in). Original play: convert voluntarily — legal only while the
         // blip has taken no action — once marines are near (within 6 squares),
-        // so the stealers inside can charge from cover next turn.
+        // so the stealers inside can charge from cover next turn. A FRUSTRATED
+        // blip (idle for turns) converts even with the marines far: stealers
+        // have no exposure caution, so they unjam the queue and go hunting —
+        // the fix for a blip parked forever at a door it refuses to open.
         const blip = p as Blip;
         const near = marines(board).some(m => chebyshev(m.pos, p.pos) <= 6);
-        if (near && blip.canConvert()) {
+        if ((near || plan.frustrated.has(p.id)) && blip.canConvert()) {
           blip.convert();
           convertRevealedBlips(board);
         }
@@ -312,19 +315,29 @@ export function runStealerActions(board: Board, ctx: HiveContext = {}): void {
   }
 }
 
-/** Place reinforcement blips on free entry squares. Returns the blips created. */
-export function spawnBlips(board: Board, entryPoints: Coord[], count: number): Blip[] {
+/** Place reinforcement blips on free entry squares. Returns the blips created.
+ *  `startIndex` rotates the round-robin origin (the engine passes the turn
+ *  number) so successive turns fan out across DIFFERENT entry points instead
+ *  of hammering the first free one every turn; entries no marine currently
+ *  sees are preferred — a blip born in sight converts on the spot. */
+export function spawnBlips(board: Board, entryPoints: Coord[], count: number, startIndex = 0): Blip[] {
   const blips: Blip[] = [];
+  if (entryPoints.length === 0) return blips;
+  const rotated = entryPoints.map((_, n) => entryPoints[(startIndex + n) % entryPoints.length]);
+  const ordered = [
+    ...rotated.filter(e => !squareSeenByMarine(board, e)),
+    ...rotated.filter(e => squareSeenByMarine(board, e)),
+  ];
   let i = 0;
-  for (let n = 0; n < count && entryPoints.length > 0; n++) {
+  for (let n = 0; n < count; n++) {
     // round-robin over entry points, skipping occupied ones
     let placed = false;
-    for (let tries = 0; tries < entryPoints.length && !placed; tries++) {
-      const entry = entryPoints[(i + tries) % entryPoints.length];
+    for (let tries = 0; tries < ordered.length && !placed; tries++) {
+      const entry = ordered[(i + tries) % ordered.length];
       if (board.isPassable(entry) && !board.isOccupied(entry)) {
         blips.push(new Blip(board, { ...entry }));
         placed = true;
-        i = (i + tries + 1) % entryPoints.length;
+        i = (i + tries + 1) % ordered.length;
       }
     }
     if (!placed) break;

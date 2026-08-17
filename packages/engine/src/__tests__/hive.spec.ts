@@ -4,7 +4,8 @@ import { Genestealer } from '../pieces/Genestealer.js';
 import { StormBolterMarine } from '../pieces/StormBolterMarine.js';
 import { Dir } from '../core/Direction.js';
 import { RollQueue } from '../core/Dice.js';
-import { runStealerActions } from '../ai/StealerAI.js';
+import { runStealerActions, spawnBlips } from '../ai/StealerAI.js';
+import { Blip } from '../pieces/Blip.js';
 import { computeThreat, pathStep, threatPenalty, findStragglers } from '../ai/hive.js';
 
 /** Column of squares c, rows r0..r1 inclusive. */
@@ -88,6 +89,102 @@ describe('hive pathing', () => {
     // No kill zone anywhere → instant launch, straight down the corridor to CC
     expect(stealer.pos).toEqual({ c: 1, r: 1 });
     expect(stealer.alive).toBe(true);
+  });
+});
+
+describe('hive objective awareness', () => {
+  it('marines closing on their objective flip the hive reckless — no more massing', () => {
+    // Same two-lane board as the staging test, but the hive is told the marine
+    // stands almost on top of his destination: it attacks on the FIRST call
+    // instead of massing for three.
+    const board = new Board(3, 7, [...col(0, 0, 6), ...col(2, 0, 6), { x: 1, y: 0 }, { x: 1, y: 6 }] as any);
+    board.dice = new RollQueue(new Array(40).fill(1));
+    const marine = new StormBolterMarine(board, { c: 2, r: 0 }, Dir.S);
+    marine.overwatchOn();
+    const stealer = new Genestealer(board, { c: 1, r: 6 }, Dir.N);
+    runStealerActions(board, { objectives: [{ c: 2, r: 1 }] }); // destination 1 square from him
+    expect(stealer.pos).not.toEqual({ c: 1, r: 6 }); // reckless: charged immediately
+  });
+
+  it('a far buildup camps the ring around the marines DESTINATION, not the marines', () => {
+    // Marine far north; his destination far south-east. The stealer stages
+    // into the hidden ring around the destination and holds there — the
+    // buildup becomes the roadblock before the marine ever arrives.
+    const board = new Board(12, 12, [
+      ...col(1, 0, 11),                 // marine's corridor (watched)
+      ...row(11, 1, 10),                // southern transit
+      ...col(10, 6, 11), ...row(6, 8, 10), // approach to the objective pocket
+      { x: 8, y: 5 }, { x: 9, y: 5 },   // hidden pocket beside the objective
+    ] as any);
+    board.dice = new RollQueue(new Array(10).fill(1));
+    const marine = new StormBolterMarine(board, { c: 1, r: 0 }, Dir.S);
+    marine.overwatchOn();
+    const objective = { c: 10, r: 6 };
+    const stealer = new Genestealer(board, { c: 4, r: 11 }, Dir.E);
+    for (let t = 0; t < 3; t++) {
+      runStealerActions(board, { objectives: [objective] });
+      stealer.resetAP();
+    }
+    const dist = Math.max(Math.abs(stealer.pos.c - objective.c), Math.abs(stealer.pos.r - objective.r));
+    expect(dist).toBeLessThanOrEqual(6);            // parked inside the destination ring
+    const threat = computeThreat(board);
+    expect(threat.seen.has(`${stealer.pos.c},${stealer.pos.r}`)).toBe(false); // out of sight
+    expect((board.dice as RollQueue).remaining).toBe(10); // never crossed the fire lane
+  });
+});
+
+describe('hive hunger (idle frustration)', () => {
+  it('a blip parked at an exposure door with marines far away converts after idling', () => {
+    // The space_hulk_1 (3,7) stack in miniature: the queue head is a blip that
+    // legally refuses the door (opening would expose it) and the marines are
+    // too far for the old within-6 voluntary conversion. After IDLE_CAP plans
+    // of sitting still, hunger wins: it converts, and the stealers inside have
+    // no door caution — the deadlock breaks.
+    const board = new Board(3, 11, [
+      ...col(1, 0, 6),
+      { x: 1, y: 7, doorFacing: 'up' }, { x: 1, y: 8 }, { x: 1, y: 9 }, { x: 1, y: 10 },
+    ] as any);
+    board.dice = new RollQueue([1, 1, 1, 1]); // one blip-value draw only
+    const marine = new StormBolterMarine(board, { c: 1, r: 0 }, Dir.S);
+    marine.overwatchOn();
+    const blip = new Blip(board, { c: 1, r: 9 }, 2);
+    const door = board.doorBetween({ c: 1, r: 7 }, { c: 1, r: 6 })!;
+
+    runStealerActions(board); // advances to the door, refuses it
+    expect(blip.pos).toEqual({ c: 1, r: 7 });
+    expect(door.isOpen).toBe(false);
+    // The plan samples positions BEFORE pieces move, so the arrival call still
+    // reads as movement; three further stationary plans reach the idle cap.
+    for (let t = 0; t < 4; t++) {
+      blip.resetAP();
+      runStealerActions(board); // settled, idle 1, idle 2, idle 3 → frustrated
+    }
+    expect(blip.alive).toBe(false); // converted from cover despite marines being 7 away
+    const stealers = board.pieces.filter(p => (p as any).kind === 'stealer');
+    expect(stealers.length).toBe(2);
+  });
+});
+
+describe('spawn fan-out', () => {
+  it('startIndex rotates the entry round-robin across turns', () => {
+    const entries = [{ c: 0, r: 0 }, { c: 4, r: 0 }, { c: 8, r: 0 }];
+    for (let start = 0; start < 3; start++) {
+      const board = new Board(9, 3);
+      board.dice = new RollQueue([1, 1]);
+      const [blip] = spawnBlips(board, entries, 1, start);
+      expect(blip.pos).toEqual(entries[start]); // a different entry each turn
+    }
+  });
+
+  it('entries in marine sight are used last — blips are not born converted', () => {
+    // Two entries; rock between them blocks sight to the second.
+    const board = new Board(9, 5, [...col(0, 0, 4), { x: 8, y: 0 }] as any);
+    board.dice = new RollQueue([1, 1]);
+    new StormBolterMarine(board, { c: 0, r: 4 }, Dir.N); // stares straight up at entry[0]
+    const entries = [{ c: 0, r: 0 }, { c: 8, r: 0 }];
+    const [blip] = spawnBlips(board, entries, 1, 0);
+    expect(blip.pos).toEqual({ c: 8, r: 0 }); // the watched entry was skipped
+    expect(blip.alive).toBe(true);
   });
 });
 

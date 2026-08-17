@@ -91,6 +91,8 @@ interface HiveState {
   lastForce: number;
   /** Total turns spent massing since the last launch (never reset by growth). */
   massingTurns: number;
+  /** Largest marine squad ever seen — losses against this trigger blood-in-the-water. */
+  maxSquad: number;
   blockerId?: string;
   /** Where each piece stood at the previous plan, and how long it has idled. */
   lastPos: Map<string, Coord>;
@@ -101,7 +103,7 @@ const hiveStates = new WeakMap<Board, HiveState>();
 function hiveState(board: Board): HiveState {
   let s = hiveStates.get(board);
   if (!s) {
-    s = { stagingTurns: 0, lastForce: 0, massingTurns: 0, lastPos: new Map(), idle: new Map() };
+    s = { stagingTurns: 0, lastForce: 0, massingTurns: 0, maxSquad: 0, lastPos: new Map(), idle: new Map() };
     hiveStates.set(board, s);
   }
   return s;
@@ -333,13 +335,20 @@ export function planHive(board: Board, threat: ThreatMap, ctx: HiveContext = {})
     ? Math.max(1, Math.ceil(marineObjDist / MARINE_SPEED))
     : undefined;
 
+  // Blood in the water: once the squad has taken losses, the hive smells the
+  // kill — the hidden ring TIGHTENS (everyone creeps closer, still unseen, so
+  // the strike lands from every direction at once) and waves get cheaper.
+  state.maxSquad = Math.max(state.maxSquad, squad.length);
+  const blood = squad.length > 0 && squad.length < state.maxSquad;
+  const stageMax = !blood ? STAGE_MAX : (2 * squad.length <= state.maxSquad ? 4 : 6);
+
   // A piece is "staged" when it sits hidden inside the strike ring around the
   // marines OR camps the ring around their destination (blocking force).
   const isStaged = (p: Piece) => {
     const k = key(p.pos);
     if (threat.seen.has(k) || threat.kill.has(k)) return false;
     const d = distField.get(k);
-    if (d !== undefined && d <= STAGE_MAX) return true;
+    if (d !== undefined && d <= stageMax) return true;
     return objField !== undefined && (objField.get(k) ?? 99) <= OBJ_RING;
   };
   // Blips hide 1-3 stealers (bag expectation ≈ 2) — they weigh double in the wave.
@@ -355,9 +364,11 @@ export function planHive(board: Board, threat: ThreatMap, ctx: HiveContext = {})
   // waves the hive can still launch is turnsLeft — when that reads one or two,
   // "enough" is whatever it has. Sometimes the stealers just try their luck.
   const threshold = Math.max(3, Math.min(2 * squad.length, 8));
-  const effThreshold = turnsLeft !== undefined
+  let effThreshold = turnsLeft !== undefined
     ? Math.min(threshold, Math.max(2, turnsLeft))
     : threshold;
+  // A wounded squad needs a smaller wave to swamp it.
+  if (blood) effThreshold = Math.min(effThreshold, Math.max(2, squad.length + 1));
   const budgetDry = ctx.blipsRemaining !== undefined && ctx.blipsRemaining <= 0;
   const reckless = marineObjDist !== undefined && marineObjDist <= RECKLESS_DIST;
   if (readyForce > state.lastForce && (turnsLeft === undefined || turnsLeft > 3)) {
@@ -410,7 +421,7 @@ export function planHive(board: Board, threat: ThreatMap, ctx: HiveContext = {})
     const c = { c: sq.x, r: sq.y };
     const k = key(c);
     const d = distField.get(k);
-    const nearSquad = d !== undefined && d >= 2 && d <= STAGE_MAX;
+    const nearSquad = d !== undefined && d >= 2 && d <= stageMax;
     // The destination ring: hidden squares near where the marines WANT to go
     // are worth holding long before they arrive — the buildup becomes the
     // roadblock (never closer than 2 to a marine already standing there).
@@ -470,20 +481,25 @@ export function planHive(board: Board, threat: ThreatMap, ctx: HiveContext = {})
       roles.set(p.id, 'assault');
       continue;
     }
-    // Hunger override: a piece that has done nothing for IDLE_CAP plans stops
-    // waiting for the perfect moment and attacks.
-    if (frustrated.has(p.id)) {
-      roles.set(p.id, 'assault');
-      continue;
-    }
     // Already in the ring and hidden: hold position (build the wave), unless a
-    // useful door wants shutting — the executor handles that on 'stage'.
+    // useful door wants shutting — the executor handles that on 'stage'. A
+    // staged piece is EXEMPT from the hunger override: sitting coiled in the
+    // ring is its job — a couple of pieces holding a flank PIN the marines
+    // into covering that approach at almost no cost. (It stays in the
+    // `frustrated` set, so a blocked blip still converts at the next launch —
+    // the wave caps guarantee one within six turns.)
     const avoid = p.kind === 'blip'
       ? new Set([...threat.kill, ...threat.seen])
       : threat.kill;
     if (isStaged(p)) {
       roles.set(p.id, 'stage');
       stagingTarget.set(p.id, { ...p.pos });
+      continue;
+    }
+    // Hunger override: an UNSTAGED piece that has done nothing for IDLE_CAP
+    // plans stops waiting for the perfect moment and attacks.
+    if (frustrated.has(p.id)) {
+      roles.set(p.id, 'assault');
       continue;
     }
     // Try to reach a staging square without entering a fire lane, scored by

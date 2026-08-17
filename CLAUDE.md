@@ -210,8 +210,16 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
   6 turns absolute (growth-keyed patience alone never fires under uncapped
   reinforcements — learned from the (3,7) door-stack playtest). Idle pieces
   force-assault after 3 stationary plans; a frustrated blocked blip CONVERTS
-  (stealers have no door caution — that is the deadlock breaker). spawnBlips
-  rotates entries by turn and prefers unseen ones.
+  (stealers have no door caution — that is the deadlock breaker). Staged
+  pieces are EXEMPT from the idle override (pinning a flank is their job; the
+  wave caps still bring them in, and the frustrated SET stays independent so
+  blocked blips convert at the next launch). Blood in the water: marine losses
+  tighten the ring 8→6→4 and cap thresholds at squad+1. Zigzag advance through
+  side alcoves is EMERGENT from the per-square kill penalty (pinned in
+  hive.spec — don't add special-case code for it). CC targets an un-jammed
+  overwatcher first. spawnBlips ranks entries by objective distance (bulk via
+  rotated top-3, watched entries last) and every third turn spawns a feint at
+  the entry nearest the MARINES.
 - **Doors are EDGES, not squares:** a `Door` anchors on a square + `doorFacing` and lives on
   the boundary to that neighbor. `Board.doorBetween(a,b)` is the lookup; movement blocks
   orthogonal crossings (`Piece.tryMove`), LOS does segment-intersection vs closed edges

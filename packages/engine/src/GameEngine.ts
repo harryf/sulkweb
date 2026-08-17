@@ -97,7 +97,9 @@ export class GameEngine {
     // Seed the first blips
     const entries = (mission.entryPoints ?? []).map(e => ({ c: e.x, r: e.y }))
     if (entries.length && (mission.initialBlips ?? 0) > 0) {
-      spawnBlips(board, entries, mission.initialBlips!)
+      // turnNumber is 1 here — the opening spawn already includes the feint
+      // stream (a cheap standing threat from the entry nearest the marines).
+      spawnBlips(board, entries, mission.initialBlips!, this.turnNumber, this.hiveObjectives)
     }
     this.rollCommandPoints()
 
@@ -243,13 +245,14 @@ export class GameEngine {
     const entries = (this.mission.entryPoints ?? []).map(e => ({ c: e.x, r: e.y }))
 
     // Reinforcement phase — bounded by the mission's total genestealer force.
-    // The turn number rotates the entry round-robin so successive waves fan
-    // out from DIFFERENT entry points instead of hammering the first one.
+    // Entries are chosen strategically (see spawnBlips): the bulk arrives
+    // near the marines' destination, rotated per turn, with a periodic feint
+    // spawn from the entry nearest the marines.
     if (entries.length && (this.mission.blipsPerTurn ?? 0) > 0) {
       const budget = this.mission.totalBlips ?? Infinity
       const count = Math.min(this.mission.blipsPerTurn!, Math.max(0, budget - this.blipsSpawned))
       if (count > 0) {
-        this.blipsSpawned += spawnBlips(board, entries, count, this.turnNumber % entries.length).length
+        this.blipsSpawned += spawnBlips(board, entries, count, this.turnNumber, this.hiveObjectives).length
       }
     }
     convertRevealedBlips(board)

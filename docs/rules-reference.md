@@ -202,9 +202,13 @@ The stealer side plays as a **hive**: before any piece moves, a side-level plan 
 
 **Waves and the mission clock.** The hive masses until the staged force can swamp the squad (about twice the living marines; a hidden blip counts as two). Patience is keyed to growth: while reinforcements keep the wave growing it keeps massing, but three turns without growth, six turns of massing in total, or an exhausted blip budget launches it. The hive also knows WHERE the marines are heading — the mission's destination squares (objective points, exits, the data room, blockade entries), never the win rules — and reads the closest marine's distance to them as the time it has left. Waves shrink to fit that clock ("enough" is whatever is staged when only one wave is possible), hidden squares near the destination count as staging ground (the buildup becomes the roadblock), and a marine within four squares of his goal flips the whole hive reckless: everyone attacks, luck included. A launched wave strikes nearest-first, so the column unwinds front-to-back with the lead body shielding the ones behind.
 
-**Hunger.** Attacking is the default; the hive only adds patience where patience pays. A piece that has sat still for three turns stops waiting and attacks, and a blip stuck that long (typically the queue head legally refusing a door that would expose it) converts on the spot — the stealers inside have no such caution and unjam the whole column.
+**Hunger and pinning.** Attacking is the default; the hive only adds patience where patience pays. An unstaged piece that has sat still for three turns stops waiting and attacks, and a blip stuck that long (typically the queue head legally refusing a door that would expose it) converts at the next launch — the stealers inside have no such caution and unjam the whole column. Pieces holding hidden INSIDE the strike ring are exempt: a pair of them coiled on a flank pins the marines into covering that approach for almost nothing, until a wave brings them in.
 
-**Entries.** Reinforcement blips fan out: the round-robin starting entry rotates every turn, and entries currently in a marine's sight are used last, so fresh forces keep appearing from directions the squad is not watching.
+**Blood in the water.** Once the squad takes losses, the hidden ring tightens (from eight squares down to four at half strength) and waves get cheaper — the whole pack creeps closer, still out of sight, so the strike lands from every direction at once.
+
+**Fighting.** A charge into an overwatched corridor weaves through side alcoves, stepping out of the fire lane between advances — one reaction burst instead of one per square. In close combat, an adjacent un-jammed overwatcher dies before anyone else: he is the wave-breaker.
+
+**Entries.** Reinforcements arrive strategically: entries a marine watches are used last, the bulk comes through the three entries nearest the marines' destination (rotated each turn), and every third turn one blip spawns at the entry nearest the marines instead — a cheap feint that keeps a standing threat on their flank.
 
 **Per-piece execution** (unchanged from AI0):
 

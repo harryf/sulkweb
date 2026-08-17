@@ -127,16 +127,16 @@ describe('beta_2 fidelity (ISC-261/262)', () => {
     expect(engine.turnNumber).toBeGreaterThan(1);
   });
 
-  it('PINNED opposed win: CP-boosted sergeant rush completes the download under full opposition (seed 52)', () => {
-    // Advisor 2026-08-15: an aggregate "3/40" is a statistic; a pinned seed is
-    // evidence. Legal play only — the probe pumps command points into the
-    // sergeant nearest the Data Room and lets the shipped autopilot fight.
-    // Re-pinned seed 4 → 9 on 2026-08-16 (diagonal door-corner rule), 9 → 6 on
-    // 2026-08-17 (hive AI), then 6 → 52 on 2026-08-18: objective awareness has
-    // the hive camping the Data Room ring, and this crude rush probe now wins
-    // only 1/80 (seed 52, turn 10, counter 0). Flagged in ISA Decisions as a
-    // possible difficulty spike — the probe is not human-quality play.
-    const engine = new GameEngine(loadMission('beta_2'), [], new SeededRng(52));
+  it('PINNED opposed run: the hive stops the CP-boosted sergeant rush (seed 1)', () => {
+    // History: this fixture pinned an opposed WIN as winnability evidence
+    // (seed 4 → 9 → 6 → 52 across rules/AI changes). 2026-08-18: after the
+    // pin/blood/entry-strategy hive upgrades the rush probe wins ZERO of 400
+    // scanned seeds — the hive camps the Data Room ring and the download never
+    // ticks. The winnability claim is retired to a designer playtest (ISA
+    // ISC-601, Decisions 2026-08-18 second run; tuning lever = OBJ_RING).
+    // This pin now guards DETERMINISM of the full opposed loop: legal play,
+    // full progression, a decided game well inside the turn cap.
+    const engine = new GameEngine(loadMission('beta_2'), [], new SeededRng(1));
     let t = 0;
     while (engine.state.result === 'ongoing' && t++ < 45) {
       const dp = engine.mission.downloadPoint!;
@@ -147,7 +147,7 @@ describe('beta_2 fidelity (ISC-261/262)', () => {
       if (engine.state.result !== 'ongoing') break;
       engine.endMarinePhase();
     }
-    expect(engine.state.result).toBe('win');
-    expect(engine.downloadCounter).toBe(0);
+    expect(engine.state.result).toBe('loss'); // no sergeant survives the camped ring
+    expect(t).toBeLessThan(45);               // decided, not stalled
   });
 });

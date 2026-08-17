@@ -6,7 +6,8 @@ import { Dir } from '../core/Direction.js';
 import { RollQueue } from '../core/Dice.js';
 import { runStealerActions, spawnBlips } from '../ai/StealerAI.js';
 import { Blip } from '../pieces/Blip.js';
-import { computeThreat, pathStep, threatPenalty, findStragglers } from '../ai/hive.js';
+import { computeThreat, pathStep, threatPenalty, findStragglers, planHive, marineDistanceField } from '../ai/hive.js';
+import { PieceEvents } from '../events/PieceEvents.js';
 
 /** Column of squares c, rows r0..r1 inclusive. */
 const col = (c: number, r0: number, r1: number) =>
@@ -130,6 +131,108 @@ describe('hive objective awareness', () => {
     const threat = computeThreat(board);
     expect(threat.seen.has(`${stealer.pos.c},${stealer.pos.r}`)).toBe(false); // out of sight
     expect((board.dice as RollQueue).remaining).toBe(10); // never crossed the fire lane
+  });
+});
+
+describe('hive zigzag advance', () => {
+  it('a charge into overwatch weaves through side alcoves, eating one burst instead of four', () => {
+    // Corridor col1 watched top-to-bottom; alcove pockets on the west side.
+    // The threat-weighted path alternates corridor/alcove — only the corridor
+    // squares draw reaction fire, and the scripted queue holds EXACTLY one
+    // burst (a second shot would throw RollQueue-exhausted).
+    const board = new Board(3, 9, [
+      ...col(1, 0, 8),
+      { x: 0, y: 2 }, { x: 0, y: 4 }, { x: 0, y: 6 },
+    ] as any);
+    const marine = new StormBolterMarine(board, { c: 1, r: 0 }, Dir.S);
+    marine.overwatchOn();
+    const threat = computeThreat(board);
+    expect(threat.kill.has('1,5')).toBe(true);
+    expect(threat.kill.has('0,4')).toBe(false); // the alcove is out of the lane
+
+    const wary = pathStep(board, { c: 1, r: 5 },
+      c => Math.abs(c.c - 1) + Math.abs(c.r - 1) === 1, { penalty: threatPenalty(threat) })!;
+    expect(wary.step).toEqual({ c: 0, r: 4 }); // steps OUT of the lane, not up it
+
+    board.dice = new RollQueue([2, 3]); // one overwatch burst: miss, no double
+    const stealer = new Genestealer(board, { c: 1, r: 7 }, Dir.N);
+    let shots = 0;
+    PieceEvents.on('shot', () => { shots++; });
+    runStealerActions(board);
+    expect(stealer.alive).toBe(true);
+    expect(stealer.pos).toEqual({ c: 0, r: 4 }); // weaved corridor→alcove→corridor→alcove
+    expect(shots).toBe(1); // straight-line charging would have drawn a burst per step
+  });
+});
+
+describe('hive pinning (staged pieces are exempt from hunger)', () => {
+  it('a staged flank-holder keeps holding past the idle cap while the wave still builds', () => {
+    const board = new Board(3, 7, [...col(0, 0, 6), ...col(2, 0, 6), { x: 1, y: 0 }, { x: 1, y: 6 }] as any);
+    const m1 = new StormBolterMarine(board, { c: 2, r: 0 }, Dir.S);
+    m1.overwatchOn();
+    new StormBolterMarine(board, { c: 0, r: 0 }, Dir.N); // second marine: threshold 4
+    const pinner = new Genestealer(board, { c: 1, r: 6 }, Dir.N);
+
+    for (let t = 1; t <= 3; t++) planHive(board, computeThreat(board), {}); // idle 0,1,2
+    // Fresh force arrives (a hidden staged blip) — growth resets the wave
+    // clock, so the launch caps have NOT fired when the pinner's idle counter
+    // crosses the hunger cap.
+    board.dice = new RollQueue([1, 1]);
+    new Blip(board, { c: 0, r: 4 }, 2);
+    const plan = planHive(board, computeThreat(board), {});
+    expect(plan.launched).toBe(false);
+    expect(plan.frustrated.has(pinner.id)).toBe(true);  // idle 3 — hungry…
+    expect(plan.roles.get(pinner.id)).toBe('stage');    // …but pinning IS its job
+  });
+});
+
+describe('hive blood in the water', () => {
+  it('marine losses tighten the hidden ring — the pack creeps closer for the kill', () => {
+    // Dark west lane, watched east lane (rock between). The stealer holds at
+    // graph distance 7 while the squad is whole; after half the squad dies it
+    // is outside the TIGHTENED ring and creeps up the dark lane.
+    const board = new Board(3, 12, [
+      ...col(0, 0, 11), ...col(2, 0, 11), { x: 1, y: 0 }, { x: 1, y: 11 },
+    ] as any);
+    board.dice = new RollQueue(new Array(10).fill(1));
+    const watcher = new StormBolterMarine(board, { c: 2, r: 0 }, Dir.S);
+    watcher.overwatchOn();
+    new StormBolterMarine(board, { c: 1, r: 0 }, Dir.N);
+    const m3 = new StormBolterMarine(board, { c: 0, r: 0 }, Dir.N);
+    const m4 = new StormBolterMarine(board, { c: 0, r: 1 }, Dir.N);
+    const stealer = new Genestealer(board, { c: 0, r: 8 }, Dir.N);
+
+    runStealerActions(board); // full squad: dist ~7 is inside the ring — holds
+    expect(stealer.pos).toEqual({ c: 0, r: 8 });
+
+    m3.die();
+    m4.die(); // half the squad down — blood in the water
+    stealer.resetAP();
+    runStealerActions(board);
+    stealer.resetAP();
+    runStealerActions(board);
+    const dist = marineDistanceField(board).get(`${stealer.pos.c},${stealer.pos.r}`)!;
+    expect(dist).toBeLessThanOrEqual(4); // crept into the tightened ring
+    expect(stealer.pos.c).toBe(0);       // still in the dark lane
+    const threat = computeThreat(board);
+    expect(threat.kill.has(`${stealer.pos.c},${stealer.pos.r}`)).toBe(false);
+  });
+});
+
+describe('hive entry strategy', () => {
+  it('the bulk spawns at the entry nearest the marines objective; the feint turn spawns at the entry nearest the MARINES', () => {
+    const entries = [{ c: 0, r: 0 }, { c: 10, r: 0 }];
+    const objectives = [{ c: 11, r: 0 }];
+    const make = () => {
+      const board = new Board(12, 12);
+      board.dice = new RollQueue([1, 1]);
+      new StormBolterMarine(board, { c: 2, r: 3 }, Dir.S); // faces away from both entries
+      return board;
+    };
+    const mainTurn = spawnBlips(make(), entries, 1, 2, objectives);
+    expect(mainTurn[0].pos).toEqual({ c: 10, r: 0 }); // strategic entry, beside the objective
+    const feintTurn = spawnBlips(make(), entries, 1, 4, objectives); // 4 % 3 === 1
+    expect(feintTurn[0].pos).toEqual({ c: 0, r: 0 }); // cheap standing threat near the squad
   });
 });
 

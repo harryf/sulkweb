@@ -8,7 +8,7 @@ import { looseCatPos, intactDucting, stealerExoticInteractions } from '../rules/
 import { DIR_VEC, ORTHO_VECS, chebyshev, facingToward, turnToward } from '../core/Direction.js';
 import { openDoorWithEvent, closeDoorWithEvent } from '../rules/Door.js';
 import {
-  computeThreat, planHive, pathStep, threatPenalty,
+  computeThreat, planHive, pathStep, threatPenalty, marineDistanceField, distanceField,
   type HiveContext, type HivePlan, type ThreatMap, type PathOpts,
 } from './hive.js';
 
@@ -197,9 +197,15 @@ export function runStealerActions(board: Board, ctx: HiveContext = {}): void {
       const squad = marines(board);
       if (squad.length === 0) return;
       // Attack any adjacent marine (orthogonal first — that's the CC lineup),
-      // not just the array-order "nearest" one.
-      const marine = squad.find(m => Math.abs(m.pos.c - p.pos.c) + Math.abs(m.pos.r - p.pos.r) === 1)
-        ?? squad.find(m => chebyshev(m.pos, p.pos) === 1)
+      // not just the array-order "nearest" one. Among adjacent marines, an
+      // un-jammed OVERWATCHER dies first: he is the wave-breaker, and every
+      // burst he doesn't fire is stealers arriving unshot.
+      const watcherFirst = (list: Piece[]) =>
+        list.find(m => m instanceof StormBolterMarine && m.overwatch && !m.jammed) ?? list[0];
+      const adjOrtho = squad.filter(m => Math.abs(m.pos.c - p.pos.c) + Math.abs(m.pos.r - p.pos.r) === 1);
+      const adjAny = squad.filter(m => chebyshev(m.pos, p.pos) === 1);
+      const marine = (adjOrtho.length ? watcherFirst(adjOrtho) : undefined)
+        ?? (adjAny.length ? watcherFirst(adjAny) : undefined)
         ?? nearestMarine(board, p.pos)!;
 
       // Exotic objectives: an adjacent loose C.A.T. or intact ducting square
@@ -316,18 +322,44 @@ export function runStealerActions(board: Board, ctx: HiveContext = {}): void {
 }
 
 /** Place reinforcement blips on free entry squares. Returns the blips created.
- *  `startIndex` rotates the round-robin origin (the engine passes the turn
- *  number) so successive turns fan out across DIFFERENT entry points instead
- *  of hammering the first free one every turn; entries no marine currently
- *  sees are preferred — a blip born in sight converts on the spot. */
-export function spawnBlips(board: Board, entryPoints: Coord[], count: number, startIndex = 0): Blip[] {
+ *
+ *  Entry strategy (all deterministic, no dice):
+ *  - Entries a marine currently sees go LAST — a blip born in sight converts
+ *    on the spot.
+ *  - Unseen entries are RANKED by strategic value: distance to the marines'
+ *    destination when known (the entry that feeds the fight fastest), else
+ *    distance to the marines themselves. The bulk arrives through the top
+ *    three, rotated by turn number so successive waves fan out.
+ *  - Every third turn the first blip instead takes the unseen entry NEAREST
+ *    THE MARINES — a cheap feint that keeps a standing threat on their flank
+ *    and forces them to keep covering that approach.
+ */
+export function spawnBlips(
+  board: Board, entryPoints: Coord[], count: number,
+  turnNumber = 0, objectives: Coord[] = [],
+): Blip[] {
   const blips: Blip[] = [];
   if (entryPoints.length === 0) return blips;
-  const rotated = entryPoints.map((_, n) => entryPoints[(startIndex + n) % entryPoints.length]);
+  const marineFld = marineDistanceField(board);
+  const objFld = objectives.length > 0 ? distanceField(board, objectives) : undefined;
+  const strategic = objFld ?? marineFld;
+  const val = (fld: Map<string, number>, e: Coord) => fld.get(`${e.c},${e.r}`) ?? 999;
+
+  const unseen = entryPoints.filter(e => !squareSeenByMarine(board, e));
+  const watched = entryPoints.filter(e => squareSeenByMarine(board, e));
+  const ranked = [...unseen].sort((a, b) => val(strategic, a) - val(strategic, b));
+  const top = ranked.slice(0, Math.min(3, ranked.length));
+  const rotatedTop = top.map((_, n) => top[(turnNumber + n) % top.length]);
+  const feint = marineFld.size > 0 && turnNumber % 3 === 1 && ranked.length > 1
+    ? [...ranked].sort((a, b) => val(marineFld, a) - val(marineFld, b))[0]
+    : undefined;
   const ordered = [
-    ...rotated.filter(e => !squareSeenByMarine(board, e)),
-    ...rotated.filter(e => squareSeenByMarine(board, e)),
+    ...(feint ? [feint] : []),
+    ...rotatedTop.filter(e => e !== feint),
+    ...ranked.filter(e => !top.includes(e) && e !== feint),
+    ...watched,
   ];
+
   let i = 0;
   for (let n = 0; n < count; n++) {
     // round-robin over entry points, skipping occupied ones

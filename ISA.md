@@ -4,10 +4,10 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 438/439 (rules reference verified; ISC-71 deferred)
+progress: 471/472 (code-review run ISC-439..471 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-16T10:20:00Z
+updated: 2026-08-17T09:55:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -606,8 +606,50 @@ Client integration (AudioManager, event-driven):
 - [x] ISC-437: stealer-phase AI behavior documented: attack priority, exotic step-ons, BFS pathing with door-on-contact, blip caution, per-action overwatch reactions and sight re-checks (Read vs StealerAI)
 - [x] ISC-438: Anti: no source file modified (git status: doc + README link + ISA only); banned-pattern scan exit 1; README links all resolve (Bash)
 
+<!-- Run: code review + coverage + dedup + reorg (2026-08-17) -->
+- [x] ISC-439: Baseline captured pre-change: 257 unit tests in the combined root run + 35 client units + 42 e2e all pass; name-level JSON dump retained (Bash) [refined: the 222-engine split was a mis-derivation; the name dump is the real baseline]
+- [x] ISC-440: Anti: post-change engine+client unit suites pass with 0 failures; no test lost except those belonging to deleted dead code (Bash vitest)
+- [x] ISC-441: Anti: post-change full Playwright e2e suite passes 42/42 (Bash pnpm e2e)
+- [x] ISC-442: Anti: no gameplay rule or constant changed — engine diff is only verified-dead deletions, file moves, and behavior-preserving extractions (git diff Read)
+- [x] ISC-443: client/src/counter.ts deleted after grep shows zero importers (Bash)
+- [x] ISC-444: client style.css (package root, 0 B) and src/style.css deleted; main.ts's src/styles.css remains (Bash)
+- [x] ISC-445: engine example.ts, example/example-build scripts, register-ts-node.js, ts-node devDep removed; engine build passes (Bash tsc)
+- [x] ISC-446: GameCycle.ts, phases/ (5 files), phaseChain.spec.ts removed; index.ts exports pruned; zero remaining references (grep)
+- [x] ISC-447: board/Section.ts deleted; only prior match was flame.ts's local inSection helper (grep)
+- [x] ISC-448: stale packages/client/pnpm-lock.yaml removed; root lockfile is the only lockfile (ls)
+- [x] ISC-449: engine index.ts export list audited; dead GameCycle/Selection exports and "Old exports" comment gone (grep audit) [refined: remaining consumer-less exports kept deliberately as public API — see Decisions]
+- [x] ISC-450: custom.d.ts checked against tsconfig resolveJsonModule; kept or removed with build proof (Bash tsc)
+- [x] ISC-451: engine unit tests consolidated to one directory convention; src/tests/ and package-root tests/ eliminated (ls)
+- [x] ISC-452: post-consolidation engine suite runs the same tests, count reconciled minus deleted dead-code suites (vitest output)
+- [x] ISC-453: client unit tests run with coverage (@vitest/coverage-v8); coverage recorded (Bash)
+- [x] ISC-454: utils/cameraBox.ts fully covered by unit tests (vitest + coverage) [refined: already 100% via minimap.spec — verified, no new test needed]
+- [x] ISC-455: ui/marineNames.ts covered on determinism and mapping (vitest) [refined: already 100% lines via roster.spec — verified]
+- [x] ISC-456: engine missionLoader uncovered lines (27-28, 54-55) exercised by new tests (coverage report)
+- [x] ISC-457: engine coverage excludes scripts/ so the report reflects shipping code (vitest config + report)
+- [x] ISC-458: HeavyFlamerMarine uncovered branches (35, 41, 51-53) exercised (coverage report)
+- [x] ISC-459: engine duplication-review findings triaged: adopted fixes verified by suite, rejections reasoned in Decisions (agent report + Decisions)
+- [x] ISC-460: client duplication-review findings triaged the same way (agent report + Decisions)
+- [x] ISC-461: phaser removed from client devDependencies (remains a dependency); install/build clean (package.json + pnpm)
+- [x] ISC-462: vitest major-version divergence (engine ^3 vs client ^1) resolved or documented with reason (package.json/Decisions)
+- [x] ISC-463: client test-results/ ignored by git (Read .gitignore)
+- [x] ISC-464: docs/architecture.md engine-internals section reflects removals — no phases/, no GameCycle (Read + grep)
+- [x] ISC-465: docs/development-guide.md reflects final test layout and coverage commands (Read)
+- [x] ISC-466: README reflects any changed commands or structure; doc links resolve (Bash link check)
+- [x] ISC-467: Anti: no doc references a deleted file (grep docs for counter.ts/GameCycle/phases//example.ts/Section.ts)
+- [x] ISC-468: Selection.ts placement and GameScene-split assessment decided and logged with reasons (Decisions)
+- [x] ISC-469: LICENSE file at repo root contains the canonical full GPL-3.0 text fetched from gnu.org (Read + diff vs source)
+- [x] ISC-470: README clearly states GPL-3.0 licensing with link, noting it matches the original game (Read)
+- [x] ISC-471: all three package.json files declare the GPL-3.0 SPDX license field (Read)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
+| ISC-439..441 | baseline/regression | unit + e2e suite exit codes pre/post | 0 failures | Bash vitest/playwright |
+| ISC-442..452 | cleanup | grep zero-reference proofs, ls, git diff review, build exit | as stated per ISC | Bash/Read |
+| ISC-453..458 | coverage | vitest --coverage report lines/branches | stated lines covered | Bash vitest |
+| ISC-459..460,468 | review triage | agent reports vs Decisions entries | every finding dispositioned | Read |
+| ISC-461..463 | hygiene | package.json/.gitignore content | fields as stated | Read |
+| ISC-464..467 | docs | Read + grep for deleted names | 0 stale references | Read/Grep |
+| ISC-469..471 | license | LICENSE text diff vs gnu.org, README, package.json | exact text + fields present | Bash diff/Read |
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
 | ISC-4..10 | UI | rendered state + console | 0 errors | Interceptor screenshot + console read |
 | ISC-11,12,65 | repo | git status/log | clean/commits exist | Bash git |
@@ -779,6 +821,24 @@ Client integration (AudioManager, event-driven):
 - Notable rules surfaced by the read that the reference now records: bolters jam ONLY on overwatch/reflex doubles (the canJam flag is false on aimed shots); the parry declines beatable ties; lost conversion stealers score nothing; blip bag is 8/4/9 over 21 via rejection sampling; the mission 6 control-room flamer booby trap.
 - User wrote "./doc/"; delivered to the established ./docs/ and said so. README Guides list extended with the new file (consistent with the prior explicit link-the-docs request).
 - 14 new ISCs vs E3 soft floor ≥32: same show-math (single doc; project total 438). Delegation waived, standing rationale.
+
+### 2026-08-17 — code review + coverage + dedup + reorg + GPL (E4 classifier, ISC-439..471)
+- Baselines captured before any change: 222 engine + 35 client unit tests, 42/42 e2e, engine coverage table. Every chunk re-verifies against these.
+- Two background review agents (engine + client duplication) ran as the delegation pair; Forge/Cato remain unavailable (codex CLI absent — `which codex` empty). Show-math: Cato's cross-vendor role partially covered by the two independent agent reviews plus the Advisor round; residual risk is Anthropic-family blind spots, accepted and disclosed.
+- Triage rule for agent findings: adopt only behavior-identical LOW-risk changes; preserve flagged diffs verbatim (fade 150 vs 160/80, escaped-flamer keeps aiming, hypot-vs-chebyshev autopilot metric); surface HIGH-risk findings as documented follow-ups, not fixes — seeded e2e playthroughs make ANY behavior change a break.
+- HIGH-risk findings deliberately NOT fixed (documented for a future decision): (1) MarineAutopilot BFS lacks the diagonalBlockedByDoor corner rule Board.ts declares "must never diverge" — can plan a step tryMove refuses (latent stall); (2) marineEscaped does not disarm flamer aiming while pieceDied does; (3) autopilot nearest-sort uses Euclidean hypot while all rules use Chebyshev. Each would change seeded-game outcomes.
+- One latent-defect fix ADOPTED (bug, not behavior-preserving refactor, disclosed as such): finishReplay orphans JAM markers (destroys sprites + overwatch markers but not jamMarkers) — cleanup added for symmetry.
+- loadMissionSync deleted (test-only, silent space_hulk_1 fallback footgun, drags Node fs into browser-bundled engine src); mission.spec rewritten against loadMission + direct JSON import.
+- Selection.ts moves engine→client: zero engine-internal consumers (grep), it is pure UI state; e2e unaffected (window.sulk.Selection is set by GameScene from its own import).
+- EnterPlanMode skipped: user requested the work directly (not "create a plan"); session precedent is direct execution with per-chunk verification.
+- GPL-3.0 licensing added mid-run at user request: LICENSE from gnu.org canonical text, README section, SPDX fields in all three package.json files.
+- New-ISC count 33 vs E4 soft floor ≥128: show-math — project ISA totals 471 ISCs, far above the floor; a single review run adding 128 criteria would be padding, not articulation. Thinking floor met at 6 (IterativeDepth, SystemsThinking, FirstPrinciples, RootCauseAnalysis, Advisor, ReReadCheck).
+- Agent-finding triage (engine): ADOPTED squareSeenByMarine unification (3 copies → vision.ts), facingToward/turnToward/chebyshev/ORTHO_VECS/FACING_WORD → Direction.ts, demolishDoor/openDoorWithEvent → Door.ts free functions (Door class stays silent for the blip peek probe), SBM/ACM beginAimedShot/beginDoorShot/settleDoorShot/jam/clearSustained/spendRound, GameEngine resetDownload, getSquare alias removal (los.ts + tests moved to .get), Square.distance/isAdjacent/headingTo deletion (test-only; distance duplicated chebyshev). DECLINED with reasons: BFS unification (rule deltas are real behavior — corner rule + marine-blocking; HIGH risk to seeded games), walkDist/pieceNear merge (small, private, documented; coupling autopilot to Board buys little), hypot→chebyshev in autopilot sorts (behavior change), ACM dead jammed-guards removal (inherited-flow consistent, harmless), Genestealer.moveCost derivation (explicit table more legible), doorAt retention (reasonable public convenience), overwatcher-scan share (intentional canSee difference).
+- Agent-finding triage (client): ADOPTED centerXY (~14 sites), paintObjectiveSquare (4 sites), removePieceSprite+clearSelectionOf (preserving fade 150 vs animating?160:80 and the disarm difference verbatim), disarmAndRefresh (3 identical sites), emitSelected/ammoOf (3 sites), OFF→DIR_VEC, tileSize→TILE_SIZE, MINI_MAP_MARGIN use, FACING_ARROWS + UI_FONT hoist to config, audioManifest dead-export deletion + stale-comment fix, PreloadScene 'square' load documented. DECLINED: AudioManager handler table (guard already centralized in play()), HUD kill-counter unification (intentional replay-truthful split, documented in RosterPanel), overlay-shape merge (differ in depth/alpha/teardown).
+- Advisor round (full transcript in session): ADOPTED test-NAME diff vs the pre-change JSON dump (every gone name accounted: dead-code deletions, retitles, file moves), Object.freeze on DIR_VEC/ORTHO_VECS/FACING_WORD + suite rerun (green — no mutation anywhere), clean-clone `pnpm install --frozen-lockfile` + suites (green — the deleted client lockfile provably unnecessary), vitest single-version check (one 3.2.3 across workspace — advisor's engine-on-1 assumption was wrong, engine inherits root ^3.2.3), no-.snap-files check, repo-wide deleted-name grep (only tar**getSquare** substring false positives), client coverage/ gitignore addition, GW-trademark + asset-license sentences in the README License section, three-way commit split (refactor 64bfc71 / JAM fix d22bfdc / licensing 7fb9ac3). SPDX GPL-3.0-only already chosen pre-advice. DECLINED with reasons: characterization test for the corner-rule divergence (documented at the code site in nextStep's docblock + here; budget) and a dedicated JAM-fix unit test (Phaser-bound scene internals; fix isolated in its own commit for review). Escaped-flamer re-triage per advisor: it IS a state leak, but reachable only if a flamer escapes while aiming, and every aim-canceling path (movement keys) fires before an escape move completes — near-unreachable, cosmetic cursor stickiness at worst, left documented.
+- refined: ISC-439 baseline restated around the name-level dump (the 222/35 split was a mis-derivation from the combined rtk run); ISC-449 reinterpreted — consumer-less barrel exports (drawAmbushValue, TURN_COST, AP_PER_TURN, DOOR_FACING, sectionSquares, clearFlames, toRelative) KEPT as deliberate public API of a library package; ISC-454/455 satisfied by pre-existing coverage discovered once instrumentation landed (minimap.spec covers cameraBox 100%, roster.spec covers marineNames 100%).
+- Found in the act: the old mission.spec asserted `name === 'Suicide Mission'` against sampleMission.json ("Demo Board") — it passed only because loadMissionSync's silent catch substituted space_hulk_1. The footgun the deletion removes had already swallowed its own test.
+- Process slip logged: one `npx vitest` invocation early in the run (bun/bunx-always rule; project tooling is pnpm — subsequent runs used `pnpm exec`).
 
 ## Changelog
 
@@ -1206,3 +1266,28 @@ beta_2 completion (2026-08-15):
 - ISC-429 addendum: overwatch persistence across turns confirmed (resetAP does not clear the flag; only own actions and jams do)
 - ISC-437 addendum: stealer-phase acting list is a snapshot ([...board.pieces] at loop start), so conversion-born stealers wait a phase — documented
 - ISC-438: git status shows docs/rules-reference.md + README + ISA only; banned-pattern grep exit 1; README doc links all resolve
+
+### 2026-08-17 — code review + coverage + dedup + reorg + GPL (ISC-439..471)
+- ISC-439: baseline pre-change — combined unit run PASS(257) FAIL(0), client-alone 35/35, e2e 42/42, engine coverage table captured; JSON name dump persisted and used for the post-change diff
+- ISC-440/452: name-level test diff — every GONE name is a dead-code deletion (getSquare/distance/headingTo/isAdjacent/phaseChain×3/mission-old×2), a retitle, or a file move reappearing under the new path; post-change engine 259/259, client 37/37
+- ISC-441: e2e 42/42 on the committed tree (post-refactor run AND final run both green)
+- ISC-442: engine diff reviewed — deletions, moves, and extraction-only refactors; Object.freeze on the shared tables survived both suites; dice-draw order untouched (no extracted helper contains a dice.roll)
+- ISC-443..448: git rm evidence in commit 64bfc71; zero-importer greps quoted in run notes; root lockfile sole survivor (clean-clone frozen-lockfile install passed)
+- ISC-449..450: index.ts pruned comment + dead exports; engine `tsc -b` green without custom.d.ts (resolveJsonModule)
+- ISC-451: `ls` — engine tests solely under src/__tests__ (29 files); src/tests and package-root tests gone
+- ISC-453: client `vitest run --dir src --coverage` produces v8 report (35.13% stmts overall — Phaser-bound files at 0 are e2e-covered, non-Phaser logic 80-100%)
+- ISC-454/455: coverage report — cameraBox.ts 100/100/100/100, marineNames.ts 100% lines (pre-existing specs)
+- ISC-456: missionLoader.ts 100% lines after loadMissionSync deletion + unknown-name throw test
+- ISC-457: engine vitest.config coverage.include src/** — scripts/ absent from the report
+- ISC-458: HeavyFlamerMarine 100% lines, 95.23% branches (new refusal tests; residual = defensive !own guard)
+- ISC-459/460/468: triage tables in Decisions; every agent finding dispositioned adopt/decline with reason
+- ISC-461: client package.json — phaser in dependencies only (grep: one occurrence)
+- ISC-462: `pnpm why vitest` — "Found 1 version of vitest: vitest@3.2.3"
+- ISC-463: .gitignore:9 test-results/ (pre-existing, verified via git check-ignore); coverage/ dirs added
+- ISC-464/465: architecture.md + development-guide.md updated (no phases/, Selection in client, test layout, coverage commands), date stamps 2026-08-17, banned-pattern scan exit 1
+- ISC-466: README — test counts current (259/37/42), example script removed, structure line updated, all seven link targets exist
+- ISC-467: stale-reference grep across docs/README for GameCycle/phases//counter.ts/example.ts/Section.ts/loadMissionSync/sampleMission — exit 1
+- ISC-469: LICENSE fetched from gnu.org/licenses/gpl-3.0.txt (674 lines, sha1 31a3d460bb3c7d98845187c716a30db81c44b615)
+- ISC-470/471: README License section with GPL link + GW disclaimer; GPL-3.0-only in all three package.json (grep: 3/3)
+- Regression gates: clean-clone `pnpm install --frozen-lockfile` + engine 259/259 + client 37/37 (CLEANCLONE_OK); full `pnpm build` green; final e2e 42/42
+- Commits: 64bfc71 (refactor), d22bfdc (JAM-marker fix), 7fb9ac3 (GPL licensing)

@@ -3,9 +3,10 @@
 A web-based port of the classic turn-based strategy game [Sulk](https://sulk.sourceforge.net/) (a Space Hulk clone, originally Pygame), built with **Phaser 3 + TypeScript** on the client and a **pure-TypeScript rules engine** with no rendering dependencies.
 
 **▶ Play it now: <https://harryf.github.io/sulkweb/>** (deployed from tagged
-releases; the version tag is shown at the bottom of the homepage. The deployed
-site ships without the YouTube-sourced fetched audio — see
-[Releases & deployment](#releases--deployment) and `CREDITS.md`.)
+releases; the version tag is shown at the bottom of the homepage. Full audio
+included — every track and effect is attributed, with links to the original
+videos, on the [audio credits page](https://harryf.github.io/sulkweb/credits.html);
+see also `CREDITS.md`.)
 
 **Status: COMPLETE — the entire original campaign is playable.** Nine missions transcribed from the
 original game's sources (`data/missions/<family>/MISH_*.py`).
@@ -113,9 +114,12 @@ purple squares.
 
 ### Sound
 
-One command fetches and processes the whole audio set (requires `yt-dlp` +
-`ffmpeg` on PATH; downloads are cached in `.audio-cache/` and every output is
-gitignored — see `CREDITS.md` for sources and licensing):
+The processed audio set is committed under
+`packages/client/public/assets/audio/` and ships with the site; sources and
+licensing live in `CREDITS.md` and on the deployed
+[audio credits page](https://harryf.github.io/sulkweb/credits.html). To
+regenerate it from the original videos (requires `yt-dlp` + `ffmpeg` on PATH;
+raw downloads are cached in the gitignored `.audio-cache/`):
 
 ```sh
 pnpm fetch-audio
@@ -211,12 +215,13 @@ The workflow builds with `SULK_VERSION` set from the tag, which Vite injects
 as `__APP_VERSION__` — visible in the homepage credits and the manual footer
 (`dev` on local builds). If the verification gate fails, nothing deploys.
 
-The deployed site ships **without the fetched audio**: everything under
-`assets/audio/` — ambient music, alien voices, and derived SFX cuts, all
-YouTube-sourced (see `CREDITS.md`) — is gitignored, so CI never has it and
-the client tolerates the missing files as 404s. The original game's
-`assets/sounds/` effects are tracked and do ship; the game and manual are
-fully playable.
+The deployed site ships **with the full audio set**: the processed files
+under `assets/audio/` (ambient music, alien voices, derived SFX cuts) are
+committed, and every source is attributed with a link to its original video
+on [`/credits.html`](https://harryf.github.io/sulkweb/credits.html) — the
+page is generated from `audioManifest.ts`, the same data the fetch script
+and the game use, so an asset can never ship without its credit. Licensing
+posture and per-track tables: `CREDITS.md`.
 
 ### Guides
 

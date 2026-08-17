@@ -38,10 +38,11 @@ export default defineConfig({
   plugins: [assets404()],
   build: {
     rollupOptions: {
-      // Two-page app: the game (index) + the field manual.
+      // Three-page app: the game (index), the field manual, the audio credits.
       input: {
         main: path.resolve(__dirname, 'index.html'),
         manual: path.resolve(__dirname, 'manual.html'),
+        credits: path.resolve(__dirname, 'credits.html'),
       },
     },
   },

@@ -1,0 +1,43 @@
+/* Audio credits page — extends the manual's reading styles. */
+
+.credits-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 14px 0 22px;
+  font-size: 15px;
+}
+
+.credits-table th {
+  text-align: left;
+  color: #e8c840;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.credits-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #222;
+  vertical-align: top;
+}
+
+.credits-table a { color: #7db4e8; }
+
+.terms-quote {
+  border-left: 3px solid #e8c840;
+  background: #161616;
+  padding: 10px 14px;
+  margin: 14px 0;
+  font-style: italic;
+  color: #d8d8d8;
+}
+
+.sfx-list li { margin-bottom: 10px; }
+
+.takedown {
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  background: #141414;
+  padding: 12px 16px;
+  margin-top: 26px;
+}

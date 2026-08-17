@@ -159,5 +159,6 @@ const footer = el('footer', 'manual-footer',
   + '<a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0</a> &middot; '
   + 'Space Hulk is a trademark of Games Workshop; this project is unaffiliated '
   + 'and claims no rights over Games Workshop&rsquo;s intellectual property. '
+  + '&middot; <a id="credits-link" href="credits.html">Audio credits</a> '
   + `&middot; <span id="app-version">${__APP_VERSION__}</span>`);
 root.appendChild(footer);

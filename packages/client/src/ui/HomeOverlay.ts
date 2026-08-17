@@ -78,6 +78,7 @@ export function showHomeOverlay(): HTMLElement {
     'A fan recreation of Toby Woodwark’s <em>Sulk</em> (2003) · '
     + '<a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0</a> · '
     + 'ambient music courtesy of <a href="https://www.youtube.com/@Musicof40K">Music of 40K</a> · '
+    + '<a id="credits-link" href="credits.html">audio credits</a> · '
     + 'Space Hulk is a trademark of Games Workshop; this project is unaffiliated. · '
     + `<span id="app-version">${__APP_VERSION__}</span>`;
   panel.appendChild(credits);

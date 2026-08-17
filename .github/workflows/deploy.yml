@@ -7,11 +7,9 @@
 #
 # Plain pushes to main never deploy — that is the release gateway.
 #
-# All fetched audio (assets/audio/: ambient music, alien voices, derived SFX
-# cuts — YouTube-sourced, see CREDITS.md) is gitignored, so it is absent from
-# CI checkouts and from the deployed site; the client treats the missing files
-# as tolerated 404s (ISA ISC-328). The original game's assets/sounds/ SFX are
-# tracked and do ship.
+# The full processed audio set (assets/audio/) is committed and ships with
+# the site; per-source attribution lives on /credits.html (generated from
+# audioManifest.ts) and in CREDITS.md.
 #
 # Manual redeploys: re-run this workflow's jobs from the Actions UI on the
 # tag's run — the ref (and therefore the version stamp) stays the tag.

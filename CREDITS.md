@@ -1,18 +1,21 @@
 # Audio Credits
 
-Sulk Web is a non-profit fan recreation of Toby Woodwark's Sulk (2003), built
-for **personal, local play**. None of the audio below is distributed in this
-repository — every downloaded or derived file is gitignored, and
-`bun scripts/fetchAudio.ts` (or `pnpm fetch-audio`) recreates the local set
-from the original sources on your own machine.
+Sulk Web is a non-profit fan recreation of Toby Woodwark's Sulk (2003). The
+processed audio set under `packages/client/public/assets/audio/` is committed
+and ships with the deployed site at <https://harryf.github.io/sulkweb/>, with
+full per-source attribution on the site's [audio credits page](https://harryf.github.io/sulkweb/credits.html)
+(generated from `packages/client/src/audio/audioManifest.ts`, the same
+manifest `bun scripts/fetchAudio.ts` downloads from and the game plays from).
 
-**These assets are NOT cleared for redistribution.** The film SFX (Aliens,
-1986) and game audio (Alien: Isolation) belong to their studios; the curated
-music tracks belong to their composers/publishers, and the Music of 40K
-channel's non-profit grant only covers what the channel itself can license;
-downloading from YouTube is also subject to YouTube's ToS. If you publish or
-distribute a build of this game, replace or clear every fetched asset first —
-the committed, freely-licensed Sulk originals are the only audio that ships.
+**Licensing posture, stated plainly:** the ambient music is used under the
+Music of 40K channel's explicit non-profit-with-credit terms (quoted below);
+the short film/game SFX cuts (Aliens, 1986; Alien: Isolation, 2014) carry no
+grant and are shipped as brief, attributed excerpts in a free fan work. The
+underlying works belong to their composers, publishers, and studios. This is
+a good-faith fan-project posture, not a clean chain of title — if you are a
+rights holder and want anything credited differently or removed, open an
+issue and it will be resolved promptly. If you fork this project for anything
+beyond a non-profit fan game, clear or replace every fetched asset first.
 
 ## Ambient mission music — Music of 40K
 

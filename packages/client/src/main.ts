@@ -8,7 +8,14 @@ import { mountAbortButton } from './ui/abortButton';
 // attract-mode space_hulk_1 backdrop (GameScene reads the same param and
 // disables input/clock/audio). With ?mission= we are playing: mount the
 // abort control instead.
-if (new URLSearchParams(window.location.search).has('mission')) {
+const params = new URLSearchParams(window.location.search);
+if (params.has('seed') && !params.has('mission')) {
+  // Legacy bug-report URLs: /?seed=N meant "replay debug_1 with this seed"
+  // before the homepage existed. Preserve them instead of swallowing the
+  // seed into the attract backdrop.
+  params.set('mission', 'debug_1');
+  window.location.replace(`${window.location.pathname}?${params}`);
+} else if (params.has('mission')) {
   mountAbortButton();
 } else {
   showHomeOverlay();

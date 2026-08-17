@@ -172,8 +172,8 @@ everything in the flamer's own section outright, himself included.</li>
 sustained fire lowers the requirement per miss. A 10-round drum plus one 4 AP reload.
 <strong>Autofire</strong> (2 AP, 5 rounds) rakes <em>everything</em> visible in the arc
 (stealers, doors, and any battle-brother unlucky enough to stand in it), killing on 3+,
-and sweeps again after every kill. After 10 shots fired, a triple wrecks the gun and
-usually the gunner.</li>
+and sweeps again after every kill. After 10 shots fired, a triple wrecks the gun,
+kills the gunner with it, and endangers everyone adjacent.</li>
 <li><strong>Chain fist</strong>: a storm-bolter terminator whose blade cuts the door
 directly ahead apart for 1 AP. No roll. No appeal.</li>
 </ul>`,
@@ -192,8 +192,8 @@ wins.</p>
 (attacker directly ahead); otherwise the defender just spins to face its attacker.</li>
 <li>Draw: both live; the defender spins to face the attacker.</li>
 </ul>
-<p>The power-sword sergeant <strong>parries</strong>: when he would lose, his opponent's
-best die is forced to be rerolled. The new result stands, even if it is worse for
+<p>The power-sword sergeant <strong>parries</strong>: when he would lose (or tie against
+an unbeatable score), his opponent's best die is forced to be rerolled. The new result stands, even if it is worse for
 him.</p>
 <p class="fine">The arithmetic is simple and cruel: a genestealer meeting a marine
 face-on rolls three dice against one. Never let them arrive.</p>`,

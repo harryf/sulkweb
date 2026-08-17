@@ -95,7 +95,10 @@ export default class GameScene extends Phaser.Scene {
     const missionParam = params.get('mission');
     this.attract = missionParam === null;
     const requested = missionParam ?? 'space_hulk_1';
-    const missionName = (requested in missions ? requested : 'debug_1') as keyof typeof missions;
+    // Own-property check, not `in`: prototype-chain keys (?mission=toString)
+    // must fall back to debug_1, not reach loadMission and throw.
+    const missionName = (Object.prototype.hasOwnProperty.call(missions, requested)
+      ? requested : 'debug_1') as keyof typeof missions;
     this.missionKey = missionName;
     this.engine = new GameEngine(loadMission(missionName), [], dice);
     (window as any).sulk = { engine: this.engine, Selection, scene: this, SeededRng, autoplay, runMarineTurn, PieceEvents }; // dev/debug + autoplay handle
@@ -130,7 +133,9 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('ambush_counter', 'assets/themes/default/ambush_counter.png');
     // All audio (mission music + original PD wavs + fetched cuts) queues via
     // the AudioManager — see src/audio/. Missing fetched files are tolerated.
-    AudioManager.queueLoads(this, this.missionKey);
+    // Attract mode never constructs the AudioManager, so skip the fetches too
+    // (the homepage should not download the whole mission audio set).
+    if (!this.attract) AudioManager.queueLoads(this, this.missionKey);
   }
 
   create() {
@@ -595,6 +600,9 @@ export default class GameScene extends Phaser.Scene {
 
   /** Roster card click: select the marine, sync map highlight + HUD, pan to him. */
   private selectFromRoster(id: string): void {
+    // Attract guard: roster cards are DOM buttons, reachable by Tab+Enter
+    // straight through the landing overlay — the homepage stays inert.
+    if (this.attract) return;
     if (this.paused || this.animating || this.engine.state.result !== 'ongoing') return;
     const piece = this.engine.findPiece(id);
     if (!piece) return;

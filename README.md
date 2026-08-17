@@ -185,7 +185,7 @@ the replays use, so what you hear tracks what you see.
 ```bash
 pnpm --filter ./packages/engine test   # 259 unit tests (rules, AI, game flow) + coverage report
 pnpm --filter ./packages/client test   # 43 unit tests (HUD, minimap, roster, audio, manual maps) + coverage
-pnpm --filter ./packages/client e2e    # 49 Playwright tests: real browser, no mocks
+pnpm --filter ./packages/client e2e    # 51 Playwright tests: real browser, no mocks
 pnpm build                             # engine tsc + client vite build
 ```
 

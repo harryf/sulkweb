@@ -116,6 +116,24 @@ test('abort mission: first click arms, second click returns to the homepage', as
   await expect(page.locator('#home-overlay')).toBeVisible();
 });
 
+test('legacy /?seed=N URLs redirect to debug_1 with the seed preserved', async ({ page }) => {
+  await page.goto('/?seed=7');
+  await page.waitForURL(/mission=debug_1.*seed=7|seed=7.*mission=debug_1/);
+  await waitForScene(page);
+  await expect(page.locator('#home-overlay')).toHaveCount(0);
+});
+
+test('an armed abort button does not fire on the end-turn Enter key', async ({ page }) => {
+  await page.goto('/?mission=debug_1&seed=1');
+  await waitForScene(page);
+  await page.locator('#abort-mission').click(); // armed — and blurred
+  await page.keyboard.press('Enter');           // means END TURN, not "confirm abort"
+  await page.waitForTimeout(300);
+  expect(page.url()).toContain('mission=debug_1'); // still in the mission
+  const turn = await page.evaluate(() => (window as any).sulk.engine.turnNumber);
+  expect(turn).toBeGreaterThanOrEqual(2); // Enter reached the game, not the button
+});
+
 test('mission won: end dialog offers retry and mission select', async ({ page }) => {
   test.setTimeout(120000);
   await page.goto('/?mission=debug_1&seed=1');

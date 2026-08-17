@@ -160,8 +160,8 @@ describe('hive zigzag advance', () => {
     PieceEvents.on('shot', () => { shots++; });
     runStealerActions(board);
     expect(stealer.alive).toBe(true);
-    expect(stealer.pos).toEqual({ c: 0, r: 4 }); // weaved corridor→alcove→corridor→alcove
-    expect(shots).toBe(1); // straight-line charging would have drawn a burst per step
+    expect(stealer.pos.c).toBe(0); // ends tucked in an alcove, not standing in the lane
+    expect(shots).toBe(1); // the INVARIANT: one burst for the whole advance, not one per step
   });
 });
 

@@ -127,6 +127,28 @@ describe('beta_2 fidelity (ISC-261/262)', () => {
     expect(engine.turnNumber).toBeGreaterThan(1);
   });
 
+  it('the download is mechanically completable on the REAL map (unopposed capability, ISC-601 face)', () => {
+    // Advisor 2026-08-18 challenge: "0/400 probe wins might mean the mission
+    // is structurally broken, not hard — prove the mechanic CAN complete."
+    // A lone sergeant deployed in the Data Room corridor, zero opposition:
+    // walks on, holds five end-phases, 4→0, win. Anything beyond this is
+    // difficulty, not breakage. (The shipped autopilot cannot show this — its
+    // perimeter marines cork the 1-wide approach corridor at hold-radius 2;
+    // logged as test-infra debt in ISA Decisions.)
+    const m = {
+      ...loadMission('beta_2'),
+      marineDeployment: [{ x: 12, y: 20, facing: 'down', type: 'sergeant' }],
+      initialBlips: 0, blipsPerTurn: 0, useAmbushCounters: false,
+    } as any;
+    const engine = new GameEngine(m, [], new SeededRng(1));
+    const sgt = engine.marines[0];
+    sgt.moveForward(); sgt.moveForward();
+    expect(sgt.pos).toEqual({ c: 12, r: 22 });
+    for (let i = 0; i < 5 && engine.state.result === 'ongoing'; i++) engine.endMarinePhase();
+    expect(engine.state.result).toBe('win');
+    expect(engine.downloadCounter).toBe(0);
+  });
+
   it('PINNED opposed run: the hive stops the CP-boosted sergeant rush (seed 1)', () => {
     // History: this fixture pinned an opposed WIN as winnability evidence
     // (seed 4 → 9 → 6 → 52 across rules/AI changes). 2026-08-18: after the

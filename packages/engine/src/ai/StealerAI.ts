@@ -350,7 +350,9 @@ export function spawnBlips(
   const ranked = [...unseen].sort((a, b) => val(strategic, a) - val(strategic, b));
   const top = ranked.slice(0, Math.min(3, ranked.length));
   const rotatedTop = top.map((_, n) => top[(turnNumber + n) % top.length]);
-  const feint = marineFld.size > 0 && turnNumber % 3 === 1 && ranked.length > 1
+  // Feint cadence keys on turn + casualties so a human can't count a fixed
+  // 3-turn clock — still a pure function of board state (seed-deterministic).
+  const feint = marineFld.size > 0 && (turnNumber + board.stealerCasualties) % 3 === 1 && ranked.length > 1
     ? [...ranked].sort((a, b) => val(marineFld, a) - val(marineFld, b))[0]
     : undefined;
   const ordered = [

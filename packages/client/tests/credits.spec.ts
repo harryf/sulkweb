@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { MUSIC_TRACKS, SFX_SOURCES } from '../src/audio/audioManifest';
+import { PLAYABLE_MISSIONS } from '../src/ui/missionMeta';
 
 /**
  * The audio credits page (/credits.html): generated from audioManifest.ts,
@@ -19,11 +20,13 @@ test('audio credits: one linked row per music track, every SFX source, channel t
   for (const t of [MUSIC_TRACKS[0], MUSIC_TRACKS[MUSIC_TRACKS.length - 1]]) {
     await expect(page.locator(`#music-credits a[href="https://www.youtube.com/watch?v=${t.videoId}"]`)).toHaveText(t.title);
   }
-  // Spot-check a full row: mission display name, work, artist
+  // Spot-check a full row (derived from the manifest, not hardcoded):
+  // mission display name, original work, artist
+  const first = MUSIC_TRACKS[0];
   const row1 = page.locator('#music-credits .music-row').first();
-  await expect(row1).toContainText('Suicide Mission');
-  await expect(row1).toContainText('Silent Hill 2');
-  await expect(row1).toContainText('Akira Yamaoka');
+  await expect(row1).toContainText(PLAYABLE_MISSIONS.find(m => m.key === first.mission)?.name ?? first.mission);
+  await expect(row1).toContainText(first.album);
+  await expect(row1).toContainText(first.artist);
 
   // Channel credit + terms
   await expect(page.locator('a[href="https://www.youtube.com/@Musicof40K"]')).toBeVisible();

@@ -120,10 +120,10 @@ The deployable artifact is `packages/client/dist/`: `index.html`, the bundled JS
 
 Things to know before shipping:
 
-1. **Audio is not in the repo.** `packages/client/public/assets/audio/` (music, generated SFX cuts, alien voices) is gitignored and produced locally by `pnpm fetch-audio` (needs `yt-dlp` and `ffmpeg`; sources and licensing in `CREDITS.md`). Run it before `pnpm build` or the deploy has no music: every audio load is cache-guarded, so the game plays silently rather than breaking. The original Sulk wav set in `assets/sounds/` is committed and always ships.
-2. **Host at the domain root, or set a base.** `vite.config.ts` sets no `base`, and asset paths are root-relative, so the build assumes it is served from `/`. To host under a subpath (for example GitHub Pages project sites), add `base: '/your-subpath/'` to `vite.config.ts` and rebuild.
+1. **The full audio set is committed.** `packages/client/public/assets/audio/` (music, SFX cuts, alien voices) ships with the site, attributed on `/credits.html` and in `CREDITS.md`. `pnpm fetch-audio` (needs `yt-dlp` and `ffmpeg`) exists to regenerate it from the source videos. Every audio load is cache-guarded, so a build missing any file plays silently rather than breaking.
+2. **The build is mount-point-agnostic.** `vite.config.ts` sets `base: './'` and all runtime asset paths are relative, so the same build works at the domain root, under a subpath (GitHub Pages project site), or from `vite preview`.
 3. **The dev-only 404 middleware does not deploy.** In dev, a custom Vite plugin (`assets404`) makes missing `/assets/*` files return real 404s instead of the SPA fallback page, which Phaser would try to decode as audio. Static hosts return real 404s natively, so no production equivalent is needed. If you ever front the deploy with an SPA rewrite rule, exclude `/assets/` from it for the same reason.
-4. **No CI exists.** Build and test locally before shipping: `pnpm test` (engine + client unit suites) and `pnpm --filter ./packages/client e2e` (Playwright, boots its own dev server).
+4. **CI deploys from tags.** `.github/workflows/deploy.yml` runs typecheck + both unit suites, then builds and publishes to GitHub Pages — on `v*` tag pushes only. Playwright e2e (`pnpm --filter ./packages/client e2e`) runs locally before tagging.
 
 ## Verifying a deploy
 

@@ -1,5 +1,13 @@
 /* Audio credits page — extends the manual's reading styles. */
 
+/* manual.css scopes its reading column to #manual; give #credits the same
+   treatment (slightly wider for the four-column table). */
+#credits {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+}
+
 .credits-table {
   width: 100%;
   border-collapse: collapse;

@@ -4,8 +4,10 @@
  * and process the files; the game consumes it for mission→track lookup; the
  * credits surfaces (CREDITS.md, HUD link) are generated from it.
  *
- * The audio binaries themselves are NOT committed — they are fetched locally
- * with `pnpm fetch-audio` (yt-dlp + ffmpeg). See CREDITS.md for licensing.
+ * The processed audio binaries are committed under assets/audio/ and ship
+ * with the deployed site; /credits.html is generated from this manifest.
+ * `pnpm fetch-audio` (yt-dlp + ffmpeg) regenerates them from the sources.
+ * See CREDITS.md for licensing.
  */
 
 export interface MusicTrack {

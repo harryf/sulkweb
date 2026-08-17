@@ -79,12 +79,15 @@ root.appendChild(el('p', undefined,
   + 'death scream, the self-destruct), committed in this repository and public '
   + 'domain per the original game’s SOUNDS_INFO.'));
 
-const inGameAlienCuts = ALIEN_SEGMENTS.filter(s => s.role !== 'unused' && s.role !== 'ambience').length;
+// Same predicate AudioManager.queueLoads uses: everything except 'unused'
+// plays in-game; all cut segments ship either way.
+const shippedAlienCuts = ALIEN_SEGMENTS.length;
+const inGameAlienCuts = ALIEN_SEGMENTS.filter(s => s.role !== 'unused').length;
 const sfxList = el('ul', 'sfx-list');
 sfxList.id = 'sfx-credits';
 for (const s of SFX_SOURCES) {
   const extra = s.id === 'alien'
-    ? ` (${inGameAlienCuts} short cuts, segmented and classified in <code>alienSegments.ts</code>)`
+    ? ` (${shippedAlienCuts} short cuts, ${inGameAlienCuts} used in-game; segmented and classified in <code>alienSegments.ts</code>)`
     : '';
   sfxList.appendChild(el('li', 'sfx-row',
     `${s.what}${extra}: cut from `

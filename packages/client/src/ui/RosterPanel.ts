@@ -213,7 +213,8 @@ function buildCredits(): HTMLElement {
     `by Toby Woodwark. Sulk and its graphics are copyright 2002-3 Toby Woodwark, ` +
     `distributed under the GNU General Public License.</p>` +
     `<p class="audio-credit">Ambient music: <a href="https://www.youtube.com/@Musicof40K" target="_blank" rel="noopener">Music of 40K</a>, ` +
-    `used with credit under the channel's non-profit terms. Sound effects from the original Sulk sound set. M mutes sound.</p>` +
+    `used with credit under the channel's non-profit terms. Sound effects from the original Sulk sound set ` +
+    `plus film/game cuts credited on the <a href="credits.html" target="_blank" rel="noopener">audio credits page</a>. M mutes sound.</p>` +
     `<p>Inspired by Space Hulk&trade;, first edition. Space Hulk is a board game published by Games Workshop&trade;.</p>` +
     `<details class="legal"><summary>Legal</summary>` +
     `<p>This game and this page are completely unofficial and in no way endorsed by Games Workshop Limited.</p>` +

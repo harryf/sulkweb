@@ -52,7 +52,7 @@ scream, chain fist, doors, self-destruct. (One caveat inherited from upstream:
 the original author's source comment marks `assault_cannon_burst.wav` as
 "legally dodgy", so its provenance may not be as clean as SOUNDS_INFO implies.)
 
-**Derived cuts** (fetched, gitignored):
+**Derived cuts** (committed under `assets/audio/`, cut by `fetchAudio.ts`):
 
 - Storm-bolter fire — cut from
   [Aliens Pulse Rifle Sound Effect](https://www.youtube.com/watch?v=uz0UkvGU2qE)

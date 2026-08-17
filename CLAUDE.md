@@ -216,8 +216,9 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
 - **Audio: `scripts/fetchAudio.ts` is the ONLY producer of fetched/derived audio.** Sources,
   mission→track map, and credits live in `packages/client/src/audio/audioManifest.ts`; alien
   cut points + role classification in `alienSegments.ts` (edit roles there, flip `guess` when
-  ear-confirmed). Downloaded/derived binaries are gitignored (copyrighted sources — CREDITS.md);
-  only the original PD `assets/sounds/` wavs are committed. `AudioManager` owns ALL playback —
+  ear-confirmed). The processed set under `assets/audio/` is committed and ships with the
+  deployed site, attributed on `/credits.html` (see CREDITS.md); only the raw `.audio-cache/`
+  is gitignored. `AudioManager` owns ALL playback —
   never call `this.sound.play` from GameScene; every audible behaviour routes through the
   pure-logic `audioLogic.ts` (vitest-covered) and cache-exists guards keep a no-audio clone
   booting silently. Music is OGG **Opus** (this ffmpeg has no libvorbis; Playwright's

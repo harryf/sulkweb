@@ -46,7 +46,7 @@ export class AudioManager {
       ['sfx_selfdestruct', 'marine_selfdestruct_flamer.wav'],
     ];
     for (const [key, file] of original) scene.load.audio(key, `assets/sounds/${file}`);
-    // Generated cuts (fetched locally, gitignored — assets/audio/sfx/).
+    // Generated cuts (committed under assets/audio/sfx/, credited on /credits.html).
     scene.load.audio('sfx_bolter', 'assets/audio/sfx/bolter_fire.wav');
     scene.load.audio('sfx_tracker_ping', 'assets/audio/sfx/tracker_ping.wav');
     // Fallback voice for bolters when the fetched pulse-rifle cut is absent.

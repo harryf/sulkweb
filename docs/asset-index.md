@@ -96,7 +96,7 @@ Sulk 0.29 wav set, committed, public domain except the three TLK Games button so
 
 ## Music and fetched audio
 
-Not committed: `packages/client/public/assets/audio/` is gitignored. Regenerate locally with `bun scripts/fetchAudio.ts` (yt-dlp + ffmpeg); sources and licensing in `CREDITS.md`. Every load is cache-guarded, so a clone without these files boots and plays silently.
+Committed and shipped: `packages/client/public/assets/audio/` (music, alien voices, SFX cuts) deploys with the site, attributed on `/credits.html`. Regenerate from sources with `bun scripts/fetchAudio.ts` (yt-dlp + ffmpeg); licensing in `CREDITS.md`. Every load is cache-guarded, so a build missing any file boots and plays silently.
 
 | Name | Location | Status | How it is used |
 |---|---|---|---|

@@ -9,8 +9,9 @@
  * Idempotent: every output is skipped if it already exists, raw downloads are
  * cached in .audio-cache/. Requires yt-dlp + ffmpeg on PATH.
  *
- * The processed audio (and the raw cache) are deliberately gitignored — see
- * CREDITS.md for why the repo ships no downloaded audio.
+ * The processed audio is committed (and ships with the deployed site, with
+ * attribution on /credits.html); only the raw .audio-cache/ is gitignored.
+ * This script exists to regenerate the set from the sources — see CREDITS.md.
  */
 import { existsSync, mkdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';

@@ -4,7 +4,7 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 553/554 (audio-ship run ISC-535..553 verified; ISC-71 deferred)
+progress: 566/567 (fades+favicon run ISC-554..566 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-17T10:55:00Z
@@ -741,6 +741,22 @@ Build & regression:
 - [x] ISC-552: live game constructs AudioManager with zero console errors in real Chrome (browser)
 - [x] ISC-553: work committed with a clean tree (git status)
 
+### Music fades + favicon (deploy v0.3.2)
+
+- [x] ISC-554: music starts at volume 0 and fades in to the duck target (Read AudioManager + e2e volume ramp)
+- [x] ISC-555: document hidden pauses the music immediately (visibilitychange handler) (Read + browser probe)
+- [x] ISC-556: document visible again resumes music with a fade-in (Read)
+- [x] ISC-557: destroy() removes the visibility listener (Read)
+- [x] ISC-558: e2e asserts music isPlaying with rising volume after mission start in dev (Playwright)
+- [x] ISC-559: favicon.png generated from a marine sprite, committed under public/ (file exists)
+- [x] ISC-560: index/manual/credits HTML all link rel=icon favicon.png; no vite.svg references remain (Grep)
+- [x] ISC-561: built dist carries favicon.png and the icon links (Bash)
+- [x] ISC-562: local gates green: tsc, unit suites, affected e2e (Bash)
+- [x] ISC-563: tag v0.3.2 deploy run success (gh)
+- [x] ISC-564: live favicon.png returns 200 and live pages reference it (curl)
+- [x] ISC-565: live real-Chrome probe: hidden tab pauses music (browser)
+- [x] ISC-566: work committed with a clean tree (git status)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
 | ISC-439..441 | baseline/regression | unit + e2e suite exit codes pre/post | 0 failures | Bash vitest/playwright |
@@ -773,6 +789,11 @@ Build & regression:
 | ISC-548 | build/unit/e2e | tsc + vitest + playwright | exit 0 | Bash |
 | ISC-549..551 | deploy | gh run + curl live URLs | success / 200 | Bash |
 | ISC-552 | console | real-Chrome console with audio present | 0 errors | Browser |
+| ISC-554..557 | static/unit | AudioManager read-back + e2e | matches spec | Read/Bash |
+| ISC-558,562 | e2e/unit | playwright + vitest + tsc | exit 0 | Bash |
+| ISC-559..561,564 | asset | file exists + grep + curl live | present / 200 | Bash |
+| ISC-563,566 | deploy/repo | gh run + git status | success / clean | Bash |
+| ISC-565 | browser | hidden-tab music pause probe | paused | Browser |
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
 | ISC-4..10 | UI | rendered state + console | 0 errors | Interceptor screenshot + console read |
 | ISC-11,12,65 | repo | git status/log | clean/commits exist | Bash git |
@@ -988,6 +1009,15 @@ Build & regression:
 - ISC soft floor: 20 new ISCs this run; project total 535 far exceeds the E3 ≥32 floor.
 - Interceptor extension again reported "no extensions connected" (daemon up) — real-Chrome verification done via Claude-in-Chrome MCP, same fallback as the home-page run.
 - Commits: 9d83ca9 (feature: base/version/define, workflow, README, repo setup), e78900d (review hardening). Tag: v0.2.0 → run 32012182040 success.
+### 2026-08-17 — Fades + favicon run (ISC-554..566, E2)
+
+- Root cause of the reported "homepage music keeps playing in the next mission": NOT same-tab (page unload kills audio — homepage confirmed silent by design, live-reproduced). The bleed is the backgrounded-tab path: a looping Web Audio source keeps sounding while the hidden tab's RAF loop is frozen, and Phaser's blur-pause only catches sounds already playing at blur time (a sound started while hidden played happily in our probe). Fix: explicit `visibilitychange` handling in AudioManager — hidden pauses the bed immediately (tweens are RAF-frozen while hidden, so no fade there), visible resumes with the entrance fade.
+- Phaser gotcha (cost one red test): `play()` resets a sound's volume to its config value, clobbering a preceding `setVolume(0)` via the unlock queue's deferred play — a from-less fade tween then captures volume 1 and fades DOWN (observed: 1 → 0.37 toward the 0.16 duck target). The fix is `volume: { from: 0, to: target }` — the tween re-asserts silence at start regardless of what play() does. Documented at the code site.
+- Favicon: the 40×40 storm-bolter terminator sprite used at native size (sips smoothing would blur pixel art); vite.svg deleted, all three pages link /favicon.png (Vite rewrites relative under the subpath).
+- Advisor round: guards it demanded already present (killTweensOf before pause, isPaused gate on resume, listener teardown in destroy, add-config volume 0 against the one-frame blast — live v1≈0). ADOPTED: visibility-pause regression e2e (defineProperty visibilityState + dispatch, assert isPaused, then visible → isPlaying; commit 47e9879). DECLINED: iOS Safari resume handling (ogg never decodes on Safari anyway — standing known limitation).
+- Delegation floor (E2 ≥1) waived, show-your-math: scoped two-file fix in code two review rounds just covered; the advisor round provided the second-opinion function.
+- Commits: f6bea9c (fades + visibility pause + favicon), 47e9879 (regression e2e). Tag v0.3.2 — deploy run green.
+
 ### 2026-08-17 — Audio-ship run (ISC-535..553, E3)
 
 - User decision (explicit, after options presented with CREDITS.md's "NOT cleared for redistribution" surfaced): ship ALL fetched audio with a per-source credits page. Music rides the Music of 40K non-profit-with-credit grant (the page satisfies its stated terms verbatim); the Aliens/Alien: Isolation cuts ship as short attributed excerpts with a rights-holder takedown offer. CREDITS.md rewritten to state this posture plainly rather than pretend a clean chain of title.
@@ -1509,3 +1539,17 @@ beta_2 completion (2026-08-15):
 - ISC-550/551: curl live: credits.html 200, music/space_hulk_1.ogg 200, alien/alien_attack_01.wav 200
 - ISC-552: real Chrome on live ?mission=space_hulk_1: AudioManager constructed, 32 audio keys in cache, hud up, zero console errors. Gotcha found: the hidden-tab RAF pause stalls PreloadScene→GameScene transition (environmental, all versions); un-stuck by manually stepping game.loop
 - ISC-553: commits 6ce332c (audio + credits page) + 003877c (review fixes); tags v0.3.0, v0.3.1; tree clean except ISA record
+
+### Fades + favicon run (2026-08-17, ISC-554..566)
+
+- ISC-554: AudioManager.startMusic — add({loop, volume: 0}) + play() + fadeIn() with `volume: {from: 0, to: duckTarget}` over musicFadeInMs 1800; e2e asserts early < 0.16 and rising
+- ISC-555/556: onVisibility — hidden: killTweensOf + pause; visible: resume + fadeIn; e2e dispatches visibilitychange both ways (isPaused true, then isPlaying true)
+- ISC-557: destroy() removeEventListener read back; GameScene shutdown already calls audio.destroy
+- ISC-558: home.spec "music fades in from silence" green (after the play()-resets-volume fix)
+- ISC-559/560: public/favicon.png (= terminator_storm_bolter.png, 40×40); all three HTML link rel=icon /favicon.png; vite.svg deleted, zero references repo-wide
+- ISC-561: dist build carries favicon.png; live pages emit href="./favicon.png"
+- ISC-562: tsc clean; unit 45/45; full e2e 54/54 pre-commit, +2 new tests green
+- ISC-563: v0.3.2 deploy run success (both jobs)
+- ISC-564: curl live favicon.png → 200 image/png; all three live pages reference it
+- ISC-565: live real-Chrome: music_space_hulk_3 playing with volume rising (fade-in), visibilitychange dispatch in the hidden tab → isPaused true
+- ISC-566: commits f6bea9c + 47e9879 pushed; tree clean except ISA record

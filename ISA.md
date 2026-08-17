@@ -4,10 +4,10 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 514/515 (home-page run ISC-472..514 verified; ISC-71 deferred)
+progress: 534/535 (pages-deploy run ISC-515..534 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-17T10:25:00Z
+updated: 2026-08-17T10:55:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -696,6 +696,29 @@ Build & regression:
 - [x] ISC-513: home overlay and manual visually verified in real Chrome via Interceptor screenshots (Interceptor)
 - [x] ISC-514: work committed with a clean tree (Bash git status)
 
+### GitHub Pages deploy (release-gated)
+
+- [x] ISC-515: vite.config.ts sets `base: './'` so built pages work under the /sulkweb/ subpath (Read)
+- [x] ISC-516: `__APP_VERSION__` injected via Vite define from `SULK_VERSION` env, `dev` fallback, with a TS declaration (Read)
+- [x] ISC-517: version string visible on the homepage credits line (Playwright `#app-version`)
+- [x] ISC-518: version string visible in the manual footer (Playwright)
+- [x] ISC-519: `.github/workflows/deploy.yml` exists and triggers only on `v*` tag pushes plus manual dispatch (Read)
+- [x] ISC-520: workflow gates deploy behind typecheck + engine and client unit suites (needs-chain in yml) (Read)
+- [x] ISC-521: workflow builds with `SULK_VERSION` set from the pushed tag name (Read)
+- [x] ISC-522: workflow publishes `packages/client/dist` via upload-pages-artifact + deploy-pages with pages/id-token permissions (Read)
+- [x] ISC-523: Anti: no workflow trigger fires on plain pushes to main — Pages only updates from tags (Read)
+- [x] ISC-524: GitHub Pages enabled on the repo with `build_type: workflow` (gh api 200)
+- [x] ISC-525: repo homepage field set to https://harryf.github.io/sulkweb/ and description names the game (gh api)
+- [x] ISC-526: README links to the live page near the top (Grep)
+- [x] ISC-527: README documents the release process: push tag vX.Y.Z → CI gate → Pages deploy (Grep)
+- [x] ISC-528: tag v0.2.0 pushed and its deploy workflow run concluded success (gh run)
+- [x] ISC-529: live https://harryf.github.io/sulkweb/ returns 200 with the game HTML (curl)
+- [x] ISC-530: live manual.html returns 200 (curl)
+- [x] ISC-531: deployed bundle contains version string v0.2.0 and the UI shows it (curl/browser)
+- [x] ISC-532: Anti: live page loads with zero console errors despite the gitignored music being absent from the deploy (browser probe)
+- [x] ISC-533: local suites still green after changes (client unit + home.spec e2e) (Bash)
+- [x] ISC-534: work committed with a clean tree (Bash git status)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
 | ISC-439..441 | baseline/regression | unit + e2e suite exit codes pre/post | 0 failures | Bash vitest/playwright |
@@ -715,6 +738,13 @@ Build & regression:
 | ISC-509,510 | docs | README/architecture content | claims match shipped state | Read |
 | ISC-512 | console | pageerror capture on `/` | 0 errors | Bash playwright |
 | ISC-513 | visual | real-Chrome screenshots | overlay + manual render correctly | Interceptor |
+| ISC-515,516,519..523 | static | config/workflow content read-back | matches spec | Read |
+| ISC-517,518,533 | unit/e2e | vitest + playwright home/manual specs | exit 0 | Bash |
+| ISC-524,525,528 | API | gh api / gh run list | 200 / success | Bash gh |
+| ISC-526,527 | docs | README content | live link + release process present | Grep |
+| ISC-529..531 | deploy | curl live URLs + version probe | 200 + v0.2.0 | Bash curl |
+| ISC-532 | console | real-Chrome console on live site | 0 errors | Browser |
+| ISC-534 | repo | git status | clean tree | Bash git |
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
 | ISC-4..10 | UI | rendered state + console | 0 errors | Interceptor screenshot + console read |
 | ISC-11,12,65 | repo | git status/log | clean/commits exist | Bash git |
@@ -774,6 +804,10 @@ Build & regression:
 | abort-control | Two-click confirm Abort button during missions, returns home | ISC-490..493 | home-overlay | yes |
 | manual-page | manual.html Vite MPA page: friendly rules from rules-reference.md, marine quotes, SVG mission maps built in TypeScript | ISC-494..504 | — | yes |
 | home-closure | Spec updates for new `/` semantics, new home.spec, docs, build, commit | ISC-505..511,513,514 | all above | no |
+| pages-build-config | Vite base './' + version define + UI version display | ISC-515..518 | — | no |
+| pages-release-workflow | Tag-gated GitHub Actions deploy to Pages | ISC-519..523,528 | pages-build-config | no |
+| pages-repo-setup | Enable Pages, homepage + description, README links/release docs | ISC-524..527 | — | yes |
+| pages-live-verify | Live-site probes, console check, commit | ISC-529..534 | pages-release-workflow | no |
 
 ## Decisions
 
@@ -911,6 +945,19 @@ Build & regression:
 - refined: ISC-439 baseline restated around the name-level dump (the 222/35 split was a mis-derivation from the combined rtk run); ISC-449 reinterpreted — consumer-less barrel exports (drawAmbushValue, TURN_COST, AP_PER_TURN, DOOR_FACING, sectionSquares, clearFlames, toRelative) KEPT as deliberate public API of a library package; ISC-454/455 satisfied by pre-existing coverage discovered once instrumentation landed (minimap.spec covers cameraBox 100%, roster.spec covers marineNames 100%).
 - Found in the act: the old mission.spec asserted `name === 'Suicide Mission'` against sampleMission.json ("Demo Board") — it passed only because loadMissionSync's silent catch substituted space_hulk_1. The footgun the deletion removes had already swallowed its own test.
 - Process slip logged: one `npx vitest` invocation early in the run (bun/bunx-always rule; project tooling is pnpm — subsequent runs used `pnpm exec`).
+
+### 2026-08-17 — Pages-deploy run (ISC-515..534, E3)
+
+- Design: the git tag is the single source of truth for a release — trigger (`v*` push), UI version (`SULK_VERSION` → Vite define `__APP_VERSION__` → `#app-version` in homepage credits + manual footer), and deployed content are all derived from it. No package.json version bumps to drift. `workflow_dispatch` was added then REMOVED after review: it would stamp a branch name as the version; redeploys instead re-run the tag's workflow from the Actions UI, so the tag remains the only version source.
+- Vite `base: './'` chosen over `'/sulkweb/'`: all runtime asset strings are already relative, so a relative base makes the build mount-point-agnostic (works on Pages, `vite preview`, and any future host) with zero environment switches.
+- The deployed site ships without ALL fetched audio (`assets/audio/`: ambient music, alien voices, derived SFX cuts — YouTube-sourced, gitignored per CREDITS.md). CI checkouts never have it; GitHub Pages 404s take the client's tolerated loaderror path (ISC-328 hardening pays off). Tracked `assets/sounds/` ships. README/workflow wording corrected per review (first draft claimed only music was missing).
+- Environment protection gotcha: the auto-created `github-pages` environment only allowed `main`; the tag deploy was rejected on first run. Fixed via API: custom branch policies + a `v*` tag-type deployment policy, then re-ran the failed job. This is now part of the release gateway itself.
+- CI gate = engine tsc build + client `tsc --noEmit` + `pnpm -r test` (302 unit tests). DECLINED putting Playwright e2e in CI (minutes + browser install + flake for a personal repo; e2e runs locally per this ISA's process, and the deployed version string is live-probed post-deploy instead). Reviewer's script-injection note fixed (`SULK_VERSION` via `env:` block, not raw `${{ }}` in `run:`).
+- Delegation floor (E3 ≥2) show-your-math: Forge waived — `which codex` fails on this machine (re-verified). One background diff-review agent ran (found the MED env-interpolation and MED audio-claim issues plus three LOWs, all addressed); a second agent would have re-reviewed the same single-workflow diff with nothing new to add.
+- ISC soft floor: 20 new ISCs this run; project total 535 far exceeds the E3 ≥32 floor.
+- Interceptor extension again reported "no extensions connected" (daemon up) — real-Chrome verification done via Claude-in-Chrome MCP, same fallback as the home-page run.
+- Commits: 9d83ca9 (feature: base/version/define, workflow, README, repo setup), e78900d (review hardening). Tag: v0.2.0 → run 32012182040 success.
+- Advisor round (8 items): ADOPTED the git-history audio check — `git log --diff-filter=A -- assets/audio/` empty and `git rev-list --objects --all` contains zero mp3/ogg/m4a/opus/webm objects; only the 15 tracked GPL `assets/sounds/*.wav` exist in history, so the copyright posture holds at the object level, not just the working tree. Items 2/3/5/6/7/8 already evidenced (needs-chain, negative trigger via e78900d push producing no run, tag-derived version env, no router, build_type workflow, hashed-filename freshness). Item 4 already done (play path exercised in real Chrome, zero errors). DECLINED: in-game copy explaining the missing web audio (the in-game credits' "Music of 40K" line slightly overpromises on the deployed site; README covers it — cosmetic follow-up, not blocking).
 
 ## Changelog
 
@@ -1386,3 +1433,22 @@ beta_2 completion (2026-08-15):
 - ISC-470/471: README License section with GPL link + GW disclaimer; GPL-3.0-only in all three package.json (grep: 3/3)
 - Regression gates: clean-clone `pnpm install --frozen-lockfile` + engine 259/259 + client 37/37 (CLEANCLONE_OK); full `pnpm build` green; final e2e 42/42
 - Commits: 64bfc71 (refactor), d22bfdc (JAM-marker fix), 7fb9ac3 (GPL licensing)
+
+### Pages-deploy run (2026-08-17, ISC-515..534)
+
+- ISC-515: Read vite.config.ts — `base: './'` present; dist/index.html emits `src="./assets/main-*.js"`
+- ISC-516: Read vite.config.ts define block + version.d.ts declaration; local build with SULK_VERSION=v0.0.0-local stamps both main and manual chunks (grep: 2 files)
+- ISC-517/518: home.spec homepage + manual tests assert `#app-version` matches /^(dev|v\d+\.\d+(\.\d+)?(-[\w.]+)?)$/ — 9/9 then 3/3 after regex widening
+- ISC-519/523: Read deploy.yml — `on: push: tags: ['v*']` only (workflow_dispatch removed per review); push of e78900d to main triggered no run (gh run list unchanged)
+- ISC-520: Read deploy.yml — verify-and-build steps: engine build (tsc -b), client tsc --noEmit, `pnpm -r test`, all before upload; deploy job `needs: verify-and-build`
+- ISC-521: Read deploy.yml — `env: SULK_VERSION: ${{ github.ref_name }}` on the build step (env block per review, not raw interpolation)
+- ISC-522: Read deploy.yml — upload-pages-artifact path packages/client/dist; deploy-pages@v4 with pages:write + id-token:write; environment github-pages
+- ISC-524: `gh api POST repos/harryf/sulkweb/pages` → build_type "workflow", html_url https://harryf.github.io/sulkweb/; plus tag-type deployment policy `v*` added to the github-pages environment
+- ISC-525: `gh api repos/harryf/sulkweb` → homepage set, description "Sulk in your browser — … Play: https://harryf.github.io/sulkweb/"
+- ISC-526/527: README top links the live URL; "Releases & deployment" section documents tag → gate → deploy with the corrected audio claim
+- ISC-528: run 32012182040 conclusion success (verify-and-build + deploy both success; first attempt's deploy rejected by environment protection, fixed via tag policy, job re-run)
+- ISC-529/530: curl live: home 200, manual.html 200
+- ISC-531: deployed manual chunk contains v0.2.0 (curl+grep: 1); real-Chrome screenshot shows "· v0.2.0" in homepage credits and manual footer JS probe versionShown=true
+- ISC-532: real-Chrome (Claude-in-Chrome) console after fresh load of `/` and after starting space_hulk_1: zero errors/exceptions; game fully playable (5 marines, HUD, timer, board render screenshot)
+- ISC-533: client tsc clean, engine tsc build clean, client unit 43/43, home.spec 9/9 (then 3/3 targeted rerun after review fixes)
+- ISC-534: commits 9d83ca9 + e78900d pushed; tree clean except ISA record (committed at LEARN)

@@ -33,11 +33,12 @@ The engine is fully playable headless: the vitest suite and `MarineAutopilot` ru
 
 ## The client (`packages/client`)
 
-- `src/main.ts` and `src/gameConfig.ts`: boot a Phaser `Game` with two scenes.
+- `src/main.ts` and `src/gameConfig.ts`: boot a Phaser `Game` with two scenes; `main.ts` also routes the URL — no `?mission=` param mounts the landing overlay (attract mode), a mission param mounts the abort control.
 - `src/scenes/PreloadScene.ts`: loading bar. `src/scenes/GameScene.ts`: everything else: reads `?mission=` from the URL, constructs the engine, loads assets, draws the board, translates input into engine calls, and renders engine events.
-- `src/ui/`: `HudPanel` (canvas Mission Status strip), `Minimap`, `RosterPanel` (DOM marine cards, keyboard help, credits), `HighlightSprite`, `Selection` (the selected-piece store), `marineNames.ts` (deterministic roster identities), `keyboardHelp.ts` (key layout data).
+- `src/ui/`: `HudPanel` (canvas Mission Status strip), `Minimap`, `RosterPanel` (DOM marine cards, keyboard help, credits), `HighlightSprite`, `Selection` (the selected-piece store), `marineNames.ts` (deterministic roster identities), `keyboardHelp.ts` (key layout data), `missionMeta.ts` (curated mission titles/taglines), `HomeOverlay.ts` (the DOM landing screen), `endDialog.ts` (win/loss retry dialog), `abortButton.ts` (two-click abort control).
 - `src/audio/`: `AudioManager` (event-driven SFX, per-mission music, motion tracker), `audioManifest.ts` (single source of truth for every audio asset and credit), `alienSegments.ts`, `audioLogic.ts` (pure functions, unit-tested).
 - `src/config.ts`: HUD dimensions and colors. `src/utils/cameraBox.ts`: camera-to-minimap projection.
+- `src/manual/`: the second Vite page (`/manual.html`) — the field manual. `content.ts` (rules copy transcribed from `docs/rules-reference.md` plus original marine quotes), `missionMapSVG.ts` (renders every mission map as SVG straight from the mission JSON; unit-tested), `main.ts` (page assembly), `manual.css`.
 
 One build detail worth knowing: `vite.config.ts` aliases `@sulk/engine` to `../engine/src`. The client compiles the engine's TypeScript source directly, so `pnpm dev` needs no engine build step, and an engine edit hot-reloads the running game. The engine's own `tsc` build (`dist/`) exists for consumers outside Vite, such as running engine code under plain Node.
 
@@ -102,7 +103,7 @@ sequenceDiagram
 
 ### Determinism and test hooks
 
-The engine takes an optional `DiceSource`; `SeededRng` and `RollQueue` pin every roll, which the Playwright suite uses to script exact battles. `GameScene` exposes `window.sulk` (engine, scene, `Selection`, autopilot helpers) so e2e tests and debugging sessions can reach both sides of the boundary. Mission selection is a URL parameter: `?mission=space_hulk_3`, defaulting to `debug_1`.
+The engine takes an optional `DiceSource`; `SeededRng` and `RollQueue` pin every roll, which the Playwright suite uses to script exact battles. `GameScene` exposes `window.sulk` (engine, scene, `Selection`, autopilot helpers) so e2e tests and debugging sessions can reach both sides of the boundary. Mission selection is a URL parameter: `?mission=space_hulk_3` (unknown values fall back to `debug_1`). A bare URL with no mission param is the homepage: `space_hulk_1` loads as an attract-mode backdrop (input, clock, and audio disabled) under the DOM landing overlay.
 
 ## Deployment
 

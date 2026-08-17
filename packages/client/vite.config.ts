@@ -27,6 +27,15 @@ const assets404 = (): Plugin => ({
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [assets404()],
+  build: {
+    rollupOptions: {
+      // Two-page app: the game (index) + the field manual.
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        manual: path.resolve(__dirname, 'manual.html'),
+      },
+    },
+  },
   resolve: {
     alias: [
       {

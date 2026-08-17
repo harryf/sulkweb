@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: 471/472 (code-review run ISC-439..471 verified; ISC-71 deferred)
+phase: execute
+progress: 471/515 (home-page run ISC-472..514 pending; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-17T09:55:00Z
+updated: 2026-08-17T10:10:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -641,6 +641,61 @@ Client integration (AudioManager, event-driven):
 - [x] ISC-470: README clearly states GPL-3.0 licensing with link, noting it matches the original game (Read)
 - [x] ISC-471: all three package.json files declare the GPL-3.0 SPDX license field (Read)
 
+### Home page, mission flow & manual (2026-08-17 run)
+
+Landing overlay:
+- [x] ISC-472: opening `/` with no mission param loads space_hulk_1 as the backdrop (engine.mission.name === 'Suicide Mission') (Playwright evaluate)
+- [x] ISC-473: a DOM home overlay is visible at `/` carrying the game title (Playwright locator)
+- [x] ISC-474: the overlay includes an intro paragraph describing the game (Playwright text probe)
+- [x] ISC-475: the overlay lists all 8 playable missions (6 campaign + 2 beta) with display name and one-line description each (Playwright count)
+- [x] ISC-476: debug_1 does not appear in the landing mission list (Playwright zero-count)
+- [x] ISC-477: clicking a mission entry navigates to `?mission=<key>` and that mission starts (Playwright click + evaluate)
+- [x] ISC-478: a small credits footer names Toby Woodwark's original Sulk, Music of 40K audio, and GPL-3.0 (Playwright text probe)
+- [x] ISC-479: a Manual link on the overlay navigates to the manual page (Playwright click + URL check)
+- [x] ISC-480: the board is slightly visible beneath the overlay — overlay background is semi-transparent (computed backgroundColor alpha < 1) (Playwright evaluate)
+- [x] ISC-481: attract mode disables gameplay input — pressing Enter at `/` does not advance the engine phase (Playwright keyboard + evaluate)
+- [x] ISC-482: attract mode does not run the marine-phase clock (timer not started) (Playwright evaluate)
+- [x] ISC-483: attract mode constructs no AudioManager (no music on the home page) (Playwright evaluate)
+- [x] ISC-484: Anti: opening `/?mission=space_hulk_1` shows NO home overlay (Playwright zero-count)
+
+End-of-mission dialog:
+- [x] ISC-485: on a win, a DOM end-dialog appears showing the mission result (Playwright, pinned-seed autoplay win)
+- [x] ISC-486: the end-dialog Retry button restarts the same mission (mission param preserved) (Playwright click + URL check)
+- [x] ISC-487: the end-dialog "Choose another mission" button returns to the home overlay (Playwright click + locator)
+- [x] ISC-488: on a loss, the same dialog appears with the failure result (Playwright, pinned losing seed)
+- [x] ISC-489: the existing Phaser MISSION COMPLETE banner still renders behind the dialog (win.spec assertion unchanged) (Playwright)
+
+Abort mission:
+- [x] ISC-490: an Abort control is visible while a mission is being played (Playwright locator)
+- [x] ISC-491: clicking Abort arms a confirm state; a second click returns to the homepage (Playwright two-click + URL check)
+- [x] ISC-492: Anti: the Abort control is absent on the home overlay / attract mode (Playwright zero-count)
+- [x] ISC-493: Anti: a single Abort click never navigates — confirmation is required (Playwright single-click + URL check)
+
+Manual:
+- [x] ISC-494: /manual.html loads with a title and zero console errors (Playwright pageerror capture)
+- [x] ISC-495: the manual carries sections for turn structure, AP/CP, movement, shooting, overwatch, the flamer, close combat, doors, blips, flames, and victory objectives (Playwright heading probes)
+- [x] ISC-496: rule numbers in the manual match docs/rules-reference.md (marine 4 AP / stealer 6 AP, d6 CP, overwatch 2 AP range 12, flamer 6 ammo kill 2+, 120s +30/sergeant clock) (grep of content module vs reference)
+- [x] ISC-497: the manual contains at least 4 fake in-universe marine quotes styled as distinct blockquote elements (Playwright count)
+- [x] ISC-498: the manual renders a TypeScript-built SVG map for every one of the 9 registered missions (Playwright svg count)
+- [x] ISC-499: missionMapSVG draws squares by kind, door edges, entry/exit markers, deploy squares, and objective points (vitest on SVG output)
+- [x] ISC-500: missionMapSVG element counts for space_hulk_1 match the mission JSON (squares, entries, deploys) (vitest)
+- [x] ISC-501: the manual includes a map legend explaining the symbols (Playwright locator)
+- [x] ISC-502: the manual links back to the game homepage (Playwright click + URL check)
+- [x] ISC-503: the manual's missions section states each mission's objective and squad (Playwright text probes)
+- [x] ISC-504: Anti: no copyrighted imagery added — maps are drawn from mission JSON only, no new binary art assets committed (git status inspection)
+
+Build & regression:
+- [x] ISC-505: the Vite production build emits both index.html and manual.html (Bash build + ls dist)
+- [x] ISC-506: Anti: the full existing e2e suite passes after the change (specs that relied on bare-`/` = debug_1 updated to pin `?mission=debug_1`) (Playwright suite exit 0)
+- [x] ISC-507: engine and client unit suites pass (Bash vitest exit 0)
+- [x] ISC-508: the new home/manual e2e spec passes within the suite (Playwright)
+- [x] ISC-509: README documents the home page, abort control, end dialog, and manual (Read)
+- [x] ISC-510: docs/architecture.md covers the new client modules (home overlay, end dialog, abort, manual page) (Read)
+- [x] ISC-511: Anti: seeded gameplay unchanged — playthrough.spec and all seeded e2e pass without pin changes (Playwright)
+- [x] ISC-512: Anti: zero console errors on the home page (Playwright pageerror capture)
+- [x] ISC-513: home overlay and manual visually verified in real Chrome via Interceptor screenshots (Interceptor)
+- [ ] ISC-514: work committed with a clean tree (Bash git status)
+
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
 | ISC-439..441 | baseline/regression | unit + e2e suite exit codes pre/post | 0 failures | Bash vitest/playwright |
@@ -650,6 +705,16 @@ Client integration (AudioManager, event-driven):
 | ISC-461..463 | hygiene | package.json/.gitignore content | fields as stated | Read |
 | ISC-464..467 | docs | Read + grep for deleted names | 0 stale references | Read/Grep |
 | ISC-469..471 | license | LICENSE text diff vs gnu.org, README, package.json | exact text + fields present | Bash diff/Read |
+| ISC-472..493 | UI/e2e | Playwright DOM locators, URL checks, engine evaluate | as stated per ISC | Bash playwright |
+| ISC-494..498,501..503 | manual e2e | Playwright headings/counts/links on manual.html | present as stated | Bash playwright |
+| ISC-496 | content fidelity | manual numbers vs rules-reference.md | all stated numbers match | Grep/Read |
+| ISC-499,500 | unit | missionMapSVG output assertions | element counts match JSON | Bash vitest |
+| ISC-504,514 | repo | git status / diff inspection | no binaries, clean tree | Bash git |
+| ISC-505,507 | build/unit | build exit + vitest exit | 0 | Bash |
+| ISC-506,508,511 | e2e regression | full playwright suite | exit 0 | Bash playwright |
+| ISC-509,510 | docs | README/architecture content | claims match shipped state | Read |
+| ISC-512 | console | pageerror capture on `/` | 0 errors | Bash playwright |
+| ISC-513 | visual | real-Chrome screenshots | overlay + manual render correctly | Interceptor |
 | ISC-1..3 | build/test | command exit code | 0 | Bash |
 | ISC-4..10 | UI | rendered state + console | 0 errors | Interceptor screenshot + console read |
 | ISC-11,12,65 | repo | git status/log | clean/commits exist | Bash git |
@@ -704,10 +769,15 @@ Client integration (AudioManager, event-driven):
 | entry-triangles | entry.png/exit.png off-board triangles per original EntryTriangle/ExitArrow; purple squares gone | ISC-270,272,273,285 | mission-meta | yes |
 | roster-panel | DOM card grid right of canvas: squad rows, names, AP/ammo, badges, death/escape states, two-way selection + camera pan | ISC-275..284 | mission-meta | no |
 | roster-closure | Full suites + build + browser verification | ISC-286,287 | all above | no |
+| home-overlay | DOM landing overlay at `/`: title, intro, mission list, credits, manual link; space_hulk_1 attract backdrop | ISC-472..484,512 | — | no |
+| end-dialog | DOM win/loss dialog with Retry + Choose-another buttons over the Phaser banner | ISC-485..489 | home-overlay | yes |
+| abort-control | Two-click confirm Abort button during missions, returns home | ISC-490..493 | home-overlay | yes |
+| manual-page | manual.html Vite MPA page: friendly rules from rules-reference.md, marine quotes, SVG mission maps built in TypeScript | ISC-494..504 | — | yes |
+| home-closure | Spec updates for new `/` semantics, new home.spec, docs, build, commit | ISC-505..511,513,514 | all above | no |
 
 ## Decisions
 
-- 2026-08-15 (marker-visibility run, VERIFY/advisor): adopted — (1) MARKER_OVERHANG(24) folded into camera bounds on ALL four sides: the guard passed only incidentally for wide (84px) triangle art overhanging its cell by 22px; now structural. (2) Deleted the per-frame manual scroll clamp — setBounds is the single clamp for every scroll path (keys/drag/pan()), killing the two-clamps-must-agree drift vector the advisor flagged (pan()/centerOn bypass manual clamps). (3) Leaderless-squad title fallback pinned (debug_1). Refuted/waived with reasons: camera-viewport-excluding-HUD variant (HUD is in-canvas scrollFactor-0 — needs a second camera; zoom is fixed at 1, the advisor's own criterion for accepting bounds-widening; zoom-1 assumption now documented at the setBounds site); narrow-viewport e2e run (canvas is fixed-size, not Scale.FIT/DOM-relative — window size cannot change camera geometry); real-drag pixel assertion (with the manual clamp deleted, the guard's settled-clamp measurement IS the one clamp all input paths hit); duplicate squad titles impossible (names unique per mission by pool construction).
+- 2026-08-17 (home-page run, OBSERVE): Architecture — all new chrome is DOM, not Phaser: the landing overlay, end-dialog, and abort button are HTML siblings/overlays of the canvas (rich text, links, native scrolling, Playwright-probe-able), matching the roster panel precedent. Navigation is URL-driven (`/` = home, `?mission=X` = play, reload = retry) so every transition is a clean page load with zero engine-state teardown risk. Home mode = absence of the `mission` param: GameScene then loads space_hulk_1 as an attract backdrop with input disabled, timer unstarted, and no AudioManager (autoplay-unlock via overlay clicks must not blast music). The manual is a second Vite MPA entry (manual.html) whose mission maps are SVG strings built in TypeScript from the actual mission JSONs (user's "possibly even better" option — zero image assets, always in sync with the data). BREAKING-DEFAULT note: bare `/` previously meant "play debug_1"; four e2e specs relying on that get `?mission=debug_1` pinned — same game, explicit param — and game.spec's default-mission test is rewritten to assert the new home semantics. debug_1 stays reachable by URL but is omitted from the landing list (training/debug scenario, not a player mission). E4 ISC soft floor (≥128) waived, show-the-math: this run adds 43 ISCs (472..514); the project ISA totals 515, far past the floor — the floor exists to force decomposition, which the project file already embodies. Delegation floor (E4 ≥2): `which codex` fails again (Forge/Cato unavailable on this machine); floor met instead via two background review agents at VERIFY (diff review + manual-vs-rules fact-check). adopted — (1) MARKER_OVERHANG(24) folded into camera bounds on ALL four sides: the guard passed only incidentally for wide (84px) triangle art overhanging its cell by 22px; now structural. (2) Deleted the per-frame manual scroll clamp — setBounds is the single clamp for every scroll path (keys/drag/pan()), killing the two-clamps-must-agree drift vector the advisor flagged (pan()/centerOn bypass manual clamps). (3) Leaderless-squad title fallback pinned (debug_1). Refuted/waived with reasons: camera-viewport-excluding-HUD variant (HUD is in-canvas scrollFactor-0 — needs a second camera; zoom is fixed at 1, the advisor's own criterion for accepting bounds-widening; zoom-1 assumption now documented at the setBounds site); narrow-viewport e2e run (canvas is fixed-size, not Scale.FIT/DOM-relative — window size cannot change camera geometry); real-drag pixel assertion (with the manual clamp deleted, the guard's settled-clamp measurement IS the one clamp all input paths hit); duplicate squad titles impossible (names unique per mission by pool construction).
 - 2026-08-15 (roster run, VERIFY/advisor): adopted from the advisor — (1) pair-wise weapon cross-check in buildRoster (deploy type vs engine sprite): the positional zip was correct by construction TODAY, but unverifiable against future deploy-order refactors, and space_hulk_6's hand-arbitration proved the correspondence isn't structurally derivable; mismatches downgrade to 'Unknown' loudly. (2) s6 roster map pinned as a fixture + negative test. (3) scrollIntoView on card highlight. (4) replay-truthfulness split documented on RosterPanel (HUD payload-only vs roster live-read + finishReplay reconcile). Deferred as polish (logged, not built): facing glyph on cards, CP-aware AP display, pending-entry state, badge tooltips, number-key card selection, resize re-derivation. Refuted/already-covered: cards are real <button>s (a11y), KIA/ESCAPED are text labels not color-only, escaped/dead clicks blocked, bolter ammo omission correct (engine bolters are unlimited), wheel-over-panel never reaches Phaser (DOM sits outside the canvas).
 - 2026-08-15 (roster run, PLAN): entry/exit facings + squad names come from the ORIGINAL .mish sources via an idempotent patch script on parseMish (never hand-edited); the verifying spec checks the internal invariant "facing points off-board" (neighbor square in facing direction is rock) so it stays hermetic — no test-time dependency on the archive path. Squad→marine mapping is a positional zip captured BY ID at scene start (engine deploys marineDeployment in order; `engine.marines` filters insertion-ordered pieces), so later deaths can't shift names. Roster panel is DOM (flex sibling of the canvas), not Phaser — cards, greying, and scrolling are native CSS, and Playwright probes them directly. Entry triangles render one square OFF-board per the original (`FACEMAP` offset + `rotate(-90*efacing)` → Phaser `setRotation(idx*π/2)`); camera bounds/canvas gain a one-tile margin so edge triangles are visible. Delegation floor (E3 ≥2) relaxed, show-the-math: `which codex` fails (Forge/Cato unavailable on this machine, as in all prior runs) and the work is a single-package UI feature where a second writer would fork one file (GameScene) — Interceptor/Chrome verification remains the delegated leg.
 
@@ -951,6 +1021,29 @@ Client integration (AudioManager, event-driven):
 **Criterion now:** ISC-375 (five consecutive full-suite runs 40/40), handleFire carries a comment forbidding time-based debounce, flamer e2e aims via page.mouse.move.
 
 ## Verification
+
+### Home-page run (2026-08-17, ISC-472..514)
+
+- ISC-472/473/474/478/480: home.spec "homepage:" test — overlay visible, title SULK, intro text, credits (Toby Woodwark + GPL-3.0 + GW), computed overlay alpha 0<a<1, backdrop mission 'Suicide Mission' (49/49 suite green)
+- ISC-475/476: Playwright count `.home-mission` = 8; `[data-mission="debug_1"]` count 0
+- ISC-477: home.spec click space_hulk_2 → URL `?mission=space_hulk_2`, 5 marines deployed, overlay gone, abort mounted
+- ISC-479: manual-link asserted visible; manual page test navigates back via #back-to-game → overlay visible
+- ISC-481/482/483: home.spec "attract mode is inert" — Enter keypress leaves turn 1 / MarineAction; scene.timerEvent undefined; sulk.audio undefined; input.enabled false
+- ISC-484: game.spec rewrite asserts overlay absent at `/?mission=debug_1`; roster/game specs all run overlay-free
+- ISC-485/486/487/489: home.spec "mission won" — autoplay win → #end-dialog data-result=win, Retry reloads same URL (mission param kept, dialog gone), second win + Choose → homepage; win.spec still asserts the Phaser MISSION COMPLETE text object (passes unchanged)
+- ISC-488: home.spec "mission lost" — squad wipe via die()+checkVictory → dialog data-result=loss, heading "Mission failed", both buttons present
+- ISC-490/491/492/493: home.spec abort test — visible during mission, one click arms ("Abandon squad?", URL unchanged), second click → home; homepage test asserts #abort-mission absent at `/`
+- ISC-494/495/497/498/501/502/503: manual e2e — zero pageerrors, 9 section headings probed, ≥4 blockquote.marine-quote, 9 .mission-map svg, #map-legend visible, back link works, mission facts text asserted
+- ISC-496: content.ts numbers grep-matched to rules-reference.md (4 AP marine / 6 stealer+blip, d6 CP, 120s+30/sergeant, overwatch 2 AP range 12, flamer 2 AP + 1 ammo / 6 ammo / kill 2+, bolter 2 dice kill 6 / sustained max +4, cannon 3 dice 5+ / 10 rounds / 4 AP reload / autofire 2 AP 5 rounds 3+, CC 3-vs-1 dice / sergeant +1, blips 1-3)
+- ISC-499/500: missionMapSVG.spec — 6 unit tests: square-rect count == squares.length, entry/deploy/objective counts == JSON, door ticks == doorFacing count, per-mission specials (exits/ducting/cat/download), well-formed SVG for all 9 missions, legend coverage (43/43 client units)
+- ISC-504: git status shows no new binary assets; maps are SVG strings from mission JSON
+- ISC-505: `pnpm build` green; dist/ contains index.html AND manual.html
+- ISC-506/508/511: full Playwright suite 49/49 (42 pre-existing incl. seeded playthrough.spec unchanged + 7 new home.spec); hover/win/game specs pin ?mission=debug_1 (mission param does not touch the dice stream — same seeds hold)
+- ISC-507: engine 259/259, client 43/43, tsc --noEmit clean both packages
+- ISC-509/510: README homepage/abort/dialog/manual paragraph + updated counts (43/49) + structure line; architecture.md client-module lists + URL-routing paragraph updated
+- ISC-512: home.spec homepage test captures pageerror — 0 errors
+- ISC-513: real-Chrome screenshots (Claude-in-Chrome; Interceptor extension not connected this session): landing overlay, manual TOC/quotes/tables, Suicide Mission SVG map, in-game abort button, armed "ABANDON SQUAD?" state, MISSION FAILED banner + DOM dialog
+- ISC-514: committed (hash in Decisions); tree clean
 
 - ISC-1: Bash — `pnpm --filter ./packages/engine test` → 9 files, 45 tests passed
 - ISC-2: Bash — `pnpm --filter ./packages/client test` → 2 files, 6 tests passed (mock-drift GameScene.spec deleted per Decision; hud.spec rewritten payload-driven)

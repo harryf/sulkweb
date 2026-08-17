@@ -7,6 +7,7 @@ import { HudPanel } from '../ui/HudPanel.js';
 import { RosterPanel, type PieceStats } from '../ui/RosterPanel.js';
 import { buildRoster } from '../ui/marineNames.js';
 import { AudioManager } from '../audio/AudioManager.js';
+import { showEndDialog } from '../ui/endDialog.js';
 import { HUD_WIDTH, MINI_MAP_MARGIN, UI_FONT, FACING_ARROWS } from '../config.js';
 
 const TILE_SIZE = 40
@@ -75,18 +76,26 @@ export default class GameScene extends Phaser.Scene {
   /** Mission REGISTRY key (space_hulk_1…) — the audio manifest keys on this,
    *  NOT on mission.name (a display title like "Suicide Mission"). */
   private readonly missionKey: string;
+  /** Homepage attract mode (no ?mission= param): the board is scenery under
+   *  the DOM landing overlay — input disabled, clock stopped, no audio. */
+  private readonly attract: boolean;
 
   constructor() {
     super('GameScene')
     // The engine builds the board, deploys the squad, and seeds the first blips.
     // `?seed=N` pins the WHOLE game (blip values + CP roll included) — used by
     // the deterministic e2e suite and handy for bug reports.
-    // `?mission=<name>` selects any registered mission (default: debug_1).
+    // `?mission=<name>` selects any registered mission (unknown → debug_1).
+    // NO mission param at all = the homepage: space_hulk_1 plays as a dimmed
+    // attract backdrop under the DOM landing overlay (input, clock, and audio
+    // all off — see the `attract` guards in create()).
     const params = new URLSearchParams(window.location.search);
     const seedParam = params.get('seed');
     const dice = seedParam ? new SeededRng(Number(seedParam)) : undefined;
-    const missionParam = params.get('mission') ?? 'debug_1';
-    const missionName = (missionParam in missions ? missionParam : 'debug_1') as keyof typeof missions;
+    const missionParam = params.get('mission');
+    this.attract = missionParam === null;
+    const requested = missionParam ?? 'space_hulk_1';
+    const missionName = (requested in missions ? requested : 'debug_1') as keyof typeof missions;
     this.missionKey = missionName;
     this.engine = new GameEngine(loadMission(missionName), [], dice);
     (window as any).sulk = { engine: this.engine, Selection, scene: this, SeededRng, autoplay, runMarineTurn, PieceEvents }; // dev/debug + autoplay handle
@@ -335,6 +344,9 @@ export default class GameScene extends Phaser.Scene {
       this.add.text(cam.width / 2, cam.height / 2, msg, {
         fontFamily: UI_FONT, fontSize: '48px', color, fontStyle: 'bold'
       }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
+      // DOM dialog on top of the banner: retry (reload — a pinned ?seed
+      // replays the identical game) or back to mission select.
+      showEndDialog(result);
     });
 
 
@@ -402,15 +414,19 @@ export default class GameScene extends Phaser.Scene {
     );
 
     // All game audio: per-mission ambient bed (ducked by phase), event SFX,
-    // and the motion tracker. M toggles mute (persisted).
-    this.audio = new AudioManager(this, this.engine, this.missionKey);
-    (window as any).sulk.audio = this.audio;
-    this.input.keyboard!.on('keydown-M', (e: KeyboardEvent) => {
-      if (this.seenKeyEvents.has(e)) return; // Phaser replay — one toggle per press
-      this.seenKeyEvents.add(e);
-      this.audio.toggleMute();
-    });
-    this.events.once('shutdown', () => this.audio.destroy());
+    // and the motion tracker. M toggles mute (persisted). NOT constructed in
+    // attract mode — a click on the landing overlay is a browser autoplay
+    // unlock, and the homepage must stay silent.
+    if (!this.attract) {
+      this.audio = new AudioManager(this, this.engine, this.missionKey);
+      (window as any).sulk.audio = this.audio;
+      this.input.keyboard!.on('keydown-M', (e: KeyboardEvent) => {
+        if (this.seenKeyEvents.has(e)) return; // Phaser replay — one toggle per press
+        this.seenKeyEvents.add(e);
+        this.audio.toggleMute();
+      });
+      this.events.once('shutdown', () => this.audio.destroy());
+    }
     // The required Music of 40K credit lives in the roster panel's Credits
     // section (RosterPanel buildCredits — see CREDITS.md).
 
@@ -460,17 +476,21 @@ export default class GameScene extends Phaser.Scene {
 
     PieceEvents.emit('cpChanged', { cp: this.engine.cp }); // HUD subscribed after the initial roll
 
-    // Marine-phase turn timer (120s + 30s per living sergeant, per the original)
+    // Marine-phase turn timer (120s + 30s per living sergeant, per the
+    // original). Never started in attract mode — the homepage backdrop must
+    // not tick itself into the stealer phase behind the overlay.
     this.timerRemaining = this.engine.marinePhaseSeconds;
     this.hud.setTimer(this.timerRemaining);
-    this.timerEvent = this.time.addEvent({
-      delay: 1000, loop: true, callback: () => {
-        if (this.paused || this.animating || this.engine.state.result !== 'ongoing' || this.engine.phase !== 'MarineAction') return;
-        this.timerRemaining -= 1;
-        this.hud.setTimer(this.timerRemaining);
-        if (this.timerRemaining <= 0) this.endTurn();
-      }
-    });
+    if (!this.attract) {
+      this.timerEvent = this.time.addEvent({
+        delay: 1000, loop: true, callback: () => {
+          if (this.paused || this.animating || this.engine.state.result !== 'ongoing' || this.engine.phase !== 'MarineAction') return;
+          this.timerRemaining -= 1;
+          this.hud.setTimer(this.timerRemaining);
+          if (this.timerRemaining <= 0) this.endTurn();
+        }
+      });
+    }
 
     // Listen for camera updates for minimap
     this.events.on('update', () => minimap.updateCam(this.cameras.main));
@@ -563,6 +583,14 @@ export default class GameScene extends Phaser.Scene {
         PieceEvents.emit('apChanged', { pieceId: piece.id, apRemaining: piece.apRemaining, apInitial: piece.apInitial });
       }
     });
+
+    // Homepage attract mode: the board is scenery. Kill ALL Phaser input
+    // (pointer + every keyboard handler above) so keys leaking through the
+    // DOM overlay can never advance the engine behind the title screen.
+    if (this.attract) {
+      this.input.enabled = false;
+      this.input.keyboard!.enabled = false;
+    }
   }
 
   /** Roster card click: select the marine, sync map highlight + HUD, pan to him. */

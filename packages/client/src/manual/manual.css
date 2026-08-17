@@ -1,0 +1,185 @@
+@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@400;700;900&display=swap');
+
+/* Field manual — same palette as the game, tuned for reading. */
+
+body {
+  font-family: 'Kanit', sans-serif;
+  font-weight: 400;
+  margin: 0;
+  background: #0d0d0d;
+  color: #c3c3c3;
+  line-height: 1.55;
+}
+
+#manual {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+}
+
+.manual-header { text-align: center; margin-bottom: 18px; }
+
+.manual-header h1 {
+  margin: 0;
+  font-size: 56px;
+  font-weight: 900;
+  letter-spacing: 10px;
+  color: #e8c840;
+  text-shadow: 0 0 18px rgba(232, 200, 64, 0.3);
+}
+
+.manual-subtitle {
+  margin: 0 0 10px;
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #8a8a8a;
+}
+
+a { color: #7ec8ff; }
+.back-link { font-size: 14px; }
+
+.manual-toc {
+  background: #16161a;
+  border: 1px solid #2c2c2c;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 26px;
+}
+
+.manual-toc ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  columns: 2;
+  font-size: 14px;
+}
+
+.manual-toc li { margin: 2px 0; }
+
+section { margin-bottom: 26px; }
+
+h2 {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #e8c840;
+  border-bottom: 1px solid #2c2c2c;
+  padding-bottom: 4px;
+  margin: 0 0 10px;
+}
+
+h3 {
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: #e8e8e8;
+  margin: 0 0 4px;
+}
+
+p { margin: 0 0 10px; }
+ul, ol { margin: 0 0 10px; padding-left: 22px; }
+li { margin-bottom: 4px; }
+strong { color: #e8e8e8; }
+.fine { font-size: 12.5px; color: #8a8a8a; }
+
+table {
+  border-collapse: collapse;
+  margin: 0 0 10px;
+  font-size: 14px;
+  width: 100%;
+}
+
+th, td {
+  border: 1px solid #2c2c2c;
+  padding: 5px 10px;
+  text-align: left;
+}
+
+th {
+  background: #1b1b1b;
+  color: #e8c840;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+td:not(:first-child) { text-align: center; }
+
+/* The squad's testimony */
+.marine-quote {
+  margin: 0 0 26px;
+  padding: 12px 18px;
+  border-left: 3px solid #e8c840;
+  background: #141410;
+  font-style: italic;
+  color: #d8d0a8;
+}
+.marine-quote p { margin: 0 0 4px; font-size: 15px; }
+.marine-quote footer { font-size: 12px; font-style: normal; color: #8a8a8a; }
+
+/* Key chart */
+.key-rose { margin: 8px 0 12px; overflow-x: auto; }
+.key-row { display: flex; gap: 4px; margin-bottom: 4px; }
+.key-row.specials { margin-top: 8px; }
+
+.keycap {
+  width: 52px;
+  min-height: 44px;
+  background: #1b1b1b;
+  border: 1px solid #444;
+  border-radius: 5px;
+  padding: 3px 5px;
+  flex: none;
+}
+.keycap.wide { width: 76px; }
+.keycap.unbound { opacity: 0.35; }
+.key-letter { display: block; font-weight: 900; font-size: 13px; color: #e8e8e8; }
+.key-label { display: block; font-size: 9.5px; color: #9a9a9a; line-height: 1.2; }
+.key-notes { font-size: 13px; color: #9a9a9a; }
+
+/* Mission maps */
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 12.5px;
+  background: #16161a;
+  border: 1px solid #2c2c2c;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 18px;
+}
+
+.legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.legend-item svg { width: 14px; height: 14px; flex: none; }
+
+.mission-entry {
+  margin-bottom: 30px;
+  background: #131316;
+  border: 1px solid #26262c;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.mission-tagline { color: #9a9a9a; font-size: 14px; }
+.mission-facts { font-size: 13.5px; }
+
+.mission-map { margin-top: 8px; }
+.mission-map svg {
+  width: 100%;
+  height: auto;
+  max-height: 460px;
+  border: 1px solid #26262c;
+  border-radius: 4px;
+  background: #0d0d0d;
+}
+
+.manual-footer {
+  margin-top: 40px;
+  padding-top: 12px;
+  border-top: 1px solid #2c2c2c;
+  font-size: 11.5px;
+  color: #6a6a6a;
+  text-align: center;
+}

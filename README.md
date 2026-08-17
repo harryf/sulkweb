@@ -3,11 +3,19 @@
 A web-based port of the classic turn-based strategy game [Sulk](https://sulk.sourceforge.net/) (a Space Hulk clone, originally Pygame), built with **Phaser 3 + TypeScript** on the client and a **pure-TypeScript rules engine** with no rendering dependencies.
 
 **Status: COMPLETE — the entire original campaign is playable.** Nine missions transcribed from the
-original game's sources (`data/missions/<family>/MISH_*.py`):
+original game's sources (`data/missions/<family>/MISH_*.py`).
 
-- **`debug_1`** (default): "Suicide Mission with no forces" — one storm-bolter marine
-  vs a one-blip-per-turn trickle (adapted reach-the-exit objective).
-  `http://localhost:5173/`
+Opening the bare app URL (`http://localhost:5173/`) shows the **homepage**: a title
+overlay with an intro, the mission-select list, credits, and a link to the **field
+manual** (`/manual.html` — friendly rules with TypeScript-rendered maps of every
+mission), over a dimmed attract-mode board. During a mission an **Abort mission**
+button (two-click confirm) returns to the homepage, and the end-of-mission dialog
+offers **Retry** or **Choose another mission**.
+
+- **`debug_1`**: "Suicide Mission with no forces" — one storm-bolter marine
+  vs a one-blip-per-turn trickle (adapted reach-the-exit objective). A training
+  scenario, kept off the mission-select list.
+  `http://localhost:5173/?mission=debug_1`
 - **`space_hulk_1`**: the ORIGINAL scenario — 3 storm bolters, a sergeant and a
   heavy flamer deploy in the north corridor and must fight across the hulk to
   **set the Launch Control room on fire**. Defeat the moment the flamer marine dies
@@ -176,8 +184,8 @@ the replays use, so what you hear tracks what you see.
 
 ```bash
 pnpm --filter ./packages/engine test   # 259 unit tests (rules, AI, game flow) + coverage report
-pnpm --filter ./packages/client test   # 37 unit tests (HUD, minimap, roster, audio logic) + coverage
-pnpm --filter ./packages/client e2e    # 42 Playwright tests: real browser, no mocks
+pnpm --filter ./packages/client test   # 43 unit tests (HUD, minimap, roster, audio, manual maps) + coverage
+pnpm --filter ./packages/client e2e    # 49 Playwright tests: real browser, no mocks
 pnpm build                             # engine tsc + client vite build
 ```
 
@@ -198,7 +206,7 @@ packages/
 ├─ engine/   # Pure rules & AI — no Phaser imports (enforced by test greps)
 │  └─ src/{board,core,pieces,rules,ai,missions,events}
 └─ client/   # Phaser 3 + Vite front-end
-   └─ src/{scenes,ui,audio,utils}
+   └─ src/{scenes,ui,audio,manual,utils}  # manual/ builds /manual.html (field manual + SVG maps)
 ```
 
 ## Roadmap state (original M0–M8 plan in `prompts/`)
@@ -245,7 +253,7 @@ packages/
   That is a scripted-player limitation (protect-the-VIP escort tactics), not
   balance evidence. The kill chain itself is verified: unopposed, the squad
   delivers the flamer and wins by turn 9. Human winnability with overwatch and
-  door discipline is untested. debug_1 (default) stays comfortably winnable.
+  door discipline is untested. debug_1 stays comfortably winnable.
 - Mission 2 is brutal by design ("outnumbered sixty to one") and no scripted
   strategy wins it: entry-post marching, a compact-deployment ablation, and a
   camp-and-overwatch proxy all go 0-for-30, though kills scale with strategy

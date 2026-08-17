@@ -261,3 +261,178 @@ body {
   color: #888;
 }
 .audio-credit a { color: #7ec8ff; }
+
+/* ---- Landing overlay (homepage, no ?mission= param) ---- */
+/* Semi-transparent: the attract-mode board stays slightly visible beneath. */
+
+#home-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(8, 8, 10, 0.86);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 32px 16px;
+  box-sizing: border-box;
+}
+
+.home-panel {
+  max-width: 640px;
+  color: #c3c3c3;
+  font-weight: 400;
+  text-align: center;
+}
+
+.home-title {
+  margin: 0;
+  font-size: 84px;
+  font-weight: 900;
+  letter-spacing: 14px;
+  color: #e8c840;
+  text-shadow: 0 0 24px rgba(232, 200, 64, 0.35);
+}
+
+.home-subtitle {
+  margin: 0 0 18px;
+  font-size: 18px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #8a8a8a;
+}
+
+.home-intro {
+  margin: 0 auto 14px;
+  max-width: 540px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.home-manual-row { font-size: 14px; color: #9a9a9a; margin: 0 0 22px; }
+.home-manual-row a, .home-credits a { color: #7ec8ff; }
+
+.home-missions-heading {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #e8c840;
+}
+
+.home-mission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.home-mission {
+  display: block;
+  padding: 10px 14px;
+  background: rgba(27, 27, 27, 0.9);
+  border: 1px solid #2c2c2c;
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.home-mission:hover {
+  border-color: #e8c840;
+  background: rgba(44, 40, 24, 0.95);
+}
+
+.home-mission-name {
+  display: block;
+  font-weight: 900;
+  font-size: 16px;
+  color: #e8e8e8;
+  letter-spacing: 1px;
+}
+
+.home-mission-tagline {
+  display: block;
+  font-size: 12.5px;
+  color: #9a9a9a;
+}
+
+.home-credits {
+  margin: 26px 0 8px;
+  font-size: 11px;
+  color: #6a6a6a;
+}
+
+/* ---- End-of-mission dialog ---- */
+
+#end-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* transparent backdrop — the in-canvas banner stays the backdrop */
+  pointer-events: none;
+}
+
+.end-box {
+  pointer-events: auto;
+  margin-top: 140px;
+  min-width: 320px;
+  padding: 18px 26px 22px;
+  background: rgba(15, 15, 17, 0.96);
+  border: 1px solid #2c2c2c;
+  border-radius: 8px;
+  text-align: center;
+  color: #c3c3c3;
+  font-weight: 400;
+}
+
+.end-box h2 {
+  margin: 0 0 4px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-size: 22px;
+}
+.end-win h2 { color: #7cfc00; }
+.end-draw h2 { color: #e8c840; }
+.end-loss h2 { color: #ff4040; }
+
+.end-box p { margin: 0 0 14px; font-size: 13px; color: #9a9a9a; }
+
+.end-buttons { display: flex; gap: 10px; justify-content: center; }
+
+.end-buttons button,
+#abort-mission {
+  font-family: 'Kanit', sans-serif;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-size: 13px;
+  color: #e8e8e8;
+  background: #1b1b1b;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.end-buttons button:hover, #abort-mission:hover { border-color: #e8c840; color: #e8c840; }
+
+/* ---- Abort-mission control (in-mission only) ---- */
+
+#abort-mission {
+  position: fixed;
+  top: 10px;
+  right: 12px;
+  z-index: 150;
+  opacity: 0.85;
+}
+
+#abort-mission.armed {
+  color: #ff4040;
+  border-color: #ff4040;
+  opacity: 1;
+}

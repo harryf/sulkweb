@@ -14,15 +14,29 @@ async function waitForGame(page: Page, url = '/?mission=space_hulk_1') {
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
 }
 
-test('default mission is debug_1; ?mission= selects space_hulk_1', async ({ page }) => {
+test('bare / is the homepage (space_hulk_1 attract backdrop); ?mission= plays', async ({ page }) => {
   await waitForGame(page, '/');
+  const home = await page.evaluate(() => {
+    const { engine } = (window as any).sulk;
+    return { name: engine.mission.name, overlay: !!document.getElementById('home-overlay') };
+  });
+  expect(home.name).toBe('Suicide Mission'); // space_hulk_1 as scenery
+  expect(home.overlay).toBe(true);
+
+  await waitForGame(page, '/?mission=debug_1');
   const dbg = await page.evaluate(() => {
     const { engine } = (window as any).sulk;
-    return { name: engine.mission.name, marines: engine.marines.length, enemies: engine.stealerSide.length };
+    return {
+      name: engine.mission.name,
+      marines: engine.marines.length,
+      enemies: engine.stealerSide.length,
+      overlay: !!document.getElementById('home-overlay'),
+    };
   });
   expect(dbg.name).toBe('Suicide Mission with no forces');
   expect(dbg.marines).toBe(1); // lone storm-bolter marine at BEGINPLACE
   expect(dbg.enemies).toBe(0); // BLIPS = (0, 1)
+  expect(dbg.overlay).toBe(false);
 
   await waitForGame(page, '/?mission=space_hulk_1');
   const hulk = await page.evaluate(() => (window as any).sulk.engine.mission.name);

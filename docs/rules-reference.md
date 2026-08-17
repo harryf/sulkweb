@@ -189,17 +189,30 @@ One Data Room square. A sergeant (either type) standing on it at the end phase *
 
 ## The stealer phase (AI behavior)
 
-Every stealer-side piece acts in turn, spending its full AP:
+The stealer side plays as a **hive**: before any piece moves, a side-level plan (`ai/hive.ts`) reads the board and assigns each piece a role for the turn.
+
+**The threat map.** The hive marks every square an un-jammed overwatching marine could shoot (fire arc + line of sight + range 12: the *kill zones*) and every square any marine sees. Pathing pays a heavy toll to enter a kill zone and a small one to be seen, so the horde routes around watched corridors and approaches through the dark. The map is recomputed as pieces act: a death, a door, or a body in a corridor changes it mid-phase.
+
+**Roles.**
+
+- **Assault**: charge (threat-weighted path) and fight. Everyone assaults when nothing threatens, when the wave is launched, or when the piece is already exposed. The moment a lone watcher's bolter **jams**, his kill zone vanishes and the horde floods the lane at once.
+- **Stage**: advance to a hidden, unwatched square near the squad and hold. The buildup masses in territory the marines don't control, split across up to three genuinely separated approach directions so the squad must cover several at once. A staging piece beside an open door a marine watches through **shuts it** (1 AP) when that takes its side dark.
+- **Block**: when a cohort is sealed off (every route crosses a fire lane), one stealer is spent. It walks straight into the lane, soaks the reaction burst (each forced shot is a jam chance), and **parks on the first watched square it survives**. Bodies block line of sight, so the corridor behind it goes dark and the mass builds up there. It holds until the wave goes.
+- **Straggler hunt**: a marine separated from every squad-mate draws the nearest pieces onto him regardless of the wave state.
+
+**Waves.** The hive masses until the staged force can swamp the squad (about twice the living marines; a hidden blip counts as two). Patience is keyed to growth: while reinforcements keep the wave growing it keeps massing, but three turns without growth, or an exhausted blip budget, launches it. A launched wave strikes nearest-first, so the column unwinds front-to-back with the lead body shielding the ones behind.
+
+**Per-piece execution** (unchanged from AI0):
 
 1. A stealer with a marine directly ahead (or reachable by turning) **attacks in close combat**, repeatedly while AP lasts.
 2. A stealer adjacent to the loose C.A.T. or intact ducting steps onto it (skewer / tear out).
-3. Otherwise the piece takes the first step of a **shortest path** toward the nearest marine (stealers also path toward the C.A.T. and ducting). Closed doors count as traversable; the piece opens them on contact (1 AP). Pieces queued behind a friend wait rather than burn AP.
+3. Otherwise the piece steps along its role's path. Closed doors count as traversable; the piece opens them on contact (1 AP). Pieces queued behind a friend wait rather than burn AP.
 4. Blips obey their no-sight/no-adjacency bars while pathing; a blocked, unacted blip with marines within 6 squares converts voluntarily.
 5. **Every stealer-side action triggers overwatch reactions** from every overwatching marine who can see the actor, before its next action.
 
 Sight is re-checked after every action, so a step, an opened door, or an overwatch kill can convert blips mid-phase.
 
-The AI reads the full board state: it always knows where every marine is and paths accordingly. The only information rule it respects is the blips' own no-sight constraint; there is no hidden-information model beyond blip values.
+The AI reads the full board state: it always knows where every marine is (and who is overwatching or jammed) and plans accordingly. The only information rule it respects is the blips' own no-sight constraint; there is no hidden-information model beyond blip values. The hive draws no dice: its choices are functions of the board alone, so a seeded game replays identically.
 
 ## Victory objectives
 

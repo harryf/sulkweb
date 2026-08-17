@@ -61,3 +61,11 @@ export function openDoorWithEvent(door: Door, piece: { ap: number }): void {
   piece.ap -= 1;
   PieceEvents.emit('doorToggled', { x: door.square.x, y: door.square.y, facing: door.facing, open: true });
 }
+
+/** Close a door AND announce it, spending 1 AP from `piece` (hive staging goes
+ *  dark behind it — massing stealers shut the doors marines opened). */
+export function closeDoorWithEvent(door: Door, piece: { ap: number }): void {
+  door.close();
+  piece.ap -= 1;
+  PieceEvents.emit('doorToggled', { x: door.square.x, y: door.square.y, facing: door.facing, open: false });
+}

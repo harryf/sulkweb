@@ -35,8 +35,9 @@ pnpm --filter ./packages/engine example  # CLI engine tour
   (pieceMoved, pieceDied, shot, doorToggled, phaseChanged, gameOver, …). To surface new
   engine behavior in the UI, emit an event and subscribe in `GameScene`/`HudPanel`.
 - `GameEngine` orchestrates: deployment, CP, turn cycle, reinforcements (finite
-  `totalBlips` budget), AI (`ai/StealerAI.ts`), victory. `ai/MarineAutopilot.ts` is a
-  legal-actions scripted player used by the deterministic e2e tests.
+  `totalBlips` budget), AI (`ai/StealerAI.ts` executes; `ai/hive.ts` plans),
+  victory. `ai/MarineAutopilot.ts` is a legal-actions scripted player used by
+  the deterministic e2e tests.
 - Mission schema: `engine/src/missions/missionTypes.ts`; Mission 1 JSON has squares,
   doors (`doorFacing`), `entryPoints`, `exitPoints`, `marineDeployment`, `objective`.
 - **Mission geometry comes from the ORIGINAL Sulk sources** at
@@ -187,10 +188,22 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
   with the camera until `HudPanel` set it per child).
 - **LOS:** missing squares are solid rock and block sight (fixed bug); pieces block LOS;
   vision arc is 180°, fire arc 90° with 45° edges shootable (`board/vision.ts`).
-- **AI pathing:** BFS shortest-path (8-connected; closed door EDGES are pathed through and
-  opened on contact; friendly pieces transparent for pathing so the horde queues through
-  chokepoints, but a piece never steps onto an occupied square). Greedy stepping was removed —
-  it stalls permanently in concave room pockets (regression tests in `ai_pathing.spec.ts`).
+- **AI is a hive (AI1, 2026-08-17):** `ai/hive.ts` plans the whole stealer turn —
+  threat map (overwatch kill zones + seen squares), threat-weighted Dijkstra
+  (kill +6, seen +2 per square; falls back to plain BFS behavior with no threat),
+  staging ring + stall-based wave patience, approach-vector spread (separated
+  octants, real-reach scoring, per-vector quotas), straggler hunts, sacrifice
+  blocker (parks in the fire lane; its BODY blocks LOS so the column builds up
+  behind), staging door-shuts, emergent jam rush. HARD invariants: the hive
+  consumes ZERO dice (hive.spec counts RollQueue draws exactly — any planning
+  draw re-baselines every scripted test), hive memory is a WeakMap on Board,
+  variety comes only from turnNumber rotation. Pathing rules unchanged:
+  8-connected, closed door EDGES pathed through and opened on contact, friendly
+  pieces transparent (queue through chokepoints) but never stepped on, corner-cut
+  diagonals pruned. Greedy stepping was removed — it stalls in concave pockets
+  (`ai_pathing.spec.ts`). Behavior fixtures live in `hive.spec.ts`; re-pin
+  pinned seeds only AFTER the last behavioral change (beta_2 got re-pinned twice
+  in one session for scanning too early).
 - **Doors are EDGES, not squares:** a `Door` anchors on a square + `doorFacing` and lives on
   the boundary to that neighbor. `Board.doorBetween(a,b)` is the lookup; movement blocks
   orthogonal crossings (`Piece.tryMove`), LOS does segment-intersection vs closed edges

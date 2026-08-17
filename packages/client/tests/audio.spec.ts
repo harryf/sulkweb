@@ -108,5 +108,8 @@ test('required Music of 40K credit is visible and links the channel (ISC-334)', 
   await page.waitForFunction(() => (window as any).sulk?.audio !== undefined, undefined, { timeout: 15000 });
   const credit = page.locator('.audio-credit');
   await expect(credit).toContainText('Music of 40K');
-  await expect(credit.locator('a')).toHaveAttribute('href', 'https://www.youtube.com/@Musicof40K');
+  // The credit block also links the credits page — target the channel link by
+  // name (bare `a` trips Playwright strict mode with two matches).
+  await expect(credit.getByRole('link', { name: 'Music of 40K' }))
+    .toHaveAttribute('href', 'https://www.youtube.com/@Musicof40K');
 });

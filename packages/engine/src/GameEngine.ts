@@ -238,8 +238,14 @@ export class GameEngine {
     }
     convertRevealedBlips(board)
 
-    // Stealer action phase (AI)
-    runStealerActions(board)
+    // Stealer action phase (AI) — the hive plans with the turn number (tactic
+    // rotation) and the remaining blip budget (wave sizing vs. respawn rate).
+    runStealerActions(board, {
+      turnNumber: this.turnNumber,
+      blipsRemaining: this.mission.totalBlips === undefined
+        ? undefined
+        : Math.max(0, this.mission.totalBlips - this.blipsSpawned),
+    })
 
     // beta_2 ambush counters deploy at the END of the stealer phase (original
     // Stealer_Action_Phase._end): one per turn, at most two alive at once.

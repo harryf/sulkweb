@@ -4,7 +4,7 @@ A web-based port of the classic turn-based strategy game [Sulk](https://sulk.sou
 
 **▶ Play it now: <https://harryf.github.io/sulkweb/>** (deployed from tagged
 releases; the version tag is shown at the bottom of the homepage. The deployed
-site ships without the YouTube-sourced ambient music — see
+site ships without the YouTube-sourced fetched audio — see
 [Releases & deployment](#releases--deployment) and `CREDITS.md`.)
 
 **Status: COMPLETE — the entire original campaign is playable.** Nine missions transcribed from the
@@ -211,10 +211,12 @@ The workflow builds with `SULK_VERSION` set from the tag, which Vite injects
 as `__APP_VERSION__` — visible in the homepage credits and the manual footer
 (`dev` on local builds). If the verification gate fails, nothing deploys.
 
-The deployed site is intentionally **music-silent**: the YouTube-sourced
-ambient tracks are gitignored (see `CREDITS.md`) so CI never has them, and the
-client tolerates the missing files as 404s. Everything else — game, manual,
-maps, fonts — is fully playable.
+The deployed site ships **without the fetched audio**: everything under
+`assets/audio/` — ambient music, alien voices, and derived SFX cuts, all
+YouTube-sourced (see `CREDITS.md`) — is gitignored, so CI never has it and
+the client tolerates the missing files as 404s. The original game's
+`assets/sounds/` effects are tracked and do ship; the game and manual are
+fully playable.
 
 ### Guides
 

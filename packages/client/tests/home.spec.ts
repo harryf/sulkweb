@@ -34,7 +34,7 @@ test('homepage: title, intro, mission list, credits, manual link over a dimmed s
   await expect(overlay.locator('#manual-link')).toBeVisible();
 
   // Version stamp: 'dev' locally, the release tag (vN.N.N) on deployed builds
-  await expect(overlay.locator('#app-version')).toHaveText(/^(dev|v\d+\.\d+(\.\d+)?)$/);
+  await expect(overlay.locator('#app-version')).toHaveText(/^(dev|v\d+\.\d+(\.\d+)?(-[\w.]+)?)$/);
 
   // Board "slightly visible" beneath: overlay background is semi-transparent
   const alpha = await overlay.evaluate(el => {
@@ -206,7 +206,7 @@ test('field manual: rules sections, marine quotes, and a map for every mission',
   await expect(page.locator('#mission-space_hulk_1 .mission-facts')).toContainText('Flame the Launch Control');
 
   // Version stamp in the manual footer too
-  await expect(page.locator('#app-version')).toHaveText(/^(dev|v\d+\.\d+(\.\d+)?)$/);
+  await expect(page.locator('#app-version')).toHaveText(/^(dev|v\d+\.\d+(\.\d+)?(-[\w.]+)?)$/);
 
   // Back to the game
   await page.click('#back-to-game');

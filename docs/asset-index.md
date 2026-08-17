@@ -201,7 +201,7 @@ Files at the public root.
 
 | Name | Location | Status | How it is used |
 |---|---|---|---|
-| vite.svg | `packages/client/public/vite.svg` | In use | Favicon, referenced from `index.html` (`<link rel="icon">`) |
+| favicon.png | `packages/client/public/favicon.png` | In use | Favicon (the storm-bolter terminator sprite), referenced from all three pages' `<link rel="icon">` |
 
 ## Unused assets
 

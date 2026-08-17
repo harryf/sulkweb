@@ -69,6 +69,8 @@ export class AudioManager {
     if (scene.sound.locked) scene.sound.once(Phaser.Sound.Events.UNLOCKED, startAll);
     else startAll();
 
+    document.addEventListener('visibilitychange', this.onVisibility);
+
     // Brave (and some Chrome states) can leave the AudioContext 'suspended'
     // even when Phaser reports unlocked — everything then "plays" silently.
     // Resume on any real gesture until the context is running.
@@ -136,6 +138,7 @@ export class AudioManager {
 
   destroy(): void {
     for (const [type, fn] of this.subs) PieceEvents.off(type as never, fn);
+    document.removeEventListener('visibilitychange', this.onVisibility);
     this.trackerTimer?.remove();
     this.music?.stop();
   }
@@ -172,10 +175,42 @@ export class AudioManager {
 
   private startMusic(): void {
     if (!this.has(this.trackKey)) return;
-    this.music = this.scene.sound.add(this.trackKey, {
-      loop: true, volume: duckTarget(this.engine.phase),
-    });
+    // Fade in from silence rather than cutting in at full bed level. The
+    // tween's explicit `from: 0` is load-bearing: play() (and the unlock
+    // queue's deferred play) resets the sound's volume to its config value,
+    // clobbering any setVolume(0) done here — a from-less tween then captures
+    // volume 1 and fades DOWN. `from` re-asserts silence at tween start.
+    this.music = this.scene.sound.add(this.trackKey, { loop: true, volume: 0 });
     this.music.play();
+    this.fadeIn();
+  }
+
+  /** Backgrounded tabs must go quiet: Phaser's blur-pause only catches sounds
+   *  already playing at blur time, and a looping Web Audio source happily
+   *  outlives the frozen RAF loop — so two open tabs bleed ambiences over
+   *  each other. Pause is immediate (tweens are RAF-driven and frozen while
+   *  hidden); the return trip fades back in. */
+  private readonly onVisibility = (): void => {
+    if (!this.music) return;
+    if (document.visibilityState === 'hidden') {
+      this.scene.tweens.killTweensOf(this.music);
+      if (this.music.isPlaying) this.music.pause();
+    } else if (this.music.isPaused) {
+      this.music.resume();
+      this.fadeIn();
+    }
+  };
+
+  /** Rise from silence to the current phase's duck target. */
+  private fadeIn(): void {
+    if (!this.music) return;
+    this.scene.tweens.killTweensOf(this.music);
+    this.scene.tweens.add({
+      targets: this.music,
+      volume: { from: 0, to: duckTarget(this.engine.phase) },
+      duration: AUDIO_CONFIG.musicFadeInMs,
+      ease: 'Sine.easeInOut',
+    });
   }
 
   /** Tween the ambient bed to a new level — never a hard cut (ISC-313).

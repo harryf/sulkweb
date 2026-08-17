@@ -16,6 +16,9 @@ export const AUDIO_CONFIG = {
   sfxGain: 0.8,
   /** Duck crossfade duration; a cut under 500ms reads as a glitch. */
   fadeMs: 900,
+  /** Music entrance fade (mission start, tab returning to focus) — slower
+   *  than a duck so the bed rises rather than arrives. */
+  musicFadeInMs: 1800,
   tracker: {
     /** Ping cadence at (and inside) panic range. */
     minMs: 300,

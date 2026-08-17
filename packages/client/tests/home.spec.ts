@@ -137,6 +137,29 @@ test('an armed abort button does not fire on the end-turn Enter key', async ({ p
   expect(turn).toBeGreaterThanOrEqual(2); // Enter reached the game, not the button
 });
 
+test('mission music fades in from silence after the unlock gesture', async ({ page }) => {
+  await page.goto('/?mission=debug_1&seed=1');
+  await waitForScene(page);
+  await page.locator('canvas').click({ position: { x: 40, y: 40 } }); // autoplay unlock
+
+  await page.waitForFunction(() => {
+    const m = ((window as any).sulk.audio as any)?.music;
+    return m?.isPlaying === true;
+  }, undefined, { timeout: 5000 });
+  const early = await page.evaluate(() => ((window as any).sulk.audio as any).music.volume);
+  await page.waitForTimeout(1200);
+  const later = await page.evaluate(() => ((window as any).sulk.audio as any).music.volume);
+  expect(later).toBeGreaterThan(early); // rising bed, not a hard cut-in
+  expect(early).toBeLessThan(0.16);     // started below the quiet duck target
+});
+
+test('every page links the marine favicon', async ({ page }) => {
+  for (const path of ['/', '/manual.html', '/credits.html']) {
+    await page.goto(path);
+    await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', '/favicon.png');
+  }
+});
+
 test('mission won: end dialog offers retry and mission select', async ({ page }) => {
   test.setTimeout(120000);
   await page.goto('/?mission=debug_1&seed=1');

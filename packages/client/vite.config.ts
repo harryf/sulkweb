@@ -26,6 +26,15 @@ const assets404 = (): Plugin => ({
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  // Relative base so the built site works from any mount point — GitHub Pages
+  // serves it under /sulkweb/, local preview serves it from /. All runtime
+  // asset paths in source are already relative ('assets/...').
+  base: './',
+  // The version shown in the UI. CI sets SULK_VERSION from the pushed git tag
+  // (the single source of truth for a release); everywhere else it is 'dev'.
+  define: {
+    __APP_VERSION__: JSON.stringify(process.env.SULK_VERSION ?? 'dev'),
+  },
   plugins: [assets404()],
   build: {
     rollupOptions: {

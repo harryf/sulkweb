@@ -1,0 +1,82 @@
+# Release-gated GitHub Pages deploy.
+#
+# The git tag is the single source of truth for a release: pushing a v* tag
+# runs the verification gate (typecheck + full unit suites), builds the client
+# with SULK_VERSION set from the tag (shown in the UI as #app-version), and
+# publishes packages/client/dist to https://harryf.github.io/sulkweb/.
+#
+# Plain pushes to main never deploy — that is the release gateway.
+#
+# The YouTube-sourced music is gitignored (see CREDITS.md), so it is absent
+# from CI checkouts and the deployed site is deliberately music-silent; the
+# client treats missing audio as a tolerated 404 (ISA ISC-328).
+#
+# workflow_dispatch exists for manual redeploys; it stamps the ref name
+# (e.g. "main") as the version, so prefer tags for real releases.
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  verify-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck engine (tsc -b via build)
+        run: pnpm --filter @sulk/engine build
+
+      - name: Typecheck client
+        run: pnpm --filter client exec tsc --noEmit
+
+      - name: Unit tests (engine + client)
+        run: pnpm -r test
+
+      - name: Build client (version = tag)
+        run: SULK_VERSION=${{ github.ref_name }} pnpm --filter client build
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/client/dist
+
+  deploy:
+    needs: verify-and-build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

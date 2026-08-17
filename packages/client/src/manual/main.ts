@@ -158,5 +158,6 @@ const footer = el('footer', 'manual-footer',
   'A fan recreation of Toby Woodwark&rsquo;s <em>Sulk</em> (2003) &middot; '
   + '<a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0</a> &middot; '
   + 'Space Hulk is a trademark of Games Workshop; this project is unaffiliated '
-  + 'and claims no rights over Games Workshop&rsquo;s intellectual property.');
+  + 'and claims no rights over Games Workshop&rsquo;s intellectual property. '
+  + `&middot; <span id="app-version">${__APP_VERSION__}</span>`);
 root.appendChild(footer);

@@ -2,6 +2,11 @@
 
 A web-based port of the classic turn-based strategy game [Sulk](https://sulk.sourceforge.net/) (a Space Hulk clone, originally Pygame), built with **Phaser 3 + TypeScript** on the client and a **pure-TypeScript rules engine** with no rendering dependencies.
 
+**▶ Play it now: <https://harryf.github.io/sulkweb/>** (deployed from tagged
+releases; the version tag is shown at the bottom of the homepage. The deployed
+site ships without the YouTube-sourced ambient music — see
+[Releases & deployment](#releases--deployment) and `CREDITS.md`.)
+
 **Status: COMPLETE — the entire original campaign is playable.** Nine missions transcribed from the
 original game's sources (`data/missions/<family>/MISH_*.py`).
 
@@ -190,6 +195,26 @@ pnpm build                             # engine tsc + client vite build
 ```
 
 The project ISA (`ISA.md`) is the system of record: goals, verified criteria, decisions, and changelog.
+
+### Releases & deployment
+
+The live site <https://harryf.github.io/sulkweb/> is GitHub Pages, deployed by
+`.github/workflows/deploy.yml`. **Only version tags deploy** — pushing to
+`main` never touches the live site. To ship a release:
+
+```bash
+git tag v0.3.0          # semver tag = the release gateway AND the UI version
+git push origin v0.3.0  # CI: typecheck + full unit suites, then build + deploy
+```
+
+The workflow builds with `SULK_VERSION` set from the tag, which Vite injects
+as `__APP_VERSION__` — visible in the homepage credits and the manual footer
+(`dev` on local builds). If the verification gate fails, nothing deploys.
+
+The deployed site is intentionally **music-silent**: the YouTube-sourced
+ambient tracks are gitignored (see `CREDITS.md`) so CI never has them, and the
+client tolerates the missing files as 404s. Everything else — game, manual,
+maps, fonts — is fully playable.
 
 ### Guides
 

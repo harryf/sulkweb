@@ -3,7 +3,7 @@ import { StormBolterMarine, SergeantMarine } from '../pieces/StormBolterMarine.j
 import { HeavyFlamerMarine } from '../pieces/HeavyFlamerMarine.js';
 import type { Piece, Coord } from '../pieces/Piece.js';
 import { canShoot } from '../board/vision.js';
-import { Dir, DIR_VEC } from '../core/Direction.js';
+import { DIR_VEC, chebyshev, facingToward, turnToward } from '../core/Direction.js';
 import { closeCombat } from '../rules/combat.js';
 import type { Board } from '../board/Board.js';
 
@@ -31,8 +31,7 @@ export function runMarineTurn(engine: GameEngine): void {
     (Number(a instanceof HeavyFlamerMarine) - Number(b instanceof HeavyFlamerMarine)) * flamerFirst);
 
   const enemiesNear = () => (board.pieces as Piece[]).some(p =>
-    p.kind !== 'marine' && engine.marines.some(m =>
-      Math.max(Math.abs(m.pos.c - p.pos.c), Math.abs(m.pos.r - p.pos.r)) <= 10));
+    p.kind !== 'marine' && engine.marines.some(m => chebyshev(m.pos, p.pos) <= 10));
 
   // Kill-quota missions: the blockade win needs EVERY entry within 6 of some
   // marine, so marines split into posts by greedy set-cover, not nearest-entry
@@ -93,17 +92,18 @@ export function runMarineTurn(engine: GameEngine): void {
 function advanceToward(board: Board, m: Piece, goal: { x: number; y: number }): boolean {
   const next = nextStep(board, m.pos, { c: goal.x, r: goal.y });
   if (!next || board.isOccupied(next)) return false;
-  const dir = facingToward(m.pos, next);
-  if (m.facing !== dir) {
-    const delta = ((dir - m.facing + 4) % 4);
-    if (!m.tryTurn(delta === 1 ? 1 : delta === 3 ? -1 : 2)) return false;
-  }
+  if (!turnToward(m, facingToward(m.pos, next))) return false;
   return m.tryMove(next.c - m.pos.c, next.r - m.pos.r);
 }
 
 /** First step of a shortest 8-connected path; friendly pieces are transparent
  *  for pathing (the squad queues) but never stepped onto; closed doors are
- *  walked up to and opened on contact by the caller. */
+ *  walked up to and opened on contact by the caller.
+ *  KNOWN DIVERGENCE from StealerAI.nextStepOnPath (see ISA Decisions
+ *  2026-08-17): this planner skips the diagonalBlockedByDoor corner rule and
+ *  treats enemy pieces as transparent. A planned corner-cut tryMove refuses
+ *  makes advanceToward return false (the marine overwatches instead of
+ *  stalling). Left as-is deliberately — fixing it changes seeded playthroughs. */
 function nextStep(board: Board, from: Coord, to: Coord): Coord | undefined {
   const key = (c: Coord) => `${c.c},${c.r}`;
   const prev = new Map<string, Coord | null>();
@@ -174,8 +174,7 @@ function missionTarget(engine: GameEngine, m: Piece): { x: number; y: number } |
       const dp = engine.mission.downloadPoint;
       if (!dp) return undefined;
       if (!(m instanceof SergeantMarine)) {
-        const d = Math.max(Math.abs(dp.x - m.pos.c), Math.abs(dp.y - m.pos.r));
-        if (d <= 2) return undefined; // in position — overwatch from here
+        if (chebyshev({ c: dp.x, r: dp.y }, m.pos) <= 2) return undefined; // in position — overwatch from here
       }
       return { x: dp.x, y: dp.y };
     }
@@ -229,12 +228,6 @@ function walkDist(board: Board, a: { x: number; y: number }, b: { x: number; y: 
     frontier = next;
   }
   return max + 1;
-}
-
-function facingToward(from: Coord, to: Coord): Dir {
-  const dc = to.c - from.c, dr = to.r - from.r;
-  if (Math.abs(dc) >= Math.abs(dr)) return dc > 0 ? Dir.E : Dir.W;
-  return dr > 0 ? Dir.S : Dir.N;
 }
 
 function shootNearest(engine: GameEngine, marine: StormBolterMarine): boolean {

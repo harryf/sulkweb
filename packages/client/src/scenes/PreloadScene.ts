@@ -13,6 +13,8 @@ export default class PreloadScene extends Phaser.Scene {
    * Preloads game assets.
    */
   preload() {
+    // Not drawn anywhere: this load exists to give the loader a queue item so
+    // its 'complete' event reliably fires and gates the WebFont wait below.
     this.load.image('square', 'assets/themes/default/square_corridor.png');
     this.load.once('complete', () => {
       let started = false;

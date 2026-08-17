@@ -1,6 +1,6 @@
 import { Board } from './Board.js';
 import { Square } from './Square.js';
-import { toRelative, type Dir } from '../core/Direction.js';
+import { toRelative, chebyshev, type Dir } from '../core/Direction.js';
 import { hasLineOfSight } from './los.js';
 
 export interface Viewer {
@@ -40,12 +40,22 @@ export function canShoot(board: Board, viewer: Viewer, target: Square, range = I
   if (!inFireArc(viewer, target)) return false;
   const from = board.get(viewer.pos.c, viewer.pos.r);
   if (!from) return false;
-  const distance = Math.max(Math.abs(target.x - viewer.pos.c), Math.abs(target.y - viewer.pos.r));
-  if (distance > range) return false;
+  if (chebyshev({ c: target.x, r: target.y }, viewer.pos) > range) return false;
   return hasLineOfSight(board, from, target, { piecesBlock: true });
 }
 
 /** Every board square the viewer currently sees. */
 export function visibleSquares(board: Board, viewer: Viewer): Square[] {
   return board.allSquares().filter(sq => canSee(board, viewer, sq));
+}
+
+/**
+ * Any marine currently sees this square. Drives blip conversion (StealerAI),
+ * blip door caution, and ambush-counter placement legality.
+ */
+export function squareSeenByMarine(board: Board, coord: { c: number; r: number }): boolean {
+  const sq = board.get(coord.c, coord.r);
+  if (!sq) return false;
+  return board.pieces.some(p =>
+    (p as { kind?: string }).kind === 'marine' && canSee(board, p as unknown as Viewer, sq));
 }

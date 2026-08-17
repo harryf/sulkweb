@@ -17,11 +17,7 @@ export { flameFlood, igniteSquares, sectionSquares, clearFlames } from './rules/
 export { Dir } from './core/Direction.js';
 export { AP_PER_TURN, MOVE_COST, TURN_COST } from './core/CostTables.js';
 
-// Old exports, potentially for example.ts or legacy code - review if still needed
-
 export { Door } from './rules/Door.js';
-export { GameCycle } from './GameCycle.js';
-export { Selection } from './ui/Selection.js';
 export * from './events/PieceEvents.js';
 export { Feature } from './rules/Feature.js';
 export { DOOR_FACING } from './rules/Door.js';

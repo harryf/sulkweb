@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { PieceEvents } from '@sulk/engine/index.js'
-import { HUD_WIDTH, HUD_BG, HUD_HEADER_COLOR, HUD_TEXT_COLOR, MINI_MAP_MARGIN } from '../config.js'
+import { HUD_WIDTH, HUD_BG, HUD_HEADER_COLOR, HUD_TEXT_COLOR, MINI_MAP_MARGIN, UI_FONT } from '../config.js'
 
 export class HudPanel extends Phaser.GameObjects.Container {
   private bg: Phaser.GameObjects.Rectangle
@@ -79,7 +79,7 @@ export class HudPanel extends Phaser.GameObjects.Container {
     // Mission-level information only: per-marine AP/CP/ammo live on the
     // roster cards, never here.
     const headerText = scene.add.text(header.x + 8, header.y + 6, 'Mission Status', {
-      fontFamily: 'Kanit',
+      fontFamily: UI_FONT,
       fontSize: '20px',
       color: HUD_TEXT_COLOR,
       fontStyle: 'bold',
@@ -91,11 +91,11 @@ export class HudPanel extends Phaser.GameObjects.Container {
     // Phase / turn / timer block
     const statusY = header.y + 62
     this.phaseText = scene.add.text(header.x + 8, statusY, 'Turn 1: Marines', {
-      fontFamily: 'Kanit', fontSize: '15px', color: HUD_TEXT_COLOR, fixedWidth: HUD_WIDTH - 16
+      fontFamily: UI_FONT, fontSize: '15px', color: HUD_TEXT_COLOR, fixedWidth: HUD_WIDTH - 16
     })
     this.add(this.phaseText)
     this.timerText = scene.add.text(header.x + 8, statusY + 22, '2:00', {
-      fontFamily: 'Kanit', fontSize: '22px', color: '#e8c840', fixedWidth: HUD_WIDTH - 16
+      fontFamily: UI_FONT, fontSize: '22px', color: '#e8c840', fixedWidth: HUD_WIDTH - 16
     })
     this.add(this.timerText)
 
@@ -107,7 +107,7 @@ export class HudPanel extends Phaser.GameObjects.Container {
     doneBtn.on('pointerdown', () => onDone?.())
     this.add(doneBtn)
     const doneLabel = scene.add.text(8, doneY + 6, 'DONE  ⏎', {
-      fontFamily: 'Kanit', fontSize: '17px', color: '#ffffff', align: 'center', fixedWidth: HUD_WIDTH - 16
+      fontFamily: UI_FONT, fontSize: '17px', color: '#ffffff', align: 'center', fixedWidth: HUD_WIDTH - 16
     })
     this.add(doneLabel)
 
@@ -117,7 +117,7 @@ export class HudPanel extends Phaser.GameObjects.Container {
 
     // Casualty counters
     this.casualtyText = scene.add.text(header.x + 8, header.y + 38, 'Kills: 0   Losses: 0', {
-      fontFamily: 'Kanit',
+      fontFamily: UI_FONT,
       fontSize: '15px',
       color: HUD_TEXT_COLOR,
       align: 'left',
@@ -138,14 +138,14 @@ export class HudPanel extends Phaser.GameObjects.Container {
 
     // Mission objective
     this.objectiveText = scene.add.text(8, doneY + 44, '', {
-      fontFamily: 'Kanit', fontSize: '13px', color: '#e8c840', lineSpacing: 2,
+      fontFamily: UI_FONT, fontSize: '13px', color: '#e8c840', lineSpacing: 2,
       fixedWidth: HUD_WIDTH - 16, wordWrap: { width: HUD_WIDTH - 16 }
     })
     this.add(this.objectiveText)
 
     // Dice readout — the original shows every roll on screen (DisplayDie)
     this.diceText = scene.add.text(8, doneY + 78, '', {
-      fontFamily: 'Kanit', fontSize: '13px', color: '#c8d8c8', fixedWidth: HUD_WIDTH - 16
+      fontFamily: UI_FONT, fontSize: '13px', color: '#c8d8c8', fixedWidth: HUD_WIDTH - 16
     })
     this.add(this.diceText)
     PieceEvents.on('shot', ({ rolls, hit }) => {
@@ -157,14 +157,14 @@ export class HudPanel extends Phaser.GameObjects.Container {
 
     // Controls reference + map legend
     this.statusText = scene.add.text(8, doneY + 96, '', {
-      fontFamily: 'Kanit', fontSize: '14px', color: '#7ec8ff',
+      fontFamily: UI_FONT, fontSize: '14px', color: '#7ec8ff',
       fixedWidth: HUD_WIDTH - 16,
     })
     this.add(this.statusText)
 
     // Transient warning line (self-destruct confirm) — sits over the dice row
     this.flashText = scene.add.text(8, doneY + 78, '', {
-      fontFamily: 'Kanit', fontSize: '14px', color: '#ff5544', fontStyle: 'bold',
+      fontFamily: UI_FONT, fontSize: '14px', color: '#ff5544', fontStyle: 'bold',
       fixedWidth: HUD_WIDTH - 16,
     }).setVisible(false)
     this.add(this.flashText)
@@ -172,12 +172,12 @@ export class HudPanel extends Phaser.GameObjects.Container {
     // Map legend — mission-level; keyboard help lives in the roster panel
     const legend = scene.add.text(8, doneY + 114,
       'Map: ▲ = stealer entry\norange = objective · green = exit',
-      { fontFamily: 'Kanit', fontSize: '12px', color: '#8a8a8a', lineSpacing: 3, fixedWidth: HUD_WIDTH - 16 })
+      { fontFamily: UI_FONT, fontSize: '12px', color: '#8a8a8a', lineSpacing: 3, fixedWidth: HUD_WIDTH - 16 })
     this.add(legend)
 
     // Hover readout — square coordinate + contents, below the map legend
     this.hoverText = scene.add.text(8, legend.y + legend.height + 10, 'Hover a square for info', {
-      fontFamily: 'Kanit', fontSize: '13px', color: '#b8c6d8', lineSpacing: 2,
+      fontFamily: UI_FONT, fontSize: '13px', color: '#b8c6d8', lineSpacing: 2,
       fixedWidth: HUD_WIDTH - 16, wordWrap: { width: HUD_WIDTH - 16 }
     })
     this.add(this.hoverText)

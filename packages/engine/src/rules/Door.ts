@@ -1,6 +1,7 @@
 import { Feature } from './Feature.js';
 import type { Square } from '../board/Square.js';
-import { Dir, DIR_VEC } from '../core/Direction.js';
+import { Dir, DIR_VEC, FACING_WORD } from '../core/Direction.js';
+import { PieceEvents } from '../events/PieceEvents.js';
 
 /**
  * EDGE-MODEL door: the door lives on the BOUNDARY between its anchor square
@@ -40,6 +41,23 @@ export class Door extends Feature {
   blocksLOS()  { return false }
 }
 
-export const DOOR_FACING: Record<'up' | 'right' | 'down' | 'left', Dir> = {
-  up: Dir.N, right: Dir.E, down: Dir.S, left: Dir.W
+/** Mission-JSON door-facing words map exactly like piece facings. */
+export const DOOR_FACING = FACING_WORD;
+
+/**
+ * Destroy a door AND announce it — the one sanctioned emit for door
+ * destruction (chain fist, bolter door shot, cannon fire). The Door class
+ * itself stays silent so probes (e.g. the blip open-peek-close check in
+ * StealerAI) never leak events.
+ */
+export function demolishDoor(door: Door): void {
+  door.destroy();
+  PieceEvents.emit('doorDestroyed', { x: door.square.x, y: door.square.y, facing: door.facing });
+}
+
+/** Open a door AND announce it, spending 1 AP from `piece` (AI door-on-contact path). */
+export function openDoorWithEvent(door: Door, piece: { ap: number }): void {
+  door.open();
+  piece.ap -= 1;
+  PieceEvents.emit('doorToggled', { x: door.square.x, y: door.square.y, facing: door.facing, open: true });
 }

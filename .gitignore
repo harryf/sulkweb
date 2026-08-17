@@ -12,6 +12,7 @@ playwright/.cache/
 
 # Coverage artifacts
 packages/engine/coverage/
+packages/client/coverage/
 
 # Fetched/derived audio (copyrighted sources — regenerate with `bun scripts/fetchAudio.ts`; see CREDITS.md)
 .audio-cache/

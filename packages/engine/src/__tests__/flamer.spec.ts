@@ -89,6 +89,36 @@ describe('heavy flamer (ISC-139)', () => {
     expect(flamer.canFlame(board.get(1, 6)!)).toBe(false); // shot costs 2
   });
 
+  it('refuses a target square carrying a closed door edge', () => {
+    const board = new Board(3, 8, twoSections());
+    const flamer = new HeavyFlamerMarine(board, { c: 1, r: 1 }, Dir.S);
+    // door (1,5)→up is CLOSED: (1,5) carries a closed door edge → illegal target
+    expect(flamer.canFlame(board.get(1, 5)!)).toBe(false);
+    // the same square is legal once its door is open (sight line now clear too)
+    board.doorBetween({ c: 1, r: 5 }, { c: 1, r: 4 })!.open();
+    expect(flamer.canFlame(board.get(1, 5)!)).toBe(true);
+  });
+
+  it('flameAt refuses (returns undefined, spends nothing) when the shot is illegal', () => {
+    const { board, flamer } = setup();
+    expect(flamer.flameAt(board.get(1, 2)!)).toBeUndefined(); // own section
+    expect(flamer.ap).toBe(4);
+    expect(flamer.ammo).toBe(6);
+  });
+
+  it('self-destruct refuses when locked, dry, or out of AP', () => {
+    const board = new Board(3, 8, twoSections());
+    const flamer = new HeavyFlamerMarine(board, { c: 1, r: 6 }, Dir.N);
+    board.locked = true;
+    expect(flamer.selfDestruct()).toBe(false);
+    board.locked = false;
+    flamer.ammo = 0;
+    expect(flamer.selfDestruct()).toBe(false);
+    flamer.ammo = 6; flamer.ap = 0;
+    expect(flamer.selfDestruct()).toBe(false);
+    expect(flamer.alive).toBe(true); // nothing fired
+  });
+
   it('flames block entry but not exit; they block LOS; end-phase clears them (ISC-140)', () => {
     const { board, flamer } = setup();
     const stealer = new Genestealer(board, { c: 1, r: 7 }, Dir.N);

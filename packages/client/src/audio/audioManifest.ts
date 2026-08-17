@@ -8,12 +8,6 @@
  * with `pnpm fetch-audio` (yt-dlp + ffmpeg). See CREDITS.md for licensing.
  */
 
-export const MUSIC_CHANNEL = {
-  name: 'Music of 40K',
-  url: 'https://www.youtube.com/@Musicof40K',
-  playlist: 'https://www.youtube.com/playlist?list=PLyLLeKcxw24V5T-4J8D5KEXpvbTVIRwoh',
-} as const;
-
 export interface MusicTrack {
   /** Registered mission name this track scores. */
   mission: string;
@@ -61,16 +55,8 @@ export const SFX_SOURCES = [
   },
 ] as const;
 
-/**
- * The original Sulk 0.29 sound set (public domain per its SOUNDS_INFO, except
- * three TLK Games GPL2 button sounds we do not use). Copied verbatim into
- * assets/audio/sfx/ — these ARE committed; they are tiny and freely licensed.
- */
-export const SULK_ORIGINAL_SFX = [
-  'marine_shoot_bolter', 'marine_shoot_flamer', 'assault_cannon_burst',
-  'marine_cc', 'marine_move', 'marine_jam', 'marine_kill_skewered',
-  'chain_fist', 'door_open', 'marine_selfdestruct_flamer',
-] as const;
+// The original Sulk 0.29 wav set (public domain per its SOUNDS_INFO) lives in
+// assets/sounds/ and is committed; AudioManager.queueLoads owns that inventory.
 
 /**
  * Alien segment classification lives in `alienSegments.ts` (committed data,

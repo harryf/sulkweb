@@ -1,5 +1,5 @@
 import { describe,it,expect, beforeEach } from 'vitest'
-import { Selection } from '../src/ui/Selection.js'
+import { Selection } from '../Selection'
 
 describe('Selection store', () => {
   beforeEach(() => {

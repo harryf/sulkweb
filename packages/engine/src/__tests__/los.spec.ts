@@ -21,9 +21,9 @@ describe('Geometry & LOS', () => {
     board = new Board(5, 5, []);
   });
 
-  describe('Square', () => {
-    it('isAdjacent() should correctly identify an 8-way neighbourhood for the centre square', () => {
-      const centerSquare = board.getSquare(2, 2)!;
+  describe('adjacency', () => {
+    it('adjacentsOf returns the 8-way neighbourhood of the centre square', () => {
+      const centerSquare = board.get(2, 2)!;
       const expectedAdjacents = [
         [1, 1], [2, 1], [3, 1],
         [1, 2],         [3, 2],
@@ -34,16 +34,6 @@ describe('Geometry & LOS', () => {
 
       expect(actualAdjacents).toHaveLength(expectedAdjacents.length);
       expect(actualAdjacents).toEqual(expect.arrayContaining(expectedAdjacents));
-
-      // Also test the method on the Square class directly
-      for (let y = 0; y < 5; y++) {
-        for (let x = 0; x < 5; x++) {
-          const otherSquare = board.getSquare(x, y)!;
-          const isAdjacent = centerSquare.isAdjacent(otherSquare);
-          const expected = expectedAdjacents.some(([ex, ey]) => ex === x && ey === y);
-          expect(isAdjacent).toBe(expected);
-        }
-      }
     });
   });
 
@@ -65,12 +55,12 @@ describe('Geometry & LOS', () => {
       it(`${name}: ${aCoord} -> ${bCoord} should be ${expected}`, () => {
         // Set blocker if one is specified for this test case
         if (blockerCoord) {
-          const blocker = board.getSquare(blockerCoord[0], blockerCoord[1])!;
+          const blocker = board.get(blockerCoord[0], blockerCoord[1])!;
           blocker.features.add(new MockFeature(blocker, false, true));
         }
 
-        const squareA = board.getSquare(aCoord[0], aCoord[1])!;
-        const squareB = board.getSquare(bCoord[0], bCoord[1])!;
+        const squareA = board.get(aCoord[0], aCoord[1])!;
+        const squareB = board.get(bCoord[0], bCoord[1])!;
         const result = hasLineOfSight(board, squareA, squareB);
 
         expect(result).toBe(expected);

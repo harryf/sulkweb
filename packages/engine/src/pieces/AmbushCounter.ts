@@ -4,7 +4,7 @@ import { Piece, type Coord } from './Piece.js';
 import type { Genestealer } from './Genestealer.js';
 import { PieceEvents } from '../events/PieceEvents.js';
 import { StormBolterMarine } from './StormBolterMarine.js';
-import { canSee } from '../board/vision.js';
+import { canSee, squareSeenByMarine } from '../board/vision.js';
 
 /** Original get_ambush_counter_val: choice((0, 0, 1)) — two in three are
  *  FALSE ALARMS. d6 keeps it on the seeded stream: 5-6 → a real stealer. */
@@ -77,7 +77,7 @@ export function deployAmbushCounter(board: Board): AmbushCounter | undefined {
     const c = { c: sq.x, r: sq.y };
     if (!board.isPassable(c) || board.isOccupied(c)) return false;
     if (board.pieceNear(c, 6, p => (p as Piece).kind === 'marine')) return false;
-    return !board.pieces.some(p => (p as Piece).kind === 'marine' && canSee(board, p as Piece, sq));
+    return !squareSeenByMarine(board, c);
   });
   if (legal.length === 0) return undefined;
   const idx = ((board.dice.roll() - 1) * 36 + (board.dice.roll() - 1) * 6 + (board.dice.roll() - 1)) % legal.length;

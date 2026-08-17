@@ -3,7 +3,7 @@ import { Board } from '../board/Board.js';
 import { Dir, DIR_VEC } from '../core/Direction.js';
 import { canShoot } from '../board/vision.js';
 import { PieceEvents } from '../events/PieceEvents.js';
-import type { Door } from '../rules/Door.js';
+import { demolishDoor, type Door } from '../rules/Door.js';
 
 export class StormBolterMarine extends Piece {
 
@@ -34,18 +34,30 @@ export class StormBolterMarine extends Piece {
    * target switch, and does not accrue on free or overwatch shots.
    */
   shoot(target: Piece): boolean {
-    if (this.board.locked || this.jammed || !target.alive) return false;
+    const s = this.beginAimedShot(target);
+    if (!s) return false;
+    return this.resolveBolterDice(target, s.bonus, false, !s.free);
+  }
+
+  /**
+   * Shared aimed-shot preamble (bolter and cannon): legality guards, then the
+   * spend — free-shot consumption or 1 AP, overwatch drop, sustained-bonus
+   * lookup keyed on the target. Returns undefined when the shot is illegal
+   * (nothing is spent), else what the dice resolution needs.
+   */
+  protected beginAimedShot(target: Piece): { free: boolean; bonus: number } | undefined {
+    if (this.board.locked || this.jammed || !target.alive) return undefined;
     const free = this.freeShot;
-    if (!free && this.ap < 1) return false;
+    if (!free && this.ap < 1) return undefined;
     const targetSquare = this.board.get(target.pos.c, target.pos.r);
-    if (!targetSquare || !canShoot(this.board, this, targetSquare)) return false;
+    if (!targetSquare || !canShoot(this.board, this, targetSquare)) return undefined;
 
     if (free) this.freeShot = false;
     else this.ap -= 1;
     this.clearOverwatch();
     const bonus = !free && this.sustainedTargetId === target.id ? this.sustainedBonus : 0;
     this.sustainedTargetId = target.id;
-    return this.resolveBolterDice(target, bonus, false, !free);
+    return { free, bonus };
   }
 
   /** Overwatch reaction fire: free, range-limited, no sustained bonus, jams on any double. */
@@ -107,6 +119,17 @@ export class StormBolterMarine extends Piece {
    */
   shootDoor(door: Door): boolean {
     if (!this.canShootDoor(door)) return false;
+    const { free, key, bonus } = this.beginDoorShot(door);
+    const rolls = [this.board.dice.roll(), this.board.dice.roll()].map(r => r + bonus);
+    const hit = rolls.some(r => r >= 6);
+    PieceEvents.emit('shot', { shooterId: this.id, targetId: key, x: door.square.x, y: door.square.y, rolls, hit });
+    this.settleDoorShot(door, hit, free, bonus);
+    return hit;
+  }
+
+  /** Shared door-shot preamble: spend (free shot or 1 AP), overwatch drop,
+   *  sustained-bonus lookup keyed on the door edge. */
+  protected beginDoorShot(door: Door): { free: boolean; key: string; bonus: number } {
     const free = this.freeShot;
     if (free) this.freeShot = false;
     else this.ap -= 1;
@@ -114,18 +137,17 @@ export class StormBolterMarine extends Piece {
     const key = StormBolterMarine.doorKey(door);
     const bonus = !free && this.sustainedTargetId === key ? this.sustainedBonus : 0;
     this.sustainedTargetId = key;
-    const rolls = [this.board.dice.roll(), this.board.dice.roll()].map(r => r + bonus);
-    const hit = rolls.some(r => r >= 6);
-    PieceEvents.emit('shot', { shooterId: this.id, targetId: key, x: door.square.x, y: door.square.y, rolls, hit });
+    return { free, key, bonus };
+  }
+
+  /** Shared door-shot epilogue: demolish on hit, else accrue sustained fire. */
+  protected settleDoorShot(door: Door, hit: boolean, free: boolean, bonus: number): void {
     if (hit) {
-      door.destroy();
-      PieceEvents.emit('doorDestroyed', { x: door.square.x, y: door.square.y, facing: door.facing });
-      this.sustainedTargetId = null;
-      this.sustainedBonus = 0;
+      demolishDoor(door);
+      this.clearSustained();
     } else if (!free) {
       this.sustainedBonus = Math.min(bonus + 1, StormBolterMarine.MAX_SUSTAINED);
     }
-    return hit;
   }
 
   /** A fake ambush counter revealed itself: every overwatcher who saw it
@@ -134,11 +156,7 @@ export class StormBolterMarine extends Piece {
   fireAtNothing(): void {
     const raw = [this.board.dice.roll(), this.board.dice.roll()];
     PieceEvents.emit('shot', { shooterId: this.id, targetId: '', x: this.pos.c, y: this.pos.r, rolls: raw, hit: false });
-    if (raw[0] === raw[1]) {
-      this.jammed = true;
-      PieceEvents.emit('jammed', { pieceId: this.id, jammed: true });
-      this.clearOverwatch();
-    }
+    if (raw[0] === raw[1]) this.jam();
   }
 
   /** Clear a jammed bolter for 1 AP. */
@@ -151,8 +169,7 @@ export class StormBolterMarine extends Piece {
   }
 
   protected override onActed(action: 'move' | 'turn' | 'door'): void {
-    this.sustainedTargetId = null;
-    this.sustainedBonus = 0;
+    this.clearSustained();
     this.clearOverwatch();
     // Move-and-shoot: a move earns one free shot; any other action forfeits it.
     this.freeShot = action === 'move';
@@ -162,14 +179,26 @@ export class StormBolterMarine extends Piece {
     super.resetAP();
     this.freeShot = false;
     // Original refresh(): fire bonus and target memory do not survive the turn.
-    this.sustainedTargetId = null;
-    this.sustainedBonus = 0;
+    this.clearSustained();
   }
 
   protected clearOverwatch(): void {
     if (!this.overwatch) return;
     this.overwatch = false;
     PieceEvents.emit('overwatchChanged', { pieceId: this.id, on: false });
+  }
+
+  /** Forget the sustained-fire target and bonus. */
+  protected clearSustained(): void {
+    this.sustainedTargetId = null;
+    this.sustainedBonus = 0;
+  }
+
+  /** The bolter fouls: announce it and drop overwatch. */
+  protected jam(): void {
+    this.jammed = true;
+    PieceEvents.emit('jammed', { pieceId: this.id, jammed: true });
+    this.clearOverwatch();
   }
 
   private resolveBolterDice(target: Piece, bonus: number, canJam: boolean, accrues: boolean): boolean {
@@ -180,15 +209,10 @@ export class StormBolterMarine extends Piece {
       shooterId: this.id, targetId: target.id,
       x: target.pos.c, y: target.pos.r, rolls, hit
     });
-    if (canJam && raw[0] === raw[1]) {
-      this.jammed = true;
-      PieceEvents.emit('jammed', { pieceId: this.id, jammed: true });
-      this.clearOverwatch();
-    }
+    if (canJam && raw[0] === raw[1]) this.jam();
     if (hit) {
       target.die();
-      this.sustainedTargetId = null;
-      this.sustainedBonus = 0;
+      this.clearSustained();
     } else if (accrues) {
       this.sustainedBonus = Math.min(this.sustainedBonus + 1, StormBolterMarine.MAX_SUSTAINED);
     }

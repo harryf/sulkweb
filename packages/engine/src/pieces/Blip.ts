@@ -1,8 +1,9 @@
 import { Piece, type Coord } from './Piece.js';
 import { Board } from '../board/Board.js';
-import { Dir } from '../core/Direction.js';
+import { Dir, chebyshev } from '../core/Direction.js';
 import { Genestealer } from './Genestealer.js';
 import { PieceEvents } from '../events/PieceEvents.js';
+import { squareSeenByMarine } from '../board/vision.js';
 
 /**
  * The original blip bag (`BLIP_SET_BASIC = {1:8, 2:4, 3:9}`): draw with
@@ -93,23 +94,14 @@ export class Blip extends Piece {
 }
 
 /** True when a blip may not voluntarily occupy `coord`: any marine sees it,
- *  or a marine stands adjacent (8-way). Imported lazily to avoid cycles. */
+ *  or a marine stands adjacent (8-way). */
 export function blipBarredFrom(board: Board, coord: Coord): boolean {
   const sq = board.get(coord.c, coord.r);
   if (!sq) return true;
   for (const p of board.pieces) {
     const piece = p as Piece;
     if (piece.kind !== 'marine') continue;
-    if (Math.max(Math.abs(piece.pos.c - coord.c), Math.abs(piece.pos.r - coord.r)) <= 1) return true;
+    if (chebyshev(piece.pos, coord) <= 1) return true;
   }
-  // Marine sight check — reuse the vision module via a local import to keep
-  // the pieces layer free of a hard AI dependency.
-  return marineSees(board, sq);
-}
-
-import { canSee } from '../board/vision.js';
-import type { Square } from '../board/Square.js';
-
-function marineSees(board: Board, sq: Square): boolean {
-  return board.pieces.some(p => (p as Piece).kind === 'marine' && canSee(board, p as Piece, sq));
+  return squareSeenByMarine(board, coord);
 }

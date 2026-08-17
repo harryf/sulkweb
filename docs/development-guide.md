@@ -1,6 +1,6 @@
 # Development Guide
 
-Where everything lives and where to put new things. Read [architecture.md](architecture.md) first for how the two packages fit together; this file is the map and the recipes. Verified against the source on 2026-08-16; if a detail disagrees with the code, the code wins and this file needs updating.
+Where everything lives and where to put new things. Read [architecture.md](architecture.md) first for how the two packages fit together; this file is the map and the recipes. Verified against the source on 2026-08-17; if a detail disagrees with the code, the code wins and this file needs updating.
 
 ## Setup and daily commands
 
@@ -28,14 +28,14 @@ Pick a mission with a URL parameter: `http://localhost:5173/?mission=beta_2` (de
 | `board/` | `Board`, `Square`, `los.ts`, `vision.ts` (sight and fire arcs) | changing movement space, LOS, arcs |
 | `pieces/` | `Piece` base + every unit class (marines, `Genestealer`, `Blip`, `AmbushCounter`) | adding or changing a unit type |
 | `rules/` | `Door.ts`, `combat.ts` (close combat), `flame.ts`, `exotic.ts` (C.A.T., ducting) | changing a cross-piece rule |
-| `phases/` | Phase classes (`MarineAction`, `StealerAction`, `ClockAndCP`, `EndPhase`) | changing what a phase does |
 | `ai/` | `StealerAI.ts`, `MarineAutopilot.ts` (autoplay for tests) | changing enemy behavior |
 | `missions/` | Mission JSONs by family, `index.ts` registry, `missionTypes.ts` schema, `missionLoader.ts` | adding a mission or objective type |
-| `core/` | `Dice.ts` (`SeededRng`, `RollQueue`), `Direction.ts`, `CostTables.ts` (AP costs) | changing costs, randomness, geometry |
+| `core/` | `Dice.ts` (`SeededRng`, `RollQueue`), `Direction.ts` (also `chebyshev`, `facingToward`, shared vectors), `CostTables.ts` (AP costs) | changing costs, randomness, geometry |
 | `events/PieceEvents.ts` | The typed event bus: `PieceEventsType` is the full event list | adding a new gameplay fact the UI must see |
-| `ui/Selection.ts` | Selected-piece store shared with the client | rarely |
 | `index.ts` | The package's public exports; the client only sees what is exported here | whenever you add anything the client needs |
-| `tests/`, `__tests__/` | Vitest suites, including per-mission fidelity specs | with every engine change |
+| `__tests__/` | The single Vitest suite directory, including per-mission fidelity specs | with every engine change |
+
+Phase flow lives inside `GameEngine` (`PhaseName` is a string union, not a class hierarchy), and the piece-selection store lives in the client (`packages/client/src/ui/Selection.ts`); the engine never reads it.
 
 ### `packages/client/src/` (rendering, input, audio)
 
@@ -48,10 +48,13 @@ Pick a mission with a URL parameter: `http://localhost:5173/?mission=beta_2` (de
 | `ui/marineNames.ts` | Roster identities; `EXPECTED_SPRITE` cross-checks deployment against engine pieces | new marine type |
 | `ui/keyboardHelp.ts` | Key layout data for the help panel (pinned by a test) | any key binding change |
 | `ui/Minimap.ts`, `utils/cameraBox.ts` | Minimap and its camera projection | minimap behavior |
+| `ui/Selection.ts` | Selected-piece store (map, roster, and keyboard input all read it) | selection behavior |
 | `audio/` | `AudioManager` (event → sound), `audioManifest.ts` (assets + credits), `audioLogic.ts` (pure mappings), `alienSegments.ts` | any sound change |
-| `config.ts`, `gameConfig.ts`, `main.ts` | HUD constants, Phaser config, boot | dimensions, scenes |
-| `src/tests/`, `src/ui/tests/` | Client unit tests (jsdom, Phaser mocked) | with client logic changes |
+| `config.ts`, `gameConfig.ts`, `main.ts` | HUD constants (incl. `UI_FONT`, `FACING_ARROWS`), Phaser config, boot | dimensions, scenes |
+| `src/tests/`, `src/ui/tests/`, `src/audio/tests/` | Client unit tests (jsdom, Phaser mocked) | with client logic changes |
 | `tests/` (package root) | Playwright e2e: real browser, real input, seeded dice | with anything player-visible |
+
+Both packages run `vitest run --coverage`: the engine covers everything under its `src/`, the client covers its non-Phaser logic (GameScene, Minimap, AudioManager and friends are exercised by the e2e suite instead, since jsdom cannot render Phaser).
 
 ### Everything else
 

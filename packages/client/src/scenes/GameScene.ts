@@ -1,21 +1,29 @@
 import Phaser from 'phaser'
-import { GameEngine, loadMission, missions, Square, Piece, StormBolterMarine, HeavyFlamerMarine, AssaultCannonMarine, ChainFistMarine, Genestealer, Selection, PieceEvents, visibleSquares, canShoot, closeCombat, DIR_VEC, SeededRng, autoplay, runMarineTurn, flameFlood, Door } from "@sulk/engine/index.js";
+import { GameEngine, loadMission, missions, Square, Piece, StormBolterMarine, HeavyFlamerMarine, AssaultCannonMarine, ChainFistMarine, Genestealer, PieceEvents, visibleSquares, canShoot, closeCombat, DIR_VEC, SeededRng, autoplay, runMarineTurn, flameFlood, Door } from "@sulk/engine/index.js";
+import { Selection } from "../ui/Selection";
 import { Minimap } from '../ui/Minimap.js';
 import { HighlightSprite } from '../ui/HighlightSprite.js';
 import { HudPanel } from '../ui/HudPanel.js';
 import { RosterPanel, type PieceStats } from '../ui/RosterPanel.js';
 import { buildRoster } from '../ui/marineNames.js';
 import { AudioManager } from '../audio/AudioManager.js';
-import { HUD_WIDTH } from '../config.js';
+import { HUD_WIDTH, MINI_MAP_MARGIN, UI_FONT, FACING_ARROWS } from '../config.js';
 
 const TILE_SIZE = 40
+
+/** Pixel centre of board square (x, y) — spread into add.image/setPosition. */
+const centerXY = (x: number, y: number): [number, number] =>
+  [x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2]
+
+/** Ammo readout for the two limited-ammo marines; undefined for everyone else. */
+const ammoOf = (p: Piece | undefined): number | undefined =>
+  p instanceof HeavyFlamerMarine || p instanceof AssaultCannonMarine ? p.ammo : undefined
 
 export default class GameScene extends Phaser.Scene {
   private hud!: import('../ui/HudPanel.js').HudPanel;
   /** DOM roster card panel — public for the e2e suite. */
   roster!: RosterPanel;
 
-  private tileSize: number = TILE_SIZE;
   private readonly engine: GameEngine
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private wasd!: {
@@ -159,15 +167,12 @@ export default class GameScene extends Phaser.Scene {
     // (blue outline). Drawn under pieces, over squares.
     const markers = this.add.graphics().setDepth(0.4);
     const mission = this.engine.mission;
-    const T = this.tileSize;
-    const FACING_IDX: Record<string, number> = { up: 0, right: 1, down: 2, left: 3 };
-    const OFF: Record<string, { dx: number; dy: number }> = {
-      up: { dx: 0, dy: -1 }, right: { dx: 1, dy: 0 }, down: { dx: 0, dy: 1 }, left: { dx: -1, dy: 0 },
-    };
+    const T = TILE_SIZE;
+    const FACING_IDX: Record<string, 0 | 1 | 2 | 3> = { up: 0, right: 1, down: 2, left: 3 };
     const placeMarker = (texture: string, p: { x: number; y: number; facing?: string }) => {
       if (!p.facing) return; // adapted mid-board point: flat marker only
-      const o = OFF[p.facing];
-      this.add.image((p.x + o.dx) * T + T / 2, (p.y + o.dy) * T + T / 2, texture)
+      const o = DIR_VEC[FACING_IDX[p.facing]];
+      this.add.image(...centerXY(p.x + o.dc, p.y + o.dr), texture)
         .setDepth(0.4)
         .setRotation(FACING_IDX[p.facing] * Math.PI / 2)
         .setName(texture === 'entry' ? 'entry-triangle' : 'exit-arrow');
@@ -175,26 +180,14 @@ export default class GameScene extends Phaser.Scene {
     for (const e of mission.entryPoints ?? []) placeMarker('entry', e);
     for (const e of mission.exitPoints ?? []) {
       placeMarker('exit', e);
-      markers.fillStyle(0x00cc44, 0.35).fillRect(e.x * T, e.y * T, T, T);
-      markers.lineStyle(2, 0x00ff55, 1).strokeRect(e.x * T + 1, e.y * T + 1, T - 2, T - 2);
-      this.add.text(e.x * T + T / 2, e.y * T + T / 2, 'EXIT', {
-        fontFamily: 'Kanit', fontSize: '11px', color: '#00ff55', fontStyle: 'bold'
-      }).setOrigin(0.5).setDepth(0.45);
+      this.paintObjectiveSquare(markers, e.x, e.y, 'EXIT', 0x00cc44, 0x00ff55, '#00ff55');
     }
     if (mission.objectivePoint) {
       const o = mission.objectivePoint;
-      markers.fillStyle(0xff8800, 0.35).fillRect(o.x * T, o.y * T, T, T);
-      markers.lineStyle(2, 0xffaa00, 1).strokeRect(o.x * T + 1, o.y * T + 1, T - 2, T - 2);
-      this.add.text(o.x * T + T / 2, o.y * T + T / 2, 'BURN', {
-        fontFamily: 'Kanit', fontSize: '11px', color: '#ffaa00', fontStyle: 'bold'
-      }).setOrigin(0.5).setDepth(0.45);
+      this.paintObjectiveSquare(markers, o.x, o.y, 'BURN', 0xff8800, 0xffaa00, '#ffaa00');
     }
     for (const o of mission.objectivePoints ?? []) {
-      markers.fillStyle(0xff8800, 0.35).fillRect(o.x * T, o.y * T, T, T);
-      markers.lineStyle(2, 0xffaa00, 1).strokeRect(o.x * T + 1, o.y * T + 1, T - 2, T - 2);
-      this.add.text(o.x * T + T / 2, o.y * T + T / 2, 'BURN', {
-        fontFamily: 'Kanit', fontSize: '11px', color: '#ffaa00', fontStyle: 'bold'
-      }).setOrigin(0.5).setDepth(0.45);
+      this.paintObjectiveSquare(markers, o.x, o.y, 'BURN', 0xff8800, 0xffaa00, '#ffaa00');
     }
     for (const r of mission.roomSquares ?? []) {
       markers.lineStyle(2, 0xff4040, 0.6).strokeRect(r.x * T + 2, r.y * T + 2, T - 4, T - 4);
@@ -214,44 +207,36 @@ export default class GameScene extends Phaser.Scene {
     // The C.A.T. (mission 3): board-level object with its own sprite.
     if (this.engine.state.board.cat) {
       const cat = this.engine.state.board.cat;
-      this.catSprite = this.add.image(cat.pos.c * T + T / 2, cat.pos.r * T + T / 2, 'cat').setDepth(0.95);
+      this.catSprite = this.add.image(...centerXY(cat.pos.c, cat.pos.r), 'cat').setDepth(0.95);
     }
+    // The damage marker rides the cat's top-right corner (+12, −12 off centre).
+    const catMarkerXY = (x: number, y: number): [number, number] => {
+      const [cx, cy] = centerXY(x, y);
+      return [cx + 12, cy - 12];
+    };
     PieceEvents.on('catMoved', ({ x, y }) => {
-      this.catSprite?.setVisible(true).setPosition(x * T + T / 2, y * T + T / 2);
-      this.catMarker?.setPosition(x * T + T / 2 + 12, y * T + T / 2 - 12);
+      this.catSprite?.setVisible(true).setPosition(...centerXY(x, y));
+      this.catMarker?.setPosition(...catMarkerXY(x, y));
     });
     PieceEvents.on('catPickedUp', () => this.catSprite?.setVisible(false));
     PieceEvents.on('catDropped', ({ x, y }) => {
-      this.catSprite?.setVisible(true).setPosition(x * T + T / 2, y * T + T / 2);
-      this.catMarker?.setVisible(true).setPosition(x * T + T / 2 + 12, y * T + T / 2 - 12);
+      this.catSprite?.setVisible(true).setPosition(...centerXY(x, y));
+      this.catMarker?.setVisible(true).setPosition(...catMarkerXY(x, y));
     });
     PieceEvents.on('catDamaged', ({ x, y, destroyed }) => {
       if (destroyed) {
-        this.catSprite?.setVisible(true).setPosition(x * T + T / 2, y * T + T / 2).setTint(0x552222).setAlpha(0.6);
+        this.catSprite?.setVisible(true).setPosition(...centerXY(x, y)).setTint(0x552222).setAlpha(0.6);
       } else {
         this.catMarker?.destroy();
-        this.catMarker = this.add.image(x * T + T / 2 + 12, y * T + T / 2 - 12, 'marker_damage').setDepth(2);
+        this.catMarker = this.add.image(...catMarkerXY(x, y), 'marker_damage').setDepth(2);
       }
     });
     PieceEvents.on('ductingDestroyed', ({ x, y }) => {
       this.ductingSprites[`${x},${y}`]?.setTexture('ducting_destroyed');
     });
     PieceEvents.on('marineEscaped', ({ pieceId, escaped }) => {
-      const sprite = this.pieceSprites[pieceId];
-      if (sprite) {
-        this.tweens.killTweensOf(sprite);
-        this.tweens.add({ targets: sprite, alpha: 0, duration: 150, onComplete: () => sprite.destroy() });
-      }
-      delete this.pieceSprites[pieceId];
-      this.owMarkers[pieceId]?.destroy();
-      delete this.owMarkers[pieceId];
-      this.jamMarkers[pieceId]?.destroy();
-      delete this.jamMarkers[pieceId];
-      if (Selection.get() === pieceId) {
-        Selection.clear();
-        this.updateHighlight();
-        PieceEvents.emit('selected', { pieceId: null });
-      }
+      this.removePieceSprite(pieceId, 150);
+      this.clearSelectionOf(pieceId, false);
       this.hud.setStatus(this.escapeStatus(escaped));
     });
     PieceEvents.on('objectiveCleansed', ({ cleansedCount }) => {
@@ -269,11 +254,7 @@ export default class GameScene extends Phaser.Scene {
     });
     if (mission.objective === 'download' && mission.downloadPoint) {
       const dp = mission.downloadPoint;
-      markers.fillStyle(0xff8800, 0.35).fillRect(dp.x * T, dp.y * T, T, T);
-      markers.lineStyle(2, 0xffaa00, 1).strokeRect(dp.x * T + 1, dp.y * T + 1, T - 2, T - 2);
-      this.add.text(dp.x * T + T / 2, dp.y * T + T / 2, 'DATA', {
-        fontFamily: 'Kanit', fontSize: '11px', color: '#ffaa00', fontStyle: 'bold'
-      }).setOrigin(0.5).setDepth(0.45);
+      this.paintObjectiveSquare(markers, dp.x, dp.y, 'DATA', 0xff8800, 0xffaa00, '#ffaa00');
     }
 
     // Render-side combat reactions: engine events drive all sprite state.
@@ -284,22 +265,8 @@ export default class GameScene extends Phaser.Scene {
       this.moveSprite(pieceId, x, y, facing);
     });
     PieceEvents.on('pieceDied', ({ pieceId }) => {
-      const sprite = this.pieceSprites[pieceId];
-      if (sprite) {
-        this.tweens.killTweensOf(sprite);
-        this.tweens.add({ targets: sprite, alpha: 0, duration: this.animating ? 160 : 80, onComplete: () => sprite.destroy() });
-      }
-      delete this.pieceSprites[pieceId];
-      this.owMarkers[pieceId]?.destroy();
-      delete this.owMarkers[pieceId];
-      this.jamMarkers[pieceId]?.destroy();
-      delete this.jamMarkers[pieceId];
-      if (Selection.get() === pieceId) {
-        Selection.clear();
-        this.setFlamerAiming(false); // an armed flamer can die mid-aim
-        this.updateHighlight();
-        PieceEvents.emit('selected', { pieceId: null });
-      }
+      this.removePieceSprite(pieceId, this.animating ? 160 : 80);
+      this.clearSelectionOf(pieceId, true); // an armed flamer can die mid-aim
     });
     PieceEvents.on('shot', ({ shooterId }) => {
       const shooter = this.engine.findPiece(shooterId);
@@ -366,7 +333,7 @@ export default class GameScene extends Phaser.Scene {
       this.add.rectangle(0, 0, cam.width, cam.height, 0x000000, 0.6)
         .setOrigin(0).setScrollFactor(0).setDepth(99);
       this.add.text(cam.width / 2, cam.height / 2, msg, {
-        fontFamily: 'Kanit', fontSize: '48px', color, fontStyle: 'bold'
+        fontFamily: UI_FONT, fontSize: '48px', color, fontStyle: 'bold'
       }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
     });
 
@@ -405,7 +372,7 @@ export default class GameScene extends Phaser.Scene {
     });
 
     // Create Minimap (sized to fit inside the HUD panel)
-    const minimap = new Minimap(this, this.engine, { tile: this.tileSize, width: HUD_WIDTH - 2 * 8 });
+    const minimap = new Minimap(this, this.engine, { tile: TILE_SIZE, width: HUD_WIDTH - 2 * MINI_MAP_MARGIN });
     minimap.setScrollFactor(0); // fixed to screen
 
     // Create HUD panel (right-hand strip) and re-parent minimap into it
@@ -425,7 +392,7 @@ export default class GameScene extends Phaser.Scene {
           alive: p.alive,
           apRemaining: p.apRemaining,
           apInitial: p.apInitial,
-          ammo: p instanceof HeavyFlamerMarine || p instanceof AssaultCannonMarine ? p.ammo : undefined,
+          ammo: ammoOf(p),
           overwatch: p.overwatch ?? false,
           jammed: p.jammed ?? false,
           facing: p.facing,
@@ -509,7 +476,7 @@ export default class GameScene extends Phaser.Scene {
     this.events.on('update', () => minimap.updateCam(this.cameras.main));
 
     // Set-up selection
-    this.highlight = new HighlightSprite(this, this.tileSize);
+    this.highlight = new HighlightSprite(this, TILE_SIZE);
     this.add.existing(this.highlight);
     this.flamePreviewGfx = this.add.graphics().setDepth(0.85);
 
@@ -525,17 +492,10 @@ export default class GameScene extends Phaser.Scene {
       } else {
         Selection.clear();
       }
-      this.setFlamerAiming(false); // any (de)selection disarms the flamer
-      this.destructArmedAt = 0;    // …and the self-destruct confirm
-      this.updateHighlight();
+      this.disarmAndRefresh(); // any (de)selection disarms flamer + self-destruct
 
       const selectedId = Selection.get();
-      const piece = selectedId ? this.engine.findPiece(selectedId) : undefined;
-      PieceEvents.emit('selected', {
-        pieceId: piece?.id ?? null,
-        ap: piece ? { apRemaining: piece.apRemaining, apInitial: piece.apInitial } : undefined,
-        ammo: piece instanceof HeavyFlamerMarine || piece instanceof AssaultCannonMarine ? piece.ammo : undefined
-      });
+      this.emitSelected(selectedId ? this.engine.findPiece(selectedId) : undefined);
     });
 
     // LOS debug overlay — hold L with a piece selected
@@ -611,14 +571,8 @@ export default class GameScene extends Phaser.Scene {
     const piece = this.engine.findPiece(id);
     if (!piece) return;
     Selection.select(id);
-    this.setFlamerAiming(false);
-    this.destructArmedAt = 0;
-    this.updateHighlight();
-    PieceEvents.emit('selected', {
-      pieceId: id,
-      ap: { apRemaining: piece.apRemaining, apInitial: piece.apInitial },
-      ammo: piece instanceof HeavyFlamerMarine || piece instanceof AssaultCannonMarine ? piece.ammo : undefined
-    });
+    this.disarmAndRefresh();
+    this.emitSelected(piece);
     const sprite = this.pieceSprites[id];
     if (sprite) this.cameras.main.pan(sprite.x, sprite.y, 250, 'Sine.easeInOut');
   }
@@ -629,9 +583,8 @@ export default class GameScene extends Phaser.Scene {
     const sq = board.get(x, y);
     if (!sq) return `(${x},${y}) — rock`;
     const parts = [`(${x},${y}) ${sq.kind} tile`];
-    const ARROW = ['↑', '→', '↓', '←'];
     for (const door of board.doorsAt({ c: x, r: y })) {
-      parts.push(`door ${ARROW[door.facing]} ${door.isOpen ? 'open' : 'closed'}`);
+      parts.push(`door ${FACING_ARROWS[door.facing]} ${door.isOpen ? 'open' : 'closed'}`);
     }
     const piece = board.pieceAt({ c: x, r: y }) as Piece | undefined;
     if (piece) {
@@ -700,10 +653,7 @@ export default class GameScene extends Phaser.Scene {
       ?? (kind === 'stealer' ? Genestealer.SPRITE_KEY
         : kind === 'blip' ? 'blip'
         : 'terminator_storm_bolter');
-    const sprite = this.add.image(
-      x * this.tileSize + this.tileSize / 2,
-      y * this.tileSize + this.tileSize / 2,
-      texture)
+    const sprite = this.add.image(...centerXY(x, y), texture)
       .setOrigin(0.5, 0.5)
       .setDepth(1)
       .setRotation(facing * Math.PI / 2)
@@ -722,8 +672,7 @@ export default class GameScene extends Phaser.Scene {
   private moveSprite(pieceId: string, x: number, y: number, facing: number) {
     const sprite = this.pieceSprites[pieceId];
     if (!sprite || !sprite.active) return;
-    const tx = x * this.tileSize + this.tileSize / 2;
-    const ty = y * this.tileSize + this.tileSize / 2;
+    const [tx, ty] = centerXY(x, y);
     sprite.setRotation(facing * Math.PI / 2);
     this.tweens.killTweensOf(sprite);
     if (this.animating) {
@@ -742,6 +691,56 @@ export default class GameScene extends Phaser.Scene {
     this.moveSprite(piece.id, piece.pos.c, piece.pos.r, piece.facing);
   }
 
+  /** Filled + stroked mission square with a centred label (EXIT/BURN/DATA). */
+  private paintObjectiveSquare(markers: Phaser.GameObjects.Graphics, x: number, y: number,
+    label: string, fill: number, stroke: number, cssColor: string): void {
+    const T = TILE_SIZE;
+    markers.fillStyle(fill, 0.35).fillRect(x * T, y * T, T, T);
+    markers.lineStyle(2, stroke, 1).strokeRect(x * T + 1, y * T + 1, T - 2, T - 2);
+    this.add.text(...centerXY(x, y), label, {
+      fontFamily: UI_FONT, fontSize: '11px', color: cssColor, fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(0.45);
+  }
+
+  /** Fade out and forget a piece's sprite plus its overwatch/jam markers. */
+  private removePieceSprite(pieceId: string, fadeMs: number): void {
+    const sprite = this.pieceSprites[pieceId];
+    if (sprite) {
+      this.tweens.killTweensOf(sprite);
+      this.tweens.add({ targets: sprite, alpha: 0, duration: fadeMs, onComplete: () => sprite.destroy() });
+    }
+    delete this.pieceSprites[pieceId];
+    this.owMarkers[pieceId]?.destroy();
+    delete this.owMarkers[pieceId];
+    this.jamMarkers[pieceId]?.destroy();
+    delete this.jamMarkers[pieceId];
+  }
+
+  /** If the vanished piece owned the selection, clear it and tell the HUD. */
+  private clearSelectionOf(pieceId: string, disarmFlamer: boolean): void {
+    if (Selection.get() !== pieceId) return;
+    Selection.clear();
+    if (disarmFlamer) this.setFlamerAiming(false);
+    this.updateHighlight();
+    PieceEvents.emit('selected', { pieceId: null });
+  }
+
+  /** Any (de)selection disarms the flamer and the self-destruct confirm. */
+  private disarmAndRefresh(): void {
+    this.setFlamerAiming(false);
+    this.destructArmedAt = 0;
+    this.updateHighlight();
+  }
+
+  /** Announce the current selection with its AP/ammo payload (or a clear). */
+  private emitSelected(piece: Piece | undefined): void {
+    PieceEvents.emit('selected', {
+      pieceId: piece?.id ?? null,
+      ap: piece ? { apRemaining: piece.apRemaining, apInitial: piece.apInitial } : undefined,
+      ammo: ammoOf(piece),
+    });
+  }
+
   /** ESC: pause stops the timer and ignores all game input until resumed. */
   private togglePause(): void {
     if (this.engine.state.result !== 'ongoing' || this.animating) return;
@@ -750,7 +749,7 @@ export default class GameScene extends Phaser.Scene {
       const cam = this.cameras.main;
       const box = this.add.rectangle(0, 0, cam.width, cam.height, 0x000000, 0.5).setOrigin(0);
       const label = this.add.text(cam.width / 2, cam.height / 2, 'PAUSED', {
-        fontFamily: 'Kanit', fontSize: '42px', color: '#ffffff', fontStyle: 'bold'
+        fontFamily: UI_FONT, fontSize: '42px', color: '#ffffff', fontStyle: 'bold'
       }).setOrigin(0.5);
       this.pauseOverlay = this.add.container(0, 0, [box, label]).setScrollFactor(0).setDepth(90);
     } else {
@@ -778,10 +777,8 @@ export default class GameScene extends Phaser.Scene {
     if (this.engine.state.result !== 'ongoing' || this.paused || this.animating) return;
     const stream = PieceEvents.capture(() => this.engine.endMarinePhase());
     Selection.clear();
-    this.setFlamerAiming(false);
-    this.destructArmedAt = 0;
-    this.updateHighlight();
-    PieceEvents.emit('selected', { pieceId: null });
+    this.disarmAndRefresh();
+    this.emitSelected(undefined);
     // Accessibility: with prefers-reduced-motion, skip the timeline entirely
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
       for (const ev of stream) PieceEvents.replay(ev);
@@ -884,7 +881,7 @@ export default class GameScene extends Phaser.Scene {
       return;
     }
     this.input.setDefaultCursor('crosshair');
-    const T = this.tileSize;
+    const T = TILE_SIZE;
     this.flamePreview = flameFlood(board, hovered).map(s => ({ x: s.x, y: s.y }));
     for (const s of this.flamePreview) {
       const target = s.x === hovered.x && s.y === hovered.y;
@@ -951,7 +948,7 @@ export default class GameScene extends Phaser.Scene {
     if (!piece) return;
     this.losOverlay.fillStyle(0x00ff00, 0.25);
     for (const sq of visibleSquares(this.engine.state.board, piece)) {
-      this.losOverlay.fillRect(sq.x * this.tileSize, sq.y * this.tileSize, this.tileSize, this.tileSize);
+      this.losOverlay.fillRect(sq.x * TILE_SIZE, sq.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
     }
   }
 

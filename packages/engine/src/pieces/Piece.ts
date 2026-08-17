@@ -1,5 +1,5 @@
 import { Board } from '../board/Board.js';
-import { Dir, DIR_VEC, turn, toRelative } from '../core/Direction.js';
+import { Dir, DIR_VEC, ORTHO_VECS, turn, toRelative } from '../core/Direction.js';
 import { MOVE_COST, TURN_COST, AP_PER_TURN } from '../core/CostTables.js';
 import { PieceEvents } from '../events/PieceEvents.js';
 import { dropCat } from '../rules/exotic.js';
@@ -122,9 +122,8 @@ export abstract class Piece {
       { c: ahead.c + left.dc, r: ahead.r + left.dr },
       { c: ahead.c + right.dc, r: ahead.r + right.dr },
     ];
-    const ORTHO = [{ dc: 0, dr: -1 }, { dc: 1, dr: 0 }, { dc: 0, dr: 1 }, { dc: -1, dr: 0 }];
     for (const f of fronts) {
-      for (const v of ORTHO) {
+      for (const v of ORTHO_VECS) {
         const n = { c: f.c + v.dc, r: f.r + v.dr };
         const door = this.board.doorBetween(f, n);
         if (door) return door;

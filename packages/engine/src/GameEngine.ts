@@ -5,7 +5,7 @@ import { AssaultCannonMarine, ChainFistMarine } from './pieces/AssaultCannonMari
 import { deployAmbushCounter } from './pieces/AmbushCounter.js';
 import { Board } from './board/Board.js'
 import type { CompiledMission, MarineType } from './missions/missionTypes.js'
-import { Dir } from './core/Direction.js';
+import { Dir, FACING_WORD } from './core/Direction.js';
 import { runStealerActions, spawnBlips, convertRevealedBlips } from './ai/StealerAI.js';
 import { clearFlames } from './rules/flame.js';
 import {
@@ -24,7 +24,6 @@ export interface EngineState {
   result: GameResult;
 }
 
-const FACING: Record<string, Dir> = { up: Dir.N, right: Dir.E, down: Dir.S, left: Dir.W };
 
 /** Base marine-phase clock (original TURNTIMER_BASE_TIME); sergeants add 30s each. */
 export const MARINE_PHASE_SECONDS = 120;
@@ -67,7 +66,7 @@ export class GameEngine {
     }
     for (const d of mission.marineDeployment ?? []) {
       const Cls = MARINE_CLASSES[d.type ?? 'storm_bolter']
-      new Cls(board, { c: d.x, r: d.y }, FACING[d.facing ?? 'down'])
+      new Cls(board, { c: d.x, r: d.y }, FACING_WORD[d.facing ?? 'down'])
     }
     // Per-mission heavy-flamer ammo override (mission 6 post_deploy_script).
     if (mission.flamerAmmo !== undefined) {
@@ -114,9 +113,7 @@ export class GameEngine {
       if (this.mission.objective === 'download' && mover.id === this.downloadPieceId) {
         const dp = this.mission.downloadPoint
         if (!dp || mover.pos.c !== dp.x || mover.pos.r !== dp.y) {
-          this.downloadPieceId = null
-          this.downloadCounter = this.mission.downloadTurns ?? 4
-          PieceEvents.emit('downloadChanged', { counter: this.downloadCounter, active: false })
+          this.resetDownload()
         }
       }
     })
@@ -266,9 +263,7 @@ export class GameEngine {
         }
         PieceEvents.emit('downloadChanged', { counter: this.downloadCounter, active: true })
       } else if (this.downloadPieceId !== null || this.downloadCounter !== (this.mission.downloadTurns ?? 4)) {
-        this.downloadPieceId = null
-        this.downloadCounter = this.mission.downloadTurns ?? 4
-        PieceEvents.emit('downloadChanged', { counter: this.downloadCounter, active: false })
+        this.resetDownload()
       }
     }
 
@@ -448,6 +443,13 @@ export class GameEngine {
   private rollCommandPoints(): void {
     this.cp = this.state.board.dice.roll()
     PieceEvents.emit('cpChanged', { cp: this.cp })
+  }
+
+  /** Abort/reset the beta_2 download: clear the downloader, restore the counter, announce. */
+  private resetDownload(): void {
+    this.downloadPieceId = null
+    this.downloadCounter = this.mission.downloadTurns ?? 4
+    PieceEvents.emit('downloadChanged', { counter: this.downloadCounter, active: false })
   }
 
   private setPhase(phase: PhaseName): void {

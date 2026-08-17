@@ -3,11 +3,12 @@ import { Piece, type Coord } from '../pieces/Piece.js';
 import { Blip } from '../pieces/Blip.js';
 import { StormBolterMarine } from '../pieces/StormBolterMarine.js';
 import { closeCombat } from '../rules/combat.js';
-import { canSee } from '../board/vision.js';
+import { squareSeenByMarine } from '../board/vision.js';
 import { looseCatPos, intactDucting, stealerExoticInteractions } from '../rules/exotic.js';
-import { Dir, DIR_VEC } from '../core/Direction.js';
+import { DIR_VEC, ORTHO_VECS, chebyshev, facingToward, turnToward } from '../core/Direction.js';
+import { openDoorWithEvent } from '../rules/Door.js';
 
-const chebyshev = (a: Coord, b: Coord) => Math.max(Math.abs(a.c - b.c), Math.abs(a.r - b.r));
+export { squareSeenByMarine };
 
 function marines(board: Board): Piece[] {
   return board.pieces.filter((p): p is Piece => (p as Piece).kind === 'marine');
@@ -15,13 +16,6 @@ function marines(board: Board): Piece[] {
 
 function nearestMarine(board: Board, from: Coord): Piece | undefined {
   return marines(board).sort((a, b) => chebyshev(a.pos, from) - chebyshev(b.pos, from))[0];
-}
-
-/** Any marine currently sees this square → blips there must convert. */
-export function squareSeenByMarine(board: Board, coord: Coord): boolean {
-  const sq = board.get(coord.c, coord.r);
-  if (!sq) return false;
-  return marines(board).some(m => canSee(board, m, sq));
 }
 
 /** Convert every blip that a marine can currently see. Returns converted count. */
@@ -44,12 +38,6 @@ function overwatchReactions(board: Board, target: Piece): void {
       marine.overwatchShot(target);
     }
   }
-}
-
-function facingToward(from: Coord, to: Coord): Dir {
-  const dc = to.c - from.c, dr = to.r - from.r;
-  if (Math.abs(dc) >= Math.abs(dr)) return dc > 0 ? Dir.E : Dir.W;
-  return dr > 0 ? Dir.S : Dir.N;
 }
 
 /**
@@ -130,33 +118,24 @@ function stepToward(board: Board, piece: Piece, targets: Coord[]): 'acted' | 'wa
       door.close();
       if (exposed) return 'wait';
     }
-    door.open();
-    piece.ap -= 1;
-    PieceEvents.emit('doorToggled', { x: door.square.x, y: door.square.y, facing: door.facing, open: true });
+    openDoorWithEvent(door, piece);
     return 'acted';
   }
 
   // Face the direction of travel first (free/cheap for stealers), then move
-  const dir = facingToward(piece.pos, next);
-  if (piece.facing !== dir && piece.kind === 'stealer') {
-    const delta = ((dir - piece.facing + 4) % 4);
-    piece.tryTurn(delta === 1 ? 1 : delta === 3 ? -1 : 2);
+  if (piece.kind === 'stealer') {
+    turnToward(piece, facingToward(piece.pos, next));
   }
   return piece.tryMove(next.c - piece.pos.c, next.r - piece.pos.r) ? 'acted' : 'wait';
 }
 
-import { PieceEvents } from '../events/PieceEvents.js';
-
 /** Open a closed door on an edge of the piece's own square (1 AP). Stealer side ignores facing for doors. */
 function openAdjacentDoor(board: Board, piece: Piece): boolean {
   if (piece.ap < 1) return false;
-  const ORTHO = [{ dc: 0, dr: -1 }, { dc: 1, dr: 0 }, { dc: 0, dr: 1 }, { dc: -1, dr: 0 }];
-  for (const v of ORTHO) {
+  for (const v of ORTHO_VECS) {
     const door = board.doorBetween(piece.pos, { c: piece.pos.c + v.dc, r: piece.pos.r + v.dr });
     if (door && !door.isOpen) {
-      door.open();
-      piece.ap -= 1;
-      PieceEvents.emit('doorToggled', { x: door.square.x, y: door.square.y, facing: door.facing, open: true });
+      openDoorWithEvent(door, piece);
       return true;
     }
   }
@@ -194,11 +173,7 @@ export function runStealerActions(board: Board): void {
         const spot = exoticSpots.find(t =>
           chebyshev(p.pos, t) === 1 && board.isPassable(t) && !board.isOccupied(t));
         if (spot) {
-          const dir = facingToward(p.pos, spot);
-          if (p.facing !== dir) {
-            const delta = ((dir - p.facing + 4) % 4);
-            p.tryTurn(delta === 1 ? 1 : delta === 3 ? -1 : 2);
-          }
+          turnToward(p, facingToward(p.pos, spot));
           if (p.tryMove(spot.c - p.pos.c, spot.r - p.pos.r)) {
             stealerExoticInteractions(board, p);
             overwatchReactions(board, p);
@@ -211,11 +186,7 @@ export function runStealerActions(board: Board): void {
 
       if (p.kind === 'stealer' && chebyshev(p.pos, marine.pos) === 1) {
         // Face the marine, then rend
-        const dir = facingToward(p.pos, marine.pos);
-        if (p.facing !== dir) {
-          const delta = ((dir - p.facing + 4) % 4);
-          p.tryTurn(delta === 1 ? 1 : delta === 3 ? -1 : 2);
-        }
+        turnToward(p, facingToward(p.pos, marine.pos));
         // Diagonal adjacency: CC needs the marine straight ahead — step around instead
         const v = DIR_VEC[p.facing];
         const ahead = { c: p.pos.c + v.dc, r: p.pos.r + v.dr };

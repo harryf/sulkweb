@@ -4,7 +4,7 @@ import { Dir, DIR_VEC } from '../core/Direction.js';
 import { canShoot } from '../board/vision.js';
 import { PieceEvents } from '../events/PieceEvents.js';
 import { StormBolterMarine } from './StormBolterMarine.js';
-import { Door } from '../rules/Door.js';
+import { Door, demolishDoor } from '../rules/Door.js';
 
 /**
  * Terminator with assault cannon (original Terminator_Marine_with_Assault_Cannon):
@@ -38,18 +38,10 @@ export class AssaultCannonMarine extends StormBolterMarine {
 
   /** Aimed / move-and-shoot cannon fire — replaces the bolter dice entirely. */
   override shoot(target: Piece): boolean {
-    if (this.board.locked || this.jammed || !target.alive || this.ammo < 1) return false;
-    const free = this.freeShot;
-    if (!free && this.ap < 1) return false;
-    const targetSquare = this.board.get(target.pos.c, target.pos.r);
-    if (!targetSquare || !canShoot(this.board, this, targetSquare)) return false;
-
-    if (free) this.freeShot = false;
-    else this.ap -= 1;
-    this.clearOverwatch();
-    const bonus = !free && this.sustainedTargetId === target.id ? this.sustainedBonus : 0;
-    this.sustainedTargetId = target.id;
-    return this.resolveCannonDice(target, bonus, !free);
+    if (this.ammo < 1) return false;
+    const s = this.beginAimedShot(target);
+    if (!s) return false;
+    return this.resolveCannonDice(target, s.bonus, !s.free);
   }
 
   /** Overwatch: cannon dice, range-limited, no sustained bonus, no jam —
@@ -98,8 +90,7 @@ export class AssaultCannonMarine extends StormBolterMarine {
         if (!this.doorInSight(door)) continue;
         const rolls = [this.board.dice.roll(), this.board.dice.roll(), this.board.dice.roll()];
         if (Math.max(...rolls) >= AssaultCannonMarine.AUTO_KILL_REQ) {
-          door.destroy();
-          PieceEvents.emit('doorDestroyed', { x: door.square.x, y: door.square.y, facing: door.facing });
+          demolishDoor(door);
           somethingKilled = true;
         }
       }
@@ -121,27 +112,13 @@ export class AssaultCannonMarine extends StormBolterMarine {
    */
   override shootDoor(door: Door): boolean {
     if (!this.canShootDoor(door)) return false;
-    const free = this.freeShot;
-    if (free) this.freeShot = false;
-    else this.ap -= 1;
-    this.clearOverwatch();
-    const key = StormBolterMarine.doorKey(door);
-    const bonus = !free && this.sustainedTargetId === key ? this.sustainedBonus : 0;
-    this.sustainedTargetId = key;
-    this.ammo -= 1;
-    PieceEvents.emit('ammoChanged', { pieceId: this.id, ammo: this.ammo });
+    const { free, key, bonus } = this.beginDoorShot(door);
+    this.spendRound();
     const rolls = [this.board.dice.roll(), this.board.dice.roll(), this.board.dice.roll()];
     const req = Math.max(1, AssaultCannonMarine.KILL_REQ - bonus);
     const hit = rolls.some(r => r >= req);
     PieceEvents.emit('shot', { shooterId: this.id, targetId: key, x: door.square.x, y: door.square.y, rolls, hit });
-    if (hit) {
-      door.destroy();
-      PieceEvents.emit('doorDestroyed', { x: door.square.x, y: door.square.y, facing: door.facing });
-      this.sustainedTargetId = null;
-      this.sustainedBonus = 0;
-    } else if (!free) {
-      this.sustainedBonus = Math.min(bonus + 1, StormBolterMarine.MAX_SUSTAINED);
-    }
+    this.settleDoorShot(door, hit, free, bonus);
     this.shotsFired += 1;
     this.maybeMalfunction(rolls);
     return hit;
@@ -164,25 +141,28 @@ export class AssaultCannonMarine extends StormBolterMarine {
   /** Fake-ambush reflex fire: the cannon burns a round and can blow itself up. */
   override fireAtNothing(): void {
     if (this.ammo < 1) return;
-    this.ammo -= 1;
-    PieceEvents.emit('ammoChanged', { pieceId: this.id, ammo: this.ammo });
+    this.spendRound();
     const rolls = [this.board.dice.roll(), this.board.dice.roll(), this.board.dice.roll()];
     PieceEvents.emit('shot', { shooterId: this.id, targetId: '', x: this.pos.c, y: this.pos.r, rolls, hit: false });
     this.shotsFired += 1;
     this.maybeMalfunction(rolls);
   }
 
-  private resolveCannonDice(target: Piece, bonus: number, accrues: boolean): boolean {
+  /** Spend one round from the drum and announce the new count. */
+  private spendRound(): void {
     this.ammo -= 1;
     PieceEvents.emit('ammoChanged', { pieceId: this.id, ammo: this.ammo });
+  }
+
+  private resolveCannonDice(target: Piece, bonus: number, accrues: boolean): boolean {
+    this.spendRound();
     const rolls = [this.board.dice.roll(), this.board.dice.roll(), this.board.dice.roll()];
     const req = Math.max(1, AssaultCannonMarine.KILL_REQ - bonus);
     const hit = rolls.some(r => r >= req);
     PieceEvents.emit('shot', { shooterId: this.id, targetId: target.id, x: target.pos.c, y: target.pos.r, rolls, hit });
     if (hit) {
       target.die();
-      this.sustainedTargetId = null;
-      this.sustainedBonus = 0;
+      this.clearSustained();
     } else if (accrues) {
       this.sustainedBonus = Math.min(this.sustainedBonus + 1, StormBolterMarine.MAX_SUSTAINED);
     }
@@ -233,8 +213,7 @@ export class ChainFistMarine extends StormBolterMarine {
     const door = this.canCutDoor();
     if (!door) return false;
     this.ap -= ChainFistMarine.CUT_COST;
-    door.destroy();
-    PieceEvents.emit('doorDestroyed', { x: door.square.x, y: door.square.y, facing: door.facing });
+    demolishDoor(door);
     this.onActed('door');
     return true;
   }

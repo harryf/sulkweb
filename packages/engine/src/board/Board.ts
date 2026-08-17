@@ -199,9 +199,6 @@ export class Board {
     return false;
   }
 
-  // Alias for get to support legacy tests
-  getSquare(x: number, y: number): Square | undefined { return this.get(x, y) }
-  
   /**
    * Get all adjacent squares to the given square (including diagonals)
    * Results are cached for performance

@@ -175,11 +175,10 @@ the replays use, so what you hear tracks what you see.
 ## Development
 
 ```bash
-pnpm --filter ./packages/engine test   # 228 unit tests (rules, AI, game flow)
-pnpm --filter ./packages/client test   # HUD + minimap unit tests
-pnpm --filter ./packages/client e2e    # 18 Playwright tests: real browser, no mocks
+pnpm --filter ./packages/engine test   # 259 unit tests (rules, AI, game flow) + coverage report
+pnpm --filter ./packages/client test   # 37 unit tests (HUD, minimap, roster, audio logic) + coverage
+pnpm --filter ./packages/client e2e    # 42 Playwright tests: real browser, no mocks
 pnpm build                             # engine tsc + client vite build
-pnpm --filter ./packages/engine example  # CLI engine tour
 ```
 
 The project ISA (`ISA.md`) is the system of record: goals, verified criteria, decisions, and changelog.
@@ -197,9 +196,9 @@ The project ISA (`ISA.md`) is the system of record: goals, verified criteria, de
 ```
 packages/
 ├─ engine/   # Pure rules & AI — no Phaser imports (enforced by test greps)
-│  └─ src/{board,core,pieces,rules,ai,phases,missions,events}
+│  └─ src/{board,core,pieces,rules,ai,missions,events}
 └─ client/   # Phaser 3 + Vite front-end
-   └─ src/{scenes,ui,utils}
+   └─ src/{scenes,ui,audio,utils}
 ```
 
 ## Roadmap state (original M0–M8 plan in `prompts/`)

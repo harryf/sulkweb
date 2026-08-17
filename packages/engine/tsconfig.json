@@ -7,9 +7,8 @@
     "resolveJsonModule": true,
     "module": "NodeNext"
   },
-  "include": ["src/**/*.ts", "src/**/*.json", "src/custom.d.ts"],
+  "include": ["src/**/*.ts", "src/**/*.json"],
   "exclude": [
-    "src/__tests__/**/*.ts",
-    "src/tests/**/*.ts"
+    "src/__tests__/**/*.ts"
   ]
 }

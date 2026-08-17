@@ -1,5 +1,5 @@
 import type { Piece } from '../pieces/Piece.js';
-import { Dir, toRelative, DIR_VEC } from '../core/Direction.js';
+import { toRelative, DIR_VEC, facingToward } from '../core/Direction.js';
 import { PieceEvents } from '../events/PieceEvents.js';
 
 export interface CombatResult {
@@ -93,12 +93,7 @@ export function closeCombat(attacker: Piece, defender: Piece): CombatResult | un
   return { attackerRolls, defenderRolls, outcome };
 }
 
+/** Free post-combat spin (no AP, bypasses tryTurn by design). */
 function faceToward(piece: Piece, other: Piece): void {
-  const dc = other.pos.c - piece.pos.c;
-  const dr = other.pos.r - piece.pos.r;
-  if (Math.abs(dc) >= Math.abs(dr)) {
-    piece.facing = dc > 0 ? Dir.E : Dir.W;
-  } else {
-    piece.facing = dr > 0 ? Dir.S : Dir.N;
-  }
+  piece.facing = facingToward(piece.pos, other.pos);
 }

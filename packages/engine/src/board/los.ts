@@ -107,7 +107,7 @@ export function hasLineOfSight(board: Board, a: Square, b: Square, opts: LosOpti
   const intermediatePoints = points.slice(1, -1);
 
   for (const [x, y] of intermediatePoints) {
-    const square = board.getSquare(x, y);
+    const square = board.get(x, y);
     // A missing or impassable square is solid rock — sight never crosses it.
     if (!square || !square.passable) {
       return false;

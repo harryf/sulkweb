@@ -1,6 +1,7 @@
 import { PieceEvents } from '@sulk/engine/index.js';
 import { groupBySquad, type RosterEntry } from './marineNames.js';
 import { KEY_ROWS, SPECIAL_KEYS, KEY_NOTES } from './keyboardHelp.js';
+import { FACING_ARROWS } from '../config.js';
 
 /** Live stats for one marine, read from the engine by the owner (GameScene). */
 export interface PieceStats {
@@ -15,7 +16,6 @@ export interface PieceStats {
   facing: number;
 }
 
-const FACING_ARROW = ['↑', '→', '↓', '←'];
 
 /**
  * DOM roster panel to the right of the canvas: one row per squad, one card per
@@ -115,7 +115,7 @@ export class RosterPanel {
     const s = this.readStats(id);
     if (!s) return;
     if (!s.alive) { this.markState(id, 'dead', 'KIA'); return; }
-    card.querySelector('.m-face')!.textContent = FACING_ARROW[s.facing] ?? '';
+    card.querySelector('.m-face')!.textContent = FACING_ARROWS[s.facing] ?? '';
     card.querySelector('.m-stats')!.textContent = `AP ${s.apRemaining}/${s.apInitial} · CP ${this.cp}`;
     card.querySelector('.m-ammo')!.textContent = s.ammo !== undefined ? `Ammo ${s.ammo}` : '';
     const badges: string[] = [];

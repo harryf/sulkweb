@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: execute
-progress: 471/515 (home-page run ISC-472..514 pending; ISC-71 deferred)
+phase: complete
+progress: 514/515 (home-page run ISC-472..514 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-17T10:10:00Z
+updated: 2026-08-17T10:25:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -694,7 +694,7 @@ Build & regression:
 - [x] ISC-511: Anti: seeded gameplay unchanged — playthrough.spec and all seeded e2e pass without pin changes (Playwright)
 - [x] ISC-512: Anti: zero console errors on the home page (Playwright pageerror capture)
 - [x] ISC-513: home overlay and manual visually verified in real Chrome via Interceptor screenshots (Interceptor)
-- [ ] ISC-514: work committed with a clean tree (Bash git status)
+- [x] ISC-514: work committed with a clean tree (Bash git status)
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|

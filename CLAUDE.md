@@ -171,7 +171,7 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
    differently from plain autoplay — scan loss seeds under THAT pattern (endMarinePhase
    first, then autoplay). If a rules change alters dice-consumption order, re-scan and re-pin.
 4. `window.sulk` in the client exposes `{ engine, Selection, scene, SeededRng, autoplay,
-   runMarineTurn }` for e2e and console debugging.
+   runMarineTurn, PieceEvents, Genestealer }` for e2e and console debugging.
 
 ## Gotchas (hard-won)
 

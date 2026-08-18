@@ -101,7 +101,7 @@ export default class GameScene extends Phaser.Scene {
       ? requested : 'debug_1') as keyof typeof missions;
     this.missionKey = missionName;
     this.engine = new GameEngine(loadMission(missionName), [], dice);
-    (window as any).sulk = { engine: this.engine, Selection, scene: this, SeededRng, autoplay, runMarineTurn, PieceEvents }; // dev/debug + autoplay handle
+    (window as any).sulk = { engine: this.engine, Selection, scene: this, SeededRng, autoplay, runMarineTurn, PieceEvents, Genestealer }; // dev/debug + autoplay handle
   }
 
   preload() {
@@ -883,7 +883,30 @@ export default class GameScene extends Phaser.Scene {
     if (!(piece instanceof StormBolterMarine)) return false;
     const door = this.hoveredDoorFor(piece);
     if (door) { piece.shootDoor(door); return true; } // AP spent even on a miss
-    return this.shootNearest(piece);
+    if (this.shootNearest(piece)) return true;
+    // Keyboard path ONLY: with the pointer resting on some square the player
+    // is aiming, and a fallback shot at an unhovered door would demolish
+    // (permanently) something they never targeted — so require NO hover.
+    if (this.hoverCoord) return false;
+    return this.shootNearestDoor(piece);
+  }
+
+  /** No-hover fallback: shoot the nearest closed door in fire arc + LOS. */
+  private shootNearestDoor(piece: StormBolterMarine): boolean {
+    const target = this.engine.state.board.allDoors()
+      .filter(d => piece.canShootDoor(d))
+      .sort((a, b) => {
+        const mid = (d: Door) => ({
+          x: (d.square.x + d.otherSide().c) / 2,
+          y: (d.square.y + d.otherSide().r) / 2,
+        });
+        const ma = mid(a), mb = mid(b);
+        return Math.hypot(ma.x - piece.pos.c, ma.y - piece.pos.r)
+          - Math.hypot(mb.x - piece.pos.c, mb.y - piece.pos.r);
+      })[0];
+    if (!target) return false;
+    piece.shootDoor(target);
+    return true; // AP spent even on a miss
   }
 
   /** A closed, shootable door on an edge of the hovered square. */

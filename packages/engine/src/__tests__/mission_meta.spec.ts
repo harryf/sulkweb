@@ -41,6 +41,33 @@ describe('entry/exit facings (ISC-271)', () => {
   });
 });
 
+describe('doorway corners terminate in rock (ISC-616)', () => {
+  it('every door-segment endpoint has at most 3 passable neighbours on every mission', () => {
+    // The corner LOS rule (los.ts pointOnSegment) treats a door edge's
+    // endpoints as solid doorway frame. That is only physics if no door is
+    // ever authored into a fully-open 2-wide gap — this pins the property
+    // the rule relies on, for all registered maps (review finding 2026-08-18).
+    for (const [key, m] of ALL) {
+      const squares = new Set(m.squares.map(s => `${s.x},${s.y}`));
+      for (const s of m.squares) {
+        if (!s.doorFacing) continue;
+        const [dx, dy] = DIR[s.doorFacing];
+        // Door edge between (s) and (s+d); its endpoints in grid units are the
+        // two corners of that edge. The four squares meeting at each corner:
+        const corners = dx === 0
+          ? [[s.x, s.y + (dy + 1) / 2], [s.x + 1, s.y + (dy + 1) / 2]]   // horizontal edge
+          : [[s.x + (dx + 1) / 2, s.y], [s.x + (dx + 1) / 2, s.y + 1]];  // vertical edge
+        for (const [cx, cy] of corners) {
+          const open = [[cx - 1, cy - 1], [cx, cy - 1], [cx - 1, cy], [cx, cy]]
+            .filter(([x, y]) => squares.has(`${x},${y}`)).length;
+          expect(open, `${key} door (${s.x},${s.y})${s.doorFacing} corner (${cx},${cy})`)
+            .toBeLessThanOrEqual(3);
+        }
+      }
+    }
+  });
+});
+
 describe('deployment squad names (ISC-274)', () => {
   it('every deployment square of every mission names its squad', () => {
     for (const [key, m] of ALL) {

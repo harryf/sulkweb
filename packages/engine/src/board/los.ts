@@ -30,6 +30,16 @@ function segmentsCross(
     && ((d3 > EPS && d4 < -EPS) || (d3 < -EPS && d4 > EPS));
 }
 
+/** Is point P on segment AB (collinear and within its bounding span)? */
+function pointOnSegment(
+  px: number, py: number,
+  ax: number, ay: number, bx: number, by: number,
+): boolean {
+  if (Math.abs(cross(ax, ay, bx, by, px, py)) > EPS) return false;
+  const dot = (px - ax) * (bx - ax) + (py - ay) * (by - ay);
+  return dot >= -EPS && dot <= (bx - ax) ** 2 + (by - ay) ** 2 + EPS;
+}
+
 /**
  * Checks if a straight-line Line of Sight (LOS) exists between two squares.
  *
@@ -63,11 +73,17 @@ export function hasLineOfSight(board: Board, a: Square, b: Square, opts: LosOpti
 
   // Edge-model doors: a CLOSED door blocks any sight line that crosses its
   // boundary segment — including sight into the square directly behind it.
+  // A door segment's ENDPOINTS are the doorway corners (solid frame): a sight
+  // line passing exactly through one is blocked too, matching the movement
+  // corner rule (diagonalBlockedByDoor) — otherwise a diagonal ray grazes the
+  // corner of a closed door and sees the square behind it.
   const sx = x0 + 0.5, sy = y0 + 0.5, ex = x1 + 0.5, ey = y1 + 0.5;
   for (const door of board.allDoors()) {
     if (door.isOpen) continue;
     const [dx0, dy0, dx1, dy1] = doorSegment(door);
-    if (segmentsCross(sx, sy, ex, ey, dx0, dy0, dx1, dy1)) return false;
+    if (segmentsCross(sx, sy, ex, ey, dx0, dy0, dx1, dy1)
+      || pointOnSegment(dx0, dy0, sx, sy, ex, ey)
+      || pointOnSegment(dx1, dy1, sx, sy, ex, ey)) return false;
   }
 
   const dx = x1 - x0;

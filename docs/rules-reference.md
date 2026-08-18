@@ -58,7 +58,7 @@ Additional movement rules:
 
 - **Vision arc**: the front 180°, everything strictly ahead of the line through the piece perpendicular to its facing, plus that line itself (the piece's own square excluded).
 - **Fire arc**: the front 90° cone. Targets exactly on the 45° edges count as inside.
-- **Line of sight** is traced center to center. It is blocked by: any intermediate square that is missing or marked as blocking, any intermediate square occupied by a piece (pieces block sight), any intermediate square that is burning (you can see into flames, not through them), and any closed door edge the line crosses, including sight into the square directly behind the door.
+- **Line of sight** is traced center to center. It is blocked by: any intermediate square that is missing or marked as blocking, any intermediate square occupied by a piece (pieces block sight), any intermediate square that is burning (you can see into flames, not through them), and any closed door edge the line crosses — including sight into the square directly behind the door, and including a diagonal line that grazes the door edge's corner (the doorway frame is solid, matching the diagonal-movement corner rule).
 - **Seeing** a square = vision arc + clear LOS. **Shooting** a square = fire arc + clear LOS + weapon range (range measured as the larger of the x and y distance).
 
 ## Shooting
@@ -102,6 +102,7 @@ A closed door can be destroyed by fire, permanently:
 - Assault cannon: 1 AP and 1 round, three dice, destroyed on 5+ (sustained lowers it); autofire also shreds every closed door it can see on 3+.
 - The chain fist (below) cuts doors without dice.
 - A marine standing at the door's edge can always shoot it point-blank even though the edge square is outside his fire arc.
+- In the client, hovering a closed door and pressing F shoots it; with no hover and no enemy in sight, F falls back to the nearest shootable closed door — pure keyboard play can always fire at doors.
 
 ### Chain fist (beta_2)
 

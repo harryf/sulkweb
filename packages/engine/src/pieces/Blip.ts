@@ -78,7 +78,15 @@ export class Blip extends Piece {
     if (around) {
       for (const sq of board.adjacentsOf(around)) {
         const coord = { c: sq.x, r: sq.y };
-        if (board.isPassable(coord) && !board.isOccupied(coord)) spots.push(coord);
+        if (!board.isPassable(coord) || board.isOccupied(coord)) continue;
+        // Emerging stealers must be one LEGAL step from the blip square: a
+        // closed door edge (or its corner, for diagonals) is a wall — a blip
+        // must never split itself across a door it could not walk through.
+        const diagonal = coord.c !== origin.c && coord.r !== origin.r;
+        if (diagonal
+          ? board.diagonalBlockedByDoor(origin, coord)
+          : board.doorBetween(origin, coord)?.isOpen === false) continue;
+        spots.push(coord);
       }
     }
     const stealers: Genestealer[] = [];

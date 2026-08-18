@@ -819,6 +819,8 @@ Build & regression:
 - [x] ISC-615: Anti: a pointer resting on a NON-door square suppresses the fallback — a mouse player's stray F never demolishes an unhovered door, spends nothing (Playwright: hoverCoord set, F, door intact, AP unchanged)
 - [x] ISC-616: every door-segment endpoint on every registered mission has ≤3 passable neighbouring squares — the map property the corner LOS rule relies on is pinned hermetically (vitest mission_meta sweep, all 9 missions)
 - [x] ISC-617: Anti: a long diagonal threading door-free corners stays visible — the endpoint rule touches only closed-door segments (vitest, (0,0)→(4,4) through the doorway fixture's room)
+- [x] ISC-618: v0.4.2 released — tag on main, CI gates green on the tag commit, GitHub release published, live site serves v0.4.2 (gh run 32175393177 success; bundle grep; release URL)
+- [DEFERRED-VERIFY] ISC-619: live-site real-Chrome boot check for v0.4.2 [both browser channels down this session: Interceptor extension handshake broken (3rd occurrence), claude-in-chrome denied by permission classifier. Mitigation: the same commit passed the full 59-test real-browser e2e suite locally incl. space_hulk_1 boot. Follow-up: repair Interceptor (Update workflow / Chrome restart), then `interceptor open https://harryf.github.io/sulkweb/?mission=space_hulk_1`]
 
 ## Test Strategy
 
@@ -1258,6 +1260,8 @@ Build & regression:
 - ISC-615: Playwright — hoverCoord {17,19} + F → door intact, AP 4 unchanged (door-keyboard.spec)
 - ISC-616: vitest — mission_meta doorway-corner sweep: all 9 missions, every door endpoint ≤3 open neighbours
 - ISC-617: vitest — (0,0)→(4,4) diagonal through door-free corners stays visible (door_corner.spec)
+- ISC-618: Bash — v0.4.2 tag deploy run 32175393177 completed/success; `curl` home+manual 200; `grep v0.4.2` in live assets/main-rEGYGo8G.js; release live at https://github.com/harryf/sulkweb/releases/tag/v0.4.2. RELEASE GOTCHA captured: the first tag build FAILED on CI — the pinned beta_2 opposed-run test exceeded vitest's 5s default on the slower runner (passes ~4s locally; corner-LOS adds per-door work to a hot loop) — fixed with explicit 20s/30s test timeouts and the tag MOVED to the fix commit. Moving a tag DETACHES its GitHub release (it became an "untagged-…" draft): deleted the draft and recreated the release against the new tag. Next time: tag only after the tag-commit's CI is green, or push main first and watch its run before tagging.
+- ISC-619: DEFERRED — both browser channels down (Interceptor no-handshake 3rd occurrence; claude-in-chrome classifier-denied); same-commit local e2e (59/59, real Chromium, space_hulk_1 boot) stands in until Interceptor is repaired
 
 ### Hive pin / blood / zigzag / entries (2026-08-18 second run, ISC-592..601)
 

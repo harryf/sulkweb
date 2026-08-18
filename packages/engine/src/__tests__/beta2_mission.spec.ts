@@ -121,11 +121,14 @@ describe('beta_2 fidelity (ISC-261/262)', () => {
     expect(engine.marinePhaseSeconds).toBe(180); // two sergeants: 120 + 2×30
   });
 
+  // Explicit timeouts: these two drive full hive turns on the 176-square map —
+  // ~3-4s locally, past vitest's 5s default on slower CI runners (v0.4.2 tag
+  // build failed exactly here with the same code that passed locally).
   it('autopilot plays it legally; ambush counters appear (ISC-263 face)', () => {
     const engine = new GameEngine(loadMission('beta_2'), [], new SeededRng(7));
     autoplay(engine, 6);
     expect(engine.turnNumber).toBeGreaterThan(1);
-  });
+  }, 20000);
 
   it('the download is mechanically completable on the REAL map (unopposed capability, ISC-601 face)', () => {
     // Advisor 2026-08-18 challenge: "0/400 probe wins might mean the mission
@@ -171,5 +174,5 @@ describe('beta_2 fidelity (ISC-261/262)', () => {
     }
     expect(engine.state.result).toBe('loss'); // no sergeant survives the camped ring
     expect(t).toBeLessThan(45);               // decided, not stalled
-  });
+  }, 30000);
 });

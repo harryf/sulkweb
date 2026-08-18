@@ -213,7 +213,7 @@ export class ChainFistMarine extends StormBolterMarine {
     const door = this.canCutDoor();
     if (!door) return false;
     this.ap -= ChainFistMarine.CUT_COST;
-    demolishDoor(door);
+    demolishDoor(door, 'cut');
     this.onActed('door');
     return true;
   }

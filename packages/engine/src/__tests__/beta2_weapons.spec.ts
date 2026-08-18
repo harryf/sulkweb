@@ -6,6 +6,7 @@ import { Dir } from '../core/Direction.js';
 import type { CompiledMission } from '../missions/missionTypes.js';
 import { AssaultCannonMarine, ChainFistMarine } from '../pieces/AssaultCannonMarine.js';
 import { SwordSergeantMarine, StormBolterMarine } from '../pieces/StormBolterMarine.js';
+import { PieceEvents } from '../events/PieceEvents.js';
 import { AmbushCounter, deployAmbushCounter } from '../pieces/AmbushCounter.js';
 import { closeCombat } from '../rules/combat.js';
 import { PieceEvents } from '../events/PieceEvents.js';
@@ -121,8 +122,11 @@ describe('chain fist + power sword (ISC-252/253)', () => {
     const board = engine.state.board;
     const cf = engine.marines[0] as ChainFistMarine;
     const door = board.doorBetween({ c: 1, r: 2 }, { c: 1, r: 3 })!;
-    expect(cf.cutDoor()).toBe(true);
+    const stream = PieceEvents.capture(() => expect(cf.cutDoor()).toBe(true));
     expect(door.destroyed).toBe(true);
+    // Audio routing: the CUT is the chainsaw voice (ISC-622).
+    const destroyed = stream.find(e => e.type === 'doorDestroyed')!;
+    expect((destroyed.payload as { cause: string }).cause).toBe('cut');
     expect(cf.ap).toBe(3);
     door.close(); // cannot be closed again
     expect(door.isOpen).toBe(true);

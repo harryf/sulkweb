@@ -36,8 +36,10 @@ export type PieceEventsType = {
   objectiveCleansed: { x: number; y: number; cleansedCount: number }
   /** A ducting square was torn out (mission 6 "Defend"). */
   ductingDestroyed: { x: number; y: number }
-  /** A door was cut apart / shredded — permanently gone (beta_2 weapons). */
-  doorDestroyed: { x: number; y: number; facing: number }
+  /** A door was cut apart / shredded — permanently gone (beta_2 weapons).
+   *  `cause` routes audio: 'cut' = chain fist revs, 'shot' = the weapon's own
+   *  firing SFX already played with the shot event. */
+  doorDestroyed: { x: number; y: number; facing: number; cause: 'shot' | 'cut' }
   /** Assault cannon catastrophic malfunction — the cannon marine dies. */
   malfunction: { pieceId: string; x: number; y: number; kills: string[] }
   /** beta_2 download progress: counter 4→0; active while a sergeant holds the square. */

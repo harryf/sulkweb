@@ -51,6 +51,9 @@ export default class GameScene extends Phaser.Scene {
    *  as the blast preview and asserted by e2e. */
   flamePreview: { x: number; y: number }[] = [];
   private flamePreviewGfx!: Phaser.GameObjects.Graphics;
+  /** Reticle over the door F would shoot right now. Public for e2e. */
+  doorReticleFor: { x: number; y: number; facing: number } | null = null;
+  private doorReticleGfx!: Phaser.GameObjects.Graphics;
   /** First B press arms self-destruct; the second within the window fires.
    *  0 = disarmed. Armed state is bound to ONE flamer — switching selection
    *  must never carry the confirm to a different marine (Advisor 2026-08-16).
@@ -172,6 +175,7 @@ export default class GameScene extends Phaser.Scene {
     });
     PieceEvents.on('doorToggled', ({ x, y, facing, open }) => {
       this.doorSprites[`${x},${y}:${facing}`]?.setTexture(open ? 'door_open' : 'door_closed');
+      this.refreshDoorReticle(); // open/closed flips shootability
     });
     
     // Mission markers: stealer entry triangles + exit arrows (theme art, drawn
@@ -261,6 +265,7 @@ export default class GameScene extends Phaser.Scene {
     PieceEvents.on('doorDestroyed', ({ x, y, facing }) => {
       this.doorSprites[`${x},${y}:${facing}`]?.destroy();
       delete this.doorSprites[`${x},${y}:${facing}`];
+      this.refreshDoorReticle(); // the target may be gone
     });
         PieceEvents.on('downloadChanged', ({ counter, active }) => {
       const total = this.engine.mission.downloadTurns ?? 4;
@@ -477,6 +482,7 @@ export default class GameScene extends Phaser.Scene {
       }
       this.hud.setHoverInfo(this.hoverInfo);
       if (this.flamerAiming) this.refreshAimUI();
+      this.refreshDoorReticle(); // hover picks the door F targets
     });
 
     PieceEvents.emit('cpChanged', { cp: this.engine.cp }); // HUD subscribed after the initial roll
@@ -504,6 +510,7 @@ export default class GameScene extends Phaser.Scene {
     this.highlight = new HighlightSprite(this, TILE_SIZE);
     this.add.existing(this.highlight);
     this.flamePreviewGfx = this.add.graphics().setDepth(0.85);
+    this.doorReticleGfx = this.add.graphics().setDepth(2.5);
 
     // Input handler for piece selection
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
@@ -882,31 +889,66 @@ export default class GameScene extends Phaser.Scene {
     }
     if (!(piece instanceof StormBolterMarine)) return false;
     const door = this.hoveredDoorFor(piece);
-    if (door) { piece.shootDoor(door); return true; } // AP spent even on a miss
-    if (this.shootNearest(piece)) return true;
-    // Keyboard path ONLY: with the pointer resting on some square the player
-    // is aiming, and a fallback shot at an unhovered door would demolish
-    // (permanently) something they never targeted — so require NO hover.
-    if (this.hoverCoord) return false;
-    return this.shootNearestDoor(piece);
+    if (door) { piece.shootDoor(door); this.refreshDoorReticle(); return true; } // AP spent even on a miss
+    if (this.shootNearest(piece)) { this.refreshDoorReticle(); return true; }
+    // No enemy in sight: fall back to the nearest shootable closed door.
+    // The reticle (refreshDoorReticle) shows this target BEFORE the press, so
+    // the shot is never a surprise — that visibility replaces the hover gate
+    // an earlier review round added (user feedback 2026-08-18: the gate made
+    // the fallback near-unreachable, since any mouse move sets hoverCoord).
+    const fallback = this.nearestShootableDoor(piece);
+    if (!fallback) return false;
+    piece.shootDoor(fallback);
+    this.refreshDoorReticle();
+    return true; // AP spent even on a miss
   }
 
-  /** No-hover fallback: shoot the nearest closed door in fire arc + LOS. */
-  private shootNearestDoor(piece: StormBolterMarine): boolean {
-    const target = this.engine.state.board.allDoors()
+  /** The nearest closed door this marine can shoot (fire arc + LOS). */
+  private nearestShootableDoor(piece: StormBolterMarine): Door | undefined {
+    const mid = (d: Door) => ({
+      x: (d.square.x + d.otherSide().c) / 2,
+      y: (d.square.y + d.otherSide().r) / 2,
+    });
+    return this.engine.state.board.allDoors()
       .filter(d => piece.canShootDoor(d))
       .sort((a, b) => {
-        const mid = (d: Door) => ({
-          x: (d.square.x + d.otherSide().c) / 2,
-          y: (d.square.y + d.otherSide().r) / 2,
-        });
         const ma = mid(a), mb = mid(b);
         return Math.hypot(ma.x - piece.pos.c, ma.y - piece.pos.r)
           - Math.hypot(mb.x - piece.pos.c, mb.y - piece.pos.r);
       })[0];
-    if (!target) return false;
-    piece.shootDoor(target);
-    return true; // AP spent even on a miss
+  }
+
+  /** The door F would hit RIGHT NOW for the selected marine: the hovered door,
+   *  else — when no enemy soaks the shot first — the nearest shootable door. */
+  private fireDoorTarget(): Door | undefined {
+    if (this.attract || this.engine.state.result !== 'ongoing') return undefined;
+    const selectedId = Selection.get();
+    const piece = selectedId ? this.engine.findPiece(selectedId) : undefined;
+    if (!(piece instanceof StormBolterMarine)) return undefined; // flamer excluded (extends Piece)
+    if (piece.jammed || (!piece.freeShot && piece.ap < 1)) return undefined;
+    const hovered = this.hoveredDoorFor(piece);
+    if (hovered) return hovered;
+    if (this.nearestEnemyTarget(piece)) return undefined; // an enemy takes the shot
+    return this.nearestShootableDoor(piece);
+  }
+
+  /** Reticle over the door F would shoot — the player sees the target before
+   *  pressing (discoverability + no surprise demolition). */
+  refreshDoorReticle(): void {
+    const door = this.fireDoorTarget();
+    this.doorReticleFor = door
+      ? { x: door.square.x, y: door.square.y, facing: door.facing } : null;
+    this.doorReticleGfx.clear();
+    if (!door) return;
+    const T = TILE_SIZE;
+    const other = door.otherSide();
+    const cx = ((door.square.x + other.c) / 2 + 0.5) * T;
+    const cy = ((door.square.y + other.r) / 2 + 0.5) * T;
+    const r = T * 0.32;
+    this.doorReticleGfx.lineStyle(2.5, 0xff3333, 0.95).strokeCircle(cx, cy, r);
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      this.doorReticleGfx.lineBetween(cx + dx * r * 0.55, cy + dy * r * 0.55, cx + dx * r * 1.45, cy + dy * r * 1.45);
+    }
   }
 
   /** A closed, shootable door on an edge of the hovered square. */
@@ -960,10 +1002,10 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Auto-target: shoot the nearest enemy in fire arc + LOS. */
-  private shootNearest(piece: StormBolterMarine): boolean {
+  /** The nearest enemy this marine could shoot (fire arc + LOS, no range cap). */
+  private nearestEnemyTarget(piece: StormBolterMarine): Piece | undefined {
     const board = this.engine.state.board;
-    const enemies = board.pieces
+    return board.pieces
       .filter((p): p is Piece => (p as Piece).kind !== 'marine')
       .filter(p => {
         const sq = board.get(p.pos.c, p.pos.r);
@@ -971,10 +1013,14 @@ export default class GameScene extends Phaser.Scene {
       })
       .sort((a, b) =>
         Math.hypot(a.pos.c - piece.pos.c, a.pos.r - piece.pos.r) -
-        Math.hypot(b.pos.c - piece.pos.c, b.pos.r - piece.pos.r));
-    const target = enemies[0];
+        Math.hypot(b.pos.c - piece.pos.c, b.pos.r - piece.pos.r))[0];
+  }
+
+  /** Auto-target: shoot the nearest enemy in fire arc + LOS. */
+  private shootNearest(piece: StormBolterMarine): boolean {
+    const target = this.nearestEnemyTarget(piece);
     if (!target) return false;
-    piece.shoot(target as Piece);
+    piece.shoot(target);
     return true; // AP was spent even on a miss
   }
 
@@ -1019,11 +1065,15 @@ export default class GameScene extends Phaser.Scene {
     const selectedId = Selection.get();
     if (!selectedId) {
       this.highlight.hide();
+      this.refreshDoorReticle();
       return;
     }
     const sprite = this.pieceSprites[selectedId];
     if (sprite) {
       this.highlight.follow(sprite);
     }
+    // Single choke point: every action/selection path that moves the highlight
+    // also re-derives which door F would shoot.
+    this.refreshDoorReticle();
   }
 }

@@ -1,10 +1,12 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * Keyboard door shooting (ISC-610/611, user report 2026-08-18): F with no
- * hover used to do NOTHING when a closed door sat in the fire arc — the
- * fallback now shoots the nearest shootable closed door. Enemy targets keep
- * priority: a visible stealer soaks the shot before any door does.
+ * Auto door fire + target reticle (ISC-610/611/620/621, user reports
+ * 2026-08-18): F shoots the hovered door first, else the nearest enemy, else
+ * the nearest shootable closed door — regardless of where the pointer rests
+ * (the v0.4.2 hover gate made the fallback unreachable in real play, since
+ * any mouse move sets hoverCoord). A red reticle marks the door F would hit
+ * BEFORE the press, so the fallback is never a surprise demolition.
  */
 
 async function bootStaged(page: any) {
@@ -22,59 +24,57 @@ async function bootStaged(page: any) {
       pieceId: bolter.id,
       ap: { apRemaining: bolter.apRemaining, apInitial: bolter.apInitial },
     });
+    scene.refreshDoorReticle();
   });
 }
 
-test('F with NO hover shoots the nearest closed door in arc (ISC-610)', async ({ page }) => {
+const state = (page: any) => page.evaluate(() => {
+  const { engine, scene } = (window as any).sulk;
+  const door = engine.state.board.doorBetween({ c: 18, r: 20 }, { c: 19, r: 20 });
+  const bolter = engine.marines.find((m: any) => m.spriteKey === 'terminator_storm_bolter');
+  return { destroyed: door.destroyed, ap: bolter.ap, reticle: scene.doorReticleFor };
+});
+
+test('the reticle marks the fallback door, and F with no hover destroys it (ISC-610/620)', async ({ page }) => {
   await bootStaged(page);
-  // No mouse movement at all — hoverCoord stays null (pure keyboard play).
-  expect(await page.evaluate(() => (window as any).sulk.scene.hoverCoord)).toBeNull();
+  const before = await state(page);
+  expect(before.reticle).toEqual({ x: 18, y: 20, facing: expect.any(Number) }); // door anchor marked
   await page.keyboard.press('f');
   await page.waitForTimeout(120);
-  const after = await page.evaluate(() => {
-    const { engine } = (window as any).sulk;
-    const door = engine.state.board.doorBetween({ c: 18, r: 20 }, { c: 19, r: 20 });
-    const bolter = engine.marines.find((m: any) => m.spriteKey === 'terminator_storm_bolter');
-    return { destroyed: door.destroyed, ap: bolter.ap };
-  });
+  const after = await state(page);
   expect(after.destroyed).toBe(true);
+  expect(after.ap).toBe(3);
+  expect(after.reticle).toBeNull(); // target gone, reticle cleared
+});
+
+test('a pointer resting on a NON-door square no longer suppresses the fallback (ISC-621)', async ({ page }) => {
+  await bootStaged(page);
+  await page.evaluate(() => {
+    const { scene } = (window as any).sulk;
+    scene.hoverCoord = { x: 17, y: 19 }; // mouse parked on an empty square
+    scene.refreshDoorReticle();
+  });
+  expect((await state(page)).reticle).not.toBeNull(); // fallback door still marked
+  await page.keyboard.press('f');
+  await page.waitForTimeout(120);
+  const after = await state(page);
+  expect(after.destroyed).toBe(true); // F auto-shoots the nearest door
   expect(after.ap).toBe(3);
 });
 
-test('hovering a non-door square suppresses the fallback — F stays a no-op (ISC-615)', async ({ page }) => {
+test('a visible stealer takes the F shot before any door — and clears the reticle (ISC-611)', async ({ page }) => {
   await bootStaged(page);
   await page.evaluate(() => {
-    // A mouse player resting the pointer on an empty square must never
-    // demolish an unhovered door with a stray F.
-    (window as any).sulk.scene.hoverCoord = { x: 17, y: 19 };
+    const { engine, Genestealer, scene } = (window as any).sulk;
+    new Genestealer(engine.state.board, { c: 18, r: 20 }, 0); // in the doorway mouth
+    scene.refreshDoorReticle();
   });
+  expect((await state(page)).reticle).toBeNull(); // enemy soaks the shot — no door target
   await page.keyboard.press('f');
   await page.waitForTimeout(120);
-  const after = await page.evaluate(() => {
-    const { engine } = (window as any).sulk;
-    const door = engine.state.board.doorBetween({ c: 18, r: 20 }, { c: 19, r: 20 });
-    const bolter = engine.marines.find((m: any) => m.spriteKey === 'terminator_storm_bolter');
-    return { destroyed: door.destroyed, ap: bolter.ap };
-  });
-  expect(after.destroyed).toBe(false);
-  expect(after.ap).toBe(4); // nothing spent
-});
-
-test('a visible stealer takes the F shot before any door does (ISC-611)', async ({ page }) => {
-  await bootStaged(page);
-  await page.evaluate(() => {
-    const { engine, Genestealer } = (window as any).sulk;
-    const board = engine.state.board;
-    new Genestealer(board, { c: 18, r: 20 }, 0); // in the doorway mouth, straight ahead
-  });
-  await page.keyboard.press('f');
-  await page.waitForTimeout(120);
-  const after = await page.evaluate(() => {
-    const { engine } = (window as any).sulk;
-    const door = engine.state.board.doorBetween({ c: 18, r: 20 }, { c: 19, r: 20 });
-    const stealers = engine.state.board.pieces.filter((p: any) => p.kind === 'stealer');
-    return { destroyed: door.destroyed, stealersAlive: stealers.length };
-  });
-  expect(after.stealersAlive).toBe(0); // stealer died to the pinned 6s
+  const after = await state(page);
+  const stealers = await page.evaluate(() =>
+    (window as any).sulk.engine.state.board.pieces.filter((p: any) => p.kind === 'stealer').length);
+  expect(stealers).toBe(0); // stealer died to the pinned 6s
   expect(after.destroyed).toBe(false); // the door was NOT the target
 });

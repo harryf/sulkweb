@@ -50,9 +50,9 @@ export const DOOR_FACING = FACING_WORD;
  * itself stays silent so probes (e.g. the blip open-peek-close check in
  * StealerAI) never leak events.
  */
-export function demolishDoor(door: Door): void {
+export function demolishDoor(door: Door, cause: 'shot' | 'cut' = 'shot'): void {
   door.destroy();
-  PieceEvents.emit('doorDestroyed', { x: door.square.x, y: door.square.y, facing: door.facing });
+  PieceEvents.emit('doorDestroyed', { x: door.square.x, y: door.square.y, facing: door.facing, cause });
 }
 
 /** Open a door AND announce it, spending 1 AP from `piece` (AI door-on-contact path). */

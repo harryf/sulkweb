@@ -92,7 +92,10 @@ export class AudioManager {
       this.play(kills.includes(shooterId) ? 'sfx_selfdestruct' : 'sfx_flamer'));
     this.on('malfunction', () => this.play('sfx_selfdestruct'));
     this.on('doorToggled', () => this.play('sfx_door'));
-    this.on('doorDestroyed', () => this.play('sfx_chain_fist'));
+    // Chainsaw ONLY for the chain-fist cut — a shot-destroyed door already
+    // played its weapon's firing SFX with the shot event (user report: bolter
+    // door kills sounded like the chainsaw).
+    this.on('doorDestroyed', ({ cause }) => { if (cause === 'cut') this.play('sfx_chain_fist'); });
     this.on('jammed', ({ jammed }) => { if (jammed) this.play('sfx_jam'); });
     this.on('closeCombat', ({ attackerId }) => {
       const attacker = this.piece(attackerId);

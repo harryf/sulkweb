@@ -40,6 +40,8 @@ describe('aimed bolter fire at doors (ISC-348/349/350/352/353)', () => {
     const shot = stream[0].payload as { targetId: string; hit: boolean };
     expect(shot.targetId).toBe('door:1,5,0');
     expect(shot.hit).toBe(true);
+    // Audio routing: a SHOT door must not rev the chainsaw (ISC-622).
+    expect((stream[1].payload as { cause: string }).cause).toBe('shot');
   });
 
   it('misses accrue the sustained-fire bonus until the door splinters (ISC-350)', () => {

@@ -4,10 +4,10 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 778/780 (v0.5.0 release staged ISC-848; ISC-71 deferred)
+progress: 779/780 (deployment phase shipped as v0.5.0; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-19T21:05:00Z
+updated: 2026-08-19T21:30:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -1083,7 +1083,7 @@ Scene wiring:
 - [x] ISC-845: Anti: Enter and ESC dedupe Phaser's same-event replay — one press is one toggle/end, even under stalled headless frames (e2e pause test)
 - [x] ISC-846: Anti: a marine's first turn-in-place never plays the footstep SFX — lastPos seeded at construction and on pieceAdded (code)
 - [x] ISC-847: an armed reserve roster card keeps the selection border (CSS specificity fix)
-- [ ] ISC-848: v0.5.0 released — main pushed, tag CI green BEFORE the release is created, release published, live bundle serves v0.5.0 with the deployment-phase code present (gh run watch; bundle greps for version + deploy strings)
+- [x] ISC-848: v0.5.0 released — main pushed, tag CI green BEFORE the release is created, release published, live bundle serves v0.5.0 with the deployment-phase code present (gh run watch; bundle greps for version + deploy strings)
 
 ## Test Strategy
 
@@ -1691,6 +1691,7 @@ Scene wiring:
   - Analyzer G2/G3 adopted: space_hulk_2 scattered mixed-facing lifecycle + space_hulk_6 interleaved squads with flamerAmmo-survives-reserve, both green
   - Analyzer G5 adopted: undeploy-then-timeout e2e reconciliation test green; G6 skipped (digit hotkeys share selectFromRoster's tested code path); G7 addressed by the ISC-843 fallback
   - Final suites after the round: engine 319/319, client unit 82/82, e2e 115/115, tsc clean both
+- ISC-848: Bash — pushed 712c90d..0be552d; tag v0.5.0; deploy run 32305330852 completed success BEFORE the release was created (codified order); release https://github.com/harryf/sulkweb/releases/tag/v0.5.0 "Your squad, your marching order" published; live home 200; main-BsS2_Wa0.js carries v0.5.0 plus the deploy strings AUTO DEPLOY, deploy-x, DEPLOYMENT, beginDeployment (deploySeconds absent only because minification renames plain identifiers). Classifier returned ALGORITHM E2 on "push and tag"; run executed on the standing E1 release precedent (seventh application) — same checklist either way.
 
 ### Number-key marine selection (2026-08-19 seventh run, ISC-654..671)
 

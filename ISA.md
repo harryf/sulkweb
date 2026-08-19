@@ -4,10 +4,10 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 653/655 (minimap radar run verified; ISC-723 release staging; ISC-71 deferred)
+progress: 654/655 (radar run + v0.4.7 release verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-19T13:05:00Z
+updated: 2026-08-19T13:25:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -937,7 +937,7 @@ Build & regression:
 - [x] ISC-720: the kind-to-style wiring is pinned end to end — the stealer's echo wears echo_stealer, the blip's echo_blip, via the echoTexture probe (Playwright)
 - [x] ISC-721: Anti: marine gunfire is never attenuated — a shot event plays at exactly the full SFX gain (Playwright lastPlay)
 - [x] ISC-722: the live onPing wiring pulses the minimap with no test scaffolding — lastPulse set by the real scheduler alone (Playwright waitForFunction)
-- [ ] ISC-723: v0.4.7 released — main pushed, tag CI green BEFORE the release is created, release published, live bundle serves v0.4.7 with the radar code present (gh run watch; bundle greps for version + radar strings)
+- [x] ISC-723: v0.4.7 released — main pushed, tag CI green BEFORE the release is created, release published, live bundle serves v0.4.7 with the radar code present (gh run watch; bundle greps for version + radar strings)
 
 ## Test Strategy
 
@@ -1396,6 +1396,7 @@ Build & regression:
 
 ### Minimap radar (2026-08-19 eighth run, ISC-672..712)
 
+- ISC-723: Bash — pushed e7c526d..a79bfda; tag v0.4.7; deploy run 32254736666 completed success BEFORE the release was created (codified order); release https://github.com/harryf/sulkweb/releases/tag/v0.4.7 "The hulk pings back" published; live home + manual 200; main-BmjP2yWF.js carries v0.4.7, echo_stealer, and the onPing/marineMirror radar code; the manual chunk carries "auspex" x3. Classifier returned NATIVE on "push and tag release" — context-override to ALGORITHM E1 per the standing release precedent (fourth application).
 - ISC-672/674/675: Playwright radar spec — click at minimap local (92,140) lands cam.midPoint.y within one tile of local/mapScale world y (669.6); lastBox.y changed; Selection.get() unchanged across the click (the in-flight selection pan is reset first — panEffect.reset() in onFocus, found by the test itself: the 250ms pan stomped centerOn next frame)
 - ISC-673: Playwright — corner click clamps scrollX/scrollY to cam.getBounds() min exactly; bottom-edge click clamps scrollY to bounds max (computed live from cam.height, no hardcoded geometry)
 - ISC-676: Playwright — ArrowDown held 250ms still increases scrollY after the change

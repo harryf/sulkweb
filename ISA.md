@@ -4,7 +4,7 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 692/693 (main-map motion run ISC-724..761 verified; ISC-71 deferred)
+progress: 692/694 (main-map motion run verified; v0.4.8 release ISC-762 staged; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-19T15:05:00Z
@@ -986,6 +986,7 @@ Docs + suites:
 - [x] ISC-759: full client e2e suite green including the new animation spec (bunx playwright test)
 - [x] ISC-760: tsc clean in both packages (bunx tsc --noEmit)
 - [x] ISC-761: visual evidence captured — a mid-replay or mid-slide screenshot set written to the scratchpad (Playwright screenshots)
+- [ ] ISC-762: v0.4.8 released — main pushed, tag CI green BEFORE the release is created, release published, live bundle serves v0.4.8 with the motion code present (gh run watch; bundle greps for version + motion strings)
 
 ## Test Strategy
 

@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: build
-progress: 779/815 (repo cleanup in flight: ISC-849..883)
+phase: complete
+progress: 814/815 (repo cleanup shipped: ISC-849..883; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-20T08:30:00Z
+updated: 2026-08-20T09:10:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -1119,9 +1119,9 @@ Scene wiring:
 - [x] ISC-878: Anti: no removed README content is lost — missions, controls, roster, auspex, motion, sound, rules summary, roadmap, gaps each findable under docs/ (grep per topic)
 - [x] ISC-879: Anti: packages/** source is untouched by this cleanup (git diff --stat scope check)
 - [x] ISC-880: Anti: no em dashes introduced into player-facing strings — cleanup touches no packages source at all (subsumed by ISC-879, git diff)
-- [ ] ISC-881: work committed to main and pushed; GitHub repo homepage serves the new README (git push + fetch github.com/harryf/sulkweb)
-- [ ] ISC-882: screenshots render on the GitHub homepage — raw image URLs return 200 after push (curl)
-- [ ] ISC-883: ISA records this cleanup — ISCs verified with evidence, Decisions entry, progress updated (Read ISA)
+- [x] ISC-881: work committed to main and pushed; GitHub repo homepage serves the new README (git push + fetch github.com/harryf/sulkweb)
+- [x] ISC-882: screenshots render on the GitHub homepage — raw image URLs return 200 after push (curl)
+- [x] ISC-883: ISA records this cleanup — ISCs verified with evidence, Decisions entry, progress updated (Read ISA)
 
 ## Test Strategy
 
@@ -1748,6 +1748,9 @@ Repo cleanup (2026-08-20, ISC-849..883):
 - ISC-877: rg -P "(?<!history/)prompts/" outside ISA/history — zero hits.
 - ISC-878: grep — Exterminate/overwatch/auspex/reduce-motion/motion-tracker/AUTO DEPLOY in features.md, roadmap + interrupt gaps in status.md; rules summary superseded by rules-reference.md (already canonical).
 - ISC-879/880: git status — zero packages/** paths in the change set; no player-facing strings touched.
+- ISC-881: Bash — commit 5937405 pushed e33a7a7..5937405; GitHub README API returns the new landing page verbatim (first 12 lines matched); features.md and docs/history tree render 200 on github.com.
+- ISC-882: curl — raw.githubusercontent.com/.../docs/images/{gameplay,homepage}.png both 200 image/png (181923B / 180713B).
+- ISC-883: this record. Review round: code-reviewer agent audited the diff — links all clean (48 targets incl. angle-bracket space paths), 3 findings ADOPTED (CLAUDE.md stale "see README Known gaps" heading → docs/status.md; stale remaining-work paragraph rewritten to the genuinely-open list; release recipe + SULK_VERSION→__APP_VERSION__ chain restored as architecture.md "Cutting a release" — the one real information loss); both sub-threshold wording notes also adopted ("one squad" → "your Terminator marines"; "square-for-square" softened). git log --follow shows 2 commits on the moved roadmap file (rename detected at 100%).
 
 ### Number-key marine selection (2026-08-19 seventh run, ISC-654..671)
 

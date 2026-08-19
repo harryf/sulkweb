@@ -40,6 +40,19 @@ export class StormBolterMarine extends Piece {
   }
 
   /**
+   * Legality of an aimed shot at a piece — the read-only mirror of
+   * beginAimedShot's guards, shaped like canShootDoor. The client's
+   * auto-target and fire reticle filter through this so the indicator
+   * never marks a target shoot() would refuse (e.g. an empty cannon drum).
+   */
+  canShootPiece(target: Piece): boolean {
+    if (this.board.locked || this.jammed || !target.alive) return false;
+    if (!this.freeShot && this.ap < 1) return false;
+    const sq = this.board.get(target.pos.c, target.pos.r);
+    return sq !== undefined && canShoot(this.board, this, sq);
+  }
+
+  /**
    * Shared aimed-shot preamble (bolter and cannon): legality guards, then the
    * spend — free-shot consumption or 1 AP, overwatch drop, sustained-bonus
    * lookup keyed on the target. Returns undefined when the shot is illegal

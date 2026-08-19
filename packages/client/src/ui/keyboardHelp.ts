@@ -70,7 +70,7 @@ export const SPECIAL_KEYS: KeyCap[] = [
 /** Usage notes that need more room than a keycap label. */
 export const KEY_NOTES: string[] = [
   'Click a marine or his card to select him.',
-  'F shoots the hovered door, else the nearest enemy, else the nearest closed door in arc — the red reticle marks the door F will hit.',
+  'F shoots the hovered door, else the nearest enemy, else the nearest closed door in arc. The red reticle marks the target F will hit.',
   'Flamer: F aims at the hovered square, F again fires, any other key cancels.',
   'B twice within 2.5 seconds self-destructs the flamer.',
   'R reloads and T autofires the assault cannon. G is the chain fist door cut.',

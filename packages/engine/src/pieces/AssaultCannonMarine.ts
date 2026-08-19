@@ -105,6 +105,11 @@ export class AssaultCannonMarine extends StormBolterMarine {
     return this.ammo >= 1 && super.canShootDoor(door);
   }
 
+  /** An empty drum can't take aimed shots — mirror of the shoot() ammo bail. */
+  override canShootPiece(target: Piece): boolean {
+    return this.ammo >= 1 && super.canShootPiece(target);
+  }
+
   /**
    * Aimed cannon fire at a closed door (original aburst_kill_scorereq=5):
    * 3 dice, destroyed on any ≥ 5 (sustained lowers the requirement), 1 ammo,

@@ -109,6 +109,21 @@ describe('assault cannon (ISC-246..251)', () => {
     ac.ap = 4;
     expect(ac.reload()).toBe(false); // only one spare drum
   });
+
+  it('canShootPiece mirrors shoot() legality — the empty drum says no (ISC-631)', () => {
+    const engine = new GameEngine(corridor(), []);
+    const board = engine.state.board;
+    const ac = engine.marines[0] as AssaultCannonMarine;
+    const s = new Genestealer(board, { c: 1, r: 6 }, Dir.N);
+    expect(ac.canShootPiece(s)).toBe(true); // full drum, in arc, LOS clear
+    ac.ammo = 0;
+    expect(ac.canShootPiece(s)).toBe(false); // shoot() would bail — so must the mirror
+    expect(ac.shoot(s)).toBe(false);
+    ac.ammo = 1;
+    ac.ap = 0;
+    ac.freeShot = false;
+    expect(ac.canShootPiece(s)).toBe(false); // no AP, no free shot
+  });
 });
 
 describe('chain fist + power sword (ISC-252/253)', () => {

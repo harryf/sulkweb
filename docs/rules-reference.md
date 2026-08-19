@@ -102,7 +102,7 @@ A closed door can be destroyed by fire, permanently:
 - Assault cannon: 1 AP and 1 round, three dice, destroyed on 5+ (sustained lowers it); autofire also shreds every closed door it can see on 3+.
 - The chain fist (below) cuts doors without dice.
 - A marine standing at the door's edge can always shoot it point-blank even though the edge square is outside his fire arc.
-- In the client, F targets in priority order: the hovered closed door, else the nearest enemy in sight, else the nearest shootable closed door. A red reticle marks the door F would currently hit, so the fallback shot is never a surprise.
+- In the client, F targets in priority order: the hovered closed door, else the nearest enemy in sight, else the nearest shootable closed door. A red reticle marks whatever F would currently hit (the targeted stealer or the door), so the shot is never a surprise.
 
 ### Chain fist (beta_2)
 

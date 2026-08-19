@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { GameEngine, loadMission, missions, Square, Piece, StormBolterMarine, HeavyFlamerMarine, AssaultCannonMarine, ChainFistMarine, Genestealer, PieceEvents, visibleSquares, canShoot, closeCombat, DIR_VEC, SeededRng, autoplay, runMarineTurn, flameFlood, Door } from "@sulk/engine/index.js";
+import { GameEngine, loadMission, missions, Square, Piece, StormBolterMarine, HeavyFlamerMarine, AssaultCannonMarine, ChainFistMarine, Genestealer, PieceEvents, visibleSquares, closeCombat, DIR_VEC, SeededRng, autoplay, runMarineTurn, flameFlood, Door } from "@sulk/engine/index.js";
 import { Selection } from "../ui/Selection";
 import { Minimap } from '../ui/Minimap.js';
 import { HighlightSprite } from '../ui/HighlightSprite.js';
@@ -51,9 +51,13 @@ export default class GameScene extends Phaser.Scene {
    *  as the blast preview and asserted by e2e. */
   flamePreview: { x: number; y: number }[] = [];
   private flamePreviewGfx!: Phaser.GameObjects.Graphics;
-  /** Reticle over the door F would shoot right now. Public for e2e. */
-  doorReticleFor: { x: number; y: number; facing: number } | null = null;
-  private doorReticleGfx!: Phaser.GameObjects.Graphics;
+  /** Reticle over whatever F would shoot right now — enemy or door. Public for
+   *  e2e; cx/cy are the drawn pixel centre so tests pin the geometry too. */
+  fireReticleFor:
+    | { kind: 'door'; x: number; y: number; facing: number; cx: number; cy: number }
+    | { kind: 'enemy'; pieceId: string; x: number; y: number; cx: number; cy: number }
+    | null = null;
+  private fireReticleGfx!: Phaser.GameObjects.Graphics;
   /** First B press arms self-destruct; the second within the window fires.
    *  0 = disarmed. Armed state is bound to ONE flamer — switching selection
    *  must never carry the confirm to a different marine (Advisor 2026-08-16).
@@ -175,7 +179,7 @@ export default class GameScene extends Phaser.Scene {
     });
     PieceEvents.on('doorToggled', ({ x, y, facing, open }) => {
       this.doorSprites[`${x},${y}:${facing}`]?.setTexture(open ? 'door_open' : 'door_closed');
-      this.refreshDoorReticle(); // open/closed flips shootability
+      this.refreshFireReticle(); // open/closed flips shootability
     });
     
     // Mission markers: stealer entry triangles + exit arrows (theme art, drawn
@@ -265,7 +269,7 @@ export default class GameScene extends Phaser.Scene {
     PieceEvents.on('doorDestroyed', ({ x, y, facing }) => {
       this.doorSprites[`${x},${y}:${facing}`]?.destroy();
       delete this.doorSprites[`${x},${y}:${facing}`];
-      this.refreshDoorReticle(); // the target may be gone
+      this.refreshFireReticle(); // the target may be gone
     });
         PieceEvents.on('downloadChanged', ({ counter, active }) => {
       const total = this.engine.mission.downloadTurns ?? 4;
@@ -482,7 +486,7 @@ export default class GameScene extends Phaser.Scene {
       }
       this.hud.setHoverInfo(this.hoverInfo);
       if (this.flamerAiming) this.refreshAimUI();
-      this.refreshDoorReticle(); // hover picks the door F targets
+      this.refreshFireReticle(); // hover picks the door F targets
     });
 
     PieceEvents.emit('cpChanged', { cp: this.engine.cp }); // HUD subscribed after the initial roll
@@ -510,7 +514,7 @@ export default class GameScene extends Phaser.Scene {
     this.highlight = new HighlightSprite(this, TILE_SIZE);
     this.add.existing(this.highlight);
     this.flamePreviewGfx = this.add.graphics().setDepth(0.85);
-    this.doorReticleGfx = this.add.graphics().setDepth(2.5);
+    this.fireReticleGfx = this.add.graphics().setDepth(2.5);
 
     // Input handler for piece selection
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
@@ -889,17 +893,17 @@ export default class GameScene extends Phaser.Scene {
     }
     if (!(piece instanceof StormBolterMarine)) return false;
     const door = this.hoveredDoorFor(piece);
-    if (door) { piece.shootDoor(door); this.refreshDoorReticle(); return true; } // AP spent even on a miss
-    if (this.shootNearest(piece)) { this.refreshDoorReticle(); return true; }
+    if (door) { piece.shootDoor(door); this.refreshFireReticle(); return true; } // AP spent even on a miss
+    if (this.shootNearest(piece)) { this.refreshFireReticle(); return true; }
     // No enemy in sight: fall back to the nearest shootable closed door.
-    // The reticle (refreshDoorReticle) shows this target BEFORE the press, so
+    // The reticle (refreshFireReticle) shows this target BEFORE the press, so
     // the shot is never a surprise — that visibility replaces the hover gate
     // an earlier review round added (user feedback 2026-08-18: the gate made
     // the fallback near-unreachable, since any mouse move sets hoverCoord).
     const fallback = this.nearestShootableDoor(piece);
     if (!fallback) return false;
     piece.shootDoor(fallback);
-    this.refreshDoorReticle();
+    this.refreshFireReticle();
     return true; // AP spent even on a miss
   }
 
@@ -918,36 +922,56 @@ export default class GameScene extends Phaser.Scene {
       })[0];
   }
 
-  /** The door F would hit RIGHT NOW for the selected marine: the hovered door,
-   *  else — when no enemy soaks the shot first — the nearest shootable door. */
-  private fireDoorTarget(): Door | undefined {
+  /** What F would hit RIGHT NOW for the selected marine — the same priority
+   *  handleFire executes (hovered door, else nearest enemy, else nearest
+   *  shootable door), from the same helpers, so the reticle can never lie. */
+  private fireTarget():
+    | { kind: 'door'; door: Door }
+    | { kind: 'enemy'; piece: Piece }
+    | undefined {
     if (this.attract || this.engine.state.result !== 'ongoing') return undefined;
     const selectedId = Selection.get();
     const piece = selectedId ? this.engine.findPiece(selectedId) : undefined;
     if (!(piece instanceof StormBolterMarine)) return undefined; // flamer excluded (extends Piece)
     if (piece.jammed || (!piece.freeShot && piece.ap < 1)) return undefined;
     const hovered = this.hoveredDoorFor(piece);
-    if (hovered) return hovered;
-    if (this.nearestEnemyTarget(piece)) return undefined; // an enemy takes the shot
-    return this.nearestShootableDoor(piece);
+    if (hovered) return { kind: 'door', door: hovered };
+    const enemy = this.nearestEnemyTarget(piece);
+    if (enemy) return { kind: 'enemy', piece: enemy };
+    const door = this.nearestShootableDoor(piece);
+    return door ? { kind: 'door', door } : undefined;
   }
 
-  /** Reticle over the door F would shoot — the player sees the target before
-   *  pressing (discoverability + no surprise demolition). */
-  refreshDoorReticle(): void {
-    const door = this.fireDoorTarget();
-    this.doorReticleFor = door
-      ? { x: door.square.x, y: door.square.y, facing: door.facing } : null;
-    this.doorReticleGfx.clear();
-    if (!door) return;
+  /** Reticle over whatever F would shoot — enemy or door — so the player sees
+   *  the target before pressing (discoverability + no surprise). Refresh rests
+   *  entirely on the acted→updateHighlight funnel (plus pointermove/doorToggled/
+   *  doorDestroyed/finishReplay): anything that ever kills or moves pieces
+   *  OUTSIDE a marine action must add its own refresh or the crosshair stales. */
+  refreshFireReticle(): void {
+    const target = this.fireTarget();
+    this.fireReticleGfx.clear();
+    if (!target) {
+      this.fireReticleFor = null;
+      return;
+    }
     const T = TILE_SIZE;
-    const other = door.otherSide();
-    const cx = ((door.square.x + other.c) / 2 + 0.5) * T;
-    const cy = ((door.square.y + other.r) / 2 + 0.5) * T;
+    let cx: number, cy: number;
+    if (target.kind === 'enemy') {
+      const p = target.piece;
+      cx = (p.pos.c + 0.5) * T;
+      cy = (p.pos.r + 0.5) * T;
+      this.fireReticleFor = { kind: 'enemy', pieceId: p.id, x: p.pos.c, y: p.pos.r, cx, cy };
+    } else {
+      const door = target.door;
+      const other = door.otherSide();
+      cx = ((door.square.x + other.c) / 2 + 0.5) * T;
+      cy = ((door.square.y + other.r) / 2 + 0.5) * T;
+      this.fireReticleFor = { kind: 'door', x: door.square.x, y: door.square.y, facing: door.facing, cx, cy };
+    }
     const r = T * 0.32;
-    this.doorReticleGfx.lineStyle(2.5, 0xff3333, 0.95).strokeCircle(cx, cy, r);
+    this.fireReticleGfx.lineStyle(2.5, 0xff3333, 0.95).strokeCircle(cx, cy, r);
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
-      this.doorReticleGfx.lineBetween(cx + dx * r * 0.55, cy + dy * r * 0.55, cx + dx * r * 1.45, cy + dy * r * 1.45);
+      this.fireReticleGfx.lineBetween(cx + dx * r * 0.55, cy + dy * r * 0.55, cx + dx * r * 1.45, cy + dy * r * 1.45);
     }
   }
 
@@ -1002,15 +1026,13 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
-  /** The nearest enemy this marine could shoot (fire arc + LOS, no range cap). */
+  /** The nearest enemy this marine could shoot (fire arc + LOS, no range cap).
+   *  canShootPiece is the engine's legality mirror of shoot() — it keeps an
+   *  empty cannon drum from putting a reticle on a target F couldn't fire at. */
   private nearestEnemyTarget(piece: StormBolterMarine): Piece | undefined {
-    const board = this.engine.state.board;
-    return board.pieces
+    return this.engine.state.board.pieces
       .filter((p): p is Piece => (p as Piece).kind !== 'marine')
-      .filter(p => {
-        const sq = board.get(p.pos.c, p.pos.r);
-        return sq !== undefined && canShoot(board, piece, sq); // aimed fire: LOS-bound, no range cap
-      })
+      .filter(p => piece.canShootPiece(p))
       .sort((a, b) =>
         Math.hypot(a.pos.c - piece.pos.c, a.pos.r - piece.pos.r) -
         Math.hypot(b.pos.c - piece.pos.c, b.pos.r - piece.pos.r))[0];
@@ -1065,7 +1087,7 @@ export default class GameScene extends Phaser.Scene {
     const selectedId = Selection.get();
     if (!selectedId) {
       this.highlight.hide();
-      this.refreshDoorReticle();
+      this.refreshFireReticle();
       return;
     }
     const sprite = this.pieceSprites[selectedId];
@@ -1074,6 +1096,6 @@ export default class GameScene extends Phaser.Scene {
     }
     // Single choke point: every action/selection path that moves the highlight
     // also re-derives which door F would shoot.
-    this.refreshDoorReticle();
+    this.refreshFireReticle();
   }
 }

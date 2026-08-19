@@ -24,7 +24,7 @@ Pick a mission with a URL parameter: `http://localhost:5173/?mission=beta_2` (de
 
 | Path | Contents | Touch it when... |
 |---|---|---|
-| `GameEngine.ts` | State owner: squad deployment, phase driver (`endMarinePhase`), victory checks, CP | changing turn structure, victory rules, deployment |
+| `GameEngine.ts` | State owner: the deployment phase (`beginDeployment`/`autoDeploy`/`finishDeployment`, helpers in `rules/deploy.ts`), phase driver (`endMarinePhase`), victory checks, CP | changing turn structure, victory rules, deployment |
 | `board/` | `Board`, `Square`, `los.ts`, `vision.ts` (sight and fire arcs) | changing movement space, LOS, arcs |
 | `pieces/` | `Piece` base + every unit class (marines, `Genestealer`, `Blip`, `AmbushCounter`) | adding or changing a unit type |
 | `rules/` | `Door.ts`, `combat.ts` (close combat), `flame.ts`, `exotic.ts` (C.A.T., ducting) | changing a cross-piece rule |
@@ -96,7 +96,7 @@ Missions are data. The engine reads one JSON object; no code is required unless 
 
 5. **Test it**: the pattern is a fidelity spec in `packages/engine/src/__tests__/` (see `mission2_fidelity.spec.ts` or `beta2_mission.spec.ts`): assert the board shape, deployment, and a scripted playthrough with `RollQueue`-pinned dice. If the mission is player-facing, add it to the e2e matrix in `packages/client/tests/` (`missions3plus.spec.ts` shows the shape).
 
-6. **Document it**: the README's mission list is the player-facing catalogue; add the mission there.
+6. **Document it**: the mission list in [features.md](features.md) is the player-facing catalogue; add the mission there.
 
 ## Recipe: add a new marine type
 

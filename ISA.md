@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: 779/780 (deployment phase shipped as v0.5.0; ISC-71 deferred)
+phase: build
+progress: 779/815 (repo cleanup in flight: ISC-849..883)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-19T21:30:00Z
+updated: 2026-08-20T08:30:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -1085,6 +1085,44 @@ Scene wiring:
 - [x] ISC-847: an armed reserve roster card keeps the selection border (CSS specificity fix)
 - [x] ISC-848: v0.5.0 released — main pushed, tag CI green BEFORE the release is created, release published, live bundle serves v0.5.0 with the deployment-phase code present (gh run watch; bundle greps for version + deploy strings)
 
+### Repo cleanup — README rewrite, docs reorganization, build history (2026-08-20)
+
+- [x] ISC-849: README.md is ≤120 lines (wc -l)
+- [x] ISC-850: the live-game link https://harryf.github.io/sulkweb/ appears in the first 10 lines of README (head)
+- [x] ISC-851: the field-manual link appears in README (grep manual.html URL)
+- [x] ISC-852: README carries local run instructions — pnpm install + client dev command (grep)
+- [x] ISC-853: README embeds ≥2 screenshots whose image files exist in the repo (grep + ls)
+- [x] ISC-854: each committed screenshot is <1.5MB (ls -l guard against repo bloat)
+- [x] ISC-855: at least one screenshot shows actual gameplay — marines and HUD visible (Read image)
+- [x] ISC-856: README links to every retained top-level docs page: architecture, development-guide, rules-reference, asset-index, writing-guide, features, status (grep)
+- [x] ISC-857: README links to CLAUDE.md and ISA.md (grep)
+- [x] ISC-858: README retains the GPL license section with the Games Workshop disclaimer (grep)
+- [x] ISC-859: README retains the tag-driven release fact — only version tags deploy (grep)
+- [x] ISC-860: docs/features.md exists with the full mission catalog — all 9 missions named (grep count)
+- [x] ISC-861: docs/features.md carries the controls table (grep for key rows)
+- [x] ISC-862: docs/features.md carries the deployment, roster panel, mini-map auspex, motion, and sound sections (grep headers)
+- [x] ISC-863: docs/status.md exists with roadmap milestone state and known gaps (grep headers)
+- [x] ISC-864: stale claims fixed in status content — v0.1 cross-vendor-audit line removed/updated, autopilot numbers dated (Read)
+- [x] ISC-865: test counts everywhere current — 319 engine / 82 client unit / 115 e2e; no 259/43/51 remain (rg)
+- [x] ISC-866: prompts/ no longer exists at repo root (ls)
+- [x] ISC-867: docs/history/prompts/ contains all 14 prompt files, no .DS_Store (ls count)
+- [x] ISC-868: OVERVIEW_PYGAME_VERSION.md, SULK Manual Combined.pdf, and both Notion HTML exports live in docs/history/ (ls)
+- [x] ISC-869: docs/history/README.md describes how the game was built and links every history file (Read)
+- [x] ISC-870: moves used git mv — git log --follow shows pre-move history for a sampled prompt file (git log)
+- [x] ISC-871: files directly under docs/ are exactly: architecture, development-guide, asset-index, rules-reference, writing-guide, features, status (+ history/, images/) (ls)
+- [x] ISC-872: architecture.md documents the Deploy phase — reserve, board.locked staging (grep)
+- [x] ISC-873: development-guide.md mentions the deployment phase where GameEngine is described (grep)
+- [x] ISC-874: sulkweb CLAUDE.md context-routing paths updated — prompts/ and moved docs files point at docs/history/ (grep)
+- [x] ISC-875: every relative link in README.md resolves to an existing file (link-check loop)
+- [x] ISC-876: every relative link in docs/*.md (top level) resolves to an existing file (link-check loop)
+- [x] ISC-877: Anti: no repo file outside docs/history/ still references the old prompts/ path (rg clean)
+- [x] ISC-878: Anti: no removed README content is lost — missions, controls, roster, auspex, motion, sound, rules summary, roadmap, gaps each findable under docs/ (grep per topic)
+- [x] ISC-879: Anti: packages/** source is untouched by this cleanup (git diff --stat scope check)
+- [x] ISC-880: Anti: no em dashes introduced into player-facing strings — cleanup touches no packages source at all (subsumed by ISC-879, git diff)
+- [ ] ISC-881: work committed to main and pushed; GitHub repo homepage serves the new README (git push + fetch github.com/harryf/sulkweb)
+- [ ] ISC-882: screenshots render on the GitHub homepage — raw image URLs return 200 after push (curl)
+- [ ] ISC-883: ISA records this cleanup — ISCs verified with evidence, Decisions entry, progress updated (Read ISA)
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
@@ -1444,6 +1482,7 @@ Scene wiring:
 - Commits: 6ce332c (audio + credits page + posture flip), 003877c (review fixes). Tags v0.3.0, v0.3.1 — both deploy runs green.
 - Advisor round (audio-ship): ADOPTED four closers, all green — gesture-unlocked playback on live (AudioContext "running", sfx_tracker_ping played, isPlaying true; audible, not merely constructed); 32 decoded cache keys rule out 404-HTML-as-audio; in-game credits link verified in the live DOM as relative href; repo-wide stale-phrase grep returns only the corrected CLAUDE.md sentence; no service worker exists anywhere (its cache-versioning concern is moot — the "32 keys" are Phaser's in-memory audio cache). DECLINED: Safari/iOS ogg support (pre-existing design since the audio run: Vorbis-only, cache guards degrade to silence; a Safari fallback is a feature request, not this run); repo size vs Pages limits (36M vs 1GB soft limit — non-issue).
 
+- 2026-08-20 (repo cleanup, ISC-849..883): README rewritten as a short screenshot-led landing page (live game + manual + local run + doc links only). Layout decision: ONE docs/features.md tour page (missions, controls, deployment, roster, auspex, motion, sound) over per-topic splinters — single "what's in the game" page is more discoverable; docs/status.md holds roadmap state + known gaps (freshened); docs/history/ holds the build story (prompts/ 14 milestone files moved via git mv, pygame analysis, original manual PDF, Notion exports) with its own README. Delegation floor (E3 ≥2) show-your-math: Forge waived — docs-only work, no coding task (codex CLI also still absent, 8th occurrence); one code-reviewer agent over the final diff is the single delegation. Push-without-ask rationale: the user's stated goal IS the GitHub homepage; pushing main never deploys the live site (tag-gated), so push is the deliverable, not an extra.
 - Advisor round (8 items): ADOPTED the git-history audio check — `git log --diff-filter=A -- assets/audio/` empty and `git rev-list --objects --all` contains zero mp3/ogg/m4a/opus/webm objects; only the 15 tracked GPL `assets/sounds/*.wav` exist in history, so the copyright posture holds at the object level, not just the working tree. Items 2/3/5/6/7/8 already evidenced (needs-chain, negative trigger via e78900d push producing no run, tag-derived version env, no router, build_type workflow, hashed-filename freshness). Item 4 already done (play path exercised in real Chrome, zero errors). DECLINED: in-game copy explaining the missing web audio (the in-game credits' "Music of 40K" line slightly overpromises on the deployed site; README covers it — cosmetic follow-up, not blocking).
 
 ## Changelog
@@ -1692,6 +1731,23 @@ Scene wiring:
   - Analyzer G5 adopted: undeploy-then-timeout e2e reconciliation test green; G6 skipped (digit hotkeys share selectFromRoster's tested code path); G7 addressed by the ISC-843 fallback
   - Final suites after the round: engine 319/319, client unit 82/82, e2e 115/115, tsc clean both
 - ISC-848: Bash — pushed 712c90d..0be552d; tag v0.5.0; deploy run 32305330852 completed success BEFORE the release was created (codified order); release https://github.com/harryf/sulkweb/releases/tag/v0.5.0 "Your squad, your marching order" published; live home 200; main-BsS2_Wa0.js carries v0.5.0 plus the deploy strings AUTO DEPLOY, deploy-x, DEPLOYMENT, beginDeployment (deploySeconds absent only because minification renames plain identifiers). Classifier returned ALGORITHM E2 on "push and tag"; run executed on the standing E1 release precedent (seventh application) — same checklist either way.
+
+Repo cleanup (2026-08-20, ISC-849..883):
+- ISC-849..852: Bash — README 63 lines; live link on line 5; manual.html linked; pnpm install + `packages/client dev` present.
+- ISC-853/854/855: Bash + Read — docs/images/gameplay.png (182KB) and homepage.png (181KB) embedded and on disk; gameplay image visually confirmed (five marine cards, HUD, mini-map, blips closing, turn 3); homepage image shows title + mission list over the attract board. Captured via Playwright vs temp vite :5199 (Interceptor still down — standing stand-in).
+- ISC-856..859: grep — links to all seven top-level docs pages + CLAUDE.md + ISA.md; gpl-3.0 + Games Workshop disclaimer; "version tags only" release fact.
+- ISC-860..862: grep — all 9 mission ids in features.md; 19 control-table rows; headers The missions/Deployment phase/Controls/Marine roster panel/Mini-map auspex/Motion/Sound.
+- ISC-863/864: grep — status.md has Roadmap state + Known gaps headers; stale "revisit against tag v0.1" line gone; autopilot numbers dated 2026-08-15; parry/autofire "arrive later" line replaced (they shipped with beta_2); librarian/psi gap named.
+- ISC-865: rg — zero hits for 259/43/51 counts outside docs/history; no live counts asserted anywhere (README lists commands, not counts).
+- ISC-866..869: ls — prompts/ gone from root; docs/history/prompts/ = 14 files, no .DS_Store; 4 legacy files + README.md in docs/history/; history README links all files (11 relative links, all resolve).
+- ISC-870: git status — all 18 moves recorded as R (rename) entries; --follow re-probed post-commit.
+- ISC-871: ls — docs/ top level exactly architecture, asset-index, development-guide, features, rules-reference, status, writing-guide + history/ + images/.
+- ISC-872/873: grep — beginDeployment/Deploy-phase paragraph in architecture.md; deployment-phase row in development-guide.md GameEngine entry.
+- ISC-874: grep — CLAUDE.md rows point at docs/features.md, docs/status.md, docs/history/prompts/, docs/history/SULK Manual, docs/history/Analysis; stale "76 verified criteria" refreshed.
+- ISC-875/876: bun linkcheck.ts — 48 relative links across README + all top-level docs + history README: ALL_LINKS_OK.
+- ISC-877: rg -P "(?<!history/)prompts/" outside ISA/history — zero hits.
+- ISC-878: grep — Exterminate/overwatch/auspex/reduce-motion/motion-tracker/AUTO DEPLOY in features.md, roadmap + interrupt gaps in status.md; rules summary superseded by rules-reference.md (already canonical).
+- ISC-879/880: git status — zero packages/** paths in the change set; no player-facing strings touched.
 
 ### Number-key marine selection (2026-08-19 seventh run, ISC-654..671)
 

@@ -13,7 +13,7 @@ Sulk Web is a pnpm monorepo with two packages and a one-way dependency: `package
 | `packages/engine/` | `@sulk/engine`: rules, board, pieces, AI, missions. Pure TypeScript, no Phaser, no DOM. |
 | `packages/client/` | The playable game: Phaser 3 scenes, DOM roster panel, canvas HUD, audio. Depends on the engine. |
 | `scripts/fetchAudio.ts` | Downloads and processes the music and generated sound cuts (see Deployment below). |
-| `docs/` | This guide, the [development guide](development-guide.md), the [asset index](asset-index.md), the writing guide, and reference material on the original game. |
+| `docs/` | This guide, the [development guide](development-guide.md), the [asset index](asset-index.md), the [feature tour](features.md), the [status page](status.md), the writing guide, and [history/](history/) — the build story and reference material on the original game. |
 | `ISA.md` | The project's system of record: every verified criterion, decision, and piece of test evidence. |
 
 ## The engine (`packages/engine`)
@@ -23,7 +23,7 @@ The engine models the complete game with no knowledge of how it will be drawn:
 - `board/`: `Board`, `Square`, line of sight (`los.ts`), vision and fire arcs (`vision.ts`).
 - `pieces/`: `Piece` (abstract base) and its subclasses: `StormBolterMarine` (also the base for `SergeantMarine`, `SwordSergeantMarine`), `HeavyFlamerMarine`, `AssaultCannonMarine`, `ChainFistMarine`, `Genestealer`, `Blip`, `AmbushCounter`. Pieces own their own rules: `tryMove`, `shoot`, `overwatchOn`, and so on, and emit events as they act.
 - `rules/`: cross-piece rules: doors (`Door.ts`, edge-model), close combat (`combat.ts`), flame templates (`flame.ts`), exotic objects like the C.A.T. and ducting (`exotic.ts`).
-- `GameEngine.ts`: turn structure. `GameEngine` owns the state, deploys the squad from mission JSON, and drives the stealer and end phases (`PhaseName` is a string union; there is no phase-class hierarchy).
+- `GameEngine.ts`: turn structure. `GameEngine` owns the state, deploys the squad from mission JSON, and drives the stealer and end phases (`PhaseName` is a string union; there is no phase-class hierarchy). Missions open in a `Deploy` phase: `beginDeployment()` lifts the constructed squad into `engine.reserve` and locks the board, the client places marines through `deployMarine`/`undeployMarine`/`autoDeploy`, and `finishDeployment()` fills the rest, unlocks, and starts the marine phase. Deployment is dice-free and consequence-free — the same seed gives the identical mission however the squad is arranged.
 - `ai/`: `StealerAI.ts` (blip spawning, hunting, conversion) and `MarineAutopilot.ts` (drives full autoplay games in tests).
 - `missions/`: mission JSON files, the `missions` registry, `loadMission`, and the `RawMissionJSON_v2` schema.
 - `core/Dice.ts`: the dice abstraction. `SeededRng` and `RollQueue` make any game reproducible, which is what makes the e2e suite deterministic.
@@ -124,6 +124,19 @@ Things to know before shipping:
 2. **The build is mount-point-agnostic.** `vite.config.ts` sets `base: './'` and all runtime asset paths are relative, so the same build works at the domain root, under a subpath (GitHub Pages project site), or from `vite preview`.
 3. **The dev-only 404 middleware does not deploy.** In dev, a custom Vite plugin (`assets404`) makes missing `/assets/*` files return real 404s instead of the SPA fallback page, which Phaser would try to decode as audio. Static hosts return real 404s natively, so no production equivalent is needed. If you ever front the deploy with an SPA rewrite rule, exclude `/assets/` from it for the same reason.
 4. **CI deploys from tags.** `.github/workflows/deploy.yml` runs typecheck + both unit suites, then builds and publishes to GitHub Pages — on `v*` tag pushes only. Playwright e2e (`pnpm --filter ./packages/client e2e`) runs locally before tagging.
+
+### Cutting a release
+
+```bash
+git tag v0.5.0          # semver tag = the release gateway AND the UI version
+git push origin v0.5.0  # CI: typecheck + full unit suites, then build + deploy
+```
+
+Pushing to `main` never touches the live site; only the tag does. The workflow
+builds with `SULK_VERSION` set from the tag, which Vite injects as
+`__APP_VERSION__` — visible in the homepage credits and the manual footer
+(`dev` on local builds). If the verification gate fails, nothing deploys.
+After the deploy run goes green, publish the GitHub release for the tag.
 
 ## Verifying a deploy
 

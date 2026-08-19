@@ -1,6 +1,6 @@
 # Rules Reference
 
-The complete rules of Sulk Web as implemented in the engine (`packages/engine/src/`), written as a reference rather than a tutorial. This is the source material for a future player-facing manual or online help. Every number here was read from the engine source; where the port deliberately adapts the original Sulk 0.29 behavior, the adaptation is noted. Verified against the source on 2026-08-16; on any disagreement the engine wins and this file needs updating. The original game's own manual is in `docs/` for comparison; controls are listed in the README.
+The complete rules of Sulk Web as implemented in the engine (`packages/engine/src/`), written as a reference rather than a tutorial. This is the source material for the deployed [field manual](https://harryf.github.io/sulkweb/manual.html) (`/manual.html`). Every number here was read from the engine source; where the port deliberately adapts the original Sulk 0.29 behavior, the adaptation is noted. Verified against the source on 2026-08-16; on any disagreement the engine wins and this file needs updating. The original game's own manual is in [history/](history/) for comparison; controls are listed in [features.md](features.md#controls).
 
 ## The board
 

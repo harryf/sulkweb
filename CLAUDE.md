@@ -7,11 +7,12 @@ ALL NINE missions registered (space_hulk 1–6, beta_1, beta_2, debug_1) — the
 
 | What | Where |
 |------|-------|
-| **System of record** — goals, 76 verified criteria, decisions, changelog | `ISA.md` |
-| Player-facing state, controls, known gaps | `README.md` |
-| Original milestone specs (M0–M8) and roadmap | `prompts/` |
-| Canonical game rules (AP costs, dice, blips, phases) | `docs/SULK Manual Combined.pdf`; distilled digest in ISA Decisions |
-| Original Pygame engine analysis | `docs/Analysis Sulk Pygame*.html` |
+| **System of record** — goals, verified criteria (800+), decisions, changelog | `ISA.md` |
+| Missions, controls, roster, deployment phase | `docs/features.md` |
+| Roadmap state and known gaps | `docs/status.md` |
+| Original milestone specs (M0–M8) and roadmap | `docs/history/prompts/` |
+| Canonical game rules (AP costs, dice, blips, phases) | `docs/history/SULK Manual Combined.pdf`; distilled digest in ISA Decisions |
+| Original Pygame engine analysis | `docs/history/Analysis Sulk Pygame*.html` |
 
 Resuming work = extend `ISA.md` (new ISCs, decisions, changelog) — don't invent a parallel spec.
 
@@ -254,10 +255,12 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
   booting silently. Music is OGG **Opus** (this ffmpeg has no libvorbis; Playwright's
   Chromium has no AAC — opus is the codec all our targets decode).
 
-## Where work would continue (see README "Known gaps")
+## Where work would continue (see docs/status.md "Known gaps")
 
-Missions 2–6 + beta transcription (each brings its equipment: assault cannon +
-autofire/reload/malfunction, chain fist, thunder hammer, captain + grenades + parry,
-librarian psi, CAT escort, ambush counters, exit-arrow lurking, turn limits — the
-original per-mission survey is in ISA Decisions 2026-08-15). Marine interrupts during
-stealer phase. Deferred verifications: FPS probe (ISC-71), cross-vendor audit.
+All nine missions are registered and playable; the campaign equipment (assault
+cannon, chain fist, parry sergeant, C.A.T., ambush counters) shipped with them.
+Genuinely open: marine interrupts during the stealer phase (the biggest named
+gap for winning space_hulk_1), thunder hammer + captain/grenades + librarian
+psi (no registered mission uses them; sprites exist unused per
+docs/asset-index.md), off-board entry-limbo lurking. Deferred verifications:
+FPS probe (ISC-71), live real-Chrome boot check once Interceptor is repaired.

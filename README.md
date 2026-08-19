@@ -128,6 +128,17 @@ smears (decoys look identical: the scanner cannot tell, and neither can you).
 If both sergeants die the auspex goes dark and the swarm vanishes from the
 scope. Clicking the mini-map jumps the main view to that point.
 
+### Motion
+
+The main map animates: marines step with a heavy, deliberate weight (and a
+subtle recoil when their guns fire), genestealers dart, blips slide
+suggestively through the dark, bulkhead doors part in the middle, and flames
+shimmer. Camera panning carries a little inertia: arrow keys accelerate and
+glide to a stop, and releasing a fast drag flings the view. All of it is
+cosmetic; the engine resolves instantly and the mini-map stays motionless.
+With the OS "reduce motion" accessibility setting enabled, every animation is
+replaced by an instant snap.
+
 ### Sound
 
 The processed audio set is committed under

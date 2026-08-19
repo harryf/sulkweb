@@ -9,6 +9,7 @@ import { buildRoster, assignHotkeys } from '../ui/marineNames.js';
 import { AudioManager } from '../audio/AudioManager.js';
 import { showEndDialog } from '../ui/endDialog.js';
 import { HUD_WIDTH, MINI_MAP_MARGIN, UI_FONT, FACING_ARROWS } from '../config.js';
+import { MOTION, kindFromTexture, camPanStep, shimmerPhase, recoilVector, shortestRotationDelta } from '../utils/motionLogic.js';
 
 const TILE_SIZE = 40
 
@@ -85,6 +86,20 @@ export default class GameScene extends Phaser.Scene {
   /** Mission REGISTRY key (space_hulk_1…) — the audio manifest keys on this,
    *  NOT on mission.name (a display title like "Suicide Mission"). */
   private readonly missionKey: string;
+  /** Deterministic motion probe: every motion decision (piece steps, door
+   *  slides, recoil, deaths) in arrival order, capped — the e2e suite asserts
+   *  profiles from this instead of racing tweens mid-flight. */
+  motionLog: { id: string; kind: string; durationMs: number; tweened: boolean }[] = [];
+  /** Camera inertia velocity (px/ms) — public for the e2e suite. */
+  camVel = { x: 0, y: 0 };
+  /** Tracked drag velocity for release momentum (px/ms). pointer.velocity is
+   *  unreliable under headless test drivers, so we integrate our own. */
+  private dragVel = { x: 0, y: 0 };
+  private lastDragAt = 0;
+  /** Where the integrator left the scroll last frame. If anything else moved
+   *  it since (bounds clamp at a map edge, panEffect, drag), the glide is
+   *  fighting another writer — park it. */
+  private expectedScroll: { x: number; y: number } | null = null;
   /** Homepage attract mode (no ?mission= param): the board is scenery under
    *  the DOM landing overlay — input disabled, clock stopped, no audio. */
   private readonly attract: boolean;
@@ -150,6 +165,7 @@ export default class GameScene extends Phaser.Scene {
   create() {
     const { board, pieces } = this.engine.state
     const { width, height } = board
+    this.watchReducedMotion()
 
     // Canvas: board viewport (capped so it fits a normal window) + HUD strip on
     // the right. One tile of margin all round so off-board entry triangles /
@@ -180,7 +196,8 @@ export default class GameScene extends Phaser.Scene {
       }
     });
     PieceEvents.on('doorToggled', ({ x, y, facing, open }) => {
-      this.doorSprites[`${x},${y}:${facing}`]?.setTexture(open ? 'door_open' : 'door_closed');
+      const sprite = this.doorSprites[`${x},${y}:${facing}`];
+      if (sprite) this.slideDoor(sprite, open);
       this.refreshFireReticle(); // open/closed flips shootability
     });
     
@@ -259,7 +276,7 @@ export default class GameScene extends Phaser.Scene {
       this.ductingSprites[`${x},${y}`]?.setTexture('ducting_destroyed');
     });
     PieceEvents.on('marineEscaped', ({ pieceId, escaped }) => {
-      this.removePieceSprite(pieceId, 150);
+      this.removePieceSprite(pieceId, 150, 'fade'); // an escape is not a death
       this.clearSelectionOf(pieceId, false);
       this.hud.setStatus(this.escapeStatus(escaped));
     });
@@ -268,9 +285,25 @@ export default class GameScene extends Phaser.Scene {
       this.hud.setStatus(`Cleansed: ${cleansedCount}/${total}`);
     });
     // beta_2: destroyed doors disappear for good; malfunctions go out with a bang.
+    // The map entry dies immediately (reticle/logic truth); the sprite gets a
+    // brief crumble before destroy.
     PieceEvents.on('doorDestroyed', ({ x, y, facing }) => {
-      this.doorSprites[`${x},${y}:${facing}`]?.destroy();
-      delete this.doorSprites[`${x},${y}:${facing}`];
+      const key = `${x},${y}:${facing}`;
+      const sprite = this.doorSprites[key];
+      delete this.doorSprites[key];
+      if (sprite) {
+        this.tweens.killTweensOf(sprite);
+        if (this.reducedMotion) {
+          sprite.destroy();
+        } else {
+          this.logMotion('door', 'door-crumble', MOTION.door.crumbleMs, true);
+          sprite.setTint(0xff8866);
+          this.tweens.add({
+            targets: sprite, alpha: 0, scaleY: 0.25, duration: MOTION.door.crumbleMs,
+            ease: 'Quad.easeIn', onComplete: () => sprite.destroy(),
+          });
+        }
+      }
       this.refreshFireReticle(); // the target may be gone
     });
         PieceEvents.on('downloadChanged', ({ counter, active }) => {
@@ -303,6 +336,23 @@ export default class GameScene extends Phaser.Scene {
         'flash_storm_bolter'
       ).setDepth(2).setRotation(shooter.facing * Math.PI / 2);
       this.time.delayedCall(250, () => flash.destroy());
+      // Subtle recoil: re-anchor on engine truth (a shooter never moves while
+      // shooting — marines stand still through the whole stealer replay), kick
+      // opposite the muzzle, spring back. Bursts re-anchor per shot, so rapid
+      // fire vibrates without ever drifting the sprite off its square.
+      const sprite = this.pieceSprites[shooterId];
+      if (sprite?.active && !this.reducedMotion) {
+        const [cx, cy] = centerXY(shooter.pos.c, shooter.pos.r);
+        this.tweens.killTweensOf(sprite);
+        sprite.setScale(1).setPosition(cx, cy);
+        const r = recoilVector(shooter.facing as 0 | 1 | 2 | 3);
+        this.tweens.add({
+          targets: sprite, x: cx + r.dx, y: cy + r.dy,
+          duration: MOTION.recoil.durationMs, yoyo: true, repeat: 1, ease: 'Sine.easeInOut',
+          onComplete: () => sprite.setPosition(cx, cy),
+        });
+        this.logMotion(shooterId, 'recoil', MOTION.recoil.durationMs, true);
+      }
     });
     PieceEvents.on('overwatchChanged', ({ pieceId, on }) => {
       if (on) {
@@ -331,12 +381,26 @@ export default class GameScene extends Phaser.Scene {
       for (const s of squares) {
         const key = `${s.x},${s.y}`;
         if (this.flameSprites[key]) continue;
-        this.flameSprites[key] = this.add.image(s.x * T + T / 2, s.y * T + T / 2, 'flames').setDepth(0.9);
+        const spr = this.add.image(s.x * T + T / 2, s.y * T + T / 2, 'flames').setDepth(0.9);
+        this.flameSprites[key] = spr;
+        if (!this.reducedMotion) {
+          // Shimmer: per-square period offset keeps neighbors out of sync.
+          this.tweens.add({
+            targets: spr, alpha: MOTION.shimmer.alphaLow, scale: MOTION.shimmer.scaleHigh,
+            angle: MOTION.shimmer.angleDeg,
+            duration: MOTION.shimmer.baseMs + shimmerPhase(s.x, s.y),
+            yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+          });
+        }
       }
     });
     PieceEvents.on('flamesCleared', ({ squares }) => {
       for (const s of squares) {
-        this.flameSprites[`${s.x},${s.y}`]?.destroy();
+        const spr = this.flameSprites[`${s.x},${s.y}`];
+        if (spr) {
+          this.tweens.killTweensOf(spr); // the shimmer loops forever — never orphan it
+          spr.destroy();
+        }
         delete this.flameSprites[`${s.x},${s.y}`];
       }
     });
@@ -345,7 +409,11 @@ export default class GameScene extends Phaser.Scene {
       this.createSprite(pieceId, kind, x, y, facing);
     });
     PieceEvents.on('blipConverted', ({ blipId }) => {
-      this.pieceSprites[blipId]?.destroy();
+      const spr = this.pieceSprites[blipId];
+      if (spr) {
+        this.tweens.killTweensOf(spr); // it may be mid-slide when it converts
+        spr.destroy();
+      }
       delete this.pieceSprites[blipId];
     });
     PieceEvents.on('gameOver', ({ result }) => {
@@ -395,8 +463,40 @@ export default class GameScene extends Phaser.Scene {
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
       if (!p.isDown) return;
       if (p.x > this.scale.width - HUD_WIDTH) return;
-      this.cameras.main.scrollX -= (p.x - p.prevPosition.x) / this.cameras.main.zoom;
-      this.cameras.main.scrollY -= (p.y - p.prevPosition.y) / this.cameras.main.zoom;
+      const dx = (p.x - p.prevPosition.x) / this.cameras.main.zoom;
+      const dy = (p.y - p.prevPosition.y) / this.cameras.main.zoom;
+      this.cameras.main.scrollX -= dx;
+      this.cameras.main.scrollY -= dy;
+      // Track drag velocity (px/ms, scroll direction) for release momentum.
+      // performance.now(), NOT this.time.now: Phaser dispatches mouse moves
+      // synchronously from the DOM listener, so a fast-polling mouse lands
+      // several per frame — the frame-quantized clock reads dt 0 for all but
+      // the first and inflates the fling ~10x (reviewer finding).
+      const now = performance.now();
+      const dt = Math.max(1, now - this.lastDragAt);
+      this.lastDragAt = now;
+      this.dragVel.x = 0.6 * (-dx / dt) + 0.4 * this.dragVel.x;
+      this.dragVel.y = 0.6 * (-dy / dt) + 0.4 * this.dragVel.y;
+    });
+    // Grab-to-stop: touching the map kills any glide; a fast release flings.
+    this.input.on('pointerdown', () => {
+      this.camVel.x = 0;
+      this.camVel.y = 0;
+      this.dragVel.x = 0;
+      this.dragVel.y = 0;
+      this.lastDragAt = performance.now();
+    });
+    this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
+      if (this.reducedMotion) return;
+      if (p.x > this.scale.width - HUD_WIDTH) return;
+      // Only a recent, fast drag flings — a click or a parked hold does not.
+      if (performance.now() - this.lastDragAt > MOTION.cam.flingWindowMs) return;
+      const vx = Phaser.Math.Clamp(this.dragVel.x * MOTION.cam.flingCarry, -MOTION.cam.flingMax, MOTION.cam.flingMax);
+      const vy = Phaser.Math.Clamp(this.dragVel.y * MOTION.cam.flingCarry, -MOTION.cam.flingMax, MOTION.cam.flingMax);
+      if (Math.hypot(vx, vy) >= MOTION.cam.flingMin) {
+        this.camVel.x = vx;
+        this.camVel.y = vy;
+      }
     });
 
     // Create Minimap (sized to fit inside the HUD panel)
@@ -667,7 +767,14 @@ export default class GameScene extends Phaser.Scene {
     this.disarmAndRefresh();
     this.emitSelected(piece);
     const sprite = this.pieceSprites[id];
-    if (sprite) this.cameras.main.pan(sprite.x, sprite.y, 250, 'Sine.easeInOut');
+    if (sprite) {
+      // A DOM roster click never reaches Phaser's pointerdown — park any glide
+      // here or the inertia fights the pan effect frame by frame.
+      this.camVel.x = 0;
+      this.camVel.y = 0;
+      if (this.reducedMotion) this.cameras.main.centerOn(sprite.x, sprite.y);
+      else this.cameras.main.pan(sprite.x, sprite.y, 250, 'Sine.easeInOut');
+    }
   }
 
   /** Human-readable contents of a board square — powers the HUD hover readout. */
@@ -715,14 +822,59 @@ export default class GameScene extends Phaser.Scene {
     return quota !== undefined ? `Escaped: ${escaped}/${quota}` : `Escaped: ${escaped}`;
   }
 
-  update() {
+  update(_time: number, delta: number) {
     const cam = this.cameras.main;
-    const speed = 5;
 
-    if (this.cursors.left.isDown) cam.scrollX -= speed;
-    if (this.cursors.right.isDown) cam.scrollX += speed;
-    if (this.cursors.up.isDown) cam.scrollY -= speed;
-    if (this.cursors.down.isDown) cam.scrollY += speed;
+    if (this.reducedMotion) {
+      // Fixed-speed panning, exactly the pre-inertia behavior.
+      const speed = 5;
+      if (this.cursors.left.isDown) cam.scrollX -= speed;
+      if (this.cursors.right.isDown) cam.scrollX += speed;
+      if (this.cursors.up.isDown) cam.scrollY -= speed;
+      if (this.cursors.down.isDown) cam.scrollY += speed;
+      this.camVel.x = 0;
+      this.camVel.y = 0;
+    } else {
+      // Inertia model: arrows accelerate toward a cap, release glides to rest.
+      // dt is clamped so a stalled frame never slingshots the camera.
+      const dirX = ((this.cursors.right.isDown ? 1 : 0) - (this.cursors.left.isDown ? 1 : 0)) as -1 | 0 | 1;
+      const dirY = ((this.cursors.down.isDown ? 1 : 0) - (this.cursors.up.isDown ? 1 : 0)) as -1 | 0 | 1;
+      // Someone else moved the scroll since our last write (the bounds clamp
+      // at a map edge, a pan effect, a drag): park that axis instead of
+      // integrating into a wall — otherwise reversing off an edge lags while
+      // stored velocity burns off (Advisor 2026-08-19). Tolerance 1px: the
+      // camera rounds scroll to whole pixels every frame, and that sub-pixel
+      // correction must never read as a foreign writer.
+      if (this.expectedScroll) {
+        if (Math.abs(cam.scrollX - this.expectedScroll.x) > 1) this.camVel.x = 0;
+        if (Math.abs(cam.scrollY - this.expectedScroll.y) > 1) this.camVel.y = 0;
+      }
+      // Manual input takes the wheel from any in-flight programmatic pan.
+      if ((dirX !== 0 || dirY !== 0) && cam.panEffect.isRunning) cam.panEffect.reset();
+      const dt = Math.min(delta, 50);
+      this.camVel.x = camPanStep(this.camVel.x, dirX, dt);
+      this.camVel.y = camPanStep(this.camVel.y, dirY, dt);
+      cam.scrollX += this.camVel.x * dt;
+      cam.scrollY += this.camVel.y * dt;
+      this.expectedScroll = { x: cam.scrollX, y: cam.scrollY };
+    }
+
+    // Markers and the selection highlight ride their sprites every frame —
+    // the single sync point for every tween (steps, recoil, squash), which
+    // also lets jam markers follow replay motion (they never did before).
+    for (const id of Object.keys(this.owMarkers)) {
+      const s = this.pieceSprites[id];
+      if (s?.active) this.owMarkers[id].setPosition(s.x, s.y - 12);
+    }
+    for (const id of Object.keys(this.jamMarkers)) {
+      const s = this.pieceSprites[id];
+      if (s?.active) this.jamMarkers[id].setPosition(s.x + 12, s.y - 12);
+    }
+    const sel = Selection.get();
+    if (sel) {
+      const s = this.pieceSprites[sel];
+      if (s?.active && this.highlight.visible) this.highlight.follow(s);
+    }
 
     // Camera panning moves the world under a stationary pointer — while the
     // flamer is armed, keep the hover target and preview honest.
@@ -760,28 +912,142 @@ export default class GameScene extends Phaser.Scene {
     this.createSprite(piece.id, piece.kind, piece.pos.c, piece.pos.r, piece.facing);
   }
 
-  /** Position/rotate a sprite from event-payload data. Tweens while a stealer
-   * phase is being replayed; snaps during interactive marine actions. */
-  private moveSprite(pieceId: string, x: number, y: number, facing: number) {
+  /** Cached prefers-reduced-motion — refreshed by a change listener so the
+   *  OS toggle applies mid-game WITHOUT allocating a MediaQueryList per
+   *  frame (update() reads this every tick). */
+  private reduceMotionOn = false;
+  private get reducedMotion(): boolean {
+    return this.reduceMotionOn;
+  }
+
+  /** Wire the reduced-motion media query: seed the cache and, on a mid-game
+   *  switch to reduce, kill the only motion that never self-terminates —
+   *  the looping flame shimmer — and reset the sprites it was riding. */
+  private watchReducedMotion(): void {
+    const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (!mq) return;
+    this.reduceMotionOn = mq.matches;
+    mq.addEventListener?.('change', (e) => {
+      this.reduceMotionOn = e.matches;
+      if (!e.matches) return;
+      for (const spr of Object.values(this.flameSprites)) {
+        this.tweens.killTweensOf(spr);
+        spr.setAlpha(1).setScale(1).setAngle(0);
+      }
+    });
+  }
+
+  /** Record a motion decision on the capped probe log (e2e determinism). */
+  private logMotion(id: string, kind: string, durationMs: number, tweened: boolean): void {
+    this.motionLog.push({ id, kind, durationMs, tweened });
+    if (this.motionLog.length > 200) this.motionLog.shift();
+  }
+
+  /**
+   * Position/rotate a sprite from event-payload data. Every step tweens with
+   * its kind's profile (heavy marines, darting stealers, sliding blips) — the
+   * kind comes from the sprite's TEXTURE, the only payload-truthful source
+   * during replay (a converted blip's id is gone from final engine state).
+   * snap=true is the reconcile path (finishReplay/reduced-motion) and must
+   * land on engine truth exactly, clearing any scale/alpha residue.
+   */
+  private moveSprite(pieceId: string, x: number, y: number, facing: number, snap = false) {
     const sprite = this.pieceSprites[pieceId];
     if (!sprite || !sprite.active) return;
     const [tx, ty] = centerXY(x, y);
-    sprite.setRotation(facing * Math.PI / 2);
+    // Phaser's rotation setter WRAPS to (-pi, pi] — compare against the value
+    // the sprite will actually store, or south/west facings never match and
+    // every no-op refresh kills live tweens (reviewer finding, 3.90 source).
+    const targetRot = Phaser.Math.Angle.Wrap(facing * Math.PI / 2);
+    // Nothing changed (e.g. the post-shot acted-refresh), or a tween is
+    // already in flight to this exact target: bail before touching tweens, or
+    // every shot kills its own recoil and every mid-step action restarts the
+    // step from scratch.
+    const pending = (sprite as any).moveTarget as { tx: number; ty: number; rot: number } | undefined;
+    if (!snap && ((sprite.x === tx && sprite.y === ty && sprite.rotation === targetRot)
+      || (pending && pending.tx === tx && pending.ty === ty && pending.rot === targetRot))) return;
+    (sprite as any).moveTarget = { tx, ty, rot: targetRot };
     this.tweens.killTweensOf(sprite);
-    if (this.animating) {
+    sprite.setScale(1); // clear interrupted squash/pulse residue
+    const kind = kindFromTexture(sprite.texture.key);
+    if (snap || this.reducedMotion) {
+      sprite.setRotation(targetRot).setPosition(tx, ty).setAlpha(1);
+      this.logMotion(pieceId, kind, 0, false);
+      if (Selection.get() === pieceId) this.updateHighlight();
+      return;
+    }
+    // Rotation: marines grind through the turn; stealers/blips just face it.
+    if (kind === 'marine' && sprite.rotation !== targetRot) {
+      const delta = shortestRotationDelta(sprite.rotation, targetRot);
       this.tweens.add({
-        targets: sprite, x: tx, y: ty, duration: 100, ease: 'Linear',
-        onUpdate: () => this.owMarkers[pieceId]?.setPosition(sprite.x, sprite.y - 12),
+        targets: sprite, rotation: sprite.rotation + delta,
+        duration: MOTION.turnMs, ease: 'Sine.easeInOut',
+        onComplete: () => sprite.setRotation(targetRot),
       });
     } else {
-      sprite.setPosition(tx, ty);
+      sprite.setRotation(targetRot);
     }
-    this.owMarkers[pieceId]?.setPosition(tx, ty - 12);
+    if (sprite.x === tx && sprite.y === ty) {
+      // Turn in place: no position tween, no arrival thud.
+      this.logMotion(pieceId, kind, kind === 'marine' ? MOTION.turnMs : 0, kind === 'marine');
+    } else {
+      const { durationMs, ease } = MOTION.step[kind];
+      this.tweens.add({
+        targets: sprite, x: tx, y: ty, duration: durationMs, ease,
+        onComplete: () => {
+          sprite.setPosition(tx, ty);
+          if (kind === 'marine') {
+            // The thud: a heavy frame settles into the deck.
+            this.tweens.add({
+              targets: sprite, scaleX: MOTION.squash.scaleX, scaleY: MOTION.squash.scaleY,
+              duration: MOTION.squash.durationMs, yoyo: true,
+              onComplete: () => sprite.setScale(1),
+            });
+          }
+        },
+      });
+      if (kind === 'stealer') {
+        this.tweens.add({
+          targets: sprite, scale: MOTION.stealerPulse.scale,
+          duration: durationMs / 2, yoyo: true, onComplete: () => sprite.setScale(1),
+        });
+      }
+      this.logMotion(pieceId, kind, durationMs, true);
+    }
     if (Selection.get() === pieceId) this.updateHighlight();
   }
 
-  private refreshPieceSprite(piece: Piece) {
-    this.moveSprite(piece.id, piece.pos.c, piece.pos.r, piece.facing);
+  private refreshPieceSprite(piece: Piece, snap = false) {
+    this.moveSprite(piece.id, piece.pos.c, piece.pos.r, piece.facing, snap);
+  }
+
+  /** Bulkhead halves part along the door's long axis (local X at every facing). */
+  private slideDoor(sprite: Phaser.GameObjects.Image, open: boolean): void {
+    this.tweens.killTweensOf(sprite);
+    const done = () => sprite.setTexture(open ? 'door_open' : 'door_closed').setScale(1).setAlpha(1);
+    if (this.reducedMotion) {
+      done();
+      this.logMotion('door', open ? 'door-open' : 'door-close', 0, false);
+      return;
+    }
+    const { slideMs, partedScale } = MOTION.door;
+    // Interrupted slides continue from wherever the halves are — duration
+    // scales with the remaining travel so a short finish never crawls.
+    const travel = (fromScale: number, toScale: number) =>
+      Math.max(40, Math.round(slideMs * Math.abs(fromScale - toScale) / (1 - partedScale)));
+    if (open) {
+      sprite.setTexture('door_closed');
+      this.tweens.add({ targets: sprite, scaleX: partedScale, alpha: 0.7, duration: travel(sprite.scaleX, partedScale), ease: 'Sine.easeIn', onComplete: done });
+    } else {
+      // From fully open, the halves emerge from the parted sliver; from an
+      // interrupted mid-open slide, continue from wherever they are.
+      if (sprite.texture.key !== 'door_closed' || sprite.scaleX > 0.99) {
+        sprite.setScale(partedScale, 1).setAlpha(0.7);
+      }
+      sprite.setTexture('door_closed');
+      this.tweens.add({ targets: sprite, scaleX: 1, alpha: 1, duration: travel(sprite.scaleX, 1), ease: 'Sine.easeOut', onComplete: done });
+    }
+    this.logMotion('door', open ? 'door-open' : 'door-close', slideMs, true);
   }
 
   /** Filled + stroked mission square with a centred label (EXIT/BURN/DATA). */
@@ -795,12 +1061,27 @@ export default class GameScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(0.45);
   }
 
-  /** Fade out and forget a piece's sprite plus its overwatch/jam markers. */
-  private removePieceSprite(pieceId: string, fadeMs: number): void {
+  /** Fade out and forget a piece's sprite plus its overwatch/jam markers.
+   *  style 'death' adds the red-wash crumple; 'fade' is a clean exit (escape). */
+  private removePieceSprite(pieceId: string, fadeMs: number, style: 'death' | 'fade' = 'death'): void {
     const sprite = this.pieceSprites[pieceId];
     if (sprite) {
       this.tweens.killTweensOf(sprite);
-      this.tweens.add({ targets: sprite, alpha: 0, duration: fadeMs, onComplete: () => sprite.destroy() });
+      // The art lingers; the PIECE is gone — never hit-testable, never a
+      // selection target, while the flourish plays out.
+      sprite.disableInteractive().setName('');
+      if (this.reducedMotion) {
+        sprite.destroy();
+      } else if (style === 'death') {
+        sprite.setTint(MOTION.death.tint);
+        this.logMotion(pieceId, 'death', fadeMs, true);
+        this.tweens.add({
+          targets: sprite, alpha: 0, scale: MOTION.death.scale, duration: fadeMs,
+          ease: 'Quad.easeIn', onComplete: () => sprite.destroy(),
+        });
+      } else {
+        this.tweens.add({ targets: sprite, alpha: 0, duration: fadeMs, onComplete: () => sprite.destroy() });
+      }
     }
     delete this.pieceSprites[pieceId];
     this.owMarkers[pieceId]?.destroy();
@@ -873,7 +1154,7 @@ export default class GameScene extends Phaser.Scene {
     this.disarmAndRefresh();
     this.emitSelected(undefined);
     // Accessibility: with prefers-reduced-motion, skip the timeline entirely
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+    if (this.reducedMotion) {
       for (const ev of stream) PieceEvents.replay(ev);
       this.finishReplay();
       return;
@@ -898,10 +1179,11 @@ export default class GameScene extends Phaser.Scene {
     const live = new Set(this.engine.state.pieces.map(p => p.id));
     for (const p of this.engine.state.pieces) {
       if (!this.pieceSprites[p.id]) this.createPieceSprite(p as Piece);
-      else this.refreshPieceSprite(p as Piece);
+      else this.refreshPieceSprite(p as Piece, true); // reconcile SNAPS to engine truth
     }
     for (const id of Object.keys(this.pieceSprites)) {
       if (!live.has(id)) {
+        this.tweens.killTweensOf(this.pieceSprites[id]);
         this.pieceSprites[id].destroy();
         delete this.pieceSprites[id];
         this.owMarkers[id]?.destroy();

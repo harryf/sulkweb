@@ -882,6 +882,7 @@ Build & regression:
 - [x] ISC-668: Anti: no em dashes in any new player-facing string (grep added display strings)
 - [x] ISC-669: Anti: the digit keys do not collide with existing bindings — no addKeys change, dedicated keydown-DIGIT handlers with the shared seenKeyEvents dedupe (Read GameScene)
 - [x] ISC-670: full client e2e + unit suites and engine tests green, tsc clean both packages (Bash exit codes)
+- [ ] ISC-671: v0.4.6 released — main pushed, tag CI green BEFORE the release was created, release published, live bundle serves v0.4.6 with the hotkey code present (gh run watch + bundle grep)
 
 ## Test Strategy
 

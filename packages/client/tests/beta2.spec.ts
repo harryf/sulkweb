@@ -9,7 +9,7 @@ test('beta_2 boots with exotics; download status + victory wiring', async ({ pag
   test.setTimeout(120000);
   const errors: string[] = [];
   page.on('pageerror', (err: Error) => errors.push(err.message));
-  await page.goto('/?mission=beta_2&seed=1');
+  await page.goto('/?deploy=0&mission=beta_2&seed=1');
   await expect(page.locator('canvas')).toBeVisible();
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
 

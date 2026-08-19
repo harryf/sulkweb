@@ -18,7 +18,7 @@ for (const b of BOOTS) {
   test(`${b.name} boots: board, squad, objective, status line, zero errors`, async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (err: Error) => errors.push(err.message));
-    await page.goto(`/?mission=${b.name}&seed=1`);
+    await page.goto(`/?deploy=0&mission=${b.name}&seed=1`);
     await expect(page.locator('canvas')).toBeVisible();
     await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
     const state = await page.evaluate(() => {
@@ -43,7 +43,7 @@ for (const b of BOOTS) {
 }
 
 test('mission 3 draw state reaches the overlay (ISC-239)', async ({ page }) => {
-  await page.goto('/?mission=space_hulk_3&seed=1');
+  await page.goto('/?deploy=0&mission=space_hulk_3&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
   const result = await page.evaluate(() => {
     const { engine } = (window as any).sulk;

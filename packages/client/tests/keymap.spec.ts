@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
  */
 
 async function boot(page: import('@playwright/test').Page) {
-  await page.goto('/?mission=space_hulk_1&seed=1');
+  await page.goto('/?deploy=0&mission=space_hulk_1&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
 }
 

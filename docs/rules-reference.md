@@ -10,6 +10,19 @@ The complete rules of Sulk Web as implemented in the engine (`packages/engine/sr
 - Some squares carry mission features: entry points (genestealer reinforcements), exit points (marine escape), objective squares, ducting, the download terminal.
 - Pieces face one of four directions (up, right, down, left). Blips have no meaningful facing.
 
+## Deployment
+
+Every mission opens with a **deployment phase** before turn 1. The squad starts in reserve; the mission's deployment squares (each marked with an X while free) take marines one at a time.
+
+- **Placement.** Clicking a free deployment square deploys the next reserve marine of that square's squad; clicking a roster card first arms that specific marine for the next placement. A deployed marine can be clicked to lift him back into reserve.
+- **Squad areas.** Each deployment area belongs to exactly one squad (the mission's roster grouping). Marines never deploy into another squad's area.
+- **Facing.** A deployed marine faces the mission's default for that square (the direction of advance). A and D rotate him freely during the phase; rotation costs nothing and reveals nothing (blips do not convert from deployment-phase facing changes).
+- **Auto deploy.** The AUTO DEPLOY control fills all remaining free squares per squad in battle order, front to back: storm bolter on point, sergeant second, a heavy weapon third, the rest behind. The front square is the one furthest along the squares' default facing.
+- **The deployment clock.** 90 seconds per squad (a two-squad mission gets 3 minutes). Expiry, the DONE button, or Enter auto-deploys every marine still in reserve and starts the marine phase. Esc pauses the clock.
+- **Rules stance.** No game action is legal during deployment: the board is locked, no AP or CP is spent, no dice are drawn, and victory conditions are not evaluated. A deployment rearrangement leaves the mission's random state (blip values, first CP roll) exactly as constructed.
+
+Direct-URL play can skip the phase with `?deploy=0` (the marines then stand on their mission-default squares); the training scenario `debug_1` (a single deployment square) never enters it.
+
 ## Turn structure
 
 Each game turn runs:

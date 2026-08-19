@@ -114,6 +114,27 @@ export class RosterPanel {
     for (const id of this.cards.keys()) this.refreshCard(id);
   }
 
+  /** Deploy phase: a reserve card dims with a RESERVE tag; deploying clears it.
+   *  Cards stay clickable either way — a reserve click arms the marine for
+   *  placement, a deployed click selects him for rotation. */
+  setDeployed(id: string, deployed: boolean): void {
+    const card = this.cards.get(id);
+    if (!card) return;
+    card.classList.toggle('reserve', !deployed);
+    card.querySelector('.m-state')!.textContent = deployed ? '' : 'RESERVE';
+    this.refreshCard(id);
+  }
+
+  /** Deployment over: no card is a reserve card any more. */
+  clearDeploy(): void {
+    for (const [id, card] of this.cards) {
+      if (!card.classList.contains('reserve')) continue;
+      card.classList.remove('reserve');
+      card.querySelector('.m-state')!.textContent = '';
+      this.refreshCard(id);
+    }
+  }
+
   private refreshCard(id: string): void {
     const card = this.cards.get(id);
     if (!card || card.classList.contains('dead') || card.classList.contains('escaped')) return;

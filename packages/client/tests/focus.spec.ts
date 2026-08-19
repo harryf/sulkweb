@@ -6,7 +6,7 @@ import { test, expect, type Page } from '@playwright/test';
  * facing checks — no mid-tween sampling.
  */
 
-async function boot(page: Page, url = '/?mission=space_hulk_1&seed=1') {
+async function boot(page: Page, url = '/?deploy=0&mission=space_hulk_1&seed=1') {
   await page.goto(url);
   await expect(page.locator('canvas')).toBeVisible();
   await page.waitForFunction(() => (window as any).sulk?.scene?.minimap !== undefined, undefined, { timeout: 15000 });
@@ -46,7 +46,7 @@ const runReplay = async (page: Page, spawnAt: 'adjacent' | 'near') => {
 };
 
 test('the camera follows near-marine stealer action during the replay (ISC-780)', async ({ page }) => {
-  await boot(page, '/?mission=debug_1&seed=1');
+  await boot(page, '/?deploy=0&mission=debug_1&seed=1');
   await runReplay(page, 'adjacent');
   await page.waitForTimeout(350); // let the final pan land
   const probe = await page.evaluate(() => {
@@ -69,7 +69,7 @@ test('the camera follows near-marine stealer action during the replay (ISC-780)'
 });
 
 test('an attack gets the full treatment: focus, shake, spotlight, lunge (ISC-781/782/783)', async ({ page }) => {
-  await boot(page, '/?mission=debug_1&seed=1');
+  await boot(page, '/?deploy=0&mission=debug_1&seed=1');
   await runReplay(page, 'adjacent');
   const probe = await page.evaluate(() => {
     const scene = (window as any).sulk.scene;
@@ -90,7 +90,7 @@ test('an attack gets the full treatment: focus, shake, spotlight, lunge (ISC-781
 });
 
 test('close-in stealers end the phase facing their prey, sprite and engine agreeing (ISC-784)', async ({ page }) => {
-  await boot(page, '/?mission=debug_1&seed=1');
+  await boot(page, '/?deploy=0&mission=debug_1&seed=1');
   // A full wave spawned 8-10 squares out: big enough that the hive charges
   // (a lone stealer stages away instead), far enough that nobody reaches the
   // marine this phase — survivors END the phase close, prey still alive.
@@ -136,7 +136,7 @@ test('close-in stealers end the phase facing their prey, sprite and engine agree
 test('back-to-back attacks keep the spotlight lifecycle clean; marine actions never pan (synthetic attackFx)', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err: Error) => errors.push(err.message));
-  await boot(page, '/?mission=debug_1&seed=1');
+  await boot(page, '/?deploy=0&mission=debug_1&seed=1');
   // Marine-phase probe guard: acting during the marine phase must not touch
   // the focus log — replayPan is only reachable from the replay schedule.
   const marinePhase = await page.evaluate(() => {

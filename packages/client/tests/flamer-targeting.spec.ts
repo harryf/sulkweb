@@ -8,7 +8,7 @@ import { test, expect } from '@playwright/test';
 test('flamer two-press targeting: arm, aim with preview, fire into the square', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err: Error) => errors.push(err.message));
-  await page.goto('/?mission=space_hulk_1&seed=1');
+  await page.goto('/?deploy=0&mission=space_hulk_1&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
 
   // Stage the board state used across the existing flamer-ui suite: flamer in
@@ -105,7 +105,7 @@ test('flamer two-press targeting: arm, aim with preview, fire into the square', 
 });
 
 test('hovering a shootable closed door and pressing F shoots the door (ISC-355)', async ({ page }) => {
-  await page.goto('/?mission=space_hulk_1&seed=1');
+  await page.goto('/?deploy=0&mission=space_hulk_1&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
   await page.evaluate(() => {
     const { engine, scene, Selection, PieceEvents } = (window as any).sulk;
@@ -140,7 +140,7 @@ test('hovering a shootable closed door and pressing F shoots the door (ISC-355)'
 });
 
 test('space_hulk_6 ducting run renders as one horizontal pipe (ISC-357/358)', async ({ page }) => {
-  await page.goto('/?mission=space_hulk_6&seed=1');
+  await page.goto('/?deploy=0&mission=space_hulk_6&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
   const ducts = await page.evaluate(() => {
     const { scene, PieceEvents } = (window as any).sulk;

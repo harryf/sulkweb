@@ -32,3 +32,4 @@ export type { PieceKind } from './pieces/Piece.js';
 export { Blip } from './pieces/Blip.js';
 export { runStealerActions, spawnBlips, convertRevealedBlips, squareSeenByMarine } from './ai/StealerAI.js';
 export { runMarineTurn, autoplay } from './ai/MarineAutopilot.js';
+export { DEPLOY_SECONDS_PER_SQUAD, deployFacing, deploySquadCount, deploySeconds, orderSquaresFrontToBack, autoDeployOrder } from './rules/deploy.js';

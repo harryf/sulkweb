@@ -12,7 +12,7 @@ async function waitForGame(page: Page) {
   // differs from the plain-autoplay scan — seeds were scanned under THIS
   // pattern (2026-08-15 original map): seed 3 ends in a loss, keeping this the
   // defeat-path regression; win.spec covers victory. Rescan if dice order changes.
-  await page.goto('/?mission=space_hulk_1&seed=3');
+  await page.goto('/?deploy=0&mission=space_hulk_1&seed=3');
   await expect(page.locator('canvas')).toBeVisible();
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
 }

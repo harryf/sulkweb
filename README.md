@@ -72,6 +72,17 @@ pnpm install
 pnpm --filter ./packages/client dev   # open http://localhost:5173
 ```
 
+### Deployment
+
+Every mission opens with a deployment phase: the squad waits in reserve and the
+mission's deployment squares carry an X while free. Click a square to place the
+next marine of that squad (or click his roster card first to pick him
+specifically), click a placed marine to lift him back up, and spin him with
+`A`/`D` for free. AUTO DEPLOY fills the line in battle order (bolter on point,
+sergeant second, heavy weapon third); DONE, Enter, or the deployment clock
+(90 seconds per squad) auto-deploys the rest and starts the mission. `?deploy=0`
+skips the phase for quick testing.
+
 ### Controls
 
 | Input | Action |

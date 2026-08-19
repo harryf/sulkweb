@@ -6,7 +6,7 @@ import { test, expect, type Page } from '@playwright/test';
  * asserted the mocks, not the game.
  */
 
-async function waitForGame(page: Page, url = '/?mission=space_hulk_1') {
+async function waitForGame(page: Page, url = '/?deploy=0&mission=space_hulk_1') {
   // This spec exercises the full space_hulk_1 scenario (squad of five, two
   // blips); the client's DEFAULT mission is debug_1 — covered separately below.
   await page.goto(url);
@@ -23,7 +23,7 @@ test('bare / is the homepage (space_hulk_1 attract backdrop); ?mission= plays', 
   expect(home.name).toBe('Suicide Mission'); // space_hulk_1 as scenery
   expect(home.overlay).toBe(true);
 
-  await waitForGame(page, '/?mission=debug_1');
+  await waitForGame(page, '/?deploy=0&mission=debug_1');
   const dbg = await page.evaluate(() => {
     const { engine } = (window as any).sulk;
     return {
@@ -38,7 +38,7 @@ test('bare / is the homepage (space_hulk_1 attract backdrop); ?mission= plays', 
   expect(dbg.enemies).toBe(0); // BLIPS = (0, 1)
   expect(dbg.overlay).toBe(false);
 
-  await waitForGame(page, '/?mission=space_hulk_1');
+  await waitForGame(page, '/?deploy=0&mission=space_hulk_1');
   const hulk = await page.evaluate(() => (window as any).sulk.engine.mission.name);
   expect(hulk).toBe('Suicide Mission');
 });
@@ -96,7 +96,7 @@ test('minimap viewport box stays inside the minimap on narrow maps (ISC-382)', a
   // world than the narrow board contains; the projected box overflowed the
   // minimap's right edge. Probe the rect actually drawn (Minimap.lastBox).
   for (const mission of ['space_hulk_1', 'beta_2']) {
-    await waitForGame(page, `/?mission=${mission}`);
+    await waitForGame(page, `/?deploy=0&mission=${mission}`);
     for (const cx of [0, 0.5, 1]) {
       const probe = await page.evaluate(async (frac: number) => {
         const { scene, engine } = (window as any).sulk;

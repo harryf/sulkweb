@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 
 async function waitForGame(page: Page) {
   // space_hulk_1: two initial blips guarantee visible stealer-phase motion
-  await page.goto('/?mission=space_hulk_1&seed=1'); // pinned — deterministic replay content
+  await page.goto('/?deploy=0&mission=space_hulk_1&seed=1'); // pinned — deterministic replay content
   await expect(page.locator('canvas')).toBeVisible();
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
 }

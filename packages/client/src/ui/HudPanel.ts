@@ -58,6 +58,31 @@ export class HudPanel extends Phaser.GameObjects.Container {
     this.timerText.setText(`${m}:${String(s).padStart(2, '0')}`)
   }
 
+  /** Deploy-phase controls: an AUTO DEPLOY button that exists ONLY while the
+   *  phase runs — it is destroyed outright on exit, leaving zero deploy UI. */
+  private autoBtn?: Phaser.GameObjects.Rectangle
+  private autoLabel?: Phaser.GameObjects.Text
+  setDeployMode(on: boolean, onAuto?: () => void) {
+    this.autoBtn?.destroy()
+    this.autoLabel?.destroy()
+    this.autoBtn = undefined
+    this.autoLabel = undefined
+    if (!on) return
+    const scene = this.scene
+    const y = this.autoY
+    this.autoBtn = scene.add.rectangle(8, y, HUD_WIDTH - 16, 30, 0x2a4a2a)
+      .setOrigin(0).setScrollFactor(0).setName('auto-deploy-btn')
+      .setInteractive({ useHandCursor: true })
+    this.autoBtn.on('pointerdown', () => onAuto?.())
+    this.autoLabel = scene.add.text(8, y + 5, 'AUTO DEPLOY', {
+      fontFamily: UI_FONT, fontSize: '16px', color: '#9fe89f', align: 'center', fixedWidth: HUD_WIDTH - 16
+    }).setScrollFactor(0)
+    this.add(this.autoBtn)
+    this.add(this.autoLabel)
+  }
+  /** Where the AUTO button sits — set once the DONE button's row is known. */
+  private autoY = 0
+
   constructor(scene: Phaser.Scene, miniMap: Phaser.GameObjects.Container, onDone?: () => void) {
     super(scene, 0, 0)
     this.setScrollFactor(0) // stick to camera
@@ -110,9 +135,13 @@ export class HudPanel extends Phaser.GameObjects.Container {
       fontFamily: UI_FONT, fontSize: '17px', color: '#ffffff', align: 'center', fixedWidth: HUD_WIDTH - 16
     })
     this.add(doneLabel)
+    // AUTO DEPLOY (deploy phase only) rides the dice row — no dice have been
+    // rolled yet when the button exists, and it is destroyed before any are.
+    this.autoY = doneY + 76
 
     PieceEvents.on('phaseChanged', ({ phase, turn }) => {
-      this.phaseText.setText(`Turn ${turn}: ${phase === 'MarineAction' ? 'Marines' : 'Stealers'}`)
+      this.phaseText.setText(phase === 'Deploy' ? 'DEPLOYMENT'
+        : `Turn ${turn}: ${phase === 'MarineAction' ? 'Marines' : 'Stealers'}`)
     })
 
     // Casualty counters

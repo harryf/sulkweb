@@ -6,7 +6,7 @@ import { test, expect, type Page } from '@playwright/test';
  * never against tweens sampled mid-flight.
  */
 
-async function boot(page: Page, url = '/?mission=debug_1&seed=1') {
+async function boot(page: Page, url = '/?deploy=0&mission=debug_1&seed=1') {
   await page.goto(url);
   await expect(page.locator('canvas')).toBeVisible();
   await page.waitForFunction(() => (window as any).sulk?.scene?.minimap !== undefined, undefined, { timeout: 15000 });
@@ -111,7 +111,7 @@ test('marine turns ease and settle on the exact facing angle; highlight and mark
 });
 
 test('stealer-phase replay styles moves per kind: darting stealers, sliding blips (ISC-736/737)', async ({ page }) => {
-  await boot(page, '/?mission=space_hulk_1&seed=1');
+  await boot(page, '/?deploy=0&mission=space_hulk_1&seed=1');
   await page.evaluate(() => {
     const { sulk } = window as any;
     // A stealer near the squad is guaranteed to act; sh1 seeds 2 blips itself.
@@ -130,7 +130,7 @@ test('stealer-phase replay styles moves per kind: darting stealers, sliding blip
 });
 
 test('doors slide open and closed, settling on the right texture at scale 1 (ISC-738)', async ({ page }) => {
-  await boot(page, '/?mission=space_hulk_1&seed=1');
+  await boot(page, '/?deploy=0&mission=space_hulk_1&seed=1');
   const opened = await page.evaluate(() => {
     const { engine, scene } = (window as any).sulk;
     scene.motionLog.length = 0;
@@ -187,7 +187,7 @@ test('flames shimmer while alight and clean up on clear (ISC-739/740)', async ({
 });
 
 test('a destroyed door crumbles but its map entry dies instantly (ISC-746)', async ({ page }) => {
-  await boot(page, '/?mission=space_hulk_1&seed=1');
+  await boot(page, '/?deploy=0&mission=space_hulk_1&seed=1');
   const destroyed = await page.evaluate(() => {
     const { scene, PieceEvents } = (window as any).sulk;
     const key = Object.keys(scene.doorSprites)[0];
@@ -235,7 +235,7 @@ test('shots recoil the shooter and always spring back to the exact centre (ISC-7
 });
 
 test('deaths play the flourish and the sprite is gone at the end (ISC-742)', async ({ page }) => {
-  await boot(page, '/?mission=space_hulk_1&seed=1');
+  await boot(page, '/?deploy=0&mission=space_hulk_1&seed=1');
   const died = await page.evaluate(() => {
     const { sulk } = window as any;
     const s = new sulk.Genestealer(sulk.engine.state.board, { c: 20, r: 19 }, 0);
@@ -319,7 +319,7 @@ test('Anti: prefers-reduced-motion snaps everything instantly (ISC-747)', async 
 
 test('Anti: reduced motion still delivers the exact terminal board state after a replay (ISC-747 companion)', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await boot(page, '/?mission=space_hulk_1&seed=1');
+  await boot(page, '/?deploy=0&mission=space_hulk_1&seed=1');
   const drift = await page.evaluate(() => {
     const { sulk } = window as any;
     new sulk.Genestealer(sulk.engine.state.board, { c: 20, r: 19 }, 0);
@@ -347,7 +347,7 @@ test('Anti: reduced motion still delivers the exact terminal board state after a
 });
 
 test('an escaping marine fades clean — never the red death flourish (marineEscaped path)', async ({ page }) => {
-  await boot(page, '/?mission=space_hulk_1&seed=1');
+  await boot(page, '/?deploy=0&mission=space_hulk_1&seed=1');
   const escaped = await page.evaluate(() => {
     const { engine, scene, PieceEvents } = (window as any).sulk;
     const m = engine.marines.find((x: any) => x.alive);
@@ -368,7 +368,7 @@ test('an escaping marine fades clean — never the red death flourish (marineEsc
 });
 
 test('an interrupted door slide continues from where it is, then settles clean', async ({ page }) => {
-  await boot(page, '/?mission=space_hulk_1&seed=1');
+  await boot(page, '/?deploy=0&mission=space_hulk_1&seed=1');
   const mid = await page.evaluate(() => {
     const { scene, PieceEvents } = (window as any).sulk;
     const key = Object.keys(scene.doorSprites)[0];
@@ -467,7 +467,7 @@ test('the acted-refresh after a real shot never kills its own recoil (early-bail
 });
 
 test('Anti: post-replay reconciliation is exact — position, scale, alpha (ISC-748)', async ({ page }) => {
-  await boot(page, '/?mission=space_hulk_1&seed=1');
+  await boot(page, '/?deploy=0&mission=space_hulk_1&seed=1');
   await page.evaluate(() => {
     const { sulk } = window as any;
     new sulk.Genestealer(sulk.engine.state.board, { c: 20, r: 19 }, 0);

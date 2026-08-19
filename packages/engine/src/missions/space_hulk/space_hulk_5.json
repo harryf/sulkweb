@@ -13,33 +13,33 @@
     {
       "x": 10,
       "y": 10,
-      "facing": "down",
+      "facing": "right",
       "type": "heavy_flamer",
       "squad": "Abraham"
     },
     {
       "x": 11,
       "y": 10,
-      "facing": "down",
+      "facing": "right",
       "type": "sergeant",
       "squad": "Abraham"
     },
     {
       "x": 12,
       "y": 10,
-      "facing": "down",
+      "facing": "right",
       "squad": "Abraham"
     },
     {
       "x": 13,
       "y": 10,
-      "facing": "down",
+      "facing": "right",
       "squad": "Abraham"
     },
     {
       "x": 14,
       "y": 10,
-      "facing": "down",
+      "facing": "right",
       "squad": "Abraham"
     },
     {

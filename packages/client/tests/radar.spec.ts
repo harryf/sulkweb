@@ -10,7 +10,7 @@ import { test, expect } from '@playwright/test';
  * timing is deterministic.
  */
 
-const boot = async (page: import('@playwright/test').Page, url = '/?mission=space_hulk_1&seed=1') => {
+const boot = async (page: import('@playwright/test').Page, url = '/?deploy=0&mission=space_hulk_1&seed=1') => {
   await page.goto(url);
   await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
 };
@@ -88,7 +88,7 @@ test('arrow-key panning still works after the click feature (ISC-676)', async ({
 test('marine dots: one per living marine, tracking moves and deaths (ISC-678/679/680)', async ({ page }) => {
   // debug_1's open training map guarantees a legal step exists; sh1 deploys
   // the squad boxed in (door ahead, walls beside, brothers behind).
-  await boot(page, '/?mission=debug_1&seed=1');
+  await boot(page, '/?deploy=0&mission=debug_1&seed=1');
   const living = await page.evaluate(() =>
     (window as any).sulk.engine.marines.filter((m: any) => m.alive).length);
   const dots = () => page.evaluate(() => (window as any).sulk.scene.minimap.lastMarineDots.length);
@@ -173,7 +173,7 @@ test('pulses reveal contacts from the sergeant; without him the scope goes dark 
 });
 
 test('beta_2: pulses ride BOTH sergeants, and one death does not darken the scope (ISC-688/692)', async ({ page }) => {
-  await boot(page, '/?mission=beta_2&seed=1');
+  await boot(page, '/?deploy=0&mission=beta_2&seed=1');
   await page.mouse.click(300, 300);
   const first = await page.evaluate(() => {
     const { sulk } = window as any;

@@ -89,19 +89,23 @@ test('selecting a mission starts it; the overlay is gone and the abort control a
   await waitForScene(page);
 
   const state = await page.evaluate(() => ({
-    marines: (window as any).sulk.engine.marines.length,
+    deployMode: (window as any).sulk.scene.deployMode,
+    reserve: (window as any).sulk.engine.reserve.length,
     overlay: !!document.getElementById('home-overlay'),
     abort: !!document.getElementById('abort-mission'),
     inputEnabled: (window as any).sulk.scene.input.enabled,
   }));
-  expect(state.marines).toBe(5); // Squad Constantine: 3 bolters, sergeant, flamer
+  // The real player flow opens with the deployment phase: Squad Constantine
+  // (3 bolters, sergeant, flamer) waits in reserve for placement.
+  expect(state.deployMode).toBe(true);
+  expect(state.reserve).toBe(5);
   expect(state.overlay).toBe(false);
   expect(state.abort).toBe(true);
   expect(state.inputEnabled).toBe(true);
 });
 
 test('abort mission: first click arms, second click returns to the homepage', async ({ page }) => {
-  await page.goto('/?mission=debug_1&seed=1');
+  await page.goto('/?deploy=0&mission=debug_1&seed=1');
   await waitForScene(page);
 
   const abort = page.locator('#abort-mission');
@@ -127,7 +131,7 @@ test('legacy /?seed=N URLs redirect to debug_1 with the seed preserved', async (
 });
 
 test('an armed abort button does not fire on the end-turn Enter key', async ({ page }) => {
-  await page.goto('/?mission=debug_1&seed=1');
+  await page.goto('/?deploy=0&mission=debug_1&seed=1');
   await waitForScene(page);
   await page.locator('#abort-mission').click(); // armed — and blurred
   await page.keyboard.press('Enter');           // means END TURN, not "confirm abort"
@@ -138,7 +142,7 @@ test('an armed abort button does not fire on the end-turn Enter key', async ({ p
 });
 
 test('mission music fades in from silence after the unlock gesture', async ({ page }) => {
-  await page.goto('/?mission=debug_1&seed=1');
+  await page.goto('/?deploy=0&mission=debug_1&seed=1');
   await waitForScene(page);
   await page.locator('canvas').click({ position: { x: 40, y: 40 } }); // autoplay unlock
 
@@ -154,7 +158,7 @@ test('mission music fades in from silence after the unlock gesture', async ({ pa
 });
 
 test('hiding the tab pauses the music; returning resumes it with a fade', async ({ page }) => {
-  await page.goto('/?mission=debug_1&seed=1');
+  await page.goto('/?deploy=0&mission=debug_1&seed=1');
   await waitForScene(page);
   await page.locator('canvas').click({ position: { x: 40, y: 40 } });
   await page.waitForFunction(() => ((window as any).sulk.audio as any)?.music?.isPlaying === true, undefined, { timeout: 5000 });
@@ -181,7 +185,7 @@ test('every page links the marine favicon', async ({ page }) => {
 
 test('mission won: end dialog offers retry and mission select', async ({ page }) => {
   test.setTimeout(120000);
-  await page.goto('/?mission=debug_1&seed=1');
+  await page.goto('/?deploy=0&mission=debug_1&seed=1');
   await waitForScene(page);
 
   await page.evaluate(() => {
@@ -211,7 +215,7 @@ test('mission won: end dialog offers retry and mission select', async ({ page })
 });
 
 test('mission lost: the same dialog appears with the failure result', async ({ page }) => {
-  await page.goto('/?mission=debug_1&seed=1');
+  await page.goto('/?deploy=0&mission=debug_1&seed=1');
   await waitForScene(page);
 
   // Squad wipe = loss in every mission

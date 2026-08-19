@@ -10,7 +10,7 @@ import { test, expect } from '@playwright/test';
 test('space_hulk_2: entry triangles render; cards select, update, and grey out on death', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err: Error) => errors.push(err.message));
-  await page.goto('/?mission=space_hulk_2&seed=1');
+  await page.goto('/?deploy=0&mission=space_hulk_2&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
 
   // Entry triangles: 11 ENTRY squares → 11 off-board triangle images; no purple rects (ISC-270/272)
@@ -96,7 +96,7 @@ test('space_hulk_2: entry triangles render; cards select, update, and grey out o
 test('space_hulk_3: exit arrows render off-board at the EXIT squares (ISC-273)', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err: Error) => errors.push(err.message));
-  await page.goto('/?mission=space_hulk_3&seed=1');
+  await page.goto('/?deploy=0&mission=space_hulk_3&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
   const r = await page.evaluate(() => {
     const s = (window as any).sulk.scene;
@@ -118,7 +118,7 @@ test('space_hulk_3: exit arrows render off-board at the EXIT squares (ISC-273)',
 test('beta_2: two squad rows with all special-weapon labels; overwatch badge live (ISC-277/284)', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err: Error) => errors.push(err.message));
-  await page.goto('/?mission=beta_2&seed=1');
+  await page.goto('/?deploy=0&mission=beta_2&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
 
   const rows = page.locator('#roster-panel .squad-row');
@@ -145,7 +145,7 @@ test('beta_2: two squad rows with all special-weapon labels; overwatch badge liv
 });
 
 test('keyboard help draws staggered keycap rows, collapses on click; Credits sit below (ISC-384/390..396)', async ({ page }) => {
-  await page.goto('/?mission=space_hulk_1&seed=1');
+  await page.goto('/?deploy=0&mission=space_hulk_1&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
 
   // Canvas HUD header renamed; AP/CP gone from it; mission info retained (ISC-384/385/387)
@@ -219,7 +219,7 @@ test('keyboard help draws staggered keycap rows, collapses on click; Credits sit
 });
 
 test('weapon keys dim when no such marine is deployed: space_hulk_1 greys R/T/G (ISC-643/644)', async ({ page }) => {
-  await page.goto('/?mission=space_hulk_1&seed=1');
+  await page.goto('/?deploy=0&mission=space_hulk_1&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
   // No assault cannon and no chain fist in this mission: all three caps dim.
   const disabled = page.locator('#roster-panel .kb-help .keycap.disabled');
@@ -232,7 +232,7 @@ test('weapon keys dim when no such marine is deployed: space_hulk_1 greys R/T/G 
 });
 
 test('weapon keys stay live when the specialists ARE deployed: beta_2 dims nothing (ISC-645)', async ({ page }) => {
-  await page.goto('/?mission=beta_2&seed=1');
+  await page.goto('/?deploy=0&mission=beta_2&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
   await expect(page.locator('#roster-panel .kb-help .keycap.disabled')).toHaveCount(0);
   // Sub-labels still render on the live caps.

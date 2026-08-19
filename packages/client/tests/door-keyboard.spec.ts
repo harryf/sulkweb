@@ -11,7 +11,7 @@ import { test, expect } from '@playwright/test';
  */
 
 async function bootStaged(page: any) {
-  await page.goto('/?mission=space_hulk_1&seed=1');
+  await page.goto('/?deploy=0&mission=space_hulk_1&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
   await page.evaluate(() => {
     const { engine, scene, Selection, PieceEvents } = (window as any).sulk;

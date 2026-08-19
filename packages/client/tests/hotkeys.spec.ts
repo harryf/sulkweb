@@ -25,7 +25,7 @@ const selected = (page: import('@playwright/test').Page) =>
   page.evaluate(() => (window as any).sulk.Selection.get());
 
 test('beta_2: every number selects the marine whose card wears that badge (ISC-654/655/661)', async ({ page }) => {
-  await page.goto('/?mission=beta_2&seed=1');
+  await page.goto('/?deploy=0&mission=beta_2&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
 
   // All ten badges render, and the two squad rows carry 1-5 / 6-0 in card order.
@@ -55,7 +55,7 @@ test('beta_2: every number selects the marine whose card wears that badge (ISC-6
 });
 
 test('a dead marine keeps nobody waiting: his key goes inert, others never reshuffle (ISC-657/658/662)', async ({ page }) => {
-  await page.goto('/?mission=beta_2&seed=1');
+  await page.goto('/?deploy=0&mission=beta_2&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
   await page.mouse.click(300, 300);
 
@@ -81,7 +81,7 @@ test('a dead marine keeps nobody waiting: his key goes inert, others never reshu
 });
 
 test('a number press behaves like a card click: flamer aim disarms, pause blocks (ISC-660/666)', async ({ page }) => {
-  await page.goto('/?mission=space_hulk_1&seed=1');
+  await page.goto('/?deploy=0&mission=space_hulk_1&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
   await page.mouse.click(300, 300);
 

@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 async function waitForGame(page: Page) {
-  await page.goto('/?mission=debug_1&seed=1'); // pinned board — deterministic contents
+  await page.goto('/?deploy=0&mission=debug_1&seed=1'); // pinned board — deterministic contents
   await expect(page.locator('canvas')).toBeVisible();
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
 }

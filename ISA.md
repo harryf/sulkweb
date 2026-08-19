@@ -3,8 +3,8 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: 726/727 (charging stealers + action camera + v0.4.9 release verified; ISC-71 deferred)
+phase: verify
+progress: 771/772 (deployment phase built and suite-verified; review round pending; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-19T18:40:00Z
@@ -1029,6 +1029,54 @@ Scene wiring:
 - [x] ISC-794: Anti: no em dashes in any new player-facing string (grep)
 - [x] ISC-795: v0.4.9 released — main pushed, tag CI green BEFORE the release is created, release published, live bundle serves v0.4.9 with the charge + action-camera code present (gh run watch; bundle greps for version + focus strings)
 
+### Deployment phase (2026-08-19 run)
+
+- [x] ISC-796: engine rules/deploy.ts exports pure orderSquaresFrontToBack — front = argmax(pos·facingVec); a left-facing squad orders lowest-x first (unit)
+- [x] ISC-797: pure autoDeployPlan orders reserves storm_bolter, sergeant(/sword), heavy weapon, remainder — assigned front to back (unit)
+- [x] ISC-798: GameEngine.beginDeployment moves every marine into engine.reserve (deployment order kept), sets phase Deploy, locks the board (unit)
+- [x] ISC-799: Anti: beginDeployment refuses after turn 1 has begun, when already in Deploy, or with no marineDeployment (unit)
+- [x] ISC-800: deployMarine places a reserve marine on a free deploy square of HIS squad at the square default facing, emitting pieceAdded (unit)
+- [x] ISC-801: Anti: deployMarine refuses non-deploy squares, occupied squares, already-deployed marines, and wrong phase (unit)
+- [x] ISC-802: Anti: cross-squad deployment refused — a marine cannot take a square tagged with another squad (unit)
+- [x] ISC-803: undeployMarine returns a deployed marine to reserve and frees the square (unit)
+- [x] ISC-804: turnDeployed rotates a deployed marine free of AP cost and emits a facing-only pieceMoved (unit)
+- [x] ISC-805: Anti: normal piece actions dead during Deploy — tryMove/tryTurn/shoot return false via the locked board (unit)
+- [x] ISC-806: autoDeploy fills only FREE squares with remaining reserves in the sensible order per squad; player placements untouched (unit)
+- [x] ISC-807: finishDeployment auto-deploys the remainder, unlocks the board, sets phase MarineAction with every marine on board at full AP (unit)
+- [x] ISC-808: Suicide auto-deploy: front square (10,4) holds a storm bolter, sergeant behind, flamer third — flamer no longer in front (unit)
+- [x] ISC-809: Anti: checkVictory is inert during Deploy — an empty board is not a squad wipe (unit)
+- [x] ISC-810: Anti: engine pieceMoved side effects (blip conversion, escape, download abort) suppressed during Deploy (unit)
+- [x] ISC-811: deployment consumes no dice — same seed, any deploy sequence, identical CP and blip values to an untouched game (unit)
+- [x] ISC-812: space_hulk_5.json squares (10..14,10) face right (Read)
+- [x] ISC-813: Anti: the Decoy diff touches ONLY those five facing values (git diff)
+- [x] ISC-814: missions with 2+ deploy squares boot into deploy mode; ?deploy=0 skips straight to MarineAction (e2e)
+- [x] ISC-815: Anti: attract mode (no mission param) never enters deploy mode (e2e)
+- [x] ISC-816: free deploy squares show an X marker; occupied ones do not; all markers gone after Done (e2e)
+- [x] ISC-817: clicking a free deploy square places the roster-armed marine, else the next reserve marine of that squad (e2e)
+- [x] ISC-818: clicking a deployed marine during deploy undeploys him — X returns, card back to reserve (e2e)
+- [x] ISC-819: A/D during deploy rotates the selected deployed marine with AP untouched (e2e)
+- [x] ISC-820: roster cards show a RESERVE state until deployed; clicking a reserve card arms that marine (e2e)
+- [x] ISC-821: deploy clock = 90s per squad shown in the HUD; the phase line reads Deployment (e2e)
+- [x] ISC-822: the clock reaching 0 auto-deploys the remainder and starts the mission (e2e)
+- [x] ISC-823: DONE during deploy finishes deployment and restarts the marine clock at marinePhaseSeconds (e2e)
+- [x] ISC-824: AUTO DEPLOY control fills every square in the sensible order and exists only during the phase (e2e)
+- [x] ISC-825: Anti: after deployment no deploy-only UI survives (X markers, AUTO button) and normal action keys work (e2e)
+- [x] ISC-826: ESC pauses deployment — clock frozen, deploy clicks inert, resume works (e2e)
+- [x] ISC-827: Anti: W/F and other action keys during deploy never move a marine or spend AP (e2e)
+- [x] ISC-828: Anti: every pre-existing e2e suite stays green with the mechanical deploy=0 URL update (playwright)
+- [x] ISC-829: deploy mode fully works under prefers-reduced-motion (e2e)
+- [x] ISC-830: HUD phase text renders Deploy as deployment, never as Stealers (e2e)
+- [x] ISC-831: placement default facing = the square mission facing — Decoy Abraham deploys facing right (e2e)
+- [x] ISC-832: the in-game manual gains a Deployment section: phase, clock, controls (Read)
+- [x] ISC-833: docs/rules-reference.md documents the deployment rules (Read)
+- [x] ISC-834: keyboard help notes deploy-phase controls (Read)
+- [x] ISC-835: Anti: zero em dashes in new player-facing strings (grep)
+- [x] ISC-836: engine suite green including the new deploy spec (bun test)
+- [x] ISC-837: client unit suite green (vitest)
+- [x] ISC-838: full e2e suite green (playwright)
+- [x] ISC-839: tsc clean in both packages (tsc)
+- [x] ISC-840: README mentions the deployment phase (Read)
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
@@ -1130,11 +1178,17 @@ Scene wiring:
 | ISC-792 | docs | README Motion section extension | present | Read |
 | ISC-793 | visual | scratchpad attack-vignette.png | file exists | Bash |
 | ISC-794 | static | em-dash grep on added player-facing strings | 0 | Grep |
+| ISC-796..811 | unit | engine deploy module + GameEngine deploy API | new deploy.spec green | bun test |
+| ISC-812..813 | data | Decoy facing values + diff scope | five values only | Read / git diff |
+| ISC-814..831 | UI/e2e | deploy-mode boot, markers, placement, rotate, undeploy, clock, pause, auto, roster | new deploy e2e green + old suites green | playwright |
+| ISC-832..835,840 | docs | manual section, rules-reference, key notes, em-dash grep, README | present / 0 | Read / Grep |
+| ISC-836..839 | suites | engine + unit + e2e + tsc | exit 0 | bun / playwright / tsc |
 
 ## Features
 
 | name | description | satisfies | depends_on | parallelizable |
 |------|-------------|-----------|------------|----------------|
+| deployment-phase | engine Deploy phase + reserve model, client deploy mode UI, Decoy data fix, docs | ISC-796..840 | — | no |
 | marine-hotkeys | assignHotkeys single source, digit handlers, card badges, docs | ISC-654..670 | — | no |
 | stabilize-m3 | Fix client test mocks, finish HUD, commit clean M3 | ISC-1..12 | — | no |
 | doors | Engine door rules + client door sprites/interaction | ISC-13..19 | stabilize-m3 | yes |
@@ -1600,6 +1654,21 @@ Scene wiring:
 - ISC-793: Bash — scratchpad attack-vignette.png: camera parked on the fight, stealer over the marine square, Losses: 1 + KIA card, edges darkened by the spotlight
 - ISC-794: Bash grep — zero em dashes in the README additions; no other player-facing strings added
 - ISC-795: Bash — pushed 804ac6d..ab6dcae; tag v0.4.9; deploy run 32282612243 completed success BEFORE the release was created (codified order); release https://github.com/harryf/sulkweb/releases/tag/v0.4.9 "The swarm has a face" published; live home 200; main-BSuq_HdX.js carries v0.4.9 plus the feature strings fx_vignette, lunge, chargeTarget, door-crumble. Classifier returned NATIVE on "push and tag" — context-override to ALGORITHM E1 per the standing release precedent (sixth application).
+
+### Deployment phase run (2026-08-19)
+
+- ISC-796..811: Bash bun test — engine suite 316/316 green (18 new tests in deploy.spec.ts covering front-to-back ordering with left-facing reversal, battle order, begin/deploy/undeploy/turnDeployed/autoDeploy/finishDeployment, squad-mixing refusal, locked-board action deadness, checkVictory + blip-conversion suppression, dice neutrality vs a seeded control, Suicide auto-order flamer-third); rules/deploy.ts 100% line coverage
+- ISC-812: bun eval — space_hulk_5 marineDeployment reads 10,10:right … 14,10:right (Harken untouched at left)
+- ISC-813: git diff --numstat — 5 insertions, 5 deletions, only the facing values
+- ISC-814..831: Bash playwright — new deploy.spec.ts 11/11 green: boot probe (deployMode, phase Deploy, 5 reserve, 5 X markers, DEPLOYMENT phase text, 90s clock; deploy=0 → MarineAction with 0 markers), attract inert + 180s two-squad clock, click-to-place at mission facing with roster-order pick + selection for A/D, roster-card arming placing the flamer at a chosen square, pick-back-up with X restore + free A/D rotation + dead action keys, AUTO DEPLOY battle order bolter/sergeant/flamer with mission NOT started, Done teardown (no markers, no AUTO button, marine clock 150s, board unlocked, AP spendable), clock-expiry auto-start, ESC pause gating clicks, Decoy cross-squad refusal with Abraham fallback facing right, reduced-motion exact placement
+- ISC-828: Bash playwright — full e2e 114/114 (103 pre-existing suites green after the mechanical deploy=0 URL update; home.spec mission-launch test updated to assert the new deploy-mode player flow)
+- ISC-832: Read — manual/content.ts 'Deployment' section (id deployment) between 'What is this?' and 'How a turn works'
+- ISC-833: Read — docs/rules-reference.md '## Deployment' section before Turn structure: placement, squad areas, facing, auto order, clock, rules stance, deploy=0
+- ISC-834: Read — keyboardHelp KEY_NOTES leads with the deployment controls note
+- ISC-835: Bash grep — zero em dashes in new player-facing strings (manual section, KEY_NOTES, HUD labels)
+- ISC-836: engine 316/316; ISC-837: client unit 82/82; ISC-838: e2e 114/114; ISC-839: tsc --noEmit clean in both packages
+- ISC-840: Read — README '### Deployment' section above Controls
+- Visual: scratchpad deploy-phase.png (5 X markers, RESERVE cards, AUTO DEPLOY + DEPLOYMENT 1:30) and deploy-done.png (squad placed, zero deploy UI, Turn 1: Marines 2:29)
 
 ### Number-key marine selection (2026-08-19 seventh run, ISC-654..671)
 

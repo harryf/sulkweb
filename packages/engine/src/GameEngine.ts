@@ -8,6 +8,8 @@ import type { CompiledMission, MarineType } from './missions/missionTypes.js'
 import { Dir, FACING_WORD } from './core/Direction.js';
 import { runStealerActions, spawnBlips, convertRevealedBlips } from './ai/StealerAI.js';
 import { clearFlames } from './rules/flame.js';
+import { deployFacing, orderSquaresFrontToBack, autoDeployOrder } from './rules/deploy.js';
+import type { DeploySquareJSON } from './missions/missionTypes.js';
 import {
   initCat, initDucting, looseCatPos, pickUpCat, wanderCat,
   anyDuctingDestroyed, destroyDuctingAt, intactDucting,
@@ -16,7 +18,7 @@ import { PieceEvents } from './events/PieceEvents.js';
 import type { DiceSource } from './core/Dice.js';
 
 export type GameResult = 'ongoing' | 'win' | 'loss' | 'draw';
-export type PhaseName = 'MarineAction' | 'StealerAction';
+export type PhaseName = 'Deploy' | 'MarineAction' | 'StealerAction';
 
 export interface EngineState {
   board: Board;
@@ -47,6 +49,10 @@ export class GameEngine {
   /** Squares the marines are trying to reach — the hive's objective awareness.
    *  Win RULES stay unknown to the AI; only the destination geography leaks. */
   private readonly hiveObjectives: { c: number; r: number }[] = []
+  /** Marines lifted off the board during the deployment phase, deployment order. */
+  readonly reserve: Piece[] = []
+  /** id → mission deployment metadata, recorded as the squad is constructed. */
+  private readonly deployMeta = new Map<string, { squad?: string; type: MarineType }>()
 
   constructor(mission: CompiledMission, extraPieces: Piece[] = [], dice?: DiceSource) {
     this.mission = mission
@@ -69,7 +75,8 @@ export class GameEngine {
     }
     for (const d of mission.marineDeployment ?? []) {
       const Cls = MARINE_CLASSES[d.type ?? 'storm_bolter']
-      new Cls(board, { c: d.x, r: d.y }, FACING_WORD[d.facing ?? 'down'])
+      const marine = new Cls(board, { c: d.x, r: d.y }, FACING_WORD[d.facing ?? 'down'])
+      this.deployMeta.set(marine.id, { squad: d.squad, type: d.type ?? 'storm_bolter' })
     }
     // Per-mission heavy-flamer ammo override (mission 6 post_deploy_script).
     if (mission.flamerAmmo !== undefined) {
@@ -110,6 +117,10 @@ export class GameEngine {
     // marine-id guard keeps the common path cheap.
     PieceEvents.on('pieceMoved', ({ pieceId }) => {
       if (PieceEvents.replaying || this.state.result !== 'ongoing') return
+      // Deployment rotations are pre-game staging, not sight-line changes:
+      // blips reveal (and downloads abort) only once the mission is live —
+      // the same state a freshly-constructed game starts in.
+      if (this.phase === 'Deploy') return
       const mover = this.findPiece(pieceId)
       if (mover?.kind !== 'marine') return
       convertRevealedBlips(this.state.board)
@@ -209,6 +220,126 @@ export class GameEngine {
   /** Marine-phase clock: 120s base + 30s per living sergeant (original timer_bonus). */
   get marinePhaseSeconds(): number {
     return MARINE_PHASE_SECONDS + this.marines.reduce((s, m) => s + m.timerBonus, 0)
+  }
+
+  // ---------- Deployment phase (pre-mission placement) ----------
+
+  /**
+   * Lift the whole squad into reserve and open the deployment phase. Client-
+   * initiated: engines constructed for tests and attract mode never enter it,
+   * so a fresh constructor game is byte-identical to today. Valid only before
+   * anything has happened (turn 1, marine phase, ongoing) and only for
+   * missions with a real deployment (2+ squares). The board LOCKS — every
+   * normal piece action is dead until finishDeployment. Consumes no dice.
+   */
+  beginDeployment(): boolean {
+    if (this.state.result !== 'ongoing' || this.phase !== 'MarineAction' || this.turnNumber !== 1) return false
+    if ((this.mission.marineDeployment ?? []).length < 2) return false
+    for (const m of [...this.marines]) {
+      this.state.board.removePiece(m)
+      this.reserve.push(m)
+    }
+    this.state.board.locked = true
+    this.setPhase('Deploy')
+    return true
+  }
+
+  /** The mission deploy square at (x, y), if any. */
+  deploySquareAt(x: number, y: number): DeploySquareJSON | undefined {
+    return (this.mission.marineDeployment ?? []).find(d => d.x === x && d.y === y)
+  }
+
+  /** Squad a marine belongs to (mission roster grouping) — deployment rule key. */
+  deploySquadOf(id: string): string | undefined {
+    return this.deployMeta.get(id)?.squad
+  }
+
+  /**
+   * Place a reserve marine on a free deploy square OF HIS SQUAD, facing the
+   * square's mission default. Squares outside the deployment, occupied
+   * squares, other squads' areas, and non-reserve marines all refuse.
+   */
+  deployMarine(id: string, x: number, y: number): boolean {
+    if (this.phase !== 'Deploy') return false
+    const idx = this.reserve.findIndex(m => m.id === id)
+    if (idx < 0) return false
+    const sq = this.deploySquareAt(x, y)
+    if (!sq || this.state.board.isOccupied({ c: x, r: y })) return false
+    if (this.deployMeta.get(id)?.squad !== sq.squad) return false
+    const m = this.reserve[idx]
+    this.reserve.splice(idx, 1)
+    m.pos = { c: x, r: y }
+    m.facing = deployFacing(sq)
+    this.state.board.addPiece(m) // emits pieceAdded — the client sprite rides it
+    return true
+  }
+
+  /** Pick a deployed marine back up into reserve, freeing his square. */
+  undeployMarine(id: string): boolean {
+    if (this.phase !== 'Deploy') return false
+    const m = this.marines.find(p => p.id === id)
+    if (!m) return false
+    this.state.board.removePiece(m)
+    this.reserve.push(m)
+    return true
+  }
+
+  /** Rotate a deployed marine during deployment — free, no AP, no sight checks. */
+  turnDeployed(id: string, dir: -1 | 1): boolean {
+    if (this.phase !== 'Deploy') return false
+    const m = this.marines.find(p => p.id === id)
+    if (!m) return false
+    m.facing = ((m.facing + dir + 4) % 4) as Dir
+    PieceEvents.emit('pieceMoved', { pieceId: m.id, x: m.pos.c, y: m.pos.r, facing: m.facing })
+    return true
+  }
+
+  /**
+   * Fill every FREE deploy square with the remaining reserves in battle
+   * order — per squad, front to back: storm bolter on point, sergeant second,
+   * a heavy weapon third, the rest behind. Player placements are untouched.
+   */
+  autoDeploy(): void {
+    if (this.phase !== 'Deploy') return
+    const free = (this.mission.marineDeployment ?? [])
+      .filter(d => !this.state.board.isOccupied({ c: d.x, r: d.y }))
+    const bySquad = new Map<string | undefined, DeploySquareJSON[]>()
+    for (const d of free) {
+      const list = bySquad.get(d.squad) ?? []
+      list.push(d)
+      bySquad.set(d.squad, list)
+    }
+    for (const [squad, squares] of bySquad) {
+      const ordered = orderSquaresFrontToBack(squares)
+      const pool = this.reserve.filter(m => this.deployMeta.get(m.id)?.squad === squad)
+      const order = autoDeployOrder(pool.map(m => this.deployMeta.get(m.id)?.type ?? 'storm_bolter'))
+      for (let i = 0; i < ordered.length && i < order.length; i++) {
+        this.deployMarine(pool[order[i]].id, ordered[i].x, ordered[i].y)
+      }
+    }
+  }
+
+  /**
+   * Close the deployment phase: auto-deploy whatever is still in reserve
+   * (timer expiry / Done), unlock the board, and start the marine phase.
+   * Safety net: a reserve marine whose squad squares somehow ran out takes
+   * any free deploy square rather than sitting out the mission in limbo.
+   */
+  finishDeployment(): void {
+    if (this.phase !== 'Deploy') return
+    this.autoDeploy()
+    for (const m of [...this.reserve]) {
+      const free = (this.mission.marineDeployment ?? [])
+        .find(d => !this.state.board.isOccupied({ c: d.x, r: d.y }))
+      if (!free) break
+      const idx = this.reserve.indexOf(m)
+      this.reserve.splice(idx, 1)
+      m.pos = { c: free.x, r: free.y }
+      m.facing = deployFacing(free)
+      this.state.board.addPiece(m)
+    }
+    this.state.board.locked = false
+    this.setPhase('MarineAction')
   }
 
   /** Spend one command point to give a marine one extra AP (also re-activates a spent piece). */
@@ -327,6 +458,8 @@ export class GameEngine {
    *  until the phase boundary). */
   checkVictory(opts: { blockade?: boolean } = {}): void {
     if (this.state.result !== 'ongoing') return
+    // A marine-free board during deployment is a squad in reserve, not a wipe.
+    if (this.phase === 'Deploy') return
     const objective = this.mission.objective ?? 'exterminate'
     const marinesAlive = this.marines.length > 0
 

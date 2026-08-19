@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { GameEngine, loadMission, missions, Square, Piece, StormBolterMarine, HeavyFlamerMarine, AssaultCannonMarine, ChainFistMarine, Genestealer, PieceEvents, visibleSquares, closeCombat, DIR_VEC, SeededRng, autoplay, runMarineTurn, flameFlood, Door } from "@sulk/engine/index.js";
+import { GameEngine, loadMission, missions, Square, Piece, StormBolterMarine, HeavyFlamerMarine, AssaultCannonMarine, ChainFistMarine, Genestealer, PieceEvents, visibleSquares, closeCombat, DIR_VEC, SeededRng, autoplay, runMarineTurn, flameFlood, Door, deploySeconds } from "@sulk/engine/index.js";
 import { Selection } from "../ui/Selection";
 import { Minimap } from '../ui/Minimap.js';
 import { HighlightSprite } from '../ui/HighlightSprite.js';
@@ -110,6 +110,16 @@ export default class GameScene extends Phaser.Scene {
   /** Homepage attract mode (no ?mission= param): the board is scenery under
    *  the DOM landing overlay — input disabled, clock stopped, no audio. */
   private readonly attract: boolean;
+  /** `?deploy=0` skips the deployment phase (e2e suites, quick debugging). */
+  private readonly deployRequested: boolean;
+  /** True while the pre-mission deployment phase runs — public for e2e. */
+  deployMode = false;
+  /** Deployment clock (90s per squad), separate from the marine-phase clock. */
+  private deployRemaining = 0;
+  /** Reserve marine armed for placement by a roster click / pick-up. */
+  private armedId: string | null = null;
+  /** X markers over free deploy squares — rebuilt on every placement change. */
+  private deployMarkers: Phaser.GameObjects.Text[] = [];
 
   constructor() {
     super('GameScene')
@@ -125,6 +135,7 @@ export default class GameScene extends Phaser.Scene {
     const dice = seedParam ? new SeededRng(Number(seedParam)) : undefined;
     const missionParam = params.get('mission');
     this.attract = missionParam === null;
+    this.deployRequested = params.get('deploy') !== '0';
     const requested = missionParam ?? 'space_hulk_1';
     // Own-property check, not `in`: prototype-chain keys (?mission=toString)
     // must fall back to debug_1, not reach loadMission and throw.
@@ -535,7 +546,10 @@ export default class GameScene extends Phaser.Scene {
     this.roster = new RosterPanel(
       rosterEntries,
       (id): PieceStats | undefined => {
-        const p = this.engine.findPiece(id) as StormBolterMarine | undefined;
+        // Reserve marines (deployment phase) are off the board but not dead —
+        // without this fallback their cards would grey out as KIA.
+        const p = (this.engine.findPiece(id)
+          ?? this.engine.reserve.find(m => m.id === id)) as StormBolterMarine | undefined;
         if (!p) return { alive: false, apRemaining: 0, apInitial: 4, overwatch: false, jammed: false, facing: 0 };
         return {
           alive: p.alive,
@@ -647,7 +661,14 @@ export default class GameScene extends Phaser.Scene {
     if (!this.attract) {
       this.timerEvent = this.time.addEvent({
         delay: 1000, loop: true, callback: () => {
-          if (this.paused || this.animating || this.engine.state.result !== 'ongoing' || this.engine.phase !== 'MarineAction') return;
+          if (this.paused || this.animating || this.engine.state.result !== 'ongoing') return;
+          if (this.deployMode) {
+            this.deployRemaining -= 1;
+            this.hud.setTimer(this.deployRemaining);
+            if (this.deployRemaining <= 0) this.finishDeploy();
+            return;
+          }
+          if (this.engine.phase !== 'MarineAction') return;
           this.timerRemaining -= 1;
           this.hud.setTimer(this.timerRemaining);
           if (this.timerRemaining <= 0) this.endTurn();
@@ -670,6 +691,10 @@ export default class GameScene extends Phaser.Scene {
       // Clicks on the HUD strip (minimap, DONE) are their own controls — they
       // must never fall through and clear the selection (ISC-675).
       if (p.x > this.scale.width - HUD_WIDTH) return;
+      if (this.deployMode) {
+        if (!this.paused) this.handleDeployClick(p);
+        return;
+      }
       const hit = this.children.list.find(obj =>
         obj.name === 'piece' && (obj as Phaser.GameObjects.Image).getBounds().contains(p.worldX, p.worldY)
       );
@@ -701,6 +726,19 @@ export default class GameScene extends Phaser.Scene {
       if (this.seenKeyEvents.has(_event)) return; // Phaser replay of a handled press
       this.seenKeyEvents.add(_event);
       if (this.paused || this.animating || this.engine.state.result !== 'ongoing') return;
+      if (this.deployMode) {
+        // Deployment controls: A/D rotate the selected deployed marine, free.
+        // Everything else is swallowed — the board is locked anyway, but the
+        // keys must not leak side effects (aiming, self-destruct arming).
+        const selId = Selection.get();
+        if (selId) {
+          let turned = false;
+          if (Phaser.Input.Keyboard.JustDown(this.wasd.A)) turned = this.engine.turnDeployed(selId, -1);
+          else if (Phaser.Input.Keyboard.JustDown(this.wasd.D)) turned = this.engine.turnDeployed(selId, 1);
+          if (turned) this.roster.refreshAll();
+        }
+        return;
+      }
       const selectedId = Selection.get();
       if (!selectedId) return;
 
@@ -754,6 +792,14 @@ export default class GameScene extends Phaser.Scene {
       }
     });
 
+    // Pre-mission deployment phase: the squad lifts into reserve and the
+    // player lays out his own battle order. Skipped in attract mode, by
+    // ?deploy=0 (e2e suites), and for missions without a real deployment
+    // (debug_1's single square) — beginDeployment itself refuses those.
+    if (!this.attract && this.deployRequested && this.engine.beginDeployment()) {
+      this.enterDeployMode();
+    }
+
     // Homepage attract mode: the board is scenery. Kill ALL Phaser input
     // (pointer + every keyboard handler above) so keys leaking through the
     // DOM overlay can never advance the engine behind the title screen.
@@ -769,6 +815,24 @@ export default class GameScene extends Phaser.Scene {
     // straight through the landing overlay — the homepage stays inert.
     if (this.attract) return;
     if (this.paused || this.animating || this.engine.state.result !== 'ongoing') return;
+    if (this.deployMode) {
+      // Reserve card: arm the marine — the next deploy-square click places HIM.
+      if (this.engine.reserve.some(m => m.id === id)) {
+        this.armedId = id;
+        Selection.clear();
+        this.updateHighlight();
+        PieceEvents.emit('selected', { pieceId: id }); // card highlight = armed
+        return;
+      }
+      // Deployed card: select him on the map for A/D rotation.
+      const deployed = this.engine.findPiece(id);
+      if (!deployed) return;
+      this.armedId = null;
+      Selection.select(id);
+      this.updateHighlight();
+      this.emitSelected(deployed);
+      return;
+    }
     const piece = this.engine.findPiece(id);
     // Death AND escape both set alive=false — one guard makes a fallen or
     // escaped marine's hotkey (and card) inert.
@@ -785,6 +849,106 @@ export default class GameScene extends Phaser.Scene {
       if (this.reducedMotion) this.cameras.main.centerOn(sprite.x, sprite.y);
       else this.cameras.main.pan(sprite.x, sprite.y, 250, 'Sine.easeInOut');
     }
+  }
+
+  // ---------- Deployment phase (client) ----------
+
+  /** Open the deploy UI: reserve roster, X markers, deploy clock, AUTO button.
+   *  The camera parks on the deployment area so the phase starts on-subject. */
+  private enterDeployMode(): void {
+    this.deployMode = true;
+    // The engine lifted the squad into reserve — their sprites go with them.
+    for (const m of this.engine.reserve) this.removePieceSprite(m.id, 0, 'fade');
+    Selection.clear();
+    this.updateHighlight();
+    for (const m of this.engine.reserve) this.roster.setDeployed(m.id, false);
+    this.deployRemaining = deploySeconds(this.engine.mission);
+    this.hud.setTimer(this.deployRemaining);
+    this.hud.setDeployMode(true, () => {
+      if (this.paused || !this.deployMode) return;
+      this.engine.autoDeploy();
+      this.syncDeployState();
+    });
+    this.refreshDeployMarkers();
+    const squares = this.engine.mission.marineDeployment ?? [];
+    if (squares.length) {
+      const cx = squares.reduce((s, d) => s + d.x, 0) / squares.length;
+      const cy = squares.reduce((s, d) => s + d.y, 0) / squares.length;
+      this.cameras.main.centerOn(cx * TILE_SIZE + TILE_SIZE / 2 + HUD_WIDTH / 2, cy * TILE_SIZE + TILE_SIZE / 2);
+    }
+  }
+
+  /** Reconcile roster classes + X markers to engine truth (after autoDeploy). */
+  private syncDeployState(): void {
+    for (const m of this.engine.marines) this.roster.setDeployed(m.id, true);
+    for (const m of this.engine.reserve) this.roster.setDeployed(m.id, false);
+    this.refreshDeployMarkers();
+  }
+
+  /** X over every FREE deploy square; none once deployment is over. */
+  private refreshDeployMarkers(): void {
+    for (const t of this.deployMarkers) t.destroy();
+    this.deployMarkers = [];
+    if (!this.deployMode) return;
+    for (const d of this.engine.mission.marineDeployment ?? []) {
+      if (this.engine.state.board.isOccupied({ c: d.x, r: d.y })) continue;
+      const [cx, cy] = centerXY(d.x, d.y);
+      this.deployMarkers.push(
+        this.add.text(cx, cy, '✕', { fontFamily: UI_FONT, fontSize: '26px', color: '#7ec8ff' })
+          .setOrigin(0.5).setDepth(0.6).setName('deploy-x'));
+    }
+  }
+
+  /** Deploy-phase click: place the armed (or next) reserve marine on a free
+   *  deploy square, or pick a deployed marine back up to re-place him. */
+  private handleDeployClick(p: Phaser.Input.Pointer): void {
+    const x = Math.floor(p.worldX / TILE_SIZE), y = Math.floor(p.worldY / TILE_SIZE);
+    const occupant = this.engine.marines.find(m => m.pos.c === x && m.pos.r === y);
+    if (occupant) {
+      if (this.engine.undeployMarine(occupant.id)) {
+        this.removePieceSprite(occupant.id, 0, 'fade');
+        this.armedId = occupant.id; // picked up — the next square click re-places him
+        Selection.clear();
+        this.updateHighlight();
+        this.roster.setDeployed(occupant.id, false);
+        PieceEvents.emit('selected', { pieceId: occupant.id });
+        this.refreshDeployMarkers();
+      }
+      return;
+    }
+    const sq = this.engine.deploySquareAt(x, y);
+    if (!sq) return;
+    // The armed marine when his squad owns this square, else the squad's next reserve.
+    const armed = this.engine.reserve.find(m => m.id === this.armedId);
+    const pick = (armed && this.engine.deploySquadOf(armed.id) === sq.squad)
+      ? armed
+      : this.engine.reserve.find(m => this.engine.deploySquadOf(m.id) === sq.squad);
+    if (!pick || !this.engine.deployMarine(pick.id, x, y)) return;
+    // The sprite arrives via the pieceAdded handler; select him so A/D rotates.
+    this.armedId = null;
+    Selection.select(pick.id);
+    this.updateHighlight();
+    this.emitSelected(pick);
+    this.roster.setDeployed(pick.id, true);
+    this.refreshDeployMarkers();
+  }
+
+  /** Done / Enter / clock expiry: auto-deploy the rest and start the mission.
+   *  Every deploy-only control (X markers, AUTO button, reserve tags) goes. */
+  private finishDeploy(): void {
+    if (!this.deployMode) return;
+    this.deployMode = false;
+    this.engine.finishDeployment(); // remaining reserves land via pieceAdded
+    this.armedId = null;
+    Selection.clear();
+    this.updateHighlight();
+    PieceEvents.emit('selected', { pieceId: null });
+    this.refreshDeployMarkers(); // deployMode off → all markers destroyed
+    this.hud.setDeployMode(false);
+    this.roster.clearDeploy();
+    this.roster.refreshAll();
+    this.timerRemaining = this.engine.marinePhaseSeconds;
+    this.hud.setTimer(this.timerRemaining);
   }
 
   /** Human-readable contents of a board square — powers the HUD hover readout. */
@@ -1159,6 +1323,11 @@ export default class GameScene extends Phaser.Scene {
    */
   private endTurn(): void {
     if (this.engine.state.result !== 'ongoing' || this.paused || this.animating) return;
+    // During deployment, Done / Enter closes the phase instead of the turn.
+    if (this.deployMode) {
+      this.finishDeploy();
+      return;
+    }
     // Marine anchors MUST be snapshotted BEFORE the phase resolves: die()
     // splices the piece out of board.pieces, so a marine killed this phase
     // would vanish from the anchor set — and he anchors the very fight that

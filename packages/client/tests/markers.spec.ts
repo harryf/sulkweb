@@ -16,7 +16,7 @@ const MISSIONS = [
 
 for (const mission of MISSIONS) {
   test(`${mission}: every off-board marker is fully pannable into view`, async ({ page }) => {
-    await page.goto(`/?mission=${mission}&seed=1`);
+    await page.goto(`/?deploy=0&mission=${mission}&seed=1`);
     await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
     const r = await page.evaluate(async () => {
       const frame = () => new Promise(requestAnimationFrame);

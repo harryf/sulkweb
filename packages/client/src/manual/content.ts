@@ -59,6 +59,34 @@ read it again. Everything else is a resource you will run out of: every door,
 every point of ammunition, every second.</p>`,
   },
   {
+    id: 'deployment',
+    title: 'Deployment',
+    html: `
+<p>Every mission opens with a <strong>deployment phase</strong>: your squad waits in
+reserve and the marked squares (an <strong>&#x2715;</strong> on each free one) are yours to
+fill. Marching order matters more than anything you do on turn 1. Whoever stands at
+the front meets the swarm first, and a heavy flamer on point is a corpse holding your
+best weapon.</p>
+<ul>
+<li><strong>Place:</strong> click an &#x2715; square to deploy the next marine of that
+squad, or click a marine's roster card first to place that marine specifically.
+Each deployment area belongs to one squad; marines never deploy into another
+squad's area.</li>
+<li><strong>Rotate:</strong> a placed marine starts facing the way the mission expects
+him to walk; <strong>A</strong> and <strong>D</strong> spin him for free while
+deployment lasts.</li>
+<li><strong>Rearrange:</strong> click a placed marine to lift him back into reserve
+and put him somewhere else.</li>
+<li><strong>AUTO DEPLOY</strong> fills the remaining squares in a sensible battle
+order: a storm bolter on point, the sergeant behind him, a heavy weapon third,
+the rest at the back.</li>
+</ul>
+<p>The phase runs on its own clock: <strong>90 seconds per squad</strong>. When it
+expires, or when you press DONE (or Enter), any marines still in reserve deploy
+automatically and the mission begins. Esc pauses here just like in play. Once the
+mission starts, every deployment control disappears.</p>`,
+  },
+  {
     id: 'the-turn',
     title: 'How a turn works',
     html: `

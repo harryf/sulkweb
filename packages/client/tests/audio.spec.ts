@@ -14,7 +14,7 @@ test('space_hulk_2: audio assets serve; manager holds the mission track; no auto
   const consoleErrors: string[] = [];
   page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
 
-  await page.goto('/?mission=space_hulk_2&seed=1');
+  await page.goto('/?deploy=0&mission=space_hulk_2&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.audio !== undefined, undefined, { timeout: 15000 });
 
   expect(await page.evaluate(() => (window as any).sulk.audio.trackKey)).toBe('music_space_hulk_2');
@@ -68,7 +68,7 @@ test('space_hulk_2: audio assets serve; manager holds the mission track; no auto
 });
 
 test('mute toggles with K (M is melee now) and survives reload (ISC-326/332/640/641)', async ({ page }) => {
-  await page.goto('/?mission=debug_1&seed=1');
+  await page.goto('/?deploy=0&mission=debug_1&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.audio !== undefined, undefined, { timeout: 15000 });
   expect(await page.evaluate(() => (window as any).sulk.audio.muted)).toBe(false);
 
@@ -92,7 +92,7 @@ test('space_hulk_1: music keys on the REGISTRY key, not the display name (ISC-33
   // space_hulk_1's mission.name is "Suicide Mission" — the bug that silenced
   // the 2026-08-15 release keyed music off mission.name and only missions
   // whose display name equalled their registry key ever loaded a track.
-  await page.goto('/?mission=space_hulk_1&seed=1');
+  await page.goto('/?deploy=0&mission=space_hulk_1&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.audio !== undefined, undefined, { timeout: 15000 });
   expect(await page.evaluate(() => (window as any).sulk.engine.mission.name)).toBe('Suicide Mission');
   expect(await page.evaluate(() => (window as any).sulk.audio.trackKey)).toBe('music_space_hulk_1');
@@ -107,7 +107,7 @@ test('space_hulk_1: music keys on the REGISTRY key, not the display name (ISC-33
 });
 
 test('required Music of 40K credit is visible and links the channel (ISC-334)', async ({ page }) => {
-  await page.goto('/?mission=beta_2&seed=1');
+  await page.goto('/?deploy=0&mission=beta_2&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.audio !== undefined, undefined, { timeout: 15000 });
   const credit = page.locator('.audio-credit');
   await expect(credit).toContainText('Music of 40K');

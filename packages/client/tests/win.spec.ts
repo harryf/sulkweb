@@ -15,7 +15,7 @@ test('debug_1 is winnable — pinned seed reaches MISSION COMPLETE', async ({ pa
   const errors: string[] = [];
   page.on('pageerror', (err: Error) => errors.push(err.message));
   // ?seed pins the WHOLE game — construction rolls (blip values, CP) included
-  await page.goto('/?mission=debug_1&seed=1');
+  await page.goto('/?deploy=0&mission=debug_1&seed=1');
   await expect(page.locator('canvas')).toBeVisible();
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
 

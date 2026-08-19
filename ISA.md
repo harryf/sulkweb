@@ -4,10 +4,10 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 583/584 (keymap run ISC-636..652 verified; ISC-71 deferred)
+progress: 584/585 (keymap run ISC-636..653 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-19T09:30:00Z
+updated: 2026-08-19T09:55:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -861,7 +861,7 @@ Build & regression:
 - [x] ISC-650: Anti: the flamer-aim cancel key list treats M as an ACTION (cancels aim) while K (mute) keeps the aim, matching the old M-mute behavior (Read GameScene cancel string: m present, k absent)
 - [x] ISC-651: the full client e2e suite (updated keymap/audio/help specs) and engine vitest pass, tsc clean in both packages (Bash exit codes)
 - [x] ISC-652: Anti: the B double-press self-destruct disarm logic is untouched by the remap — pressing any non-B action key still disarms (Playwright keymap B test still green)
-- [ ] ISC-653: v0.4.5 released — main pushed, tag CI green BEFORE the release was created, release published, live bundle serves v0.4.5 with the remapped key handling present (gh run watch + bundle grep)
+- [x] ISC-653: v0.4.5 released — main pushed, tag CI green BEFORE the release was created, release published, live bundle serves v0.4.5 with the remapped key handling present (gh run 32237513444 success; main bundle grep v0.4.5 + keydown-K; keyboardHelp chunk carries back left/right, open door, melee, mute, all three weapon subs)
 
 ## Test Strategy
 
@@ -1299,7 +1299,9 @@ Build & regression:
 
 ## Verification
 
-### Keyboard remap: directional circle + weapon-key clarity (2026-08-19 sixth run, ISC-636..652)
+### Keyboard remap: directional circle + weapon-key clarity (2026-08-19 sixth run, ISC-636..653)
+
+- ISC-653: Bash — pushed 07baf5c..fc4ac7c; tag v0.4.5; deploy run 32237513444 success BEFORE release create; release https://github.com/harryf/sulkweb/releases/tag/v0.4.5 published; live home/manual 200; main-D-nmvg8j.js has v0.4.5 + keydown-K; keyboardHelp-RYs3Pya6.js has every new label + weapon sub
 
 - ISC-636: Playwright keymap — staged bolter facing north: q/(19,19) ap3, c back-right/(20,20) ap1, AP topped to 4, z back-LEFT lands (19,21) ap2 (positive move, not a refusal — review fix), e/(20,20) ap1, c refused at 1 AP; test green
 - ISC-637: Playwright — new test "X moves straight backward at 2 AP": press x from (20,20) facing north → (20,21), ap 4→2, facing kept

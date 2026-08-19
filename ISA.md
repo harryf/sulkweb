@@ -4,7 +4,7 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 778/779 (deployment phase + review round verified; ISC-71 deferred)
+progress: 778/780 (v0.5.0 release staged ISC-848; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-19T21:05:00Z
@@ -1083,6 +1083,7 @@ Scene wiring:
 - [x] ISC-845: Anti: Enter and ESC dedupe Phaser's same-event replay — one press is one toggle/end, even under stalled headless frames (e2e pause test)
 - [x] ISC-846: Anti: a marine's first turn-in-place never plays the footstep SFX — lastPos seeded at construction and on pieceAdded (code)
 - [x] ISC-847: an armed reserve roster card keeps the selection border (CSS specificity fix)
+- [ ] ISC-848: v0.5.0 released — main pushed, tag CI green BEFORE the release is created, release published, live bundle serves v0.5.0 with the deployment-phase code present (gh run watch; bundle greps for version + deploy strings)
 
 ## Test Strategy
 

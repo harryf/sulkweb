@@ -4,7 +4,7 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 725/726 (charging stealers + action camera verified; ISC-71 deferred)
+progress: 725/727 (charging stealers + action camera verified; v0.4.9 release ISC-795 staged; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-19T18:05:00Z
@@ -1027,6 +1027,7 @@ Scene wiring:
 - [x] ISC-792: README notes the charging stealers and the action camera (Read)
 - [x] ISC-793: visual evidence — an attack-vignette screenshot in the scratchpad (Playwright)
 - [x] ISC-794: Anti: no em dashes in any new player-facing string (grep)
+- [ ] ISC-795: v0.4.9 released — main pushed, tag CI green BEFORE the release is created, release published, live bundle serves v0.4.9 with the charge + action-camera code present (gh run watch; bundle greps for version + focus strings)
 
 ## Test Strategy
 

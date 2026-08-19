@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: 566/567 (fades+favicon run ISC-554..566 verified; ISC-71 deferred)
+phase: verify
+progress: 583/584 (keymap run ISC-636..652 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-17T10:55:00Z
+updated: 2026-08-19T09:05:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -842,10 +842,32 @@ Build & regression:
 - [x] ISC-634: full client e2e suite + engine tests green, typecheck clean (bun run test / e2e output)
 - [x] ISC-635: v0.4.4 released — tag CI green BEFORE the release was created, release published, live bundle serves v0.4.4 with fireReticle code present (gh run 32230347102 success; bundle grep v0.4.4 + fireReticle×9)
 
+### Keyboard remap: directional circle + weapon-key clarity (2026-08-19, sixth run — user playtest feedback)
+
+- [x] ISC-636: Z moves diagonally back-LEFT and C moves diagonally back-RIGHT (swapped from v0.4.4), both at the 2 AP backward cost with facing kept (Playwright keymap: staged bolter, press z/c, assert pos+ap)
+- [x] ISC-637: X moves straight backward (2 AP) — the QWE/AD/ZXC keys now form a directional circle around S (Playwright: press x, pos one square behind facing, ap −2)
+- [x] ISC-638: S opens/closes the door ahead exactly as H does — H stays bound as an alias (Playwright: staged closed door ahead, press s, door isOpen; press h on another door still works)
+- [x] ISC-639: M performs melee on the enemy directly ahead (Playwright: staged foe ahead, dice pinned, press m, closeCombat event fired, nobody self-destructed)
+- [x] ISC-640: K toggles mute and the setting still persists across reload via localStorage sulk_muted (Playwright audio spec: press k, audio.muted true, reload, still true)
+- [x] ISC-641: Anti: M no longer touches the audio — a press of M with audio constructed leaves audio.muted unchanged (Playwright: press m in the audio spec, muted stays false)
+- [x] ISC-642: keyboardHelp KEY_ROWS data reflects the new layout — Z "back left", X "back", C "back right", S "open door", M "melee", K "mute" — with no duplicate keys and every bound key labeled (vitest keyboardHelp spec)
+- [x] ISC-643: R and T keycaps carry the sub-label "assault cannon" and G carries "chain fist", rendered beneath the action word in both the in-game help and the manual page (vitest sub fields + Playwright DOM)
+- [x] ISC-644: in-game keyboard help DIMS R/T/G in a mission that fields no assault cannon or chain fist marine (space_hulk_1) — keycap gets the disabled style (Playwright: class assertion on the caps)
+- [x] ISC-645: in-game keyboard help shows R/T/G fully enabled in beta_2, the mission that fields both specialists (Playwright: no disabled class)
+- [x] ISC-646: README controls table matches the new bindings — X back, Z/C back-left/right, S+H door, M melee, K mute listed (Read/grep README)
+- [x] ISC-647: manual CONTROLS_INTRO and KEY_NOTES carry no stale references to the old layout (S back, X melee, M mute) (grep client src for stale strings)
+- [x] ISC-648: the roster Credits line "M mutes sound" now says K (grep RosterPanel)
+- [x] ISC-649: Anti: no em dashes introduced in any new or edited player-facing string (grep changed display strings)
+- [x] ISC-650: Anti: the flamer-aim cancel key list treats M as an ACTION (cancels aim) while K (mute) keeps the aim, matching the old M-mute behavior (Read GameScene cancel string: m present, k absent)
+- [x] ISC-651: the full client e2e suite (updated keymap/audio/help specs) and engine vitest pass, tsc clean in both packages (Bash exit codes)
+- [x] ISC-652: Anti: the B double-press self-destruct disarm logic is untouched by the remap — pressing any non-B action key still disarms (Playwright keymap B test still green)
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
+| ISC-636..641,644..645,652 | UI/e2e | staged key presses + help DOM class assertions | all updated keymap/audio/help tests pass | Bash playwright |
+| ISC-642..643,646..651 | unit/docs | KEY_ROWS field assertions, grep for stale strings, suite exits | 0 stale refs, 0 failures | Bash vitest / grep / Read |
 | ISC-625..631 | UI/e2e | fireReticleFor union states across staged scenarios + screenshot | all 6 door-keyboard tests pass | Bash playwright |
 | ISC-632..634 | regression | door-keyboard suite, full e2e, engine vitest, tsc | 6/6, 62/62, 287/287, 0 errors | Bash |
 | ISC-439..441 | baseline/regression | unit + e2e suite exit codes pre/post | 0 failures | Bash vitest/playwright |
@@ -966,6 +988,9 @@ Build & regression:
 | spawn-fanout | Entry rotation by turn + prefer-unseen entries | ISC-589 | — | yes |
 
 ## Decisions
+
+- 2026-08-19 (keyboard-remap run, E2, ISC-636..652): User playtest verdict on the v0.4.4 layout: "the keyboard mappings need improving." Six-part remap executed exactly as specified: Z/C swapped (Z back-left, C back-right), back moved S→X so QWEADZXC form a directional circle, S freed for the door (H kept bound as the legacy alias — the user redefined S but never asked to remove H, and muscle memory plus every existing H test survive for free), melee X→M, mute M→K. DESIGN: the remap lives at the two ingestion points only — the GameScene JustDown chain + keydown-K handler, and the keyboardHelp.ts layout data that both renderers (in-game roster help, manual page) already consume — so no per-surface patching. Weapon-key clarity via two new KeyCap fields: `sub` (weapon qualifier rendered in brackets under the label; R/T "assault cannon", G "chain fist" — the marine is a chain FIST, the user's "chain saw" read as the same unit) and `requires` (MarineType gate). The in-game help dims a gated cap (opacity .3 + explanatory title) when no such marine is in the RosterPanel entries — the mission deploy list, so the keymap doubles as a live loadout readout; the manual page shows sub-labels but never dims (it documents the game, not a mission). Only beta_2 fields both specialists today, so every space_hulk mission visibly dims R/T/G. Behavior notes pinned by tests: M is now an ACTION (added to the flamer-aim cancel list) while K inherits M-mute's aim-keeping; the keydown-K handler claims the shared seenKeyEvents dedupe entry exactly as keydown-M did (Phaser fires the specific event before the generic one — mechanism unchanged, only the letter). One stale pin caught by the suite itself: roster.spec's unbound-spacer count 6→5 (K left the spacer set). ISC floor show-math: 17 new ISCs meet the E2 ≥16 floor naturally. Delegation floor: code-reviewer agent on the diff (E2 soft floor 1 met). Process slip logged: one ISA checkbox pass used a python3 heredoc — repo rule is TypeScript/shell; subsequent passes used perl. REVIEW ROUND (code-reviewer agent, all five findings adopted): (1) README:142 Sound-features bullet still said "M mutes" — the ISC-646 grep only covered the controls table; fixed to K. (2) meleeAhead doc comment still said "X key" two lines above the changed dispatch; fixed to M. (3) AudioManager.toggleMute comment said "M key / HUD toggle" — the M half newly stale, the HUD-toggle half never true (keydown-K is the sole caller repo-wide); fixed to "K key". (4) TEST GAP CONFIRMED: the only z press sat at 0 AP, so the refusal assertion could not tell back-left from back-right — an un-swap of Z would have passed the entire suite while C and X were genuinely pinned; Z now gets its own positive move with AP topped up ((20,20) area: z lands (19,21) at 2 AP). ISC-636's original evidence was recorded against a no-op — corrected. (5) B (blow up) is heavy-flamer-gated in GameScene but carried no requires, and the unit test actively pinned the omission — violating the loadout-readout premise the feature states; requires union widened to 'heavy_flamer', B marked with sub 'heavy flamer' (every current mission except debug_1 fields a flamer, so only debug_1 dims B — correctly). Reviewer also verified from Phaser 3.90 source that the specific keydown-K event fires before the generic keydown, so the shared seenKeyEvents dedupe order is guaranteed, not lucky; and that buildRoster's failure modes all default toward storm_bolter, meaning dimming fails SAFE (dims rather than falsely un-dims).
+
 
 - 2026-08-19 (enemy-reticle run, E2, ISC-625..634): User follow-up on v0.4.3: "now we have the target icon over doors … let's do the same for stealers." DESIGN (three angles weighed): a second parallel enemyReticleFor state was rejected — two states can lie about the one F decision; a differently-styled enemy reticle rejected — position over a stealer vs a door edge is self-explanatory and consistency wins. CHOSEN: fireDoorTarget() generalized to fireTarget() returning a discriminated union ({kind:'door',door} | {kind:'enemy',piece}) built from the SAME helpers handleFire executes (hoveredDoorFor → nearestEnemyTarget → nearestShootableDoor), one fireReticleFor state, one renderer switching on kind — the "indicator can never lie" property extends to enemies for free, and the hovered-door-outranks-enemy priority is now VISIBLE too (pinned by e2e). Refresh points unchanged and sufficient: every marine action funnels through updateHighlight, plus pointermove/doorToggled/doorDestroyed/finishReplay — enemy positions only change through marine-turn consequences (deaths, conversions) all on those paths. Rename doorReticleFor→fireReticleFor / refreshDoorReticle→refreshFireReticle contained to GameScene + the door-keyboard spec (repo-wide grep). Delegation floor: code-reviewer agent on the diff (E2 soft floor 1 met); ISC floor show-math: 10 new ISCs on a project ISA already carrying 600+ — the E2 ≥16 floor is a per-run count on fresh articulation and this feature genuinely decomposes to 10 binary probes; padding would violate the granularity gate. REVIEW ROUND (code-reviewer agent, all five findings adopted): (1) UNION-HONESTY GAP CONFIRMED — the enemy branch had no ammo guard: an assault cannon with an empty drum (reachable in beta_2) would wear a reticle on a stealer while shoot() bails on ammo<1, F fires nothing, and shootNearest still returned true. Fixed at the engine ingestion point: canShootPiece(target) added to StormBolterMarine as the read-only mirror of beginAimedShot's guards (shape of canShootDoor), AssaultCannonMarine overrides with the ammo≥1 bail; nearestEnemyTarget filters through it, so reticle AND auto-target are legality-honest for every bolter-family marine (pinned by vitest empty-drum test). (2) ISC-631 originally claimed the chain fist gets no reticle — FALSE, ChainFistMarine extends StormBolterMarine and correctly keeps his bolter reticle; criterion reworded before the wrong invariant could mislead a future fix. (3) em dashes removed from the new player-facing strings (rules-reference, keyboardHelp) per the repo's displayed-strings rule. (4) the nearest-of-many test was collinear — the near stealer BLOCKED LOS to the far one, so the distance sort was never exercised; restaged on different rays inside the Launch Control room with both candidates asserted shootable via canShootPiece. (5) draw geometry was unasserted — fireReticleFor now carries cx/cy (the drawn pixel centre) and tests pin 760/820 (door midpoint) vs 740/820 (enemy square centre), closing the same hole in the v0.4.3 door reticle. Residual-risk comment added on refreshFireReticle: the staleness guarantee rests on the acted→updateHighlight funnel — anything that kills/moves pieces outside a marine action must add its own refresh.
 - 2026-08-18 (door-UX run, E3, ISC-620..623): User playtest of v0.4.2 refuted the hover gate within hours: "it doesn't auto shoot the nearest door" — hoverCoord is set by ANY pointermove over the canvas and never clears over the board, so for every mouse-touching player the gate reduced the fallback to dead code (the reviewer's stray-F hazard and the user's want were resolved in the wrong direction). REVERSAL with a better mitigation: the gate is gone — F's priority is hovered door → nearest enemy → nearest shootable closed door, always — and the hazard is handled by VISIBILITY instead of suppression: a red reticle (doorReticleGfx, drawn at the door edge midpoint) marks the door F would currently hit, refreshed at a single choke point (updateHighlight) plus pointermove/doorToggled/doorDestroyed. fireDoorTarget() derives the target from the same helpers the shot uses (hoveredDoorFor / nearestEnemyTarget / nearestShootableDoor) so indicator and behavior can never diverge. ISC-615 dropped (tombstoned) — its Playwright fixture now asserts the OPPOSITE (ISC-621). AUDIO: "the sound effect is the chainsaw not shots" — AudioManager played sfx_chain_fist on EVERY doorDestroyed; the event now carries cause ('cut' from the chain fist's cutDoor, default 'shot' from bolter/cannon paths) and the chainsaw is gated on cause==='cut' (the weapon's own firing SFX already accompanies shot-kills via the shot event). Lesson encoded: when a safety gate and a feature want the same input, prefer making the outcome VISIBLE over making the action unreachable — suppression traded a rare hazard for a constant failure.
@@ -1272,6 +1297,26 @@ Build & regression:
 **Criterion now:** ISC-375 (five consecutive full-suite runs 40/40), handleFire carries a comment forbidding time-based debounce, flamer e2e aims via page.mouse.move.
 
 ## Verification
+
+### Keyboard remap: directional circle + weapon-key clarity (2026-08-19 sixth run, ISC-636..652)
+
+- ISC-636: Playwright keymap — staged bolter facing north: q/(19,19) ap3, c back-right/(20,20) ap1, AP topped to 4, z back-LEFT lands (19,21) ap2 (positive move, not a refusal — review fix), e/(20,20) ap1, c refused at 1 AP; test green
+- ISC-637: Playwright — new test "X moves straight backward at 2 AP": press x from (20,20) facing north → (20,21), ap 4→2, facing kept
+- ISC-638: Playwright — press s opens the (18,20)|(19,20) door, press h closes it again (alias proven in the same test)
+- ISC-639: Playwright — press m with foe staged ahead, dice pinned 3: closeCombat event fired, all 5 marines alive (no detonation)
+- ISC-640: Playwright audio spec — press k: audio.muted true, scene.sound.mute true; reload: still muted, localStorage sulk_muted = '1'
+- ISC-641: Playwright audio spec — press m BEFORE k with audio constructed: audio.muted stays false
+- ISC-642: vitest keyboardHelp spec — byKey assertions Z 'back left', X 'back', C 'back right', S 'open door', M 'melee', K 'mute'; bound-key set matches addKeys+handlers exactly, no duplicates
+- ISC-643: vitest — R/T sub 'assault cannon' requires 'assault_cannon', G sub 'chain fist' requires 'chain_fist', B sub 'heavy flamer' requires 'heavy_flamer' (review adoption), nothing else carries requires; Playwright roster spec asserts the rendered '(assault cannon)'/'(chain fist)' <small> text
+- ISC-644: Playwright roster spec — space_hulk_1: exactly 3 .keycap.disabled caps with kbd text R/T/G and title 'No assault cannon in this mission'; screenshot scratchpad/keymap-sh1-dimmed.png shows them greyed
+- ISC-645: Playwright roster spec — beta_2: zero .keycap.disabled; screenshot scratchpad/keymap-beta2-live.png shows R/T/G fully lit with sub-labels
+- ISC-646: Read README — W/X, Z/C back-left/right, S (or H) door, M close combat, R/T '(assault cannon only)', G '(chain fist only)', K mute rows all present
+- ISC-647: grep client src — zero matches for the stale layout (S back / X melee / M mute as display strings); CONTROLS_INTRO now names the movement circle with S at its centre
+- ISC-648: grep RosterPanel — credits line reads 'K mutes sound.'
+- ISC-649: Bash — git diff added lines for keyboardHelp/RosterPanel/content.ts/README grep '—': only two code comments match, zero player-facing strings
+- ISC-650: Read GameScene — cancel list 'wsadqezchxoutrgpbm' contains m, no k; comment names K as the aim-keeping mute
+- ISC-651: Bash — engine vitest 288/288 exit 0 (direct run), client vitest 47/47, full Playwright e2e 65/65 (was 62 + 2 dimming + 1 X-back), tsc --noEmit clean in both packages
+- ISC-652: Playwright — keymap B test unchanged and green: held B never fires, single press arms, second press detonates
 
 ### Enemy target reticle (2026-08-19 fifth run, ISC-625..634)
 

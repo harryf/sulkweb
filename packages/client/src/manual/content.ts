@@ -254,5 +254,6 @@ unlimited in most missions; you cannot shoot your way to a draw.</li>
 /** Controls-section intro (the key rose itself renders from keyboardHelp.ts). */
 export const CONTROLS_INTRO = `
 <p>Click a marine (or his roster card) to select him, then drive him with the keys.
-The movement rose sits under your left hand: <strong>Q W E</strong> over
-<strong>A S D</strong> over <strong>Z X C</strong>.</p>`;
+The movement circle sits under your left hand: <strong>Q W E</strong> over
+<strong>A D</strong> over <strong>Z X C</strong>, with <strong>S</strong>
+(the door key) at its centre.</p>`;

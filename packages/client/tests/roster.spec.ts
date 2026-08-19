@@ -176,7 +176,7 @@ test('keyboard help draws staggered keycap rows, collapses on click; Credits sit
   });
   expect(stagger[1]).toBeGreaterThan(stagger[0]);
   expect(stagger[2]).toBeGreaterThan(stagger[1]);
-  await expect(help.locator('.keycap.unbound')).toHaveCount(6); // Y I J K V N spacers
+  await expect(help.locator('.keycap.unbound')).toHaveCount(5); // Y I J V N spacers (K is mute now)
   // W keycap carries its action label ("fwd" also contains a w — match the <b> exactly)
   const wLabel = help.locator('.keycap').filter({ has: page.locator('kbd', { hasText: /^W$/ }) }).locator('i');
   await expect(wLabel).toHaveText('forward');
@@ -216,4 +216,26 @@ test('keyboard help draws staggered keycap rows, collapses on click; Credits sit
   });
   expect(order.kb).toBeGreaterThanOrEqual(0);
   expect(order.cr).toBeGreaterThan(order.kb);
+});
+
+test('weapon keys dim when no such marine is deployed: space_hulk_1 greys R/T/G (ISC-643/644)', async ({ page }) => {
+  await page.goto('/?mission=space_hulk_1&seed=1');
+  await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
+  // No assault cannon and no chain fist in this mission: all three caps dim.
+  const disabled = page.locator('#roster-panel .kb-help .keycap.disabled');
+  await expect(disabled).toHaveCount(3);
+  await expect(disabled.locator('kbd')).toHaveText(['R', 'T', 'G']);
+  // The weapon qualifier renders in brackets under the action word.
+  await expect(disabled.nth(0).locator('small')).toHaveText('(assault cannon)');
+  await expect(disabled.nth(2).locator('small')).toHaveText('(chain fist)');
+  await expect(disabled.nth(0)).toHaveAttribute('title', 'No assault cannon in this mission');
+});
+
+test('weapon keys stay live when the specialists ARE deployed: beta_2 dims nothing (ISC-645)', async ({ page }) => {
+  await page.goto('/?mission=beta_2&seed=1');
+  await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
+  await expect(page.locator('#roster-panel .kb-help .keycap.disabled')).toHaveCount(0);
+  // Sub-labels still render on the live caps.
+  const gCap = page.locator('#roster-panel .kb-help .keycap', { has: page.locator('kbd', { hasText: /^G$/ }) });
+  await expect(gCap.locator('small')).toHaveText('(chain fist)');
 });

@@ -1,14 +1,19 @@
 /**
  * Keyboard-help layout data: keycaps in physical QWERTY rows so the help can
  * draw squares where the keys actually sit. Unbound keys render as dimmed
- * placeholders to keep the spatial relationships honest (Q-W-E over A-S-D
- * over Z-X-C is the movement rose).
+ * placeholders to keep the spatial relationships honest (Q-W-E over A-D
+ * over Z-X-C is the movement circle, with S as the door key at its centre).
  */
 
 export interface KeyCap {
   key: string;
   /** Action label. Absent = unbound placeholder, drawn dimmed. */
   label?: string;
+  /** Weapon qualifier drawn in brackets under the label ("assault cannon"). */
+  sub?: string;
+  /** Marine type that must be in the mission for the key to do anything —
+   *  the in-game help dims the cap when no such marine is deployed. */
+  requires?: 'assault_cannon' | 'chain_fist' | 'heavy_flamer';
 }
 
 export interface KeyRow {
@@ -24,8 +29,8 @@ export const KEY_ROWS: KeyRow[] = [
       { key: 'Q', label: 'fwd left' },
       { key: 'W', label: 'forward' },
       { key: 'E', label: 'fwd right' },
-      { key: 'R', label: 'reload' },
-      { key: 'T', label: 'autofire' },
+      { key: 'R', label: 'reload', sub: 'assault cannon', requires: 'assault_cannon' },
+      { key: 'T', label: 'autofire', sub: 'assault cannon', requires: 'assault_cannon' },
       { key: 'Y' },
       { key: 'U', label: 'unjam' },
       { key: 'I' },
@@ -37,26 +42,26 @@ export const KEY_ROWS: KeyRow[] = [
     offset: 0.35,
     caps: [
       { key: 'A', label: 'turn left' },
-      { key: 'S', label: 'back' },
+      { key: 'S', label: 'open door' },
       { key: 'D', label: 'turn right' },
       { key: 'F', label: 'fire' },
-      { key: 'G', label: 'cut door' },
+      { key: 'G', label: 'cut door', sub: 'chain fist', requires: 'chain_fist' },
       { key: 'H', label: 'door' },
       { key: 'J' },
-      { key: 'K' },
+      { key: 'K', label: 'mute' },
       { key: 'L', label: 'show LOS' },
     ],
   },
   {
     offset: 0.75,
     caps: [
-      { key: 'Z', label: 'back right' },
-      { key: 'X', label: 'melee' },
-      { key: 'C', label: 'back left' },
+      { key: 'Z', label: 'back left' },
+      { key: 'X', label: 'back' },
+      { key: 'C', label: 'back right' },
       { key: 'V' },
-      { key: 'B', label: 'blow up' },
+      { key: 'B', label: 'blow up', sub: 'heavy flamer', requires: 'heavy_flamer' },
       { key: 'N' },
-      { key: 'M', label: 'mute' },
+      { key: 'M', label: 'melee' },
     ],
   },
 ];

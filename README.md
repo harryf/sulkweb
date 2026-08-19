@@ -77,18 +77,21 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
 | Input | Action |
 |-------|--------|
 | Click marine / roster card | Select (card click also pans the camera to him) |
-| `W` / `S` | Move forward (1 AP) / backward (2 AP) |
+| `W` / `X` | Move forward (1 AP) / backward (2 AP) |
 | `Q` / `E` | Move diagonally forward-left / forward-right (1 AP, facing kept) |
-| `Z` / `C` | Move diagonally back-right / back-left (2 AP, facing kept) |
+| `Z` / `C` | Move diagonally back-left / back-right (2 AP, facing kept) |
 | `A` / `D` | Turn left / right |
-| `H` | Open/close door ahead |
+| `S` (or `H`) | Open/close door ahead |
 | `F` | Fire at the nearest target — or at a closed door under the cursor (bolter destroys on a 6, assault cannon on 5+) |
 | `F` (heavy flamer) | First press arms targeting: valid squares get a crosshair cursor and the blast section is previewed in orange; second press fires into the hovered square. Any action key cancels |
-| `X` | Close combat (enemy directly ahead) |
+| `M` | Close combat (enemy directly ahead) |
 | `O` | Overwatch on/off (2 AP) |
 | `U` | Unjam bolter |
+| `R` / `T` | Reload (4 AP) / autofire (assault cannon only) |
+| `G` | Cut the door ahead (chain fist only, 1 AP) |
 | `B` `B` | Heavy flamer self-destruct — press twice to confirm (torches his own section) |
 | `P` | Spend a Command Point (+1 AP) |
+| `K` | Mute sound on/off (persists) |
 | `L` (hold) | Show line of sight |
 | `Enter` / DONE | End marine phase |
 | `Esc` | Pause |
@@ -136,7 +139,7 @@ pnpm fetch-audio
 - **Motion tracker** — the *Aliens* tracker ping runs continuously, its
   cadence and pitch tightening as the nearest blip closes on your marines:
   a 2.4s idle sweep at 20+ squares, a 300ms panic tick at 2.
-- `M` mutes (persisted). Without fetched audio the game boots and plays
+- `K` mutes (persisted). Without fetched audio the game boots and plays
   silently (original-wav bolter fallback aside) — audio is never load-bearing.
 
 The game never blocks on audio: playback starts on your first click (browser

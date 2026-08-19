@@ -204,8 +204,20 @@ body {
   font-weight: 400;
 }
 
+.keycap small {
+  font-size: 6.5px;
+  line-height: 1.1;
+  color: #7d8b9c;
+  font-weight: 400;
+}
+
 .keycap.unbound {
   opacity: 0.22;
+}
+
+/* Weapon-specific key whose marine is not deployed in this mission. */
+.keycap.disabled {
+  opacity: 0.3;
 }
 
 .keycap.wide { width: 62px; }

@@ -67,13 +67,16 @@ test('space_hulk_2: audio assets serve; manager holds the mission track; no auto
   expect(consoleErrors.filter(e => /autoplay|AudioContext/i.test(e))).toHaveLength(0);
 });
 
-test('mute toggles with M and survives reload (ISC-326/332)', async ({ page }) => {
+test('mute toggles with K (M is melee now) and survives reload (ISC-326/332/640/641)', async ({ page }) => {
   await page.goto('/?mission=debug_1&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.audio !== undefined, undefined, { timeout: 15000 });
   expect(await page.evaluate(() => (window as any).sulk.audio.muted)).toBe(false);
 
   await page.mouse.click(300, 300); // focus the canvas
-  await page.keyboard.press('m');
+  await page.keyboard.press('m'); // M no longer touches the audio (ISC-641)
+  await page.waitForTimeout(150);
+  expect(await page.evaluate(() => (window as any).sulk.audio.muted)).toBe(false);
+  await page.keyboard.press('k');
   await expect.poll(() => page.evaluate(() => (window as any).sulk.audio.muted)).toBe(true);
   expect(await page.evaluate(() => (window as any).sulk.scene.sound.mute)).toBe(true);
 

@@ -131,7 +131,7 @@ export class AudioManager {
     });
   }
 
-  /** M key / HUD toggle. Persisted; flips Phaser's global mute. */
+  /** K key. Persisted; flips Phaser's global mute. */
   toggleMute(): boolean {
     this.muted = !this.muted;
     this.scene.sound.mute = this.muted;

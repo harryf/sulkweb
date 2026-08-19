@@ -367,7 +367,7 @@ export default class GameScene extends Phaser.Scene {
     pieces.forEach(p => this.createPieceSprite(p));
 
     this.cursors = this.input.keyboard!.createCursorKeys()
-    this.wasd = this.input.keyboard!.addKeys('W,A,S,D,Q,E,Z,C,O,F,X,B,H,U,P,T,R,G') as any
+    this.wasd = this.input.keyboard!.addKeys('W,A,S,D,Q,E,Z,C,O,F,X,B,H,U,P,T,R,G,M') as any
     this.input.keyboard!.on('keydown-ENTER', () => this.endTurn());
     this.input.keyboard!.on('keydown-ESC', () => this.togglePause());
     // Camera bounds — the SINGLE clamp for every scroll path (keys, drag,
@@ -428,13 +428,13 @@ export default class GameScene extends Phaser.Scene {
     );
 
     // All game audio: per-mission ambient bed (ducked by phase), event SFX,
-    // and the motion tracker. M toggles mute (persisted). NOT constructed in
-    // attract mode — a click on the landing overlay is a browser autoplay
-    // unlock, and the homepage must stay silent.
+    // and the motion tracker. K toggles mute (persisted; M is melee). NOT
+    // constructed in attract mode — a click on the landing overlay is a
+    // browser autoplay unlock, and the homepage must stay silent.
     if (!this.attract) {
       this.audio = new AudioManager(this, this.engine, this.missionKey);
       (window as any).sulk.audio = this.audio;
-      this.input.keyboard!.on('keydown-M', (e: KeyboardEvent) => {
+      this.input.keyboard!.on('keydown-K', (e: KeyboardEvent) => {
         if (this.seenKeyEvents.has(e)) return; // Phaser replay — one toggle per press
         this.seenKeyEvents.add(e);
         this.audio.toggleMute();
@@ -557,8 +557,8 @@ export default class GameScene extends Phaser.Scene {
       if (!piece) return;
 
       // Any piece ACTION while the flamer is armed cancels targeting mode.
-      // (Arrow-key camera panning, L overlay, and M mute keep the aim.)
-      if (this.flamerAiming && 'wsadqezchxoutrgpb'.includes(_event.key.toLowerCase())) {
+      // (Arrow-key camera panning, L overlay, and K mute keep the aim.)
+      if (this.flamerAiming && 'wsadqezchxoutrgpbm'.includes(_event.key.toLowerCase())) {
         this.setFlamerAiming(false);
       }
       // Likewise, anything that isn't the B confirm disarms self-destruct.
@@ -566,18 +566,21 @@ export default class GameScene extends Phaser.Scene {
 
       let acted = false;
       if (Phaser.Input.Keyboard.JustDown(this.wasd.W))      acted = piece.moveForward();
-      else if (Phaser.Input.Keyboard.JustDown(this.wasd.S)) acted = piece.moveBackward();
+      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).X)) acted = piece.moveBackward();
       else if (Phaser.Input.Keyboard.JustDown(this.wasd.A)) acted = piece.tryTurn(-1);
       else if (Phaser.Input.Keyboard.JustDown(this.wasd.D)) acted = piece.tryTurn(1);
-      // Diagonal moves (original numpad 7/9/1/3) — user-specified layout:
-      // Q fwd-left, E fwd-right, Z back-RIGHT, C back-LEFT.
+      // Diagonal moves (original numpad 7/9/1/3) — QWE/AD/ZXC form a
+      // directional circle: Q fwd-left, E fwd-right, Z back-LEFT, C back-RIGHT.
       else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).Q)) acted = piece.moveForwardLeft();
       else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).E)) acted = piece.moveForwardRight();
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).Z)) acted = piece.moveBackRight();
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).C)) acted = piece.moveBackLeft();
+      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).Z)) acted = piece.moveBackLeft();
+      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).C)) acted = piece.moveBackRight();
+      // S is the primary door key (centre of the movement circle); H stays
+      // bound as the legacy alias.
+      else if (Phaser.Input.Keyboard.JustDown(this.wasd.S)) acted = piece.useDoor();
       else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).H)) acted = piece.useDoor();
       else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).F)) acted = this.handleFire(piece);
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).X)) acted = this.meleeAhead(piece);
+      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).M)) acted = this.meleeAhead(piece);
       else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).O)) {
         const marine = piece as StormBolterMarine;
         if (marine.overwatch) { marine.overwatchOff(); acted = true; }
@@ -1062,7 +1065,7 @@ export default class GameScene extends Phaser.Scene {
     return false;
   }
 
-  /** X key: close combat against the piece directly ahead. */
+  /** M key: close combat against the piece directly ahead. */
   private meleeAhead(piece: Piece): boolean {
     const v = DIR_VEC[piece.facing];
     const ahead = { c: piece.pos.c + v.dc, r: piece.pos.r + v.dr };

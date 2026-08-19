@@ -136,6 +136,7 @@ td:not(:first-child) { text-align: center; }
 .keycap.unbound { opacity: 0.35; }
 .key-letter { display: block; font-weight: 900; font-size: 13px; color: #e8e8e8; }
 .key-label { display: block; font-size: 9.5px; color: #9a9a9a; line-height: 1.2; }
+.key-sub { display: block; font-size: 8px; color: #767676; line-height: 1.15; }
 .key-notes { font-size: 13px; color: #9a9a9a; }
 
 /* Mission maps */

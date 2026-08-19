@@ -85,7 +85,7 @@ export class RosterPanel {
       section.appendChild(cards);
       this.root.appendChild(section);
     }
-    this.root.appendChild(buildKeyboardHelp());
+    this.root.appendChild(buildKeyboardHelp(new Set(entries.map(e => e.type))));
     this.root.appendChild(buildCredits());
     parent.appendChild(this.root);
     this.refreshAll();
@@ -153,9 +153,11 @@ export class RosterPanel {
 
 /**
  * Collapsible keyboard help: keycap squares drawn in physical QWERTY rows
- * (native <details> supplies the expand/collapse arrow).
+ * (native <details> supplies the expand/collapse arrow). Weapon-specific keys
+ * (R/T assault cannon, G chain fist) dim when no such marine is deployed in
+ * the mission — the keymap doubles as a loadout readout.
  */
-function buildKeyboardHelp(): HTMLElement {
+function buildKeyboardHelp(deployedTypes: Set<string>): HTMLElement {
   const details = document.createElement('details');
   details.className = 'kb-help';
   details.open = true;
@@ -175,8 +177,14 @@ function buildKeyboardHelp(): HTMLElement {
     for (const cap of row.caps) {
       const capEl = document.createElement('span');
       capEl.className = cap.label ? 'keycap' : 'keycap unbound';
-      capEl.innerHTML = `<kbd>${cap.key}</kbd>` + (cap.label ? `<i>${cap.label}</i>` : '');
+      capEl.innerHTML = `<kbd>${cap.key}</kbd>`
+        + (cap.label ? `<i>${cap.label}</i>` : '')
+        + (cap.sub ? `<small>(${cap.sub})</small>` : '');
       if (!cap.label) capEl.setAttribute('aria-hidden', 'true'); // spacer, not content
+      if (cap.requires && !deployedTypes.has(cap.requires)) {
+        capEl.classList.add('disabled');
+        capEl.title = `No ${cap.sub} in this mission`;
+      }
       rowEl.appendChild(capEl);
     }
     board.appendChild(rowEl);
@@ -214,7 +222,7 @@ function buildCredits(): HTMLElement {
     `distributed under the GNU General Public License.</p>` +
     `<p class="audio-credit">Ambient music: <a href="https://www.youtube.com/@Musicof40K" target="_blank" rel="noopener">Music of 40K</a>, ` +
     `used with credit under the channel's non-profit terms. Sound effects from the original Sulk sound set ` +
-    `plus film/game cuts credited on the <a href="credits.html" target="_blank" rel="noopener">audio credits page</a>. M mutes sound.</p>` +
+    `plus film/game cuts credited on the <a href="credits.html" target="_blank" rel="noopener">audio credits page</a>. K mutes sound.</p>` +
     `<p>Inspired by Space Hulk&trade;, first edition. Space Hulk is a board game published by Games Workshop&trade;.</p>` +
     `<details class="legal"><summary>Legal</summary>` +
     `<p>This game and this page are completely unofficial and in no way endorsed by Games Workshop Limited.</p>` +

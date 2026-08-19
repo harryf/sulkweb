@@ -90,6 +90,7 @@ for (const row of KEY_ROWS) {
     const capEl = el('div', cap.label ? 'keycap' : 'keycap unbound');
     capEl.appendChild(el('span', 'key-letter', cap.key));
     capEl.appendChild(el('span', 'key-label', cap.label ?? ''));
+    if (cap.sub) capEl.appendChild(el('span', 'key-sub', `(${cap.sub})`));
     rowEl.appendChild(capEl);
   }
   rose.appendChild(rowEl);

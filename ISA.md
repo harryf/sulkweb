@@ -4,10 +4,10 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 725/727 (charging stealers + action camera verified; v0.4.9 release ISC-795 staged; ISC-71 deferred)
+progress: 726/727 (charging stealers + action camera + v0.4.9 release verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-19T18:05:00Z
+updated: 2026-08-19T18:40:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -1027,7 +1027,7 @@ Scene wiring:
 - [x] ISC-792: README notes the charging stealers and the action camera (Read)
 - [x] ISC-793: visual evidence — an attack-vignette screenshot in the scratchpad (Playwright)
 - [x] ISC-794: Anti: no em dashes in any new player-facing string (grep)
-- [ ] ISC-795: v0.4.9 released — main pushed, tag CI green BEFORE the release is created, release published, live bundle serves v0.4.9 with the charge + action-camera code present (gh run watch; bundle greps for version + focus strings)
+- [x] ISC-795: v0.4.9 released — main pushed, tag CI green BEFORE the release is created, release published, live bundle serves v0.4.9 with the charge + action-camera code present (gh run watch; bundle greps for version + focus strings)
 
 ## Test Strategy
 
@@ -1599,6 +1599,7 @@ Scene wiring:
 - ISC-792: Read — README Motion section extended with charging stealers + action camera + spotlight
 - ISC-793: Bash — scratchpad attack-vignette.png: camera parked on the fight, stealer over the marine square, Losses: 1 + KIA card, edges darkened by the spotlight
 - ISC-794: Bash grep — zero em dashes in the README additions; no other player-facing strings added
+- ISC-795: Bash — pushed 804ac6d..ab6dcae; tag v0.4.9; deploy run 32282612243 completed success BEFORE the release was created (codified order); release https://github.com/harryf/sulkweb/releases/tag/v0.4.9 "The swarm has a face" published; live home 200; main-BSuq_HdX.js carries v0.4.9 plus the feature strings fx_vignette, lunge, chargeTarget, door-crumble. Classifier returned NATIVE on "push and tag" — context-override to ALGORITHM E1 per the standing release precedent (sixth application).
 
 ### Number-key marine selection (2026-08-19 seventh run, ISC-654..671)
 

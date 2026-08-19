@@ -4,10 +4,10 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 692/694 (main-map motion run verified; v0.4.8 release ISC-762 staged; ISC-71 deferred)
+progress: 693/694 (main-map motion run + v0.4.8 release verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-19T15:05:00Z
+updated: 2026-08-19T15:35:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -986,7 +986,7 @@ Docs + suites:
 - [x] ISC-759: full client e2e suite green including the new animation spec (bunx playwright test)
 - [x] ISC-760: tsc clean in both packages (bunx tsc --noEmit)
 - [x] ISC-761: visual evidence captured — a mid-replay or mid-slide screenshot set written to the scratchpad (Playwright screenshots)
-- [ ] ISC-762: v0.4.8 released — main pushed, tag CI green BEFORE the release is created, release published, live bundle serves v0.4.8 with the motion code present (gh run watch; bundle greps for version + motion strings)
+- [x] ISC-762: v0.4.8 released — main pushed, tag CI green BEFORE the release is created, release published, live bundle serves v0.4.8 with the motion code present (gh run watch; bundle greps for version + motion strings)
 
 ## Test Strategy
 
@@ -1526,6 +1526,7 @@ Docs + suites:
 - ISC-756: Read — README "### Motion" section present between auspex and Sound
 - ISC-757..760: Bash — engine 288/288, client unit 70/70 (motionLogic 100% cov), e2e 97/97 (78 prior + 19 motion), tsc --noEmit clean in both packages (final post-review-round run)
 - ISC-761: Bash — scratchpad motion-replay.png (blip visibly OFF tile centre mid-slide, three flame tiles alight, Turn 1: Stealers) + motion-door-slide.png (squad door frame during the open)
+- ISC-762: Bash — pushed ce279aa..72907bc; tag v0.4.8; deploy run 32265234725 completed success BEFORE the release was created (codified order); release https://github.com/harryf/sulkweb/releases/tag/v0.4.8 "The hulk moves" published; live home + manual 200; main-C1yrel04.js carries v0.4.8 x1 and the motion string literals motionLog x2, door-crumble, door-open, recoil, ambush_counter x2, prefers-reduced-motion (function identifiers are minified — string literals are the honest probe). Classifier returned ALGORITHM E3 on "OK push and tag" — executed at E1 per the standing release precedent (fifth application).
 
 ### Number-key marine selection (2026-08-19 seventh run, ISC-654..671)
 

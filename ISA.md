@@ -4,7 +4,7 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 653/654 (minimap radar run ISC-672..722 verified incl. review round; ISC-71 deferred)
+progress: 653/655 (minimap radar run verified; ISC-723 release staging; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-19T13:05:00Z
@@ -937,6 +937,7 @@ Build & regression:
 - [x] ISC-720: the kind-to-style wiring is pinned end to end — the stealer's echo wears echo_stealer, the blip's echo_blip, via the echoTexture probe (Playwright)
 - [x] ISC-721: Anti: marine gunfire is never attenuated — a shot event plays at exactly the full SFX gain (Playwright lastPlay)
 - [x] ISC-722: the live onPing wiring pulses the minimap with no test scaffolding — lastPulse set by the real scheduler alone (Playwright waitForFunction)
+- [ ] ISC-723: v0.4.7 released — main pushed, tag CI green BEFORE the release is created, release published, live bundle serves v0.4.7 with the radar code present (gh run watch; bundle greps for version + radar strings)
 
 ## Test Strategy
 

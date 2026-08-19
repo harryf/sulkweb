@@ -203,11 +203,21 @@ test('the deploy clock expiring auto-deploys and starts the mission (ISC-822)', 
   expect(p.markers).toBe(0);
 });
 
-test('ESC pauses deployment: clicks are inert until resume (ISC-826)', async ({ page }) => {
+test('ESC pauses deployment: clicks, AUTO, and Enter are all inert until resume (ISC-826)', async ({ page }) => {
   await boot(page);
   await page.keyboard.press('Escape');
   await clickSquare(page, 10, 4);
   expect((await probe(page)).marines).toBe(0); // paused — nothing deployed
+  // The pause overlay does not block Phaser interactives or key handlers —
+  // the paused guards are the only defense, so hit both directly.
+  await page.evaluate(() => {
+    const scene = (window as any).sulk.scene;
+    (scene.hud as any).list.find((o: any) => o.name === 'auto-deploy-btn').emit('pointerdown');
+  });
+  await page.keyboard.press('Enter');
+  const held = await probe(page);
+  expect(held.marines).toBe(0);       // AUTO swallowed
+  expect(held.deployMode).toBe(true); // Enter swallowed — the mission never started
   await page.keyboard.press('Escape');
   await clickSquare(page, 10, 4);
   expect((await probe(page)).marines).toBe(1);
@@ -217,17 +227,55 @@ test('squads never mix: an armed Harken marine cannot take an Abraham square (IS
   await boot(page, '/?mission=space_hulk_5&seed=1');
   // Arm a Harken reserve card, then click Abraham's row.
   await page.locator('.squad-row[data-squad="Harken"] .marine-card.reserve').first().click();
+  const armedId = await page.evaluate(() => {
+    // The armed marine is whoever the roster highlighted — recover his id.
+    return document.querySelector('.marine-card.selected')?.getAttribute('data-piece-id') ?? null;
+  });
   await clickSquare(page, 12, 10);
-  const placed = await page.evaluate(() => {
+  const placed = await page.evaluate((armed: string | null) => {
     const { sulk } = window as any;
     const m = sulk.engine.marines[0];
-    return m ? { squad: sulk.engine.deploySquadOf(m.id), facing: m.facing } : null;
-  });
+    return m ? {
+      squad: sulk.engine.deploySquadOf(m.id),
+      facing: m.facing,
+      armedStillReserve: armed !== null && sulk.engine.reserve.some((r: any) => r.id === armed),
+    } : null;
+  }, armedId);
   // The fallback deploys Abraham's own next marine instead — facing RIGHT
   // down the corridor (the Decoy data fix, ISC-812).
   expect(placed).not.toBeNull();
   expect(placed!.squad).toBe('Abraham');
   expect(placed!.facing).toBe(1);
+  expect(placed!.armedStillReserve).toBe(true); // the Harken marine never deployed
+});
+
+test('undeploy then clock expiry reconciles cleanly (ISC-822 mixed state)', async ({ page }) => {
+  await boot(page);
+  await clickSquare(page, 10, 4);
+  await clickSquare(page, 10, 4); // pick him back up — armedId set, mid-reserve order
+  await page.evaluate(() => { ((window as any).sulk.scene as any).deployRemaining = 1; });
+  await page.waitForFunction(() => (window as any).sulk.scene.deployMode === false, undefined, { timeout: 6000 });
+  const clean = await page.evaluate(() => {
+    const { sulk } = window as any;
+    const bad: string[] = [];
+    for (const p of sulk.engine.state.board.pieces) {
+      if (p.kind !== 'marine') continue;
+      const spr = (sulk.scene as any).pieceSprites[p.id];
+      if (!spr?.active) bad.push(`${p.id}:sprite`);
+    }
+    return {
+      bad,
+      marines: sulk.engine.marines.length,
+      reserve: sulk.engine.reserve.length,
+      markers: sulk.scene.children.list.filter((o: any) => o.name === 'deploy-x' && o.active).length,
+      reserveCards: document.querySelectorAll('.marine-card.reserve').length,
+    };
+  });
+  expect(clean.marines).toBe(5);
+  expect(clean.reserve).toBe(0);
+  expect(clean.markers).toBe(0);
+  expect(clean.reserveCards).toBe(0);
+  expect(clean.bad).toEqual([]);
 });
 
 test('Anti: reduced motion deploys instantly and exactly (ISC-829)', async ({ page }) => {

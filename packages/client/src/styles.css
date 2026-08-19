@@ -160,6 +160,9 @@ body {
   border-color: #3b82f6;
 }
 .marine-card.reserve .m-state { color: #7ec8ff; }
+/* An ARMED reserve card keeps the selection border (rule order would
+   otherwise let .reserve's blue win the tie) */
+.marine-card.reserve.selected { border-color: #e8c840; }
 
 .marine-card.has-cat { border-color: #7ec8ff; }
 

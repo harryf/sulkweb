@@ -93,7 +93,7 @@ export abstract class Piece {
    * Costs 1 AP.
    */
   useDoor(): boolean {
-    if (this.ap < 1) return false;
+    if (this.board.locked || this.ap < 1) return false;
     const door = this.findAdjacentDoor();
     if (!door) return false;
     door.toggle();

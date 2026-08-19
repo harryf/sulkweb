@@ -86,6 +86,10 @@ export class AudioManager {
     // volume until his death actually plays (payload-not-engine invariant).
     for (const p of this.engine.state.pieces as unknown as PieceView[]) {
       if (p.kind === 'marine' && p.alive) this.marineMirror.set(p.id, { x: p.pos.c, y: p.pos.r });
+      // Seed the step-vs-turn dedupe too: unseeded, a piece's very FIRST
+      // turn-in-place plays the footstep SFX (deploy-phase rotations made
+      // this audible; the first-turn clank predates them).
+      this.lastPos.set(p.id, `${p.pos.c},${p.pos.r}`);
     }
 
     const startAll = () => { this.startMusic(); this.scheduleTracker(); };
@@ -152,6 +156,7 @@ export class AudioManager {
     });
     this.on('pieceAdded', ({ pieceId, kind, x, y }) => {
       if (kind === 'marine') this.marineMirror.set(pieceId, { x, y });
+      this.lastPos.set(pieceId, `${x},${y}`); // arrival square — a first spin is a turn, not a step
     });
     // Parity with the original inline layer this manager replaced:
     this.on('catDamaged', () => this.play('sfx_cc', 0.4));

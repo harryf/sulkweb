@@ -69,7 +69,10 @@ export class HudPanel extends Phaser.GameObjects.Container {
     this.autoLabel = undefined
     if (!on) return
     const scene = this.scene
-    const y = this.autoY
+    // Bottom-anchored: the objective, dice, status, and legend rows are all
+    // populated before deployment starts — the button must cover none of them
+    // (reviewer finding, 2026-08-19).
+    const y = scene.scale.height - 42
     this.autoBtn = scene.add.rectangle(8, y, HUD_WIDTH - 16, 30, 0x2a4a2a)
       .setOrigin(0).setScrollFactor(0).setName('auto-deploy-btn')
       .setInteractive({ useHandCursor: true })
@@ -80,8 +83,6 @@ export class HudPanel extends Phaser.GameObjects.Container {
     this.add(this.autoBtn)
     this.add(this.autoLabel)
   }
-  /** Where the AUTO button sits — set once the DONE button's row is known. */
-  private autoY = 0
 
   constructor(scene: Phaser.Scene, miniMap: Phaser.GameObjects.Container, onDone?: () => void) {
     super(scene, 0, 0)
@@ -135,9 +136,6 @@ export class HudPanel extends Phaser.GameObjects.Container {
       fontFamily: UI_FONT, fontSize: '17px', color: '#ffffff', align: 'center', fixedWidth: HUD_WIDTH - 16
     })
     this.add(doneLabel)
-    // AUTO DEPLOY (deploy phase only) rides the dice row — no dice have been
-    // rolled yet when the button exists, and it is destroyed before any are.
-    this.autoY = doneY + 76
 
     PieceEvents.on('phaseChanged', ({ phase, turn }) => {
       this.phaseText.setText(phase === 'Deploy' ? 'DEPLOYMENT'

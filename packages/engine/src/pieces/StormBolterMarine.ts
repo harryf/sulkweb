@@ -83,7 +83,7 @@ export class StormBolterMarine extends Piece {
 
   /** Enter overwatch for 2 AP. No other action until cancelled or lost. */
   overwatchOn(): boolean {
-    if (this.jammed || this.overwatch || this.ap < 2) return false;
+    if (this.board.locked || this.jammed || this.overwatch || this.ap < 2) return false;
     this.ap -= 2;
     this.overwatch = true;
     this.freeShot = false;
@@ -174,7 +174,7 @@ export class StormBolterMarine extends Piece {
 
   /** Clear a jammed bolter for 1 AP. */
   unjam(): boolean {
-    if (!this.jammed || this.ap < 1) return false;
+    if (this.board.locked || !this.jammed || this.ap < 1) return false;
     this.ap -= 1;
     this.jammed = false;
     PieceEvents.emit('jammed', { pieceId: this.id, jammed: false });

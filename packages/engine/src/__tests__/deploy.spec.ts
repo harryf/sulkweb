@@ -72,8 +72,13 @@ describe('GameEngine deployment phase (ISC-798..811)', () => {
     const e = new GameEngine(loadMission('space_hulk_1'));
     expect(e.beginDeployment()).toBe(true);
     expect(e.beginDeployment()).toBe(false); // already deploying
-    const live = new GameEngine(loadMission('space_hulk_1'));
-    live.endMarinePhase(); // turn 2 now
+    // endMarinePhase runs the whole turn synchronously and lands back at
+    // MarineAction with turnNumber 2 — so THIS refusal is the turn guard,
+    // not the phase guard (asserted explicitly to keep it that way).
+    const live = new GameEngine(loadMission('space_hulk_1'), [], new SeededRng(1));
+    live.endMarinePhase();
+    expect(live.phase).toBe('MarineAction');
+    expect(live.turnNumber).toBe(2);
     expect(live.beginDeployment()).toBe(false);
     const debug = new GameEngine(loadMission('debug_1')); // one deploy square
     expect(debug.beginDeployment()).toBe(false);
@@ -139,14 +144,35 @@ describe('GameEngine deployment phase (ISC-798..811)', () => {
   it('Anti: normal piece actions are dead during Deploy — the board is locked (ISC-805)', () => {
     const e = new GameEngine(twoSquadMission() as any);
     e.beginDeployment();
-    const a = e.reserve[0];
+    const a = e.reserve[2]; // Abraham's storm bolter — the full verb surface
     e.deployMarine(a.id, 0, 1);
     expect(a.tryMove(1, 0)).toBe(false);
     expect(a.tryTurn(1)).toBe(false);
     expect(e.spendCP(a)).toBe(false);
+    // The lock covers the quieter verbs too: overwatch, unjam, doors
+    // (reviewer finding — these lacked the locked check the movers had).
+    expect((a as any).overwatchOn()).toBe(false);
+    expect((a as any).unjam()).toBe(false);
+    expect(a.useDoor()).toBe(false);
+    expect(a.ap).toBe(a.apInitial); // nothing above spent a point
     e.endMarinePhase(); // no-op in Deploy
     expect(e.phase).toBe('Deploy');
     expect(e.turnNumber).toBe(1);
+  });
+
+  it('a stray piece squatting a deploy square never strands a marine (reviewer F3)', async () => {
+    const { Genestealer } = await import('../pieces/Genestealer.js');
+    const e = new GameEngine(twoSquadMission() as any);
+    // A stealer parks on one of Abraham's three squares BEFORE deployment.
+    new Genestealer(e.state.board, { c: 1, r: 1 }, 0);
+    e.beginDeployment();
+    e.finishDeployment();
+    expect(e.phase).toBe('MarineAction');
+    expect(e.reserve).toHaveLength(0); // nobody left in limbo
+    expect(e.marines).toHaveLength(6); // all six landed somewhere
+    // The displaced marine took the nearest free passable square instead.
+    const squares = new Set(e.marines.map(m => `${m.pos.c},${m.pos.r}`));
+    expect(squares.size).toBe(6);
   });
 
   it('autoDeploy fills only free squares per squad; player placements untouched (ISC-806)', () => {
@@ -160,11 +186,49 @@ describe('GameEngine deployment phase (ISC-798..811)', () => {
     expect(e.reserve).toHaveLength(0);
     expect(e.marines).toHaveLength(6);
     expect(flamer.pos).toEqual({ c: 2, r: 1 }); // never moved
-    // Harken auto-order, front (x=9, left-facing) to back: bolter, sergeant, flamer.
     const at = (x: number, y: number) => e.state.board.pieceAt({ c: x, r: y }) as any;
+    // Abraham's remaining squares fill around the manual placement, still in
+    // battle order: bolter takes the best free square (x=1), sergeant behind.
+    expect(at(1, 1).spriteKey).toBe('terminator_storm_bolter');
+    expect(at(0, 1).spriteKey).toBe('terminator_sergeant');
+    // Harken auto-order, front (x=9, left-facing) to back: bolter, sergeant, flamer.
     expect(at(9, 6).spriteKey).toBe('terminator_storm_bolter');
     expect(at(10, 6).spriteKey).toBe('terminator_sergeant');
     expect(at(11, 6).spriteKey).toBe('terminator_heavy_flamer');
+  });
+
+  it('scattered mixed-facing squads (Exterminate) fill completely, one marine per squad square', () => {
+    // space_hulk_2's squad Constantine deploys one-per-room with right AND
+    // down facings mixed — the hardest geometry for front-to-back ordering.
+    // The pin: the phase always terminates with every square correctly held.
+    const e = new GameEngine(loadMission('space_hulk_2'));
+    e.beginDeployment();
+    e.finishDeployment();
+    expect(e.reserve).toHaveLength(0);
+    expect(e.marines).toHaveLength(5);
+    for (const d of e.mission.marineDeployment ?? []) {
+      const p = e.state.board.pieceAt({ c: d.x, r: d.y }) as any;
+      expect(p?.kind).toBe('marine');
+      expect(p.facing).toBe(FACING_WORD[d.facing ?? 'down']); // mission default facing
+    }
+  });
+
+  it('interleaved two-squad grids (Defend) respect squad squares; flamerAmmo survives reserve', () => {
+    const e = new GameEngine(loadMission('space_hulk_6'));
+    e.beginDeployment();
+    e.finishDeployment();
+    expect(e.reserve).toHaveLength(0);
+    expect(e.marines).toHaveLength(10);
+    // Every marine stands on a square tagged with HIS squad (Luther/Snow interleave).
+    for (const m of e.marines) {
+      const sq = e.deploySquareAt(m.pos.c, m.pos.r);
+      expect(sq?.squad).toBe(e.deploySquadOf(m.id));
+    }
+    // The mission 6 post-deploy ammo override was applied at construction and
+    // marines keep object identity through reserve — 4 shots, not 6.
+    const flamers = e.marines.filter(m => m.spriteKey === 'terminator_heavy_flamer') as any[];
+    expect(flamers.length).toBeGreaterThan(0);
+    for (const f of flamers) expect(f.ammo).toBe(4);
   });
 
   it('finishDeployment deploys the rest, unlocks, and opens the marine phase (ISC-807)', () => {

@@ -145,7 +145,7 @@ export class GameEngine {
       }
     })
     PieceEvents.on('doorToggled', () => {
-      if (PieceEvents.replaying) return // animation replays past events — not new sight lines
+      if (PieceEvents.replaying || this.phase === 'Deploy') return // replays and pre-game staging — not new sight lines
       if (this.state.result === 'ongoing') convertRevealedBlips(this.state.board)
     })
     // A death vacates a square, which can OPEN sight lines: a marine shooting
@@ -154,7 +154,7 @@ export class GameEngine {
     // deaths happen inside capture(), where handlers are suppressed —
     // runStealerActions re-checks sight itself after every AI action.)
     PieceEvents.on('pieceDied', () => {
-      if (PieceEvents.replaying) return
+      if (PieceEvents.replaying || this.phase === 'Deploy') return
       if (this.state.result === 'ongoing') convertRevealedBlips(this.state.board)
       // Kill-quota: the original announces victory at phase boundaries
       // (phases.py:774/973), but between the quota-reaching kill and the
@@ -328,10 +328,27 @@ export class GameEngine {
   finishDeployment(): void {
     if (this.phase !== 'Deploy') return
     this.autoDeploy()
+    // Whatever is still in reserve — squad-less extraPieces marines, or a
+    // marine whose squad squares were stolen (a stray piece parked on a
+    // deploy square counts as occupied) — MUST land: reserve is never
+    // non-empty once the phase is MarineAction, or the marine is stranded
+    // off-board for the whole mission. Free deploy squares first, then the
+    // nearest free passable square to his squad's deployment area.
     for (const m of [...this.reserve]) {
-      const free = (this.mission.marineDeployment ?? [])
-        .find(d => !this.state.board.isOccupied({ c: d.x, r: d.y }))
-      if (!free) break
+      const deploys = this.mission.marineDeployment ?? []
+      let free: { x: number; y: number; facing?: 'up'|'right'|'down'|'left' } | undefined =
+        deploys.find(d => !this.state.board.isOccupied({ c: d.x, r: d.y }))
+      if (!free) {
+        const anchor = deploys.find(d => d.squad === this.deployMeta.get(m.id)?.squad) ?? deploys[0]
+        if (!anchor) break
+        const cheb = (x: number, y: number) => Math.max(Math.abs(x - anchor.x), Math.abs(y - anchor.y))
+        const fallback = this.state.board.allSquares()
+          .filter(sq => this.state.board.isPassable({ c: sq.x, r: sq.y }, true)
+            && !this.state.board.isOccupied({ c: sq.x, r: sq.y }))
+          .sort((a, b) => cheb(a.x, a.y) - cheb(b.x, b.y))[0]
+        if (!fallback) break // a board with zero free squares — nothing sane exists
+        free = { x: fallback.x, y: fallback.y, facing: anchor.facing }
+      }
       const idx = this.reserve.indexOf(m)
       this.reserve.splice(idx, 1)
       m.pos = { c: free.x, r: free.y }

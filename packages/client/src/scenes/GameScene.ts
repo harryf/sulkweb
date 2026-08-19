@@ -456,8 +456,20 @@ export default class GameScene extends Phaser.Scene {
 
     this.cursors = this.input.keyboard!.createCursorKeys()
     this.wasd = this.input.keyboard!.addKeys('W,A,S,D,Q,E,Z,C,O,F,X,B,H,U,P,T,R,G,M') as any
-    this.input.keyboard!.on('keydown-ENTER', () => this.endTurn());
-    this.input.keyboard!.on('keydown-ESC', () => this.togglePause());
+    // Both single-press handlers dedupe through seenKeyEvents like every
+    // other key: under load Phaser replays the SAME native event across
+    // frames, and an un-deduped ESC double-toggles pause while a replayed
+    // ENTER slips through the momentarily-unpaused gap and ends the phase.
+    this.input.keyboard!.on('keydown-ENTER', (e: KeyboardEvent) => {
+      if (this.seenKeyEvents.has(e)) return;
+      this.seenKeyEvents.add(e);
+      this.endTurn();
+    });
+    this.input.keyboard!.on('keydown-ESC', (e: KeyboardEvent) => {
+      if (this.seenKeyEvents.has(e)) return;
+      this.seenKeyEvents.add(e);
+      this.togglePause();
+    });
     // Camera bounds — the SINGLE clamp for every scroll path (keys, drag,
     // pan()): one-tile margin for off-board markers plus MARKER_OVERHANG for
     // the wide entry/exit art (84px along one axis — up to 22px past its
@@ -506,6 +518,15 @@ export default class GameScene extends Phaser.Scene {
       this.dragVel.y = 0;
       this.lastDragAt = performance.now();
       this.cameras.main.panEffect.reset();
+    });
+    // Deploy placement fires on pointerup with a movement gate: the camera
+    // parks ON the deployment squares, so press-and-drag to pan must never
+    // silently place or pick up a marine (reviewer finding, 2026-08-19).
+    this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
+      if (!this.deployMode || this.paused) return;
+      if (p.x > this.scale.width - HUD_WIDTH) return;
+      if (p.getDistance() >= 6) return; // it was a pan, not a click
+      this.handleDeployClick(p);
     });
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
       if (this.reducedMotion) return;
@@ -691,10 +712,7 @@ export default class GameScene extends Phaser.Scene {
       // Clicks on the HUD strip (minimap, DONE) are their own controls — they
       // must never fall through and clear the selection (ISC-675).
       if (p.x > this.scale.width - HUD_WIDTH) return;
-      if (this.deployMode) {
-        if (!this.paused) this.handleDeployClick(p);
-        return;
-      }
+      if (this.deployMode) return; // placement happens on pointerup — a drag here is a pan
       const hit = this.children.list.find(obj =>
         obj.name === 'piece' && (obj as Phaser.GameObjects.Image).getBounds().contains(p.worldX, p.worldY)
       );

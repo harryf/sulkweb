@@ -4,10 +4,10 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 601/602 (hotkeys run ISC-654..670 verified; ISC-71 deferred)
+progress: 602/603 (hotkeys run ISC-654..671 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-19T10:50:00Z
+updated: 2026-08-19T11:20:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -882,7 +882,7 @@ Build & regression:
 - [x] ISC-668: Anti: no em dashes in any new player-facing string (grep added display strings)
 - [x] ISC-669: Anti: the digit keys do not collide with existing bindings — no addKeys change, dedicated keydown-DIGIT handlers with the shared seenKeyEvents dedupe (Read GameScene)
 - [x] ISC-670: full client e2e + unit suites and engine tests green, tsc clean both packages (Bash exit codes)
-- [ ] ISC-671: v0.4.6 released — main pushed, tag CI green BEFORE the release was created, release published, live bundle serves v0.4.6 with the hotkey code present (gh run watch + bundle grep)
+- [x] ISC-671: v0.4.6 released — main pushed, tag CI green BEFORE the release was created, release published, live bundle serves v0.4.6 with the hotkey code present (gh run 32244944758 success; main-BjwaXd1w.js: v0.4.6 + m-hotkey x2; keyboardHelp-Bm7SgSOc.js: select-marine + press-his-number strings)
 
 ## Test Strategy
 
@@ -1326,7 +1326,9 @@ Build & regression:
 
 ## Verification
 
-### Number-key marine selection (2026-08-19 seventh run, ISC-654..670)
+### Number-key marine selection (2026-08-19 seventh run, ISC-654..671)
+
+- ISC-671: Bash — pushed 03dcba4..b5f8d2d; tag v0.4.6; deploy run 32244944758 success BEFORE release create; release https://github.com/harryf/sulkweb/releases/tag/v0.4.6 published; live home/manual 200; main-BjwaXd1w.js has v0.4.6 + m-hotkey x2; help chunk has the select-marine strings
 
 - ISC-654/655: Playwright hotkeys spec — beta_2: pressing 2/6/0/1 each selects exactly the marine whose card wears that badge (badge↔key agreement asserted through the DOM, not duplicated mapping logic); [1] and [6] are the sergeants
 - ISC-656/663/664: vitest — synthetic 3-marine squad one still starts squad two at 6; b6 (sixth member) and c1 (third squad) get no key; map size 8

@@ -33,6 +33,15 @@ export const AUDIO_CONFIG = {
     /** Ping gain — a tick, not a klaxon. */
     gain: 0.33,
   },
+  positional: {
+    /** Chebyshev squares from the nearest living marine at (or inside) which
+     *  a positional sound plays at full gain. */
+    fullDist: 4,
+    /** At/beyond this distance the sound sits at the floor gain. */
+    farDist: 24,
+    /** Far sounds go quiet, never silent — you still HEAR the hulk move. */
+    minGain: 0.25,
+  },
 };
 
 /** Marine phase = quiet bed; stealer phase = the hulk wakes up. */
@@ -84,6 +93,22 @@ export function trackerDetune(dist: number | null): number {
   if (dist >= farDist) return 0;
   const t = (dist - nearDist) / (farDist - nearDist);
   return Math.round(detuneMax * (1 - t));
+}
+
+/**
+ * Distance attenuation for positional sounds: full gain near the squad,
+ * linear down to a floor far away (a far stealer door creaks in the dark;
+ * a marine-adjacent one plays at today's volume). Monotonic non-increasing;
+ * `null` (no living marines) plays full — silence keyed on a wipe would
+ * mute the game-over beat.
+ */
+export function distanceGainFactor(dist: number | null): number {
+  if (dist === null) return 1;
+  const { fullDist, farDist, minGain } = AUDIO_CONFIG.positional;
+  if (dist <= fullDist) return 1;
+  if (dist >= farDist) return minGain;
+  const t = (dist - fullDist) / (farDist - fullDist);
+  return 1 - t * (1 - minGain);
 }
 
 /** Chebyshev distance of the closest threat to any living marine. */

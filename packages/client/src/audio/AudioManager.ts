@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { PieceEvents } from '@sulk/engine/index.js';
 import type { GameEngine, PieceEventsType } from '@sulk/engine/index.js';
 import {
-  AUDIO_CONFIG, duckTarget, shotSfx, deathSfx, combatSfx,
+  AUDIO_CONFIG, duckTarget, shotSfx, deathSfx, combatSfx, distanceGainFactor,
   trackerIntervalMs, trackerDetune, nearestThreatDistance, SfxThrottle,
 } from './audioLogic.js';
 import { musicFile, trackForMission } from './audioManifest.js';
@@ -27,10 +27,18 @@ export class AudioManager {
   private trackerTimer?: Phaser.Time.TimerEvent;
   private throttle = new SfxThrottle();
   private lastPos = new Map<string, string>();
+  /** Living-marine positions, driven by event PAYLOADS so it stays truthful
+   *  through the stealer-phase replay (seeded from the engine at boot). */
+  private marineMirror = new Map<string, { x: number; y: number }>();
   private subs: [string, (p: never) => void][] = [];
   private over = false;
   /** e2e probe surface. */
   readonly trackKey: string;
+  /** Last one-shot actually played (key + final gain) — e2e probe surface. */
+  lastPlay: { key: string; volume: number } | null = null;
+  /** Fired on every motion-tracker cycle with the ping interval — the minimap
+   *  radar pulse rides THIS callback, so sight and sound share one clock. */
+  onPing?: (intervalMs: number) => void;
   muted = false;
 
   /** Queue every audio file for this mission. Missing files are tolerated —
@@ -57,13 +65,28 @@ export class AudioManager {
   }
 
   /** `missionKey` is the REGISTRY key (space_hulk_1…), matching the manifest —
-   *  never `mission.name`, which is a display title ("Suicide Mission"). */
-  constructor(private scene: Phaser.Scene, private engine: GameEngine, missionKey: string) {
+   *  never `mission.name`, which is a display title ("Suicide Mission").
+   *  `onPing` is taken here, not assigned after construction: when the sound
+   *  system is already unlocked, startAll fires the first tracker cycle
+   *  SYNCHRONOUSLY and a late-assigned listener would miss it. */
+  constructor(
+    private scene: Phaser.Scene, private engine: GameEngine, missionKey: string,
+    onPing?: (intervalMs: number) => void,
+  ) {
     this.trackKey = `music_${missionKey}`;
+    this.onPing = onPing;
     // localStorage can throw (private mode / storage disabled) — audio prefs
     // are never worth crashing the boot for.
     try { this.muted = localStorage.getItem(MUTE_KEY) === '1'; } catch { /* default unmuted */ }
     scene.sound.mute = this.muted;
+
+    // Positional attenuation reads THIS mirror, not the live engine: during
+    // the stealer-phase replay the engine already holds the final board, and
+    // a marine who dies on the phase's first event must keep anchoring full
+    // volume until his death actually plays (payload-not-engine invariant).
+    for (const p of this.engine.state.pieces as unknown as PieceView[]) {
+      if (p.kind === 'marine' && p.alive) this.marineMirror.set(p.id, { x: p.pos.c, y: p.pos.r });
+    }
 
     const startAll = () => { this.startMusic(); this.scheduleTracker(); };
     if (scene.sound.locked) scene.sound.once(Phaser.Sound.Events.UNLOCKED, startAll);
@@ -91,7 +114,10 @@ export class AudioManager {
     this.on('sectionFlamed', ({ shooterId, kills }) =>
       this.play(kills.includes(shooterId) ? 'sfx_selfdestruct' : 'sfx_flamer'));
     this.on('malfunction', () => this.play('sfx_selfdestruct'));
-    this.on('doorToggled', () => this.play('sfx_door'));
+    // Positional: a door creaking far from the squad plays quiet (you hear
+    // the stealers moving through the hulk); a marine's own door is adjacent
+    // to him, so it stays at full gain by the same rule.
+    this.on('doorToggled', ({ x, y }) => this.playAt('sfx_door', x, y));
     // Chainsaw ONLY for the chain-fist cut — a shot-destroyed door already
     // played its weapon's firing SFX with the shot event (user report: bolter
     // door kills sounded like the chainsaw).
@@ -99,31 +125,41 @@ export class AudioManager {
     this.on('jammed', ({ jammed }) => { if (jammed) this.play('sfx_jam'); });
     this.on('closeCombat', ({ attackerId }) => {
       const attacker = this.piece(attackerId);
-      if (attacker?.kind === 'stealer') this.playAlien('stealer_attack');
+      // A stealer attack is adjacent to a marine, so the positional rule
+      // leaves it at full gain — routed anyway for the one-rule invariant.
+      if (attacker?.kind === 'stealer') this.playAlien('stealer_attack', attacker.pos.c, attacker.pos.r);
       else this.play(combatSfx(attacker?.spriteKey));
     });
-    this.on('blipConverted', () => this.playAlien('stealer_door'));
-    this.on('pieceDied', ({ kind }) => {
+    this.on('blipConverted', ({ x, y }) => this.playAlien('stealer_door', x, y));
+    this.on('pieceDied', ({ pieceId, kind, x, y }) => {
+      if (kind === 'marine') this.marineMirror.delete(pieceId);
       const key = deathSfx(kind);
       if (!key) return;
       // A flame template can kill several pieces in one tick — one cry, not a
       // clipping chorus (Advisor 2026-08-15).
       if (!this.throttle.accept(key)) return;
-      if (key === 'sfx_stealer_death') this.playAlien('stealer_death');
+      if (key === 'sfx_stealer_death') this.playAlien('stealer_death', x, y);
       else this.play(key);
     });
     this.on('pieceMoved', ({ pieceId, x, y }) => {
+      if (this.marineMirror.has(pieceId)) this.marineMirror.set(pieceId, { x, y });
       const at = `${x},${y}`;
       if (this.lastPos.get(pieceId) === at) return; // facing turn, not a step
       this.lastPos.set(pieceId, at);
       const kind = this.piece(pieceId)?.kind;
-      if (kind === 'stealer' && this.throttle.accept('skitter')) this.playAlien('stealer_move');
+      if (kind === 'stealer' && this.throttle.accept('skitter')) this.playAlien('stealer_move', x, y);
       else if (kind === 'marine' && this.throttle.accept('clank')) this.play('sfx_move', 0.35);
+    });
+    this.on('pieceAdded', ({ pieceId, kind, x, y }) => {
+      if (kind === 'marine') this.marineMirror.set(pieceId, { x, y });
     });
     // Parity with the original inline layer this manager replaced:
     this.on('catDamaged', () => this.play('sfx_cc', 0.4));
     this.on('ductingDestroyed', () => this.play('sfx_marine_death', 0.5));
-    this.on('marineEscaped', () => this.play('sfx_move', 0.4));
+    this.on('marineEscaped', ({ pieceId }) => {
+      this.marineMirror.delete(pieceId); // off the board = off the anchor set
+      this.play('sfx_move', 0.4);
+    });
     this.on('gameOver', () => {
       this.over = true;
       this.duckTo(0, 2500);
@@ -165,15 +201,38 @@ export class AudioManager {
 
   private play(key: string, gain = AUDIO_CONFIG.sfxGain, detune = 0): void {
     if (!this.has(key)) return;
+    this.lastPlay = { key, volume: gain };
     this.scene.sound.play(key, { volume: gain, detune });
   }
 
-  /** Play a random classified alien segment for the given role. */
-  private playAlien(role: string): void {
+  /** Chebyshev distance from board square (x, y) to the nearest living
+   *  marine — read from the payload-driven mirror, never the live engine,
+   *  so replayed sounds attenuate against the board AS SHOWN (a marine
+   *  dying mid-replay anchors full volume until his death event plays). */
+  private nearestMarineDist(x: number, y: number): number | null {
+    let best: number | null = null;
+    for (const m of this.marineMirror.values()) {
+      const d = Math.max(Math.abs(m.x - x), Math.abs(m.y - y));
+      if (best === null || d < best) best = d;
+    }
+    return best;
+  }
+
+  /** Positional one-shot: gain scales with distance from the squad — the
+   *  SINGLE ingestion point for the far-quiet/near-full rule (ISC-701). */
+  private playAt(key: string, x: number, y: number, gain = AUDIO_CONFIG.sfxGain): void {
+    this.play(key, gain * distanceGainFactor(this.nearestMarineDist(x, y)));
+  }
+
+  /** Play a random classified alien segment for the given role. With a board
+   *  position, the segment attenuates by distance from the squad. */
+  private playAlien(role: string, x?: number, y?: number): void {
     const pool = ALIEN_SEGMENTS.filter(s => s.role === role);
     if (!pool.length) return;
     const seg = pool[Math.floor(Math.random() * pool.length)];
-    this.play(`alien_${seg.file}`, AUDIO_CONFIG.sfxGain * 0.7);
+    const gain = AUDIO_CONFIG.sfxGain * 0.7;
+    if (x !== undefined && y !== undefined) this.playAt(`alien_${seg.file}`, x, y, gain);
+    else this.play(`alien_${seg.file}`, gain);
   }
 
   private startMusic(): void {
@@ -237,6 +296,9 @@ export class AudioManager {
       return;
     }
     this.play('sfx_tracker_ping', AUDIO_CONFIG.tracker.gain, trackerDetune(dist));
+    // Pulse listeners fire even when the ping WAV is absent from cache — the
+    // radar sweep is scheduling, not sound (ISC-687).
+    this.onPing?.(interval);
     this.trackerTimer = this.scene.time.delayedCall(interval, () => this.scheduleTracker());
   }
 

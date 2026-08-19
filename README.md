@@ -97,6 +97,7 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
 | `Enter` / DONE | End marine phase |
 | `Esc` | Pause |
 | Arrows / drag | Pan camera |
+| Mini-map click | Jump the view to that point |
 | Mouse hover | Square coordinate + contents in the HUD (below the map legend) |
 
 ### Marine roster panel
@@ -115,6 +116,17 @@ glows gold; clicking a card selects him on the map and pans the camera.
 Stealer entry points render as the original off-board `entry.png` triangles
 (exits get `exit.png` arrows) pointing onto the board, replacing the old
 purple squares.
+
+### Mini-map auspex
+
+The mini-map doubles as the squad auspex. Living marines are steady red dots.
+Genestealers and blips only appear when the radar sweeps: a pulse ring expands
+from each living sergeant in time with the motion-tracker ping, and contacts
+light up as the wavefront passes them (so the scope refreshes faster as the
+swarm closes in). Stealers return solid green blobs, blips fainter blurry
+smears (decoys look identical: the scanner cannot tell, and neither can you).
+If both sergeants die the auspex goes dark and the swarm vanishes from the
+scope. Clicking the mini-map jumps the main view to that point.
 
 ### Sound
 
@@ -137,6 +149,10 @@ pnpm fetch-audio
   bolters fire the *Aliens* M41A pulse-rifle burst; genestealers move, attack
   and die with *Alien: Isolation* vocalisations (cut points + role guesses in
   `src/audio/alienSegments.ts` — flagged `guess` until confirmed by ear).
+- **Positional volume** — sounds the swarm makes (doors creaking open, skittering,
+  blip conversions, death cries) attenuate with distance from your squad: a door
+  opened far across the hulk creaks faintly in the dark; anything adjacent plays
+  at full volume. Marine-caused sounds are by definition close and stay full.
 - **Motion tracker** — the *Aliens* tracker ping runs continuously, its
   cadence and pitch tightening as the nearest blip closes on your marines:
   a 2.4s idle sweep at 20+ squares, a 300ms panic tick at 2.

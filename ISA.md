@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: 602/603 (hotkeys run ISC-654..671 verified; ISC-71 deferred)
+phase: verify
+progress: 653/654 (minimap radar run ISC-672..722 verified incl. review round; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-19T11:20:00Z
+updated: 2026-08-19T11:35:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -884,10 +884,69 @@ Build & regression:
 - [x] ISC-670: full client e2e + unit suites and engine tests green, tsc clean both packages (Bash exit codes)
 - [x] ISC-671: v0.4.6 released — main pushed, tag CI green BEFORE the release was created, release published, live bundle serves v0.4.6 with the hotkey code present (gh run 32244944758 success; main-BjwaXd1w.js: v0.4.6 + m-hotkey x2; keyboardHelp-Bm7SgSOc.js: select-marine + press-his-number strings)
 
+### Minimap radar: click focus, marine dots, pulsing echoes, distance audio (2026-08-19, eighth run)
+
+- [x] ISC-672: clicking the minimap centers the main camera on the corresponding world point — local px / mapScale (Playwright: click a minimap point, camera midpoint lands on the expected world coords)
+- [x] ISC-673: click-to-focus respects the existing camera bounds — a corner click clamps at setBounds, never scrolls past (Playwright corner click, scroll within bounds)
+- [x] ISC-674: the white viewport box follows a minimap click — lastBox moves toward the clicked point (Playwright lastBox before/after)
+- [x] ISC-675: Anti: a minimap click never changes the selection — the selected marine stays selected (Playwright: select, click minimap, Selection.get() unchanged)
+- [x] ISC-676: cursor-key camera panning still works after the change (Playwright: arrow key scrolls camera)
+- [x] ISC-677: the minimap-local-to-world projection is a pure unit-tested function (vitest miniToWorld)
+- [x] ISC-678: every living marine renders as a red dot at his board square on the minimap (Playwright probe: dot count equals living marines)
+- [x] ISC-679: a marine's dot follows his movement (Playwright: move marine, dot position updates)
+- [x] ISC-680: a dead marine's dot disappears (Playwright: kill, dot count drops)
+- [x] ISC-681: an escaped marine's dot disappears — the same alive filter covers death and escape (Read alive filter; ISC-659 engine pin already guarantees escape sets alive=false)
+- [x] ISC-682: stealer echoes use a solid green radial-gradient cloud texture, blip echoes a fainter wider more transparent one (Read texture generation params)
+- [x] ISC-683: stealer echo peak alpha strictly greater than blip echo peak alpha (vitest on radar config)
+- [x] ISC-684: decoy ambush counters (kind 'blip') render as blip echoes with no special case (Read kind routing; vitest predicate)
+- [x] ISC-685: echo positions project piece board squares to minimap px with the same scale as the tiles (vitest projection; Playwright probe)
+- [x] ISC-686: echoes appear only via pulses — before the first pulse none are visible (Playwright: echo count 0 at boot)
+- [x] ISC-687: AudioManager fires an onPing callback each tracker cycle with the interval, even when the ping WAV is absent from cache (Read: callback outside the cache guard)
+- [x] ISC-688: pulse rings expand from each living sergeant's minimap position (Playwright probe: pulse origins equal living sergeant squares)
+- [x] ISC-689: Antecedent: echo reveal is delayed proportionally to minimap distance from the nearest living sergeant, so the radar reads as a physical expanding wavefront rather than a UI toggle (vitest pulse timing function; Playwright delayed-appearance probe)
+- [x] ISC-690: echoes fade out over the pulse interval so each pulse visibly refreshes them (vitest: fade duration derived from interval)
+- [x] ISC-691: pulse cadence IS the tracker cadence — closer threats mean faster pulses, no separate clock (Read: onPing wired only from scheduleTracker)
+- [x] ISC-692: with no living sergeant there are no pulse rings and no echoes — stealers and blips vanish from the minimap (Playwright: kill sergeants, pulse, echo count 0)
+- [x] ISC-693: marine red dots remain visible with no living sergeant (Playwright same scenario: dots unchanged)
+- [x] ISC-694: mute does not stop the pulses — mute silences sound, not scheduling (Read: scheduleTracker runs regardless of scene.sound.mute)
+- [x] ISC-695: Anti: attract mode shows no echoes and no pulse errors — no AudioManager means no pulses, no crash (Playwright home boot, zero console errors, echo count 0)
+- [x] ISC-696: game over stops the pulses (Read: existing gameOver trackerTimer.remove path also stops onPing)
+- [x] ISC-697: Anti: echo objects are reused per piece id across pulses — repositioned, never recreated per pulse (Read: Map keyed by pieceId)
+- [x] ISC-698: pure distanceGainFactor returns 1.0 at or inside fullDist (vitest)
+- [x] ISC-699: distanceGainFactor returns minGain at or beyond farDist — quiet but never silent (vitest)
+- [x] ISC-700: distanceGainFactor is monotonic non-increasing between the bounds; null distance returns 1.0 (vitest)
+- [x] ISC-701: doorToggled SFX volume scales with the door's distance from the nearest living marine — a far stealer door plays quiet, a marine-adjacent door plays full (Playwright: emit far and near doorToggled, compare lastPlay.volume)
+- [x] ISC-702: stealer skitter volume attenuates by the mover's position (Read routing; e2e lastPlay)
+- [x] ISC-703: the blip-conversion voice attenuates by the conversion square (Read routing)
+- [x] ISC-704: the stealer death cry attenuates by the death square (Read routing)
+- [x] ISC-705: a stealer close-combat attack plays effectively full — the attacker is adjacent to a marine, inside fullDist (vitest boundary: dist 1 gives factor 1.0)
+- [x] ISC-706: AudioManager exposes a lastPlay {key, volume} probe surface for the e2e suite (Read; consumed by ISC-701)
+- [x] ISC-707: Anti: marine-caused sounds keep their current loudness — shots, flame, jam, malfunction stay unrouted at full gain (Read: those handlers unchanged)
+- [x] ISC-708: Anti: main-map rendering of stealers and blips is unchanged — the radar reveals nothing outside the minimap (git diff: no piece-sprite render path edits)
+- [x] ISC-709: Anti: no em dashes in any new player-facing string (grep new display strings)
+- [x] ISC-710: README and the in-game/manual docs mention minimap click-to-focus and the sergeant radar (Read both)
+- [x] ISC-711: typecheck clean in both packages (Bash tsc exit 0 twice)
+- [x] ISC-712: engine tests, client unit tests, and the full e2e suite green (Bash exit codes)
+- [x] ISC-713: Anti: pulse rings and echo images never paint outside the minimap rectangle — screen-space geometry mask on the ring and echo layers (Read mask construction; full-canvas screenshot mid-sweep)
+- [x] ISC-714: the radar freezes during the stealer-phase replay — no dot redraws or pulses read the final engine state ahead of the animation (Read: minimap.frozen set with animating, pulse/drawMarines gated)
+- [x] ISC-715: positional attenuation reads a payload-driven marine mirror, so replayed sounds anchor to the board AS SHOWN — a marine dying mid-replay holds full volume until his death event plays (Read mirror seeding + pieceMoved/pieceDied/marineEscaped/pieceAdded upkeep)
+- [x] ISC-716: the echo timing envelope (delay + ramp + fade) always fits the pulse interval — at panic cadence the DELAY collapses, never the ramp or the dwell floor (vitest)
+- [x] ISC-717: the first tracker cycle cannot be missed — the ping callback rides the AudioManager constructor ahead of any synchronous startAll (Read)
+- [x] ISC-718: click-to-focus centres the clicked point in the VISIBLE play area, offsetting the HUD-covered half of the canvas (Read onFocus +HUD_WIDTH/2)
+- [x] ISC-719: beta_2 pulses ride BOTH sergeants (origins = both positions) and one sergeant's death leaves the other's auspex alive (Playwright)
+- [x] ISC-720: the kind-to-style wiring is pinned end to end — the stealer's echo wears echo_stealer, the blip's echo_blip, via the echoTexture probe (Playwright)
+- [x] ISC-721: Anti: marine gunfire is never attenuated — a shot event plays at exactly the full SFX gain (Playwright lastPlay)
+- [x] ISC-722: the live onPing wiring pulses the minimap with no test scaffolding — lastPulse set by the real scheduler alone (Playwright waitForFunction)
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
+| ISC-672..676,678..680,686,688..689,692..693,695,701,719..722 | UI/e2e | minimap click/dot/echo probes via window.sulk + lastPlay volume compare | all new minimap/audio e2e tests pass | Bash playwright |
+| ISC-713..718 | review-round | mask screenshot, frozen/mirror/constructor Reads, envelope vitest | as stated per ISC | Read / vitest / screenshot |
+| ISC-677,683..685,689..690,698..700,705 | unit | miniToWorld, radar config + timing fns, distanceGainFactor curve | all new vitest cases pass | Bash vitest |
+| ISC-681..682,687,691,694,696..697,702..704,706..710 | inspection | Read routing/guards/texture params, git diff scope, grep | as stated per ISC | Read / Bash grep |
+| ISC-711..712 | build | tsc + full suites | exit 0 everywhere | Bash |
 | ISC-654..655,657..658,660..662,665..666 | UI/e2e | number-press Selection assertions + card badge DOM | all hotkey tests pass | Bash playwright |
 | ISC-656,659,663..664,667..669 | unit/docs | assignHotkeys vitest, Read guards + docs, grep | as stated per ISC | Bash vitest / Read / grep |
 | ISC-636..641,644..645,652 | UI/e2e | staged key presses + help DOM class assertions | all updated keymap/audio/help tests pass | Bash playwright |
@@ -1011,8 +1070,16 @@ Build & regression:
 | hive-objectives | Destination awareness: recklessness, wave budget, objective camping | ISC-582..586 | hive-waves | no |
 | hive-hunger | Idle frustration: forced assault, deadlock-breaking blip conversion | ISC-587,588,590 | hive-waves | no |
 | spawn-fanout | Entry rotation by turn + prefer-unseen entries | ISC-589 | — | yes |
+| minimap-click | Interactive rect child on Minimap, miniToWorld projection, centerOn, HUD guard on selection handler | ISC-672..677 | — | no |
+| minimap-dots | Red living-marine dots redrawn in updateCam | ISC-678..681 | minimap-click | no |
+| radar-echoes | Canvas radial cloud textures, echo Map keyed by pieceId, pulse reveal + fade, wavefront delay from nearest sergeant | ISC-682..697 | minimap-dots | no |
+| radar-ping-bridge | AudioManager.onPing(interval) fired from scheduleTracker; GameScene wires to minimap.pulse | ISC-687,691,694,696 | radar-echoes | no |
+| distance-audio | distanceGainFactor pure fn + playAt/playAlienAt routing for positional stealer sounds, lastPlay probe | ISC-698..707 | — | yes |
+| radar-docs-tests | README/manual notes, new unit + e2e suites, full verification | ISC-708..712 | all above | no |
 
 ## Decisions
+
+- 2026-08-19 (minimap-radar run, E3 classifier, ISC-672..712): User follow-up on v0.4.6: minimap click-to-focus, marine red dots, fuzzy stealer/blip echoes revealed by a sergeant-origin pulse synced to the pulse-radar sound, and distance attenuation for stealer-caused SFX. DESIGN: the "pulse radar sound" already exists — the motion-tracker ping in AudioManager.scheduleTracker, whose cadence tightens with threat distance — so the minimap pulse is driven by a new onPing(interval) callback fired from that scheduler and by NOTHING else: sight and sound lock together with zero new clocks, and the speed-coupling the user asked for comes free. Echo model: snapshot threat positions at pulse time, reveal each echo after a delay proportional to its minimap distance from the NEAREST living sergeant (an expanding wavefront, ring visuals to match), fade over the pulse interval so the next pulse refreshes — stale-between-pulses is the radar fiction, not a bug. No living sergeant → no pulse, no echoes (the sergeant carries the scanner); marine dots stay. Blips are already visible counters on the main map (only their VALUE is hidden), so echoes leak nothing; AmbushCounter decoys have kind 'blip' and inherit the fainter styling with no special case. Cloud textures generated at boot from canvas radial gradients (solid green for stealers, wider/fainter for blips) — no new assets. Click-to-focus reuses the proven interactive-rectangle-child pattern (DONE button precedent) + cam.centerOn with existing setBounds clamping; the global pointerdown selection handler gains the same HUD-region guard the drag-pan and hover handlers already have — TODAY a minimap/HUD click silently clears the selection, which would make look-around recon self-defeating. Attenuation: ONE pure rule at ONE ingestion point — playAt(key, x, y) scales gain by Chebyshev distance from the nearest living marine (full ≤ fullDist, floor minGain at ≥ farDist, never silent); marine-caused sounds are at/adjacent to a marine so the uniform rule leaves them at full volume by construction, and only positional stealer-side handlers (doorToggled, skitter, blip-convert, stealer CC, stealer death) route through it. Pure logic (radarLogic.ts, distanceGainFactor) stays jsdom-testable. ISC floor: 41 fresh ISCs meet the E3 ≥32 floor naturally (51 after the review round). Delegation: Forge auto-include at E3 unavailable — codex binary absent (verified `which codex`, 4th occurrence) — slot covered by TWO reviewer agents (code-reviewer + pr-test-analyzer) per the established precedent. REVIEW ROUND (advisor + two parallel agents; nine adoptions, four reasoned skips): ADOPTED (1, reviewer severity 8, CONFIRMED) — pulse rings were unclipped: containers do not clip children, the sweep radius is the minimap DIAGONAL, and HudPanel sits at depth 10, so every ping painted green arcs across the right ~190px of the board; fixed with a screen-space GeometryMask (scrollFactor 0, off the display list) over the ring and echo layers, proven by a full-canvas mid-sweep screenshot. (2, severity 6) — the radar read LIVE engine state during the stealer-phase replay, spoiling deaths/conversions seconds before their animations (the codebase's own payload-not-engine invariant); minimap.frozen now tracks scene.animating: dots hold their last frame, pulses skip. (3, severity 5) — same root cause in attenuation: nearestMarineDist now reads a payload-driven marineMirror (seeded at boot; pieceMoved/pieceDied/marineEscaped/pieceAdded upkeep) so a marine dying on the phase's first replayed event anchors full volume until his death plays. (4, severity 5) — at cadences under ~1100ms the wavefront delay left echoes no room to finish their 110ms ramp before the next pulse reset them, and the minFadeMs floor was unreachable exactly at panic; the envelope (delay+fadeInMs+fade) is now budgeted against the interval with the DELAY yielding first, and the unit test that pinned the unreachable fade was rewritten around the real envelope. (5, severity 4) — centerOn centred clicks on the CANVAS, whose right 200px is opaque HUD, landing every focus 100px right of the visible centre; +HUD_WIDTH/2 offset. (6, severity 3) — with sound already unlocked, AudioManager's constructor fired the first tracker cycle synchronously BEFORE create() assigned onPing, silently dropping the first sweep; the callback now rides the constructor. (analyzer 1, severity 7) — the live onPing→pulse wiring was never executed by any test (every echo e2e detached it for determinism): deleting the one wiring line kept all suites green while shipping a radar that never sweeps; a no-scaffolding e2e now waits for the real scheduler to set lastPulse (the advisor independently demanded the same test — adopted once). (analyzer 2, severity 6) — beta_2's two-sergeant path (nearest-origin Math.min and any-alive gating) was unexercised; structural e2e added: both origins present, one death leaves the scope alive. (analyzer 3, severity 5) — kind→texture/alpha wiring was swappable with all suites green; echoTexture(id) probe added and pinned per kind. (analyzer 4, severity 4) — README's "marine sounds stay full" claim was untested; a shot event is now pinned at exactly full gain. SKIPPED with reasons: echo-cleanup-loop test (engine-verified that converted blips get NEW stealer ids so cleanup is leak-prevention only, no visible ghost); wavefront-stagger timing e2e (sub-second tween assertions in CI are a flake magnet, the pure pulseTimings units own that math — analyzer's own recommendation); pause/game-over pulse tests (pre-existing shared paths, near-tautological); reviewer finding 7 (minimap click during pause) resolved as NO CHANGE — arrow and drag panning already move the camera while paused, so camera-free-while-paused is the existing contract and the click is consistent with it. Reviewer verified clean from Phaser 3.90 source: killTweensOf destroys tweens and nulls callbacks, so the nested fade tween cannot resurrect a killed echo; same-frame tweens are discoverable (no pre-3.60 _pending hole); the nested-container hit test composes parent transforms but not parent scroll factors, exactly as the clickZone comment claims; fillAlpha 0 keeps the hit test alive; the HUD guard blocks only the selection handler (audio unlock and DONE still fire). Nitpicks adopted: once-per-game texture comment, probe-unit JSDoc (dots in minimap px, origins in board squares). Known bounded leak accepted: when the last threat dies the tracker parks and never pulses, so the final already-invisible echo Images outlive their contacts until scene shutdown.
 
 - 2026-08-19 (marine-hotkeys run, E3 classifier, ISC-654..670): User follow-up on v0.4.5: number keys 1-0 select marines "to allow play without requiring the mouse". DESIGN: one pure function, assignHotkeys(entries) in marineNames.ts, is the single source — GameScene binds keydown-ONE..ZERO from it, RosterPanel renders the [n] badges from it, both computed from the SAME scene-start roster (deterministic equality, no shared mutable state). Numbering is positional per squad BLOCK in DISPLAYED card order (groupBySquad: sergeant, specials, bolters) — so [1]/[6] are always the sergeants, and squad two starts at 6 even when squad one is short, exactly the user's "1-5 first unit, 6-0 second unit". The map is computed ONCE, so numbers never reshuffle on death — the key goes inert instead, via a single new !piece.alive guard in selectFromRoster (GameEngine.tryEscape sets alive=false identically to death, so escape is covered by the same line). The digit press reuses selectFromRoster wholesale — attract/pause/replay/game-over guards, flamer-aim disarm, selected emit, and the camera pan all come free and stay identical to a card click. e2e asserts badge↔key AGREEMENT through the DOM (the card wearing [6] is what key 6 selects) rather than re-deriving the mapping — the contract the player actually reads. ISC floor show-math: 17 fresh ISCs vs the E3 ≥32 soft floor — the feature decomposes to 17 binary probes on a project ISA carrying 670 cumulative; padding would violate the granularity gate (accepted precedent: fifth run, 10). Delegation: Forge auto-include at E3 unavailable — codex binary absent (verified `which codex`, 3rd occurrence, 2026-08-15/18 precedent) — slot covered by TWO reviewer agents (code-reviewer on the diff, pr-test-analyzer on coverage), meeting the ≥2 floor. REVIEW ROUND (two agents in parallel — code-reviewer on the diff, pr-test-analyzer on coverage; five adoptions, two explicit skips): (1) ADOPTED both agents' shared finding — the ESCAPED half of badge removal was untested (a refactor moving the .remove() out of markState kept every suite green); the existing ESCAPED unit test now asserts .m-hotkey is null. (2) ADOPTED (analyzer severity 7) — the entire escaped-key-inertness claim rested on tryEscape's alive=false with NO test pinning it anywhere; a plausible "escaped isn't dead" refactor would have silently un-guarded the client. Engine escape test now asserts m.alive === false (ISC-659's contract, engine-side). (3) ADOPTED — the purity unit test was tautological (assignHotkeys reads no engine state, the assertion could not fail for ANY implementation); deleted with an explanatory comment, the bind-once invariant stays pinned by the e2e kill-then-repress test. (4) ADOPTED — Cmd/Ctrl/Alt+digit now bails before the dedupe: the browser's tab-switch shortcut must never double as a silent selection change (reviewer flagged speculative on whether Chrome dispatches the keydown; the guard is unconditionally correct either way). (5) ADOPTED (nearly free) — space_hulk_1 e2e now presses 6 and asserts no selection change: single-squad missions leave 6-0 unbound by construction, now pinned. SKIPPED with reasons: animating/game-over guard tests (pre-existing shared selectFromRoster path this diff didn't touch; animating window is a Playwright flake magnet) and a numpad-absence test (asserting a binding nobody wrote guards nothing). Reviewer verified clean: double-source risk (groupBySquad never mutates input — displayOrder sorts a spread copy), handler leak (scene never restarts; Phaser shutdown removes listeners), key collisions (digits reach no other handler; specific-before-generic emit order makes the digit claim the dedupe entry before the movement block), em dashes (8 new ones, all code comments). One full-suite audio-fade flake (home.spec:140) passed in isolation and on the immediate full-suite re-run — pre-existing timing sensitivity, unrelated to this diff.
 
@@ -1325,6 +1392,51 @@ Build & regression:
 **Criterion now:** ISC-375 (five consecutive full-suite runs 40/40), handleFire carries a comment forbidding time-based debounce, flamer e2e aims via page.mouse.move.
 
 ## Verification
+
+### Minimap radar (2026-08-19 eighth run, ISC-672..712)
+
+- ISC-672/674/675: Playwright radar spec — click at minimap local (92,140) lands cam.midPoint.y within one tile of local/mapScale world y (669.6); lastBox.y changed; Selection.get() unchanged across the click (the in-flight selection pan is reset first — panEffect.reset() in onFocus, found by the test itself: the 250ms pan stomped centerOn next frame)
+- ISC-673: Playwright — corner click clamps scrollX/scrollY to cam.getBounds() min exactly; bottom-edge click clamps scrollY to bounds max (computed live from cam.height, no hardcoded geometry)
+- ISC-676: Playwright — ArrowDown held 250ms still increases scrollY after the change
+- ISC-677: vitest — miniToWorld inverts the projection (92,46 at sh1 scale → 440,220; corners map to corners)
+- ISC-678/679/680: Playwright (debug_1 — sh1 deploys the squad boxed in with no legal step) — lastMarineDots.length equals living marines; a tryMove step changes the dot set next frame; alive=false drops the count by one (per-frame redraw reads engine alive directly)
+- ISC-681: Read — drawMarines filters on p.alive, the same flag tryEscape sets false (engine-side pin from ISC-659 still green)
+- ISC-682: Read makeCloudTexture — stealer texture coreAlpha 1/coreStop 0.35 (tight solid core), blip 0.55/0.15 (early-fading smear); screenshot radar-pulse.png shows both solidities on the live scope
+- ISC-683: vitest — stealerAlpha 0.9 > blipAlpha 0.38, blipSizePx 15 > stealerSizePx 11
+- ISC-684: Read — echo texture keyed on kind === 'stealer' ternary; AmbushCounter extends Blip (kind 'blip'), no special case exists to get wrong
+- ISC-685: Read toMini — (c+0.5)*tile*mapScale, the same scale the tile images use; screenshot shows echoes seated on the corridor grid
+- ISC-686: Playwright — with three stealers spawned and NO pulse fired (onPing detached), activeEchoes() === 0
+- ISC-687: Read scheduleTracker — this.onPing?.(interval) sits outside play()'s cache guard; a missing tracker WAV silences the ping but not the sweep
+- ISC-688: Playwright — lastPulse.origins deep-equals the living sergeants' board squares
+- ISC-689: vitest — delay 0 at the origin, monotonic with distance, exactly ringDurationMs at max range, clamps beyond, degenerate maxPx=0 never divides by zero; Playwright: echoes revealed after the pulse
+- ISC-690: vitest — fadeMs = interval - delay, clamped at minFadeMs 250 under panic cadence
+- ISC-691: grep — onPing is invoked exactly once in the codebase (scheduleTracker) and minimap.pulse is wired exactly once (GameScene onPing); no other clock exists
+- ISC-692: Playwright — all sergeants alive=false, pulse: lastPulse.origins [], activeEchoes 0 (clearEchoes destroys immediately)
+- ISC-693: Playwright — same scenario, lastMarineDots.length > 0
+- ISC-694: Read — scheduleTracker rechecks only this.over; scene.sound.mute silences playback, never scheduling
+- ISC-695: Playwright — homepage: sulk.audio null, activeEchoes 0, lastPulse null, zero pageerror events
+- ISC-696: Read — gameOver handler removes trackerTimer and sets over; scheduleTracker bails on this.over, so no further onPing fires
+- ISC-697: Read — echoes is a Map<pieceId, Image>; pulse repositions and re-tweens the existing image, creating one only on first contact and destroying only when the contact leaves the board
+- ISC-698/699/700/705: vitest — factor 1 at 0/1/fullDist; minGain at farDist and beyond; monotonic non-increasing sweep 0..farDist+2; null → 1; dist 1 (CC adjacency) → 1
+- ISC-701/706: Playwright — synthetic doorToggled at a marine's own square: lastPlay {key: sfx_door, volume: 0.8}; at the board square farthest from every living marine (Chebyshev, computed live): volume < 0.8 and ≥ 0.2 floor
+- ISC-702/703/704: Read — stealer skitter playAlien('stealer_move', x, y), blipConverted playAlien('stealer_door', x, y), stealer death playAlien('stealer_death', x, y) — all through playAt's single gain rule
+- ISC-707: git diff — shot/sectionFlamed/malfunction/jammed handlers untouched; marine clank and marine death unrouted
+- ISC-708: git diff grep — zero additions touching createSprite/pieceSprites/setTexture in GameScene; the change set is minimap + audio + docs + tests only
+- ISC-709: git diff grep — zero em dashes in the new KEY_NOTES line and manual auspex HTML
+- ISC-710: Read — README controls row "Mini-map click", README "Mini-map auspex" section + "Positional volume" sound bullet; manual SECTIONS gains id 'auspex'; KEY_NOTES gains the mini-map line
+- ISC-711: Bash — tsc --noEmit exit 0 in packages/client and packages/engine (re-run clean after the review round)
+- ISC-712: Bash — engine vitest 288/288; client unit 58/58 (8 files, radarLogic at 100% coverage); full Playwright e2e 78/78 (69 existing + 9 radar, incl. review-round additions)
+- ISC-713: Read Minimap mask construction (make.graphics off-list, scrollFactor 0, fillRect at the minimap's screen rect, GeometryMask on ringGfx + echoLayer); screenshot radar-mask-full.png: mid-sweep arc clipped exactly at the minimap rectangle, zero paint over the board
+- ISC-714: Read — endTurn sets minimap.frozen with animating, finishReplay clears both; updateCam skips drawMarines and pulse() returns early while frozen
+- ISC-715: Read — marineMirror seeded from engine at construction; pieceMoved updates ids it holds, pieceDied(kind marine)/marineEscaped delete, pieceAdded(marine) inserts; nearestMarineDist iterates the mirror only
+- ISC-716: vitest — fadeMs = interval - delay - fadeInMs at generous cadence, envelope sum ≤ interval, panic delay collapses to 0 with fade at the 250ms floor
+- ISC-717: Read — AudioManager constructor takes onPing as its fourth parameter and assigns before the startAll branch; GameScene passes the pulse callback at construction
+- ISC-718: Read — onFocus does panEffect.reset() then centerOn(wx + HUD_WIDTH / 2, wy), centring in the visible play area left of the opaque HUD strip
+- ISC-719: Playwright beta_2 — lastPulse.origins (set-compared) equals both living sergeants' squares; after one sergeant dies, one origin remains and activeEchoes > 0 at 900ms
+- ISC-720: Playwright — echoTexture(spawned stealer id) === 'echo_stealer', echoTexture(boot blip id) === 'echo_blip' immediately after pulse
+- ISC-721: Playwright — synthetic shot from a living marine: lastPlay.volume exactly 0.8
+- ISC-722: Playwright — no manual pulse() call in the test; waitForFunction(lastPulse !== null, 8s) satisfied by the real tracker scheduler after the unlock click; origins non-empty
+- Screenshots: scratchpad radar-pulse.png (red dot column, one solid + several faint green echoes mid-sweep), radar-dark.png (same board, sergeant dead: dots only, scope dark), radar-mask-full.png (full canvas: ring clipped to the minimap)
 
 ### Number-key marine selection (2026-08-19 seventh run, ISC-654..671)
 

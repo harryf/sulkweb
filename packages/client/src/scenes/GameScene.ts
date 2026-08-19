@@ -24,6 +24,8 @@ export default class GameScene extends Phaser.Scene {
   private hud!: import('../ui/HudPanel.js').HudPanel;
   /** DOM roster card panel — public for the e2e suite. */
   roster!: RosterPanel;
+  /** Minimap radar — public for the e2e suite (pulse + probe surfaces). */
+  minimap!: Minimap;
 
   private readonly engine: GameEngine
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
@@ -400,6 +402,16 @@ export default class GameScene extends Phaser.Scene {
     // Create Minimap (sized to fit inside the HUD panel)
     const minimap = new Minimap(this, this.engine, { tile: TILE_SIZE, width: HUD_WIDTH - 2 * MINI_MAP_MARGIN });
     minimap.setScrollFactor(0); // fixed to screen
+    this.minimap = minimap;
+    // Click-to-focus: centre the camera on the clicked point — setBounds
+    // clamps at the map edges, and updateCam moves the white box to match.
+    // An in-flight selection pan must yield, or it stomps the click next frame.
+    // The +HUD_WIDTH/2 shift centres the point in the VISIBLE play area: the
+    // camera spans the whole canvas, whose right 200px is the opaque HUD.
+    minimap.onFocus = (wx, wy) => {
+      this.cameras.main.panEffect.reset();
+      this.cameras.main.centerOn(wx + HUD_WIDTH / 2, wy);
+    };
 
     // Create HUD panel (right-hand strip) and re-parent minimap into it
     this.hud = new HudPanel(this, minimap, () => this.endTurn());
@@ -453,7 +465,12 @@ export default class GameScene extends Phaser.Scene {
     // constructed in attract mode — a click on the landing overlay is a
     // browser autoplay unlock, and the homepage must stay silent.
     if (!this.attract) {
-      this.audio = new AudioManager(this, this.engine, this.missionKey);
+      // The minimap radar sweeps on the motion-tracker ping — one clock for
+      // sight and sound, so the pulse speeds up as the threats close in. The
+      // callback rides the constructor: with sound already unlocked the first
+      // cycle fires synchronously inside it, before any later assignment.
+      this.audio = new AudioManager(this, this.engine, this.missionKey,
+        (ms) => this.minimap.pulse(ms));
       (window as any).sulk.audio = this.audio;
       this.input.keyboard!.on('keydown-K', (e: KeyboardEvent) => {
         if (this.seenKeyEvents.has(e)) return; // Phaser replay — one toggle per press
@@ -540,6 +557,9 @@ export default class GameScene extends Phaser.Scene {
     // Input handler for piece selection
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       if (this.animating) return;
+      // Clicks on the HUD strip (minimap, DONE) are their own controls — they
+      // must never fall through and clear the selection (ISC-675).
+      if (p.x > this.scale.width - HUD_WIDTH) return;
       const hit = this.children.list.find(obj =>
         obj.name === 'piece' && (obj as Phaser.GameObjects.Image).getBounds().contains(p.worldX, p.worldY)
       );
@@ -859,6 +879,10 @@ export default class GameScene extends Phaser.Scene {
       return;
     }
     this.animating = true;
+    // Freeze the radar: mid-replay the engine holds FINAL state, and dots or
+    // echoes drawn from it would spoil deaths and conversions the animation
+    // has not shown yet (same payload-not-engine invariant the sprites obey).
+    this.minimap.frozen = true;
     let at = 80;
     for (const ev of stream) {
       this.time.delayedCall(at, () => PieceEvents.replay(ev));
@@ -870,6 +894,7 @@ export default class GameScene extends Phaser.Scene {
   /** Replay done: engine truth wins. Reconcile every sprite, restart the clock. */
   private finishReplay(): void {
     this.animating = false;
+    this.minimap.frozen = false;
     const live = new Set(this.engine.state.pieces.map(p => p.id));
     for (const p of this.engine.state.pieces) {
       if (!this.pieceSprites[p.id]) this.createPieceSprite(p as Piece);

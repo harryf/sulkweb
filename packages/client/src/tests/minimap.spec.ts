@@ -1,4 +1,5 @@
-import { projectCamToMini } from '../utils/cameraBox'
+import { projectCamToMini, miniToWorld } from '../utils/cameraBox'
+import { RADAR, echoAlpha, isSergeant, pulseTimings, ringDurationMs } from '../utils/radarLogic'
 
 describe('projectCamToMini', () => {
   const board = { w: 1000, h: 1000 }
@@ -63,5 +64,71 @@ describe('projectCamToMini', () => {
     const b = projectCamToMini({ x: 0, y: 0, w: 100, h: 100 }, board, { x: 0, y: 0, w: 1, h: 1 }, 4)
     expect(b.w).toBeGreaterThanOrEqual(0)
     expect(b.h).toBeGreaterThanOrEqual(0)
+  })
+})
+
+describe('miniToWorld (ISC-677)', () => {
+  it('inverts the minimap projection: local px / mapScale = world px', () => {
+    // space_hulk_1 geometry: 22 tiles * 40px board width, 184px minimap.
+    const mapScale = 184 / (22 * 40)
+    const w = miniToWorld(92, 46, mapScale)
+    expect(w.x).toBeCloseTo(440) // half the board width
+    expect(w.y).toBeCloseTo(220)
+    // Corners map to corners.
+    expect(miniToWorld(0, 0, mapScale)).toEqual({ x: 0, y: 0 })
+    expect(miniToWorld(184, 184, mapScale).x).toBeCloseTo(880)
+  })
+})
+
+describe('radar logic (ISC-683/684/689/690)', () => {
+  it('stealer echoes are strictly more solid than blip echoes (ISC-683)', () => {
+    expect(echoAlpha('stealer')).toBe(RADAR.stealerAlpha)
+    expect(echoAlpha('blip')).toBe(RADAR.blipAlpha)
+    expect(RADAR.stealerAlpha).toBeGreaterThan(RADAR.blipAlpha)
+    // And blips smear wider — bigger, fainter, more indistinct.
+    expect(RADAR.blipSizePx).toBeGreaterThan(RADAR.stealerSizePx)
+  })
+
+  it('the sergeant predicate covers both sergeant types and gates on alive (ISC-684 companion)', () => {
+    const base = { kind: 'marine', alive: true }
+    expect(isSergeant({ ...base, spriteKey: 'terminator_sergeant' })).toBe(true)
+    expect(isSergeant({ ...base, spriteKey: 'terminator_sergeant_sword' })).toBe(true)
+    expect(isSergeant({ ...base, spriteKey: 'terminator_storm_bolter' })).toBe(false)
+    expect(isSergeant({ kind: 'marine', alive: false, spriteKey: 'terminator_sergeant' })).toBe(false)
+    expect(isSergeant({ kind: 'stealer', alive: true, spriteKey: 'terminator_sergeant' })).toBe(false)
+  })
+
+  it('Antecedent: reveal delay grows with distance from the pulse origin (ISC-689)', () => {
+    const interval = 1200
+    const max = 260
+    const near = pulseTimings(0, max, interval)
+    const mid = pulseTimings(130, max, interval)
+    const far = pulseTimings(260, max, interval)
+    expect(near.delayMs).toBe(0)
+    expect(mid.delayMs).toBeGreaterThan(near.delayMs)
+    expect(far.delayMs).toBeGreaterThan(mid.delayMs)
+    // The farthest contact lights up exactly when the ring finishes its sweep.
+    expect(far.delayMs).toBe(ringDurationMs(interval))
+    // Beyond-max distances clamp instead of overshooting.
+    expect(pulseTimings(9999, max, interval).delayMs).toBe(ringDurationMs(interval))
+    expect(pulseTimings(50, 0, interval).delayMs).toBe(0) // degenerate map never divides by zero
+  })
+
+  it('echoes fade over the pulse interval, never under the visible floor (ISC-690)', () => {
+    // The whole envelope (delay + fade-in ramp + fade) budgets the interval.
+    const t = pulseTimings(130, 260, 2400)
+    expect(t.fadeMs).toBe(2400 - t.delayMs - RADAR.fadeInMs)
+    expect(t.delayMs + RADAR.fadeInMs + t.fadeMs).toBeLessThanOrEqual(2400)
+    // Panic cadence: the DELAY yields (wavefront collapses toward instant) so
+    // every echo still gets its full ramp plus the floor dwell — the next
+    // pulse must never catch an echo mid-ramp (review round finding 4).
+    const panic = pulseTimings(260, 260, 300)
+    expect(panic.delayMs).toBe(0)
+    expect(panic.fadeMs).toBe(RADAR.minFadeMs)
+  })
+
+  it('the ring sweep compresses with the ping but never drags past its cap', () => {
+    expect(ringDurationMs(300)).toBe(270)
+    expect(ringDurationMs(2400)).toBe(RADAR.ringMaxMs)
   })
 })

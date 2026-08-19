@@ -3,6 +3,7 @@ import { GameEngine, loadMission, missions, SeededRng, PieceEvents } from '@sulk
 import {
   AUDIO_CONFIG, duckTarget, shotSfx, deathSfx, combatSfx,
   trackerIntervalMs, trackerDetune, nearestThreatDistance, SfxThrottle,
+  distanceGainFactor,
 } from '../audioLogic.js'
 import { MUSIC_TRACKS, trackForMission, musicFile } from '../audioManifest.js'
 import { ALIEN_SEGMENTS } from '../alienSegments.js'
@@ -118,6 +119,36 @@ describe('motion tracker (ISC-322/323/324)', () => {
       [{ x: 0, y: 0 }, { x: 10, y: 10 }],
       [{ x: 13, y: 12 }, { x: 20, y: 0 }],
     )).toBe(3) // (10,10)→(13,12) = max(3,2)
+  })
+})
+
+describe('positional attenuation (ISC-698..700/705)', () => {
+  const { fullDist, farDist, minGain } = AUDIO_CONFIG.positional
+
+  it('full gain at and inside fullDist — adjacent sounds keep their volume (ISC-698/705)', () => {
+    expect(distanceGainFactor(0)).toBe(1)
+    expect(distanceGainFactor(1)).toBe(1) // a stealer in close combat
+    expect(distanceGainFactor(fullDist)).toBe(1)
+  })
+
+  it('floor gain at and beyond farDist — far sounds go quiet, never silent (ISC-699)', () => {
+    expect(distanceGainFactor(farDist)).toBe(minGain)
+    expect(distanceGainFactor(farDist + 40)).toBe(minGain)
+    expect(minGain).toBeGreaterThan(0)
+  })
+
+  it('monotonic non-increasing in between; null distance plays full (ISC-700)', () => {
+    expect(distanceGainFactor(null)).toBe(1)
+    let prev = 1.0001
+    for (let d = 0; d <= farDist + 2; d++) {
+      const v = distanceGainFactor(d)
+      expect(v).toBeLessThanOrEqual(prev)
+      expect(v).toBeGreaterThanOrEqual(minGain)
+      expect(v).toBeLessThanOrEqual(1)
+      prev = v
+    }
+    // Strictly quieter in the middle of the ramp than at the edge of full.
+    expect(distanceGainFactor(Math.floor((fullDist + farDist) / 2))).toBeLessThan(1)
   })
 })
 

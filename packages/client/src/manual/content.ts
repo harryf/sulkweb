@@ -226,6 +226,21 @@ hidden value toward kill quotas. Letting one convert first means killing them on
 time instead.</p>`,
   },
   {
+    id: 'auspex',
+    title: 'The auspex (mini-map radar)',
+    html: `
+<p>The mini-map in the top right is your squad's auspex. Marines show as steady
+<strong>red dots</strong>. The swarm shows only when the scanner sweeps: a pulse ring
+spreads from each living <strong>sergeant</strong> in time with the tracker ping, and
+contacts light up as the wavefront passes them. The closer the swarm gets, the faster
+the ping, and the faster the sweep.</p>
+<p>Genestealers return a <strong>solid green blob</strong>; blips return a fainter,
+blurrier smear (the scanner cannot tell a real contact from a sensor ghost, and neither
+can you). Lose both sergeants and the auspex goes dark: the red dots stay, the swarm
+vanishes from the scope.</p>
+<p>Click anywhere on the mini-map to swing the main view to that point.</p>`,
+  },
+  {
     id: 'flames',
     title: 'Flames',
     html: `

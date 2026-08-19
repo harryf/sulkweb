@@ -1,4 +1,11 @@
 export interface CamRect { x: number; y: number; w: number; h: number }
+
+/** Minimap-local click point → world px (the camera clamps to its own
+ *  bounds after centerOn, so no clamping here — one job each). */
+export function miniToWorld(localX: number, localY: number, mapScale: number): { x: number; y: number } {
+  return { x: localX / mapScale, y: localY / mapScale };
+}
+
 export interface MiniRect { x: number; y: number; w: number; h: number }
 export interface BoardSize { w: number; h: number }
 

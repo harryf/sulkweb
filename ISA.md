@@ -826,7 +826,8 @@ Build & regression:
 - [x] ISC-621: F auto-shoots the nearest shootable closed door even while the pointer rests on a non-door square — the v0.4.2 hover gate is reverted (Playwright: hoverCoord set, F, door destroyed, AP 4→3)
 - [x] ISC-622: doorDestroyed carries `cause` — 'cut' plays the chainsaw, 'shot' stays with the weapon's own firing SFX (vitest: bolter shootDoor emits cause 'shot', chain-fist cutDoor emits 'cut'; Read AudioManager gate)
 - [x] ISC-623: Anti: enemy priority survives the UX pass — a visible stealer takes the shot, the door stays intact, and the reticle is already null before the press (Playwright)
-- [DEFERRED-VERIFY] ISC-619: live-site real-Chrome boot check for v0.4.2 [both browser channels down this session: Interceptor extension handshake broken (3rd occurrence), claude-in-chrome denied by permission classifier. Mitigation: the same commit passed the full 59-test real-browser e2e suite locally incl. space_hulk_1 boot. Follow-up: repair Interceptor (Update workflow / Chrome restart), then `interceptor open https://harryf.github.io/sulkweb/?mission=space_hulk_1`]
+- [x] ISC-624: v0.4.3 released — tag CI green BEFORE the release was created (v0.4.2 lesson applied), release published, live bundle serves v0.4.3 with the reticle code present (gh run 32227022477 success; bundle grep v0.4.3 + doorReticle×2)
+- [DEFERRED-VERIFY] ISC-619: live-site real-Chrome boot check (now v0.4.3) [both browser channels down this session: Interceptor extension handshake broken (3rd occurrence), claude-in-chrome denied by permission classifier. Mitigation: the same commit passed the full 59-test real-browser e2e suite locally incl. space_hulk_1 boot. Follow-up: repair Interceptor (Update workflow / Chrome restart), then `interceptor open https://harryf.github.io/sulkweb/?mission=space_hulk_1`]
 
 ## Test Strategy
 

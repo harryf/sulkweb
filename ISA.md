@@ -827,7 +827,7 @@ Build & regression:
 - [x] ISC-622: doorDestroyed carries `cause` — 'cut' plays the chainsaw, 'shot' stays with the weapon's own firing SFX (vitest: bolter shootDoor emits cause 'shot', chain-fist cutDoor emits 'cut'; Read AudioManager gate)
 - [x] ISC-623: Anti: enemy priority survives the UX pass — a visible stealer takes the shot, the door stays intact, and the reticle is already null before the press (Playwright)
 - [x] ISC-624: v0.4.3 released — tag CI green BEFORE the release was created (v0.4.2 lesson applied), release published, live bundle serves v0.4.3 with the reticle code present (gh run 32227022477 success; bundle grep v0.4.3 + doorReticle×2)
-- [DEFERRED-VERIFY] ISC-619: live-site real-Chrome boot check (now v0.4.3) [both browser channels down this session: Interceptor extension handshake broken (3rd occurrence), claude-in-chrome denied by permission classifier. Mitigation: the same commit passed the full 59-test real-browser e2e suite locally incl. space_hulk_1 boot. Follow-up: repair Interceptor (Update workflow / Chrome restart), then `interceptor open https://harryf.github.io/sulkweb/?mission=space_hulk_1`]
+- [DEFERRED-VERIFY] ISC-619: live-site real-Chrome boot check (now v0.4.4) [both browser channels down this session: Interceptor extension handshake broken (3rd occurrence), claude-in-chrome denied by permission classifier. Mitigation: the same commit passed the full 62-test real-browser e2e suite locally incl. space_hulk_1 boot. Follow-up: repair Interceptor (Update workflow / Chrome restart), then `interceptor open https://harryf.github.io/sulkweb/?mission=space_hulk_1`]
 ### Enemy target reticle: see which stealer F shoots (2026-08-19, fifth run — user follow-up on v0.4.3)
 
 - [x] ISC-625: the fire-target computation returns a discriminated union — hovered door, else nearest enemy, else nearest shootable door — from the SAME helpers handleFire uses, so indicator and shot can never diverge (Read GameScene fireTarget + grep shared helper names in both paths)
@@ -840,6 +840,7 @@ Build & regression:
 - [x] ISC-632: Anti: the v0.4.3 door-keyboard regression suite still passes end-to-end after the rename (bunx playwright test door-keyboard)
 - [x] ISC-633: keyboard-help note and rules-reference doc describe the reticle as marking F's target — enemy or door (Read both files)
 - [x] ISC-634: full client e2e suite + engine tests green, typecheck clean (bun run test / e2e output)
+- [x] ISC-635: v0.4.4 released — tag CI green BEFORE the release was created, release published, live bundle serves v0.4.4 with fireReticle code present (gh run 32230347102 success; bundle grep v0.4.4 + fireReticle×9)
 
 ## Test Strategy
 
@@ -1283,6 +1284,7 @@ Build & regression:
 - ISC-632: Bash — bunx playwright test door-keyboard: 6/6 passed (10.5s pre-review, re-run green in the full suite post-review)
 - ISC-633: Read — keyboardHelp note "The red reticle marks the target F will hit"; rules-reference.md line 105 "the targeted stealer or the door" (em dashes removed per repo displayed-strings rule)
 - ISC-634: Bash — engine vitest 288/288 (incl. new canShootPiece mirror test), full client e2e 62/62 (23.0s), tsc --noEmit clean both packages (post-review-fix run)
+- ISC-635: Bash — tag v0.4.4 on d13aee3 pushed; gh run 32230347102 (Deploy to GitHub Pages) success BEFORE release create; release https://github.com/harryf/sulkweb/releases/tag/v0.4.4 published; live home/manual 200, bundle main-Bwm9Q5SW.js grep: v0.4.4 ×1, fireReticle ×9
 
 ### Door-fire UX: reticle + fallback + audio cause (2026-08-18 fourth run, ISC-620..623)
 

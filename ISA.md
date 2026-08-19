@@ -7,7 +7,7 @@ phase: complete
 progress: 601/602 (hotkeys run ISC-654..670 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-19T10:45:00Z
+updated: 2026-08-19T10:50:00Z
 ---
 
 # Sulk Web — Project ISA

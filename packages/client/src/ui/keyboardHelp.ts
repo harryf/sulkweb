@@ -68,13 +68,14 @@ export const KEY_ROWS: KeyRow[] = [
 
 /** Keys outside the letter block. */
 export const SPECIAL_KEYS: KeyCap[] = [
+  { key: '1-0', label: 'select marine' },
   { key: 'Enter', label: 'end turn' },
   { key: 'Esc', label: 'pause' },
 ];
 
 /** Usage notes that need more room than a keycap label. */
 export const KEY_NOTES: string[] = [
-  'Click a marine or his card to select him.',
+  'Click a marine or his card to select him, or press his number: 1-5 the first squad, 6-0 the second, shown as [n] on his card. Fallen marines lose their key.',
   'F shoots the hovered door, else the nearest enemy, else the nearest closed door in arc. The red reticle marks the target F will hit.',
   'Flamer: F aims at the hovered square, F again fires, any other key cancels.',
   'B twice within 2.5 seconds self-destructs the flamer.',

@@ -5,7 +5,7 @@ import { Minimap } from '../ui/Minimap.js';
 import { HighlightSprite } from '../ui/HighlightSprite.js';
 import { HudPanel } from '../ui/HudPanel.js';
 import { RosterPanel, type PieceStats } from '../ui/RosterPanel.js';
-import { buildRoster } from '../ui/marineNames.js';
+import { buildRoster, assignHotkeys } from '../ui/marineNames.js';
 import { AudioManager } from '../audio/AudioManager.js';
 import { showEndDialog } from '../ui/endDialog.js';
 import { HUD_WIDTH, MINI_MAP_MARGIN, UI_FONT, FACING_ARROWS } from '../config.js';
@@ -409,8 +409,9 @@ export default class GameScene extends Phaser.Scene {
 
     // Marine roster card panel (DOM, right of the canvas): squad-grouped cards
     // with live AP/ammo/state; card click selects the marine and pans to him.
+    const rosterEntries = buildRoster(this.engine, this.engine.mission);
     this.roster = new RosterPanel(
-      buildRoster(this.engine, this.engine.mission),
+      rosterEntries,
       (id): PieceStats | undefined => {
         const p = this.engine.findPiece(id) as StormBolterMarine | undefined;
         if (!p) return { alive: false, apRemaining: 0, apInitial: 4, overwatch: false, jammed: false, facing: 0 };
@@ -426,6 +427,26 @@ export default class GameScene extends Phaser.Scene {
       },
       (id) => this.selectFromRoster(id),
     );
+
+    // Number keys 1-0 select marines by displayed roster position: 1-5 the
+    // first squad row, 6-0 the second (mouseless play). The map is computed
+    // ONCE from the scene-start roster, so numbers never reshuffle as marines
+    // die — a dead marine's key goes inert via selectFromRoster's alive guard.
+    const hotkeys = assignHotkeys(rosterEntries);
+    const DIGIT_KEYS: Record<string, string> = {
+      '1': 'ONE', '2': 'TWO', '3': 'THREE', '4': 'FOUR', '5': 'FIVE',
+      '6': 'SIX', '7': 'SEVEN', '8': 'EIGHT', '9': 'NINE', '0': 'ZERO',
+    };
+    for (const [id, label] of hotkeys) {
+      this.input.keyboard!.on(`keydown-${DIGIT_KEYS[label]}`, (e: KeyboardEvent) => {
+        // Cmd/Ctrl+digit is the browser's tab switch — never steal it into a
+        // silent selection change the player returns to without explanation.
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        if (this.seenKeyEvents.has(e)) return; // Phaser replay — one select per press
+        this.seenKeyEvents.add(e);
+        this.selectFromRoster(id);
+      });
+    }
 
     // All game audio: per-mission ambient bed (ducked by phase), event SFX,
     // and the motion tracker. K toggles mute (persisted; M is melee). NOT
@@ -619,7 +640,9 @@ export default class GameScene extends Phaser.Scene {
     if (this.attract) return;
     if (this.paused || this.animating || this.engine.state.result !== 'ongoing') return;
     const piece = this.engine.findPiece(id);
-    if (!piece) return;
+    // Death AND escape both set alive=false — one guard makes a fallen or
+    // escaped marine's hotkey (and card) inert.
+    if (!piece || !piece.alive) return;
     Selection.select(id);
     this.disarmAndRefresh();
     this.emitSelected(piece);

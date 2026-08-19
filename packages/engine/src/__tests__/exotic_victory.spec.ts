@@ -40,6 +40,9 @@ describe('escape (lurking adaptation)', () => {
     expect(engine.state.result).toBe('ongoing');
     m.moveForward(); // y=4 → exit
     expect(engine.escaped).toHaveLength(1);
+    // Escape sets alive=false exactly like death — the client's hotkey/selection
+    // guard depends on this single invariant (ISC-659).
+    expect(m.alive).toBe(false);
     expect(events).toContain(1);
     expect(engine.state.result).toBe('win');
   });

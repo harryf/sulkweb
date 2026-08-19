@@ -108,6 +108,16 @@ body {
   color: #7ec8ff;
 }
 
+/* Selection hotkey — top-left corner, matches the number key that selects him */
+.marine-card .m-hotkey {
+  position: absolute;
+  top: 3px;
+  left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #7ec8ff;
+}
+
 .marine-card .m-badges {
   font-size: 10px;
   color: #7ec8ff;

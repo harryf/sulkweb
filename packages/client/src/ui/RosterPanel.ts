@@ -1,5 +1,5 @@
 import { PieceEvents } from '@sulk/engine/index.js';
-import { groupBySquad, type RosterEntry } from './marineNames.js';
+import { groupBySquad, assignHotkeys, type RosterEntry } from './marineNames.js';
 import { KEY_ROWS, SPECIAL_KEYS, KEY_NOTES } from './keyboardHelp.js';
 import { FACING_ARROWS } from '../config.js';
 
@@ -47,6 +47,9 @@ export class RosterPanel {
   ) {
     this.root = document.createElement('aside');
     this.root.id = 'roster-panel';
+    // Selection hotkeys ([1]-[5] first squad, [6]-[0] second) — the same map
+    // GameScene binds to the digit keys, recomputed from the same entries.
+    const hotkeys = assignHotkeys(entries);
     const title = document.createElement('h2');
     title.textContent = 'Marine Roster';
     this.root.appendChild(title);
@@ -66,8 +69,10 @@ export class RosterPanel {
         card.type = 'button';
         card.className = 'marine-card';
         card.dataset.pieceId = e.id;
+        const hotkey = hotkeys.get(e.id);
         card.innerHTML =
           `<span class="m-face"></span>` +
+          (hotkey ? `<span class="m-hotkey">[${hotkey}]</span>` : '') +
           `<img alt="" src="${iconUrl(e.spriteKey)}">` +
           `<span class="m-name">${e.name}</span>` +
           (e.special ? `<span class="m-weapon">${e.special}</span>` : '') +
@@ -133,6 +138,7 @@ export class RosterPanel {
     card.querySelector('.m-state')!.textContent = label;
     card.querySelector('.m-badges')!.textContent = '';
     card.querySelector('.m-face')!.textContent = '';
+    card.querySelector('.m-hotkey')?.remove(); // the number key is inert now
   }
 
   private setCatCarrier(id: string | null): void {

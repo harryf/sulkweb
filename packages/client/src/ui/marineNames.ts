@@ -115,3 +115,24 @@ export function groupBySquad(entries: RosterEntry[]): { squad: string; title: st
   }
   return rows;
 }
+
+/** The ten digit keys in keyboard order — squad one gets 1-5, squad two 6-0. */
+export const HOTKEY_LABELS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as const;
+
+/**
+ * Assign selection hotkeys by DISPLAYED position: the first squad row's
+ * members (sergeant, specials, bolters — the card order) get 1-5, the second
+ * row's get 6-0. Squad two always starts at 6 even when squad one is short;
+ * a sixth-plus member or a third squad gets no key. Computed ONCE from the
+ * scene-start roster, so numbers never reshuffle as marines die — a dead
+ * marine's key simply goes inert (selectFromRoster's alive guard).
+ */
+export function assignHotkeys(entries: RosterEntry[]): Map<string, string> {
+  const map = new Map<string, string>();
+  groupBySquad(entries).slice(0, 2).forEach((row, squadIdx) => {
+    row.members.slice(0, 5).forEach((m, i) => {
+      map.set(m.id, HOTKEY_LABELS[squadIdx * 5 + i]);
+    });
+  });
+  return map;
+}

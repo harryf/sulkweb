@@ -4,10 +4,10 @@ task: "Project ISA — Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: 584/585 (keymap run ISC-636..653 verified; ISC-71 deferred)
+progress: 601/602 (hotkeys run ISC-654..670 verified; ISC-71 deferred)
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-19T09:55:00Z
+updated: 2026-08-19T10:45:00Z
 ---
 
 # Sulk Web — Project ISA
@@ -863,10 +863,32 @@ Build & regression:
 - [x] ISC-652: Anti: the B double-press self-destruct disarm logic is untouched by the remap — pressing any non-B action key still disarms (Playwright keymap B test still green)
 - [x] ISC-653: v0.4.5 released — main pushed, tag CI green BEFORE the release was created, release published, live bundle serves v0.4.5 with the remapped key handling present (gh run 32237513444 success; main bundle grep v0.4.5 + keydown-K; keyboardHelp chunk carries back left/right, open door, melee, mute, all three weapon subs)
 
+### Number-key marine selection: mouseless play (2026-08-19, seventh run — user follow-up on v0.4.5)
+
+- [x] ISC-654: pressing 1..5 selects the nth marine of the FIRST squad row as displayed (sergeant first, then specials, then bolters) — same order the cards render (Playwright: Selection.get() matches the roster entry id per key)
+- [x] ISC-655: pressing 6..0 selects the nth marine of the SECOND squad row in a two-squad mission (beta_2: Sakharov 1-5, Sternfeld 6-0) (Playwright)
+- [x] ISC-656: hotkey assignment is positional per squad BLOCK — squad two always starts at 6 regardless of squad one's size; single-squad missions leave 6..0 unassigned (vitest assignHotkeys)
+- [x] ISC-657: numbers never reshuffle on death — a dead marine keeps his number and no survivor's number changes (vitest: map computed once from the scene-start roster; Playwright: kill then re-press others)
+- [x] ISC-658: pressing a dead marine's number leaves the current selection unchanged (Playwright: kill, press his key, Selection.get() unchanged)
+- [x] ISC-659: pressing an escaped marine's number leaves the selection unchanged — escape sets alive=false exactly like death, one guard covers both (Read GameEngine.tryEscape + selectFromRoster guard; vitest not needed beyond the alive gate)
+- [x] ISC-660: a number press goes through the SAME selectFromRoster path as a card click — flamer aim disarmed, selected event emitted, camera pans to the marine (Playwright: flamerAiming true then number press leaves it false; Read for the shared call)
+- [x] ISC-661: each living marine's roster card shows his hotkey as "[n]" (Playwright DOM: .m-hotkey text per card)
+- [x] ISC-662: the hotkey badge is cleared from the card when the marine dies or escapes, matching the inert key (Playwright: kill, .m-hotkey empty on that card)
+- [x] ISC-663: a squad with more than 5 marines assigns hotkeys only to its first five display positions — extras get none, no crash (vitest synthetic entries)
+- [x] ISC-664: a third squad (if a future mission has one) gets no hotkeys (vitest synthetic entries)
+- [x] ISC-665: Anti: attract mode ignores number keys — the homepage backdrop never gains a selection (existing keyboard disable; Playwright home: press 1, Selection empty)
+- [x] ISC-666: Anti: a number press while paused or during the stealer replay does nothing (selectFromRoster guard; Playwright: pause then press)
+- [x] ISC-667: the keyboard help documents the number row (KEY_NOTES line naming 1-5 / 6-0 squads) and README controls table gains the 1-0 row (Read both)
+- [x] ISC-668: Anti: no em dashes in any new player-facing string (grep added display strings)
+- [x] ISC-669: Anti: the digit keys do not collide with existing bindings — no addKeys change, dedicated keydown-DIGIT handlers with the shared seenKeyEvents dedupe (Read GameScene)
+- [x] ISC-670: full client e2e + unit suites and engine tests green, tsc clean both packages (Bash exit codes)
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
+| ISC-654..655,657..658,660..662,665..666 | UI/e2e | number-press Selection assertions + card badge DOM | all hotkey tests pass | Bash playwright |
+| ISC-656,659,663..664,667..669 | unit/docs | assignHotkeys vitest, Read guards + docs, grep | as stated per ISC | Bash vitest / Read / grep |
 | ISC-636..641,644..645,652 | UI/e2e | staged key presses + help DOM class assertions | all updated keymap/audio/help tests pass | Bash playwright |
 | ISC-642..643,646..651 | unit/docs | KEY_ROWS field assertions, grep for stale strings, suite exits | 0 stale refs, 0 failures | Bash vitest / grep / Read |
 | ISC-625..631 | UI/e2e | fireReticleFor union states across staged scenarios + screenshot | all 6 door-keyboard tests pass | Bash playwright |
@@ -947,6 +969,7 @@ Build & regression:
 
 | name | description | satisfies | depends_on | parallelizable |
 |------|-------------|-----------|------------|----------------|
+| marine-hotkeys | assignHotkeys single source, digit handlers, card badges, docs | ISC-654..670 | — | no |
 | stabilize-m3 | Fix client test mocks, finish HUD, commit clean M3 | ISC-1..12 | — | no |
 | doors | Engine door rules + client door sprites/interaction | ISC-13..19 | stabilize-m3 | yes |
 | overwatch | Overwatch flag, auto-fire, jam, marker | ISC-20..23 | shooting-core | no |
@@ -989,6 +1012,9 @@ Build & regression:
 | spawn-fanout | Entry rotation by turn + prefer-unseen entries | ISC-589 | — | yes |
 
 ## Decisions
+
+- 2026-08-19 (marine-hotkeys run, E3 classifier, ISC-654..670): User follow-up on v0.4.5: number keys 1-0 select marines "to allow play without requiring the mouse". DESIGN: one pure function, assignHotkeys(entries) in marineNames.ts, is the single source — GameScene binds keydown-ONE..ZERO from it, RosterPanel renders the [n] badges from it, both computed from the SAME scene-start roster (deterministic equality, no shared mutable state). Numbering is positional per squad BLOCK in DISPLAYED card order (groupBySquad: sergeant, specials, bolters) — so [1]/[6] are always the sergeants, and squad two starts at 6 even when squad one is short, exactly the user's "1-5 first unit, 6-0 second unit". The map is computed ONCE, so numbers never reshuffle on death — the key goes inert instead, via a single new !piece.alive guard in selectFromRoster (GameEngine.tryEscape sets alive=false identically to death, so escape is covered by the same line). The digit press reuses selectFromRoster wholesale — attract/pause/replay/game-over guards, flamer-aim disarm, selected emit, and the camera pan all come free and stay identical to a card click. e2e asserts badge↔key AGREEMENT through the DOM (the card wearing [6] is what key 6 selects) rather than re-deriving the mapping — the contract the player actually reads. ISC floor show-math: 17 fresh ISCs vs the E3 ≥32 soft floor — the feature decomposes to 17 binary probes on a project ISA carrying 670 cumulative; padding would violate the granularity gate (accepted precedent: fifth run, 10). Delegation: Forge auto-include at E3 unavailable — codex binary absent (verified `which codex`, 3rd occurrence, 2026-08-15/18 precedent) — slot covered by TWO reviewer agents (code-reviewer on the diff, pr-test-analyzer on coverage), meeting the ≥2 floor. REVIEW ROUND (two agents in parallel — code-reviewer on the diff, pr-test-analyzer on coverage; five adoptions, two explicit skips): (1) ADOPTED both agents' shared finding — the ESCAPED half of badge removal was untested (a refactor moving the .remove() out of markState kept every suite green); the existing ESCAPED unit test now asserts .m-hotkey is null. (2) ADOPTED (analyzer severity 7) — the entire escaped-key-inertness claim rested on tryEscape's alive=false with NO test pinning it anywhere; a plausible "escaped isn't dead" refactor would have silently un-guarded the client. Engine escape test now asserts m.alive === false (ISC-659's contract, engine-side). (3) ADOPTED — the purity unit test was tautological (assignHotkeys reads no engine state, the assertion could not fail for ANY implementation); deleted with an explanatory comment, the bind-once invariant stays pinned by the e2e kill-then-repress test. (4) ADOPTED — Cmd/Ctrl/Alt+digit now bails before the dedupe: the browser's tab-switch shortcut must never double as a silent selection change (reviewer flagged speculative on whether Chrome dispatches the keydown; the guard is unconditionally correct either way). (5) ADOPTED (nearly free) — space_hulk_1 e2e now presses 6 and asserts no selection change: single-squad missions leave 6-0 unbound by construction, now pinned. SKIPPED with reasons: animating/game-over guard tests (pre-existing shared selectFromRoster path this diff didn't touch; animating window is a Playwright flake magnet) and a numpad-absence test (asserting a binding nobody wrote guards nothing). Reviewer verified clean: double-source risk (groupBySquad never mutates input — displayOrder sorts a spread copy), handler leak (scene never restarts; Phaser shutdown removes listeners), key collisions (digits reach no other handler; specific-before-generic emit order makes the digit claim the dedupe entry before the movement block), em dashes (8 new ones, all code comments). One full-suite audio-fade flake (home.spec:140) passed in isolation and on the immediate full-suite re-run — pre-existing timing sensitivity, unrelated to this diff.
+
 
 - 2026-08-19 (keyboard-remap run, E2, ISC-636..652): User playtest verdict on the v0.4.4 layout: "the keyboard mappings need improving." Six-part remap executed exactly as specified: Z/C swapped (Z back-left, C back-right), back moved S→X so QWEADZXC form a directional circle, S freed for the door (H kept bound as the legacy alias — the user redefined S but never asked to remove H, and muscle memory plus every existing H test survive for free), melee X→M, mute M→K. DESIGN: the remap lives at the two ingestion points only — the GameScene JustDown chain + keydown-K handler, and the keyboardHelp.ts layout data that both renderers (in-game roster help, manual page) already consume — so no per-surface patching. Weapon-key clarity via two new KeyCap fields: `sub` (weapon qualifier rendered in brackets under the label; R/T "assault cannon", G "chain fist" — the marine is a chain FIST, the user's "chain saw" read as the same unit) and `requires` (MarineType gate). The in-game help dims a gated cap (opacity .3 + explanatory title) when no such marine is in the RosterPanel entries — the mission deploy list, so the keymap doubles as a live loadout readout; the manual page shows sub-labels but never dims (it documents the game, not a mission). Only beta_2 fields both specialists today, so every space_hulk mission visibly dims R/T/G. Behavior notes pinned by tests: M is now an ACTION (added to the flamer-aim cancel list) while K inherits M-mute's aim-keeping; the keydown-K handler claims the shared seenKeyEvents dedupe entry exactly as keydown-M did (Phaser fires the specific event before the generic one — mechanism unchanged, only the letter). One stale pin caught by the suite itself: roster.spec's unbound-spacer count 6→5 (K left the spacer set). ISC floor show-math: 17 new ISCs meet the E2 ≥16 floor naturally. Delegation floor: code-reviewer agent on the diff (E2 soft floor 1 met). Process slip logged: one ISA checkbox pass used a python3 heredoc — repo rule is TypeScript/shell; subsequent passes used perl. REVIEW ROUND (code-reviewer agent, all five findings adopted): (1) README:142 Sound-features bullet still said "M mutes" — the ISC-646 grep only covered the controls table; fixed to K. (2) meleeAhead doc comment still said "X key" two lines above the changed dispatch; fixed to M. (3) AudioManager.toggleMute comment said "M key / HUD toggle" — the M half newly stale, the HUD-toggle half never true (keydown-K is the sole caller repo-wide); fixed to "K key". (4) TEST GAP CONFIRMED: the only z press sat at 0 AP, so the refusal assertion could not tell back-left from back-right — an un-swap of Z would have passed the entire suite while C and X were genuinely pinned; Z now gets its own positive move with AP topped up ((20,20) area: z lands (19,21) at 2 AP). ISC-636's original evidence was recorded against a no-op — corrected. (5) B (blow up) is heavy-flamer-gated in GameScene but carried no requires, and the unit test actively pinned the omission — violating the loadout-readout premise the feature states; requires union widened to 'heavy_flamer', B marked with sub 'heavy flamer' (every current mission except debug_1 fields a flamer, so only debug_1 dims B — correctly). Reviewer also verified from Phaser 3.90 source that the specific keydown-K event fires before the generic keydown, so the shared seenKeyEvents dedupe order is guaranteed, not lucky; and that buildRoster's failure modes all default toward storm_bolter, meaning dimming fails SAFE (dims rather than falsely un-dims).
 
@@ -1298,6 +1324,22 @@ Build & regression:
 **Criterion now:** ISC-375 (five consecutive full-suite runs 40/40), handleFire carries a comment forbidding time-based debounce, flamer e2e aims via page.mouse.move.
 
 ## Verification
+
+### Number-key marine selection (2026-08-19 seventh run, ISC-654..670)
+
+- ISC-654/655: Playwright hotkeys spec — beta_2: pressing 2/6/0/1 each selects exactly the marine whose card wears that badge (badge↔key agreement asserted through the DOM, not duplicated mapping logic); [1] and [6] are the sergeants
+- ISC-656/663/664: vitest — synthetic 3-marine squad one still starts squad two at 6; b6 (sixth member) and c1 (third squad) get no key; map size 8
+- ISC-657/658/662: Playwright — [2] killed at engine level + pieceDied emitted: pressing 2 leaves selection on [1]'s marine, pressing 3 still selects the ORIGINAL third marine, the dead card's badge is removed; vitest purity check: identical map before/after mutation
+- ISC-659: Read — GameEngine.tryEscape sets marine.alive=false + removePiece, identical to death; selectFromRoster's single !piece.alive guard covers both; markState (badge removal) fires from the marineEscaped event exactly as from pieceDied
+- ISC-660: Playwright — flamer armed (flamerAiming true), press 1: aiming false and selection moved; the digit handler calls the SAME selectFromRoster the card click uses (Read)
+- ISC-661: Playwright + screenshot scratchpad/hotkey-squad1.png — all ten badges render [1]..[5]/[6]..[0] per squad row in card order
+- ISC-662 (visual): screenshot scratchpad/hotkey-squad1-kia.png — [2]'s card KIA-greyed with no badge, neighbours keep theirs
+- ISC-665: Playwright — homepage: press 1, Selection.get() null (attract keyboard disable holds)
+- ISC-666: Playwright — Escape pause, press 3: selection unchanged
+- ISC-667: Read — KEY_NOTES first line documents 1-5/6-0 + [n] badge + fallen-marine inertness; help SPECIAL_KEYS shows the '1-0 select marine' cap; README table row present
+- ISC-668: Bash — git diff added lines of keyboardHelp.ts + README grep em dash: 0
+- ISC-669: Read — no addKeys change; ten dedicated keydown-DIGIT handlers, each with the shared seenKeyEvents dedupe; digits collide with nothing (letters/Enter/Esc only elsewhere)
+- ISC-670: Bash — engine 288/288 (incl. new escape alive=false pin), client unit 30/30 (incl. escaped-badge assertion; tautological purity test deleted per review), full e2e 69/69 twice (one pre-existing audio-fade flake passed in isolation and on re-run), tsc --noEmit clean both packages
 
 ### Keyboard remap: directional circle + weapon-key clarity (2026-08-19 sixth run, ISC-636..653)
 

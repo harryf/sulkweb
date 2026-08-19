@@ -77,6 +77,7 @@ pnpm --filter ./packages/client dev   # open http://localhost:5173
 | Input | Action |
 |-------|--------|
 | Click marine / roster card | Select (card click also pans the camera to him) |
+| `1`-`0` | Select marine by number: 1-5 the first squad, 6-0 the second (shown as `[n]` on his card; dead marines' keys go inert) |
 | `W` / `X` | Move forward (1 AP) / backward (2 AP) |
 | `Q` / `E` | Move diagonally forward-left / forward-right (1 AP, facing kept) |
 | `Z` / `C` | Move diagonally back-left / back-right (2 AP, facing kept) |

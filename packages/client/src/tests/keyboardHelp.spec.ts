@@ -10,7 +10,7 @@ describe('keyboard help layout data', () => {
       // GameScene addKeys('W,A,S,D,Q,E,Z,C,O,F,X,B,H,U,P,T,R,G,M') …
       'W', 'A', 'S', 'D', 'Q', 'E', 'Z', 'C', 'O', 'F', 'X', 'B', 'H', 'U', 'P', 'T', 'R', 'G', 'M',
       // … plus the dedicated keydown handlers
-      'L', 'K', 'Enter', 'Esc',
+      'L', 'K', '1-0', 'Enter', 'Esc',
     ]
     const keys = bound.map(c => c.key)
     expect([...keys].sort()).toEqual([...expected].sort())

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { GameEngine, loadMission, SeededRng, PieceEvents } from '@sulk/engine/index.js'
-import { buildRoster, groupBySquad, nameOffset, NAME_POOL } from '../marineNames.js'
+import { buildRoster, groupBySquad, assignHotkeys, nameOffset, NAME_POOL } from '../marineNames.js'
 import { RosterPanel, type PieceStats } from '../RosterPanel.js'
 
 /** Roster identities + DOM panel (ISC-275/276 + panel states without a browser). */
@@ -156,5 +156,47 @@ describe('RosterPanel DOM', () => {
     expect(rCard.classList.contains('escaped')).toBe(true)
     expect(rCard.classList.contains('dead')).toBe(false)
     expect(rCard.querySelector('.m-state')!.textContent).toBe('ESCAPED')
+    // An escaped marine's selection hotkey is inert — the badge must go too (ISC-662).
+    expect(rCard.querySelector('.m-hotkey')).toBeNull()
   })
+})
+
+describe('selection hotkeys (ISC-656/657/663/664)', () => {
+  const entry = (id: string, squad: string, type = 'storm_bolter'): any =>
+    ({ id, name: `Bro. ${id}`, squad, type, spriteKey: 'terminator_storm_bolter' })
+
+  it('beta_2: squad one gets 1-5 and squad two 6-0 in DISPLAYED order (sergeant first)', () => {
+    const engine = freshEngine()
+    const roster = buildRoster(engine, loadMission('beta_2'))
+    const hotkeys = assignHotkeys(roster)
+    const rows = groupBySquad(roster)
+    expect(rows.map(r => r.squad)).toEqual(['Sakharov', 'Sternfeld'])
+    expect(rows[0].members.map(m => hotkeys.get(m.id))).toEqual(['1', '2', '3', '4', '5'])
+    expect(rows[1].members.map(m => hotkeys.get(m.id))).toEqual(['6', '7', '8', '9', '0'])
+    // The card order starts with the sergeant, so [1] and [6] are the sergeants.
+    expect(rows[0].members[0].name).toMatch(/^Sgt\. /)
+    expect(hotkeys.get(rows[0].members[0].id)).toBe('1')
+  })
+
+  it('squad two starts at 6 even when squad one is short; extras and a third squad get no key', () => {
+    const entries = [
+      entry('a1', 'Alpha'), entry('a2', 'Alpha'), entry('a3', 'Alpha'), // short squad one
+      entry('b1', 'Beta'), entry('b2', 'Beta'), entry('b3', 'Beta'),
+      entry('b4', 'Beta'), entry('b5', 'Beta'), entry('b6', 'Beta'),    // oversized squad two
+      entry('c1', 'Gamma'),                                             // third squad
+    ]
+    const hotkeys = assignHotkeys(entries)
+    expect(hotkeys.get('a1')).toBe('1')
+    expect(hotkeys.get('a3')).toBe('3')
+    expect(hotkeys.get('b1')).toBe('6')
+    expect(hotkeys.get('b5')).toBe('0')
+    expect(hotkeys.get('b6')).toBeUndefined() // sixth member of a squad: no key
+    expect(hotkeys.get('c1')).toBeUndefined() // third squad: no keys
+    expect(hotkeys.size).toBe(8)
+  })
+
+  // No unit test for "numbers never reshuffle on death": assignHotkeys reads no
+  // engine state, so any such assertion is tautological (review 2026-08-19).
+  // The real invariant lives in GameScene's bind-once and is pinned by the
+  // hotkeys e2e (kill [2], then [3] still selects the ORIGINAL third marine).
 })

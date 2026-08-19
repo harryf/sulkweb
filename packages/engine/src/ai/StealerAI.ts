@@ -1,6 +1,8 @@
 import { Board } from '../board/Board.js';
 import { Piece, type Coord } from '../pieces/Piece.js';
 import { Blip } from '../pieces/Blip.js';
+import { Genestealer } from '../pieces/Genestealer.js';
+import { PieceEvents } from '../events/PieceEvents.js';
 import { StormBolterMarine } from '../pieces/StormBolterMarine.js';
 import { closeCombat } from '../rules/combat.js';
 import { squareSeenByMarine } from '../board/vision.js';
@@ -318,6 +320,29 @@ export function runStealerActions(board: Board, ctx: HiveContext = {}): void {
       // its body blocks the sight line and the mass builds up behind it.
       if (role === 'block' && threat.kill.has(`${p.pos.c},${p.pos.r}`)) break;
     }
+  }
+  chargeOrientation(board);
+}
+
+/**
+ * Phase epilogue: every living stealer within CHARGE_DIST of a living marine
+ * ends the phase facing its nearest prey. A FREE direct set (the combat
+ * faceToward precedent) that runs AFTER all activations, so mid-phase move
+ * and turn economics are byte-identical to the un-charged hive; it emits a
+ * facing-only pieceMoved ONLY when the facing actually changes. Rules note:
+ * a human stealer player ends activations facing threats anyway, and the
+ * front-180 3-dice CC rule makes this the optimal-play orientation. Blips
+ * never charge (an unknown contact has no face to show).
+ */
+export function chargeOrientation(board: Board): void {
+  for (const p of board.pieces) {
+    if (!(p instanceof Genestealer) || !p.alive) continue;
+    const prey = p.chargeTarget();
+    if (!prey) continue;
+    const f = facingToward(p.pos, prey.pos);
+    if (f === p.facing) continue;
+    p.facing = f;
+    PieceEvents.emit('pieceMoved', { pieceId: p.id, x: p.pos.c, y: p.pos.r, facing: f });
   }
 }
 

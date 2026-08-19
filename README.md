@@ -136,6 +136,16 @@ suggestively through the dark, bulkhead doors part in the middle, and flames
 shimmer. Camera panning carries a little inertia: arrow keys accelerate and
 glide to a stop, and releasing a fast drag flings the view. All of it is
 cosmetic; the engine resolves instantly and the mini-map stays motionless.
+
+Genestealers near your squad end every stealer phase facing their nearest
+prey, so a room of contacts reads as a pack mid-charge. Fair warning: a
+stealer staring your marine down defends close combat at full strength and
+strikes back if it wins, exactly the position a human hive player would set
+up with its free turns. During the stealer
+phase the camera follows the action: it pans to swarm activity near your
+marines (far-off reinforcements are skipped), and a close-combat strike gets
+the full treatment: a hard pan onto the fight, a kick of camera shake, and a
+darkening spotlight that closes the corridor in around the kill.
 With the OS "reduce motion" accessibility setting enabled, every animation is
 replaced by an instant snap.
 

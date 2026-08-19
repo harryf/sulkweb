@@ -10,6 +10,7 @@ import { AudioManager } from '../audio/AudioManager.js';
 import { showEndDialog } from '../ui/endDialog.js';
 import { HUD_WIDTH, MINI_MAP_MARGIN, UI_FONT, FACING_ARROWS } from '../config.js';
 import { MOTION, kindFromTexture, camPanStep, shimmerPhase, recoilVector, shortestRotationDelta } from '../utils/motionLogic.js';
+import { FOCUS, planReplayFocus, replayOffsets } from '../utils/replayFocus.js';
 
 const TILE_SIZE = 40
 
@@ -100,6 +101,12 @@ export default class GameScene extends Phaser.Scene {
    *  it since (bounds clamp at a map edge, panEffect, drag), the glide is
    *  fighting another writer — park it. */
   private expectedScroll: { x: number; y: number } | null = null;
+  /** Replay action-camera probe: every pan the plan fired (board squares). */
+  focusLog: { x: number; y: number; attack: boolean }[] = [];
+  /** Last attack staging the effects fired for — e2e probe. */
+  lastAttackFx: { x: number; y: number } | null = null;
+  /** The claustrophobia spotlight over an in-progress kill. */
+  private vignette?: Phaser.GameObjects.Image;
   /** Homepage attract mode (no ?mission= param): the board is scenery under
    *  the DOM landing overlay — input disabled, clock stopped, no audio. */
   private readonly attract: boolean;
@@ -478,13 +485,16 @@ export default class GameScene extends Phaser.Scene {
       this.dragVel.x = 0.6 * (-dx / dt) + 0.4 * this.dragVel.x;
       this.dragVel.y = 0.6 * (-dy / dt) + 0.4 * this.dragVel.y;
     });
-    // Grab-to-stop: touching the map kills any glide; a fast release flings.
+    // Grab-to-stop: touching the map kills any glide AND takes the wheel from
+    // any in-flight programmatic pan (the replay action camera force-pans;
+    // without this a drag during the stealer phase is undone every frame).
     this.input.on('pointerdown', () => {
       this.camVel.x = 0;
       this.camVel.y = 0;
       this.dragVel.x = 0;
       this.dragVel.y = 0;
       this.lastDragAt = performance.now();
+      this.cameras.main.panEffect.reset();
     });
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
       if (this.reducedMotion) return;
@@ -1149,10 +1159,16 @@ export default class GameScene extends Phaser.Scene {
    */
   private endTurn(): void {
     if (this.engine.state.result !== 'ongoing' || this.paused || this.animating) return;
+    // Marine anchors MUST be snapshotted BEFORE the phase resolves: die()
+    // splices the piece out of board.pieces, so a marine killed this phase
+    // would vanish from the anchor set — and he anchors the very fight that
+    // killed him (reviewer finding, 2026-08-19).
+    const anchors = this.engine.marines.map(m => ({ x: m.pos.c, y: m.pos.r }));
     const stream = PieceEvents.capture(() => this.engine.endMarinePhase());
     Selection.clear();
     this.disarmAndRefresh();
     this.emitSelected(undefined);
+    this.focusLog = []; // both paths: a stale log from a prior replay must not linger
     // Accessibility: with prefers-reduced-motion, skip the timeline entirely
     if (this.reducedMotion) {
       for (const ev of stream) PieceEvents.replay(ev);
@@ -1164,18 +1180,109 @@ export default class GameScene extends Phaser.Scene {
     // echoes drawn from it would spoil deaths and conversions the animation
     // has not shown yet (same payload-not-engine invariant the sprites obey).
     this.minimap.frozen = true;
-    let at = 80;
-    for (const ev of stream) {
-      this.time.delayedCall(at, () => PieceEvents.replay(ev));
-      at += GameScene.REPLAY_DELAY[ev.type as string] ?? 0;
+    // Action camera: plan focus points from the stream itself. Seed positions
+    // are the SPRITES' pre-phase squares (view truth); anchors were taken
+    // before the phase resolved (marines never move during it).
+    const seed: Record<string, { x: number; y: number }> = {};
+    for (const [id, spr] of Object.entries(this.pieceSprites)) {
+      seed[id] = { x: Math.floor(spr.x / TILE_SIZE), y: Math.floor(spr.y / TILE_SIZE) };
     }
-    this.time.delayedCall(at + 150, () => this.finishReplay());
+    const plan = planReplayFocus(stream as any, seed, anchors);
+    // Pure scheduling arithmetic: facing-only spins (charge orientation, path
+    // turns) pace fast — they are drama, not travel.
+    const offsets = replayOffsets(stream.map(e => e.type as string), plan, GameScene.REPLAY_DELAY);
+    stream.forEach((ev, i) => {
+      this.time.delayedCall(offsets[i], () => PieceEvents.replay(ev));
+      const ann = plan[i];
+      if (ann?.attack) {
+        const attack = ann.attack;
+        this.time.delayedCall(offsets[i], () => this.attackFx(attack));
+      } else if (ann?.focus) {
+        const focus = ann.focus;
+        this.time.delayedCall(offsets[i], () => this.replayPan(focus.x, focus.y, false));
+      }
+    });
+    this.time.delayedCall(offsets[stream.length] + 150, () => this.finishReplay());
+  }
+
+  /** Camera pan to a board square, centred in the visible play area. */
+  private replayPan(bx: number, by: number, attack: boolean): void {
+    this.focusLog.push({ x: bx, y: by, attack });
+    if (this.focusLog.length > 100) this.focusLog.shift();
+    const [px, py] = centerXY(bx, by);
+    // force=true: a fresh action always outranks the pan already in flight.
+    this.cameras.main.pan(px + HUD_WIDTH / 2, py, FOCUS.panMs, 'Sine.easeInOut', true);
+  }
+
+  /** Close combat lands: hard focus, a kick of shake, the spotlight vignette,
+   *  and the attacker's lunge. The zoom the design substitutes for. */
+  private attackFx(a: { x: number; y: number; ax: number; ay: number; attackerId: string; defenderId: string }): void {
+    this.replayPan(a.x, a.y, true);
+    this.lastAttackFx = { x: a.x, y: a.y };
+    this.cameras.main.shake(FOCUS.shake.durationMs, FOCUS.shake.intensity);
+    const [dx, dy] = centerXY(a.x, a.y);
+    this.showVignette(dx, dy);
+    const spr = this.pieceSprites[a.attackerId];
+    if (spr?.active) {
+      const [ax, ay] = centerXY(a.ax, a.ay);
+      this.tweens.killTweensOf(spr);
+      spr.setScale(1).setPosition(ax, ay);
+      (spr as any).moveTarget = { tx: ax, ty: ay, rot: spr.rotation };
+      const vx = Math.sign(a.x - a.ax), vy = Math.sign(a.y - a.ay);
+      this.tweens.add({
+        targets: spr, x: ax + vx * FOCUS.lunge.px, y: ay + vy * FOCUS.lunge.px,
+        duration: FOCUS.lunge.durationMs, yoyo: true, ease: 'Quad.easeIn',
+        onComplete: () => spr.setPosition(ax, ay),
+      });
+      this.logMotion(a.attackerId, 'lunge', FOCUS.lunge.durationMs, true);
+    }
+  }
+
+  /** Darkening spotlight centred on the fight — claustrophobia without the
+   *  camera zoom a single-scene HUD cannot survive. */
+  private showVignette(px: number, py: number): void {
+    if (!this.textures.exists('fx_vignette')) {
+      const size = 512;
+      const canvas = this.textures.createCanvas('fx_vignette', size, size)!;
+      const ctx = canvas.getContext();
+      const g = ctx.createRadialGradient(size / 2, size / 2, size * 0.12, size / 2, size / 2, size / 2);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(0.55, 'rgba(0,0,0,0.35)');
+      g.addColorStop(1, 'rgba(0,0,0,1)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, size, size);
+      canvas.refresh();
+    }
+    this.clearVignette();
+    const cfg = FOCUS.vignette;
+    const img = this.add.image(px, py, 'fx_vignette').setDepth(3)
+      .setScale((this.scale.width * cfg.scale) / 512).setAlpha(0).setName('fx_vignette');
+    this.vignette = img;
+    this.tweens.add({
+      targets: img, alpha: cfg.alpha, duration: cfg.inMs,
+      onComplete: () => this.tweens.add({
+        targets: img, alpha: 0, delay: cfg.holdMs, duration: cfg.outMs,
+        onComplete: () => {
+          img.destroy();
+          if (this.vignette === img) this.vignette = undefined;
+        },
+      }),
+    });
+  }
+
+  /** Kill + drop the spotlight (fresh attack, or replay over). */
+  private clearVignette(): void {
+    if (!this.vignette) return;
+    this.tweens.killTweensOf(this.vignette);
+    this.vignette.destroy();
+    this.vignette = undefined;
   }
 
   /** Replay done: engine truth wins. Reconcile every sprite, restart the clock. */
   private finishReplay(): void {
     this.animating = false;
     this.minimap.frozen = false;
+    this.clearVignette();
     const live = new Set(this.engine.state.pieces.map(p => p.id));
     for (const p of this.engine.state.pieces) {
       if (!this.pieceSprites[p.id]) this.createPieceSprite(p as Piece);

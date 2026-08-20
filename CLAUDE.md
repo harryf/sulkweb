@@ -30,6 +30,23 @@ pnpm build                               # engine tsc -b + client vite build
 pnpm --filter ./packages/engine example  # CLI engine tour
 ```
 
+## Shipping policy (2026-08-20, after the invisible-feature incident)
+
+The stable root (https://harryf.github.io/sulkweb/) only moves on a v* release;
+a main push reaches ONLY /latest/. That split once left a shipped feature
+invisible on the site the user actually plays. Non-negotiable rules:
+
+- **User-facing gameplay changes get a stable v* release in the same run**, or
+  an explicit callout that they are parked on /latest/ with the full URL.
+- **"release" / "ship it" from the user means a v* release** (tag, watch green,
+  publish), never just the automatic /latest/ deploy.
+- **Every ship report names the exact URL that has the change.**
+- **Watch deploy-latest to green after any game-code push** (it has no test
+  gate and a failed run leaves /latest/ silently stale).
+- deploy.yml re-dispatches deploy-latest after every release (heals the shared
+  concurrency queue's pending-run replacement); do not remove that step.
+- Release recipe: see "Cutting a release" in docs/architecture.md.
+
 ## Architecture (the invariants that matter)
 
 - **`packages/engine` is pure TS; zero Phaser/DOM/network imports.** All rules live here

@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: "900/901 (v0.6.0 stable carries the gameplay log export; ISC-71 deferred)"
+phase: build
+progress: "900/908 (latest-pipeline hardening: ISC-969..975)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-20T15:20:00Z
+updated: 2026-08-20T15:40:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -309,6 +309,16 @@ Anti-criteria:
 ### v0.6.0: gameplay log export reaches the stable root (2026-08-20, sixth run)
 
 - [x] ISC-968: v0.6.0 released through the versioned workflow; run green FIRST, then release published; live root end dialog carries the notes field and Download game log button; /0.6.0/ frozen; /0.5.1/, /0.5.0/ and /latest/ byte-untouched; versions.html lists v0.6.0 as Stable (curl + Playwright live probe suite)
+
+### Latest-pipeline hardening: pre-emption healing + ship-time policy (2026-08-20, seventh run)
+
+- [ ] ISC-969: deploy.yml permissions include actions: write (Read)
+- [ ] ISC-970: deploy.yml's deploy job ends by dispatching deploy-latest, so a release can never leave /latest/ lagging a pre-empted pending run (Read)
+- [ ] ISC-971: the dispatch mechanism is proven live: gh workflow run deploy-latest → run green → /latest/ manifest stamped at main head sha (Bash + curl); in-workflow dispatch itself fires at the next v* release [DEFERRED-VERIFY: next release run]
+- [ ] ISC-972: sulkweb CLAUDE.md codifies the ship-time policy: user-facing gameplay changes are offered a stable v* release in the same run; "release"/"ship" from the user means a v* release, never just the automatic /latest/ deploy; every ship report names the exact URL that has the change; deploy-latest runs are watched to green after any game-code push (Read)
+- [ ] ISC-973: architecture.md deployment section documents the post-release re-dispatch and marks the pre-emption caveat healed for /latest/ (Read)
+- [ ] ISC-974: Anti: docs-only pushes still deploy nothing (gh run list after the ISA pushes) (Bash)
+- [ ] ISC-975: Anti: zero em dashes on any added line (git diff grep)
 
 ## Test Strategy
 

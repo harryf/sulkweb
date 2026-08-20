@@ -36,6 +36,8 @@ permissions:
   contents: write
   pages: write
   id-token: write
+  # Needed by the final step: re-dispatching deploy-latest after the release.
+  actions: write
 
 concurrency:
   group: pages
@@ -135,3 +137,16 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      # /latest/ tracks main HEAD, but the shared "pages" concurrency group
+      # keeps only ONE pending run: a release queued right after a main push
+      # can REPLACE that push's pending deploy-latest run, and the commit then
+      # never reaches /latest/ until the next push. Heal it deterministically:
+      # every release re-dispatches deploy-latest against main head. A no-op
+      # rebuild is cheap and idempotent (explicit dispatch API calls with
+      # GITHUB_TOKEN are allowed; only token-caused push/PR events are blocked
+      # by the anti-recursion guard).
+      - name: Re-dispatch latest deploy (heal queue pre-emption)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run deploy-latest.yml --ref main --repo "$GITHUB_REPOSITORY"

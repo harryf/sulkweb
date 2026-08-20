@@ -91,6 +91,11 @@ export default class GameScene extends Phaser.Scene {
    *  mid-replay the engine holds FINAL state (doors, deaths), and a fresh
    *  set drawn from it would spoil the animation (payload-not-engine). */
   private fogDirty = true;
+  /** Marine positions snapshotted as the replay starts: die() splices dead
+   *  marines out of engine state BEFORE frame 1, so the live list would
+   *  strip a killed marine's creep reveal for the whole animation and his
+   *  killer would strike invisibly (reviewer finding, 2026-08-21). */
+  private fogMarineSnap: { c: number; r: number }[] | null = null;
   /** Last hover readout string — public for the e2e suite to assert against. */
   hoverInfo = '';
   /** All game audio (music ducking, SFX, motion tracker) — public for e2e. */
@@ -756,8 +761,12 @@ export default class GameScene extends Phaser.Scene {
       // must never fall through and clear the selection (ISC-675).
       if (p.x > this.scale.width - HUD_WIDTH) return;
       if (this.deployMode) return; // placement happens on pointerup — a drag here is a pan
+      // `visible` gate: fog-hidden stealers must not be clickable; selecting
+      // one would force the highlight visible, leak AP to the HUD, and let L
+      // paint its vision cone (reviewer finding, 2026-08-21).
       const hit = this.children.list.find(obj =>
-        obj.name === 'piece' && (obj as Phaser.GameObjects.Image).getBounds().contains(p.worldX, p.worldY)
+        obj.name === 'piece' && (obj as Phaser.GameObjects.Image).visible
+          && (obj as Phaser.GameObjects.Image).getBounds().contains(p.worldX, p.worldY)
       );
 
       if (hit) {
@@ -788,6 +797,7 @@ export default class GameScene extends Phaser.Scene {
       PieceEvents.on('sectionFlamed', fogDirty);
       PieceEvents.on('flamesCleared', fogDirty);
       PieceEvents.on('phaseChanged', fogDirty); // deploy end, turn boundaries
+      PieceEvents.on('marineEscaped', fogDirty); // an exit vacates a sight cone
     }
 
     // LOS debug overlay — hold L with a piece selected
@@ -1041,7 +1051,12 @@ export default class GameScene extends Phaser.Scene {
       parts.push(`door ${FACING_ARROWS[door.facing]} ${door.isOpen ? 'open' : 'closed'}`);
     }
     const piece = board.pieceAt({ c: x, r: y }) as Piece | undefined;
-    if (piece) {
+    // Fog side channel (advisor 2026-08-21): the readout must not name a
+    // stealer the player cannot see, or hovering the dark scans the map.
+    const hoverHidden = this.fogGfx && piece?.kind === 'stealer'
+      && !this.deployMode && this.engine.phase !== 'Deploy'
+      && !threatRevealed(this.fogSight, this.fogMarines(), x, y);
+    if (piece && !hoverHidden) {
       parts.push(piece instanceof HeavyFlamerMarine ? `marine (flamer, ammo ${piece.ammo})`
         : piece instanceof AssaultCannonMarine ? `marine (assault cannon, ammo ${piece.ammo})`
         : piece instanceof ChainFistMarine ? 'marine (chain fist)'
@@ -1419,6 +1434,9 @@ export default class GameScene extends Phaser.Scene {
     // would vanish from the anchor set — and he anchors the very fight that
     // killed him (reviewer finding, 2026-08-19).
     const anchors = this.engine.marines.map(m => ({ x: m.pos.c, y: m.pos.r }));
+    // Same splice hazard as anchors: the creep reveal must ride the squad as
+    // it stood when the phase began, dead men included.
+    if (this.fogEnabled) this.fogMarineSnap = anchors.map(a => ({ c: a.x, r: a.y }));
     const stream = PieceEvents.capture(() => this.engine.endMarinePhase());
     Selection.clear();
     this.disarmAndRefresh();
@@ -1537,6 +1555,7 @@ export default class GameScene extends Phaser.Scene {
   private finishReplay(): void {
     this.animating = false;
     this.minimap.frozen = false;
+    this.fogMarineSnap = null; // engine truth wins for the creep reveal too
     this.clearVignette();
     const live = new Set(this.engine.state.pieces.map(p => p.id));
     for (const p of this.engine.state.pieces) {
@@ -1782,6 +1801,15 @@ export default class GameScene extends Phaser.Scene {
       this.fogDirty = true; // recompute the moment the mission proper starts
       return;
     }
+    // Mission over (and the replay has shown it): lift the fog so the final
+    // board reads as a post-mortem instead of a black screen.
+    if (!this.animating && this.engine.state.result !== 'ongoing') {
+      gfx.clear();
+      for (const spr of Object.values(this.pieceSprites)) {
+        if ((spr as any).pieceKind === 'stealer' && spr.active) spr.setVisible(true);
+      }
+      return;
+    }
     if (this.fogDirty && !this.animating) {
       this.fogSight = computeMarineSight(this.engine.state.board);
       gfx.clear();
@@ -1793,12 +1821,19 @@ export default class GameScene extends Phaser.Scene {
       }
       this.fogDirty = false;
     }
-    const marines = this.engine.marines.map(m => ({ c: m.pos.c, r: m.pos.r }));
+    const marines = this.fogMarines();
     for (const spr of Object.values(this.pieceSprites)) {
       if ((spr as any).pieceKind !== 'stealer' || !spr.active) continue;
       const c = Math.floor(spr.x / TILE_SIZE), r = Math.floor(spr.y / TILE_SIZE);
       spr.setVisible(threatRevealed(this.fogSight, marines, c, r));
     }
+  }
+
+  /** Marine coordinates for the creep reveal: the pre-phase snapshot while a
+   *  replay runs (dead men keep revealing their killers), engine truth after. */
+  private fogMarines(): { c: number; r: number }[] {
+    if (this.animating && this.fogMarineSnap) return this.fogMarineSnap;
+    return this.engine.marines.map(m => ({ c: m.pos.c, r: m.pos.r }));
   }
 
   private drawLosOverlay() {

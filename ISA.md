@@ -4,7 +4,7 @@ task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: verify
-progress: "941/941 (fog of war shipped locally: ISC-989..1008; ISC-71 deferred)"
+progress: "946/946 (fog of war shipped locally: ISC-989..1013; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-21T00:45:00Z
@@ -362,6 +362,14 @@ Anti-criteria:
 - [x] ISC-1007: typecheck green across the workspace (pnpm -r typecheck or build)
 - [x] ISC-1008: live probe: a real mission under fog shows the overlay and hides an out-of-sight stealer while the minimap still echoes it (Playwright on local preview)
 
+Review round (2026-08-21):
+
+- [x] ISC-1009: the creep reveal rides the PRE-PHASE marine snapshot during replays, so a marine killed this phase keeps revealing his killer's approach; engine truth resumes at finishReplay (Read + vitest suite green)
+- [x] ISC-1010: fog-hidden stealers are not clickable: the pointerdown hit test requires sprite.visible, closing the select-highlight-AP-LOS-cone oracle (Read)
+- [x] ISC-1011: the hover readout never names an unrevealed stealer outside Deploy, and uses the same marine source as the renderer (Read)
+- [x] ISC-1012: marineEscaped marks the fog dirty by construction, not by event-ordering coupling (Read)
+- [x] ISC-1013: when the mission ends and the replay has shown it, the fog lifts: overlay cleared, all stealers revealed for the post-mortem; never mid-replay (Read)
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
@@ -559,6 +567,10 @@ Anti-criteria:
 
 ## Decisions
 
+- 2026-08-21 (fog-of-war run, code review): code-reviewer found one CRITICAL, one MEDIUM, four nits; all but one adopted (ISC-1009..1013). CRITICAL: updateFog read live engine.marines every frame, but the whole stealer phase resolves synchronously inside PieceEvents.capture BEFORE frame 1 of the replay, so a marine killed this phase was already spliced out of engine state and projected no creep reveal for the entire animation: his killer approached and struck invisibly, and the missing reveal doubled as an inverse payload-not-engine leak (it told the player who was already dead). My own melee-attacker-always-revealed test missed it because it hands threatRevealed a literal marines array. Fix mirrors the existing anchors snapshot two lines above (same splice hazard, same cure): fogMarineSnap taken in endTurn, used by fogMarines() while animating, cleared in finishReplay; hover guard shares fogMarines(). MEDIUM: the pointerdown hit test scans children.list manually and ignored visible, so a fog-hidden stealer was clickable, which forced the highlight visible at its square, leaked its AP to the HUD, and let the L key paint its whole vision cone above the fog; fixed with a visible gate on the hit predicate. Nits adopted: marineEscaped added to the dirty triggers (was correct only via pieceMoved ordering coupling), game-over fog lift gated on !animating (post-mortem readability without leaking the result mid-replay), hover guard exempted during Deploy. Nit skipped: per-frame allocation micro-optimization outside replays (few marines, few stealers, not measurable). Reviewer confirmed clean: coordinate math (tile flips at the 50% pixel mid-tween as intended, lunge 10px never flips a tile), ?fog=0 truly zero-change (pieceKind stash has exactly two occurrences), sprite lifecycle races, permanent desync impossibility, capture-buffering vs fogDirty, AmbushCounter is kind blip, fire reticle cannot mark a hidden stealer (90 degree arc is a strict subset of the 180 degree sight arc over the same LOS).
+
+- 2026-08-21 (fog-of-war run, verify round): advisor + test-analyzer triage. ADOPTED: (1) hover-readout side channel was real: describeSquare named any piece on the hovered square, so hovering the dark scanned the map; now a stealer part is omitted unless threatRevealed (advisor finding, the only code defect either reviewer surfaced pre-code-review). (2) Three tests added per test-analyzer: dead marine casts no sight / wiped squad empty set (pins the board.pieces-holds-only-living engine invariant fog leans on), melee-attacker-always-revealed tripwire (independent of the creepRadius knob), non-marine pieces cast no sight (negative filter test). REJECTED with reasons: BFS-vs-Chebyshev re-litigation (user explicitly asked for "within 2 grid squares should appear"; full-sprite reveal is the requested behavior; ambiguous-marker rendering noted as a future option); recompute-on-replayed-door-events (replays pierce nothing, ONE coherent rule: live marine actions recompute immediately, replay events only mark dirty for finishReplay; the advisor's "tension" conflated the live useDoor probe with replay); client-side-secret hardening (solo honesty game, ?fog=0 is the user's own escape hatch, no multiplayer on the roadmap); arc-boundary drift (impossible by construction: fog calls the engine's visibleSquares, the same function blip conversion uses, so fog LOS is engine LOS identically); mid-replay frozen-cone-of-a-marine-killed-by-overwatch leak acknowledged as transient (recomputes at finishReplay) and conservative-direction. Advisor's stale-ISA complaint was an --auto-state artifact (it read an unrelated task ISA; this run's 20 ISCs live here).
+
 - 2026-08-21 (fog-of-war run, plan): user wants dramatic fog: stealers hidden on the main board unless in marine LOS or within 2 squares, dim overlay on out-of-sight squares, blips and minimap unchanged, accepting it may prove too hard ("I want to try it"). Design: pure presentation feature, zero engine changes; the engine already exports visibleSquares/canSee. Sight set = union over living marines of visibleSquares plus each marine's own square (a marine never "sees" the square he stands on per inVisionArc, but dimming the squad would be absurd). Proximity metric: Chebyshev <= 2 THROUGH walls, deliberately: reads as hearing scratching in the bulkheads, is deterministic and cheap; a BFS path-distance variant is the tunable alternative if wall-leak feels wrong in play. Attacked-from-behind reveal needs no extra pathway: all stealer-side pieces (Genestealer, Blip, AmbushCounter) attack in melee, so an attacker is always Chebyshev 1. Replay handling extends the codebase's payload-not-engine invariant: the sight set is FROZEN during replay (recompute gated on !animating, mirroring minimap.frozen) and per-frame stealer show/hide tests the sprite's live tile against the frozen set; marines never move during the stealer phase so proximity from engine marine positions stays truthful mid-replay. A stealer opening a door mid-replay keeps the corridor dark until finishReplay: conservative and thematically right. Escape hatch: ?fog=0 (default on in real missions, off in attract mode, no overlay during Deploy). Overlay depth 0.7: above floor 0, markers 0.4-0.5, doors 0.5, deploy-x 0.6; below losOverlay 0.8, flames 0.9 (flames stay bright: light sources), cat 0.95, pieces 1. ISC soft floor show-your-math: 20 ISCs, not 32; contained presentation surface, every behavior has exactly one probe, padding would split atomic probes artificially (precedent: runs eight and nine). Forge waived (12th): codex binary still absent; code-reviewer + pr-test-analyzer are the delegation pair.
 
 - 2026-08-21 (door-destruction run, review round): code-reviewer independently verified reproduce-first (removed the handler, 2 tests fail; restored, 6 pass) and confirmed the capture-safety claim (overwatch is the only marine action inside capture and it never targets doors). Adopted: mid-autofire interleave test (handler converts a blip synchronously inside autofire's repeat-pass loop and the fresh stealer becomes a pass-2 target), dead RollQueue removed from the replay test. Test-analyzer verdict: sufficient; per-weapon conversion tests rejected as redundant since demolishDoor is the sole doorDestroyed emitter. Advisor sweep of remaining sight-adding events: turn-in-place covered (tryTurn emits pieceMoved, tested), flame expiry covered (clearFlames is followed by convertRevealedBlips at end phase), blip spawn covered (spawnBlips followed by convertRevealedBlips), cat is not a piece and never blocks LOS. KNOWN PRE-EXISTING GAPS, not fixed this run: (1) finishDeployment lands reserve marines without a conversion sweep, so a blip already in a just-deployed marine's arc waits for the next trigger; (2) marineEscaped vacates a square without a conversion sweep, which could in principle open another marine's sight line. Both self-heal on the next marine action and predate this run.
@@ -606,6 +618,15 @@ The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/
 - ISC-1006: git diff added-lines em dash count: 0 (after sweeping 10 from my own comments)
 - ISC-1007: tsc --noEmit exit 0 on the client package (engine untouched)
 - ISC-1008: Playwright live probe on the dev server: fog overlay active (sightSize 1 of 98 on debug_1, correct: the marine spawns nose-to-door), hidden/creep/door-reveal all correct, zero console and page errors; minimap code byte-untouched keeps echoing all threats
+
+### Fog of war review round (2026-08-21)
+
+- ISC-1009: Read of endTurn (fogMarineSnap beside anchors), fogMarines() gate on animating, finishReplay clear; suites 337 + 97 green
+- ISC-1010: Read of the pointerdown predicate: obj.name === 'piece' && visible && bounds
+- ISC-1011: Read of describeSquare: hoverHidden uses fogMarines() and exempts Deploy
+- ISC-1012: Read of the subscription block: marineEscaped present
+- ISC-1013: Read of updateFog: result !== 'ongoing' branch gated on !animating, clears overlay, shows stealers
+- Regression: full live Playwright probe re-run post-fixes, identical green results (hidden/creep/door-flip/fog=0, zero errors); em dash count on added lines 0
 
 ### Deployment phase run (2026-08-19)
 

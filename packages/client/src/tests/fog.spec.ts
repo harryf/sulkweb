@@ -53,6 +53,27 @@ describe('computeMarineSight', () => {
     expect(computeMarineSight(board).has('10,6')).toBe(true);
   });
 
+  it('a dead marine casts no sight; a wiped squad leaves an empty set', () => {
+    // The module leans on the engine invariant that board.pieces holds only
+    // living pieces (die() splices). If a refactor ever keeps corpses with
+    // alive=false, this catches the corpse projecting vision forever.
+    const engine = new GameEngine(openMission);
+    const board = engine.state.board;
+    expect(computeMarineSight(board).has('4,2')).toBe(true);
+    engine.marines[0].die();
+    const sight = computeMarineSight(board);
+    expect(sight.size).toBe(0);
+    expect(threatRevealed(sight, [], 4, 2)).toBe(false); // no throw, no reveal
+  });
+
+  it('non-marine pieces cast no sight', () => {
+    const engine = new GameEngine(openMission);
+    const board = engine.state.board;
+    new Blip(board, { c: 4, r: 6 }, 1); // behind the marine, "sees" down the room
+    const sight = computeMarineSight(board);
+    expect(sight.has('4,8')).toBe(false); // only the blip could see this
+  });
+
   it('unions sight over every living marine', () => {
     const engine = new GameEngine({
       ...openMission,
@@ -86,6 +107,15 @@ describe('threatRevealed', () => {
     expect(FOG.creepRadius).toBe(2);
     expect(threatRevealed(sight, marines, 4, 6)).toBe(true);  // Chebyshev 2
     expect(threatRevealed(sight, marines, 6, 6)).toBe(true);  // diagonal 2
+  });
+
+  it('a melee attacker is ALWAYS revealed, whatever the creep radius', () => {
+    // Design invariant, not arithmetic fallout: every stealer-side attack is
+    // adjacent (Chebyshev 1). If FOG.creepRadius is ever tuned below 1, a
+    // stealer could kill while invisible, the worst failure of this feature.
+    const { sight, marines } = setup();
+    expect(FOG.creepRadius).toBeGreaterThanOrEqual(1);
+    expect(threatRevealed(sight, marines, 4, 5)).toBe(true); // directly behind
   });
 
   it('hides a stealer out of sight beyond the creep radius', () => {

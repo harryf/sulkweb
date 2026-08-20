@@ -11,6 +11,7 @@ import { showEndDialog } from '../ui/endDialog.js';
 import { HUD_WIDTH, MINI_MAP_MARGIN, UI_FONT, FACING_ARROWS } from '../config.js';
 import { MOTION, kindFromTexture, camPanStep, shimmerPhase, recoilVector, shortestRotationDelta } from '../utils/motionLogic.js';
 import { FOCUS, planReplayFocus, replayOffsets } from '../utils/replayFocus.js';
+import { FOG, computeMarineSight, threatRevealed } from '../utils/fog.js';
 
 const TILE_SIZE = 40
 
@@ -80,6 +81,16 @@ export default class GameScene extends Phaser.Scene {
   private pauseOverlay?: Phaser.GameObjects.Container;
   private losOverlay!: Phaser.GameObjects.Graphics;
   private losVisible = false;
+  /** Fog of war (`?fog=0` disables; off in attract): squares no marine sees
+   *  are dimmed, stealers standing there are hidden unless they creep within
+   *  FOG.creepRadius; the minimap auspex is the detection instrument. */
+  private readonly fogEnabled: boolean;
+  private fogGfx?: Phaser.GameObjects.Graphics;
+  private fogSight = new Set<string>();
+  /** Sight recompute request, serviced by update() only OUTSIDE replays:
+   *  mid-replay the engine holds FINAL state (doors, deaths), and a fresh
+   *  set drawn from it would spoil the animation (payload-not-engine). */
+  private fogDirty = true;
   /** Last hover readout string — public for the e2e suite to assert against. */
   hoverInfo = '';
   /** All game audio (music ducking, SFX, motion tracker) — public for e2e. */
@@ -145,6 +156,8 @@ export default class GameScene extends Phaser.Scene {
     const missionParam = params.get('mission');
     this.attract = missionParam === null;
     this.deployRequested = params.get('deploy') !== '0';
+    // Fog defaults ON in real missions; the homepage backdrop keeps its look.
+    this.fogEnabled = !this.attract && params.get('fog') !== '0';
     const requested = missionParam ?? 'space_hulk_1';
     // Own-property check, not `in`: prototype-chain keys (?mission=toString)
     // must fall back to debug_1, not reach loadMission and throw.
@@ -758,6 +771,25 @@ export default class GameScene extends Phaser.Scene {
       this.emitSelected(selectedId ? this.engine.findPiece(selectedId) : undefined);
     });
 
+    // Fog of war: dimming rects live at 0.7: over floor (0), markers
+    // (0.4/0.5), doors (0.5) and deploy X's (0.6); under the LOS overlay
+    // (0.8), flames (0.9, light sources stay bright) and pieces (1).
+    if (this.fogEnabled) {
+      this.fogGfx = this.add.graphics().setDepth(0.7);
+      // Anything that can change what a marine sees requests a recompute;
+      // update() services it only outside replays (frozen-set invariant).
+      const fogDirty = () => { this.fogDirty = true; };
+      PieceEvents.on('pieceMoved', fogDirty);
+      PieceEvents.on('pieceDied', fogDirty);   // pieces block LOS
+      PieceEvents.on('pieceAdded', fogDirty);
+      PieceEvents.on('blipConverted', fogDirty);
+      PieceEvents.on('doorToggled', fogDirty);
+      PieceEvents.on('doorDestroyed', fogDirty);
+      PieceEvents.on('sectionFlamed', fogDirty);
+      PieceEvents.on('flamesCleared', fogDirty);
+      PieceEvents.on('phaseChanged', fogDirty); // deploy end, turn boundaries
+    }
+
     // LOS debug overlay — hold L with a piece selected
     this.losOverlay = this.add.graphics().setDepth(0.8);
     this.input.keyboard!.on('keydown-L', () => {
@@ -1098,6 +1130,8 @@ export default class GameScene extends Phaser.Scene {
       if (s?.active && this.highlight.visible) this.highlight.follow(s);
     }
 
+    this.updateFog();
+
     // Camera panning moves the world under a stationary pointer — while the
     // flamer is armed, keep the hover target and preview honest.
     if (this.flamerAiming) {
@@ -1127,6 +1161,10 @@ export default class GameScene extends Phaser.Scene {
       .setName('piece')
       .setInteractive();
     (sprite as any).pieceId = pieceId;
+    (sprite as any).pieceKind = kind;
+    // Under fog a fresh stealer must not flash its position for even one
+    // frame: spawn hidden; updateFog() shows it the moment it is revealed.
+    if (this.fogEnabled && kind === 'stealer') sprite.setVisible(false);
     this.pieceSprites[pieceId] = sprite;
   }
 
@@ -1726,6 +1764,41 @@ export default class GameScene extends Phaser.Scene {
     const defender = this.engine.state.board.pieceAt(ahead) as Piece | undefined;
     if (!defender) return false;
     return closeCombat(piece, defender) !== undefined;
+  }
+
+  /** Fog of war, per frame: dim what no marine sees; hide stealers standing
+   *  there. The sight set recomputes only OUTSIDE replays (mid-replay the
+   *  engine board is a spoiler, same invariant as minimap.frozen), while
+   *  the per-frame pass tests each stealer SPRITE's live tile against the
+   *  frozen set, so replays flash them across lit corridors and swallow
+   *  them again. Marines never move during the stealer phase, so engine
+   *  positions stay truthful for the creep-reveal even while frozen. */
+  private updateFog(): void {
+    const gfx = this.fogGfx;
+    if (!gfx) return; // fog off (?fog=0 or attract): zero behavior change
+    // Deployment: the whole board must be readable while placing the squad.
+    if (this.deployMode || this.engine.phase === 'Deploy') {
+      gfx.clear();
+      this.fogDirty = true; // recompute the moment the mission proper starts
+      return;
+    }
+    if (this.fogDirty && !this.animating) {
+      this.fogSight = computeMarineSight(this.engine.state.board);
+      gfx.clear();
+      gfx.fillStyle(FOG.overlayColor, FOG.overlayAlpha);
+      for (const sq of this.engine.state.board.allSquares()) {
+        if (!this.fogSight.has(`${sq.x},${sq.y}`)) {
+          gfx.fillRect(sq.x * TILE_SIZE, sq.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        }
+      }
+      this.fogDirty = false;
+    }
+    const marines = this.engine.marines.map(m => ({ c: m.pos.c, r: m.pos.r }));
+    for (const spr of Object.values(this.pieceSprites)) {
+      if ((spr as any).pieceKind !== 'stealer' || !spr.active) continue;
+      const c = Math.floor(spr.x / TILE_SIZE), r = Math.floor(spr.y / TILE_SIZE);
+      spr.setVisible(threatRevealed(this.fogSight, marines, c, r));
+    }
   }
 
   private drawLosOverlay() {

@@ -3,8 +3,8 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: "921/921 (v0.6.1 released: ISC-984..988; ISC-971 deferred probe closed; ISC-71 deferred)"
+phase: verify
+progress: "941/941 (fog of war shipped locally: ISC-989..1008; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-21T00:45:00Z
@@ -339,6 +339,29 @@ Anti-criteria:
 - [x] ISC-987: live root boots the game with zero console and page errors (Playwright probe: phase MarineAction turn 1, errorCount 0)
 - [x] ISC-988: Anti: no frozen version dir was deleted or altered by the release (curl 200 on /0.6.0/manifest.json)
 
+### Fog of war: stealers hidden outside marine sight (2026-08-21, tenth run)
+
+- [x] ISC-989: a pure client module computeMarineSight(board) returns the set of squares any living marine sees, plus each marine's own square (vitest)
+- [x] ISC-990: computeMarineSight excludes squares behind a marine, outside his 180 degree vision arc (vitest)
+- [x] ISC-991: computeMarineSight excludes squares behind a closed door and includes them once the door opens (vitest)
+- [x] ISC-992: threatRevealed is true for a square in the sight set (vitest)
+- [x] ISC-993: threatRevealed is true for a square outside sight but within Chebyshev 2 of a marine, the creeping-up-behind rule (vitest)
+- [x] ISC-994: threatRevealed is false for a square outside sight at Chebyshev 3 from every marine (vitest)
+- [x] ISC-995: GameScene draws a dimming overlay over every square not in the sight set, at a depth above floor, markers and doors but below pieces (Read + live probe)
+- [x] ISC-996: stealer sprites are hidden every frame when their current sprite tile is not revealed, and shown when it is, so replays flash them across lit corridors (Read)
+- [x] ISC-997: blip sprites, marine sprites and the C.A.T. are never hidden by fog; the per-frame pass touches only kind stealer (Read/grep)
+- [x] ISC-998: Minimap.ts is byte-untouched; the radar remains the detection instrument (git diff)
+- [x] ISC-999: fog is on by default in real missions, off in attract mode, and ?fog=0 disables it (Read)
+- [x] ISC-1000: during the Deploy phase no fog overlay is drawn (Read)
+- [x] ISC-1001: the sight set is never recomputed mid-replay (recompute gated on !animating), honoring the payload-not-engine invariant; finishReplay triggers a fresh compute (Read)
+- [x] ISC-1002: a stealer sprite created while fog is on spawns hidden and is shown by the per-frame pass only if revealed, so no one-frame flash leaks its position (Read)
+- [x] ISC-1003: Anti: zero engine files modified in this run (git diff --stat)
+- [x] ISC-1004: Anti: with fog disabled the scene renders exactly as before: no overlay object drawn, no visibility toggling (Read of guard clauses)
+- [x] ISC-1005: full engine and client suites green (pnpm -r test)
+- [x] ISC-1006: Anti: zero em dashes on any added line (git diff grep)
+- [x] ISC-1007: typecheck green across the workspace (pnpm -r typecheck or build)
+- [x] ISC-1008: live probe: a real mission under fog shows the overlay and hides an out-of-sight stealer while the minimap still echoes it (Playwright on local preview)
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
@@ -453,6 +476,14 @@ Anti-criteria:
 
 ## Features
 
+### Fog of war run (2026-08-21)
+
+| name | description | satisfies | depends_on | parallelizable |
+|---|---|---|---|---|
+| fog-module | pure client utils/fog.ts: computeMarineSight (union of visibleSquares over living marines plus own squares) and threatRevealed (sight set OR Chebyshev <= 2 of a marine) | ISC-989..994 | none | no |
+| scene-fog | GameScene: fog graphics overlay, dirty-flag recompute gated on !animating, per-frame stealer show/hide from sprite tile, spawn-hidden stealers, ?fog=0 and attract/Deploy exemptions | ISC-995..997, 999..1002, 1004 | fog-module | no |
+| fog-tests | vitest fog.spec.ts against the real engine board; full suites; typecheck; live Playwright probe | ISC-1005, 1007, 1008 | fog-module, scene-fog | no |
+
 | name | description | satisfies | depends_on | parallelizable |
 |------|-------------|-----------|------------|----------------|
 | deployment-phase | engine Deploy phase + reserve model, client deploy mode UI, Decoy data fix, docs | ISC-796..840 |; | no |
@@ -528,6 +559,8 @@ Anti-criteria:
 
 ## Decisions
 
+- 2026-08-21 (fog-of-war run, plan): user wants dramatic fog: stealers hidden on the main board unless in marine LOS or within 2 squares, dim overlay on out-of-sight squares, blips and minimap unchanged, accepting it may prove too hard ("I want to try it"). Design: pure presentation feature, zero engine changes; the engine already exports visibleSquares/canSee. Sight set = union over living marines of visibleSquares plus each marine's own square (a marine never "sees" the square he stands on per inVisionArc, but dimming the squad would be absurd). Proximity metric: Chebyshev <= 2 THROUGH walls, deliberately: reads as hearing scratching in the bulkheads, is deterministic and cheap; a BFS path-distance variant is the tunable alternative if wall-leak feels wrong in play. Attacked-from-behind reveal needs no extra pathway: all stealer-side pieces (Genestealer, Blip, AmbushCounter) attack in melee, so an attacker is always Chebyshev 1. Replay handling extends the codebase's payload-not-engine invariant: the sight set is FROZEN during replay (recompute gated on !animating, mirroring minimap.frozen) and per-frame stealer show/hide tests the sprite's live tile against the frozen set; marines never move during the stealer phase so proximity from engine marine positions stays truthful mid-replay. A stealer opening a door mid-replay keeps the corridor dark until finishReplay: conservative and thematically right. Escape hatch: ?fog=0 (default on in real missions, off in attract mode, no overlay during Deploy). Overlay depth 0.7: above floor 0, markers 0.4-0.5, doors 0.5, deploy-x 0.6; below losOverlay 0.8, flames 0.9 (flames stay bright: light sources), cat 0.95, pieces 1. ISC soft floor show-your-math: 20 ISCs, not 32; contained presentation surface, every behavior has exactly one probe, padding would split atomic probes artificially (precedent: runs eight and nine). Forge waived (12th): codex binary still absent; code-reviewer + pr-test-analyzer are the delegation pair.
+
 - 2026-08-21 (door-destruction run, review round): code-reviewer independently verified reproduce-first (removed the handler, 2 tests fail; restored, 6 pass) and confirmed the capture-safety claim (overwatch is the only marine action inside capture and it never targets doors). Adopted: mid-autofire interleave test (handler converts a blip synchronously inside autofire's repeat-pass loop and the fresh stealer becomes a pass-2 target), dead RollQueue removed from the replay test. Test-analyzer verdict: sufficient; per-weapon conversion tests rejected as redundant since demolishDoor is the sole doorDestroyed emitter. Advisor sweep of remaining sight-adding events: turn-in-place covered (tryTurn emits pieceMoved, tested), flame expiry covered (clearFlames is followed by convertRevealedBlips at end phase), blip spawn covered (spawnBlips followed by convertRevealedBlips), cat is not a piece and never blocks LOS. KNOWN PRE-EXISTING GAPS, not fixed this run: (1) finishDeployment lands reserve marines without a conversion sweep, so a blip already in a just-deployed marine's arc waits for the next trigger; (2) marineEscaped vacates a square without a conversion sweep, which could in principle open another marine's sight line. Both self-heal on the next marine action and predate this run.
 
 - 2026-08-21 (door-destruction run): user playtest report: blip behind a door stayed a blip after the door was shot away. Root cause: door destruction emits doorDestroyed (demolishDoor in rules/Door.ts), but GameEngine's immediate-conversion wiring only covered doorToggled, marine pieceMoved, pieceDied, and sectionFlamed, so no sight re-check ran until the next unrelated trigger. Fix at the ingestion point: one doorDestroyed subscription in the GameEngine constructor mirroring the doorToggled guards (replaying, Deploy phase, result ongoing). This single handler covers all three destruction weapons since bolter shootDoor, cannon autofire, and chain-fist cut all emit through demolishDoor. Handler is capture-safe: stealers only open doors, never destroy them, so it cannot fire inside the suppressed stealer phase. Reproduce-first honored: both new tests failed before the fix, passed after. Forge waived (11th): codex binary still absent; reviewer + test-analyzer agents are the delegation pair.
@@ -555,6 +588,24 @@ Older entries: [docs/isa/decisions-log.md](docs/isa/decisions-log.md).
 The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/isa/changelog-log.md). New entries land here first and are archived once their run is.
 
 ## Verification
+
+### Fog of war run (2026-08-21)
+
+- ISC-989..994: vitest fog.spec.ts 7/7 green against the real engine (own square in set, arc exclusion behind, closed-door exclusion flipping on useDoor, multi-marine union, sight reveal, Chebyshev-2 creep reveal including diagonal, Chebyshev-3 hidden)
+- ISC-995: Read of updateFog (fillRect per unseen square, FOG.overlayColor at 0.42) + fogGfx depth 0.7 between doors 0.5 and losOverlay 0.8; pixel-luminance proof on space_hulk_1 screenshots: far room 147.0 undimmed vs 85.3 under fog, far corridor 83.2 vs 48.7
+- ISC-996: live Playwright probe on debug_1: stealer at Chebyshev >2 out of sight sprite.visible=false; stealer beyond the closed door hidden, then engine.marines[0].useDoor() live flipped it visible=true and fogSight grew 1 to 9
+- ISC-997: per-frame pass guards pieceKind === 'stealer'; probe: marine sprites visible=true under fog
+- ISC-998: git status: Minimap.ts untouched; minimap suite green in the 94
+- ISC-999: constructor sets fogEnabled = !attract && params.get('fog') !== '0' (Read); live probe with ?fog=0: scene.fogGfx=false
+- ISC-1000: updateFog clears and returns during deployMode/Deploy phase, sets fogDirty for the mission start (Read)
+- ISC-1001: recompute gated on this.fogDirty && !this.animating; replay events leave the flag set so finishReplay's next frame recomputes (Read)
+- ISC-1002: createSprite stashes pieceKind and spawns stealers setVisible(false) under fog (Read); probe stealers were created via live pieceAdded and never flashed
+- ISC-1003: git diff --stat: only ISA.md and packages/client/* changed; engine tree byte-untouched
+- ISC-1004: guard `if (!gfx) return` is the sole fog path in update(); ?fog=0 probe booted with zero errors and no fog object
+- ISC-1005: pnpm -r test: engine 337/337, client 94/94 (7 new)
+- ISC-1006: git diff added-lines em dash count: 0 (after sweeping 10 from my own comments)
+- ISC-1007: tsc --noEmit exit 0 on the client package (engine untouched)
+- ISC-1008: Playwright live probe on the dev server: fog overlay active (sightSize 1 of 98 on debug_1, correct: the marine spawns nose-to-door), hidden/creep/door-reveal all correct, zero console and page errors; minimap code byte-untouched keeps echoing all threats
 
 ### Deployment phase run (2026-08-19)
 

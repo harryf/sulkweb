@@ -4,7 +4,7 @@ task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: "863/864 (versioned Pages deploys shipped, ISC-901..932; ISC-71 deferred)"
+progress: "863/865 (v0.5.1 release in flight, ISC-933; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-20T11:25:00Z
@@ -246,6 +246,10 @@ Deferred and open items living in archives (pointers, not duplicates):
 - [x] ISC-930: ISA records this run with evidence and a Decisions entry (Read)
 - [x] ISC-931: docs note the site-size arithmetic (each frozen version ~36MB against the 1GB Pages soft limit) (Read)
 - [x] ISC-932: Anti: re-running a tag workflow only rewrites that tag's own dir and root, never another version (yml logic: dir name derives from ref_name)
+
+### v0.5.1: versions page discoverable from the stable manual (2026-08-20, fourth run)
+
+- [ ] ISC-933: v0.5.1 released through the NEW versioned workflow; run green FIRST, then release published; live root manual carries the All versions link; /0.5.1/ frozen; /0.5.0/ and /latest/ byte-untouched; versions.html lists both versions; root manifest.json now exists (curl suite)
 
 ## Test Strategy
 

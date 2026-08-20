@@ -1,5 +1,7 @@
 # Project Status
 
+*As of 2026-08-20 (v0.5.0).*
+
 Where the port stands: what shipped, in what order, and what's knowingly missing. The system of record with per-criterion evidence is [ISA.md](../ISA.md); the original milestone specs live in [history/prompts/](history/prompts/).
 
 ## Roadmap state (original M0–M8 plan)

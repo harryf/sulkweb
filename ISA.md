@@ -4,7 +4,7 @@ task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: "863/865 (v0.5.1 release in flight, ISC-933; ISC-71 deferred)"
+progress: "864/865 (v0.5.1 shipped through the versioned pipeline; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-20T11:25:00Z
@@ -249,7 +249,7 @@ Deferred and open items living in archives (pointers, not duplicates):
 
 ### v0.5.1: versions page discoverable from the stable manual (2026-08-20, fourth run)
 
-- [ ] ISC-933: v0.5.1 released through the NEW versioned workflow; run green FIRST, then release published; live root manual carries the All versions link; /0.5.1/ frozen; /0.5.0/ and /latest/ byte-untouched; versions.html lists both versions; root manifest.json now exists (curl suite)
+- [x] ISC-933: v0.5.1 released through the NEW versioned workflow; run green FIRST, then release published; live root manual carries the All versions link; /0.5.1/ frozen; /0.5.0/ and /latest/ byte-untouched; versions.html lists both versions; root manifest.json now exists (curl suite)
 
 ## Test Strategy
 
@@ -484,6 +484,8 @@ Repo cleanup (2026-08-20, ISC-849..883):
 - ISC-879/880: git status; zero packages/** paths in the change set; no player-facing strings touched.
 - ISC-881: Bash; commit 5937405 pushed e33a7a7..5937405; GitHub README API returns the new landing page verbatim (first 12 lines matched); features.md and docs/history tree render 200 on github.com.
 - ISC-882: curl; raw.githubusercontent.com/.../docs/images/{gameplay,homepage}.png both 200 image/png (181923B / 180713B).
+v0.5.1 release (2026-08-20 fourth run, ISC-933): run 32365171073 green FIRST (first live pass of the new deploy.yml), then release https://github.com/harryf/sulkweb/releases/tag/v0.5.1 published. Probes: root + /0.5.1/ manifests both v0.5.1 sha 009f58f built 11:43:45Z; root manual bundle manual-WTAvwBr9.js contains the All versions footer; /0.5.0/ bundle sha unchanged (a4dabfb); /latest/ manifest unchanged (latest-d746703); versions.html lists Stable (v0.5.1), latest, 0.5.1, 0.5.0. The known root-manifest gap from the bootstrap is closed.
+
 Versioned Pages deploys (2026-08-20 third run, ISC-901..932):
 - ISC-901: git ls-remote; gh-pages at 7e09c9d bootstrap, advanced by run commits; tree = root build + 0.5.0/ + latest/ + STABLE_VERSION + versions.html.
 - ISC-902/903/915: curl + shasum; root and /0.5.0/ both serve main-BsS2_Wa0.js with IDENTICAL sha a4dabfb...; the latest deploy left both untouched.

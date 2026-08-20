@@ -2,6 +2,7 @@ import { it, expect, describe } from 'vitest';
 import { GameEngine } from '../GameEngine.js';
 import { Blip } from '../pieces/Blip.js';
 import { StormBolterMarine } from '../pieces/StormBolterMarine.js';
+import { AssaultCannonMarine } from '../pieces/AssaultCannonMarine.js';
 import { RollQueue } from '../core/Dice.js';
 import { PieceEvents } from '../events/PieceEvents.js';
 import type { CompiledMission } from '../missions/missionTypes.js';
@@ -79,6 +80,33 @@ describe('blips convert immediately when a marine action reveals them', () => {
 
     expect(blip.alive).toBe(false); // seen through the wreckage, converted
     expect(board.pieces.some(p => (p as any).kind === 'stealer' && p.pos.c === 10 && p.pos.r === 6)).toBe(true);
+  });
+
+  it('a blip exposed mid-autofire converts during the sweep and the fresh stealer is a pass-2 target', () => {
+    // The doorDestroyed handler fires INSIDE autofire's repeat-pass loop, so
+    // conversion mutates the board while the sweep is iterating. Reviewer
+    // finding 2026-08-21: this interleaving was unexercised (the existing
+    // autofire test hides a pre-placed stealer, not a blip).
+    const engine = new GameEngine({
+      name: 'autofire-blip-test', width: 3, height: 14,
+      squares: Array.from({ length: 14 }, (_, y) =>
+        ({ x: 1, y, kind: 'corridor' as const, doorFacing: y === 5 ? 'down' as const : undefined })),
+      marineDeployment: [{ x: 1, y: 2, facing: 'down', type: 'assault_cannon' }],
+      initialBlips: 0, entryPoints: [], objective: 'exterminate',
+    } as unknown as CompiledMission);
+    const board = engine.state.board;
+    const ac = engine.marines[0] as AssaultCannonMarine;
+    const blip = new Blip(board, { c: 1, r: 7 }, 1); // hidden behind the closed door
+    const door = board.doorBetween({ c: 1, r: 5 }, { c: 1, r: 6 })!;
+    // Pass 1: door (3,1,1) shredded → handler converts the blip on the spot.
+    // Pass 2: the converted stealer is exposed, (3,1,1) kills. Pass 3: empty.
+    // Then the malfunction-check dice (no triple).
+    board.dice = new RollQueue([3, 1, 1, 3, 1, 1, 1, 2, 1]);
+    expect(ac.autofire()).toBe(true);
+    expect(door.destroyed).toBe(true);
+    expect(blip.alive).toBe(false); // converted mid-sweep, not left as a blip
+    expect(board.pieces.filter(p => (p as any).kind === 'blip')).toHaveLength(0);
+    expect(board.pieces.filter(p => (p as any).kind === 'stealer')).toHaveLength(0); // pass 2 killed it
   });
 
   it('REPLAYED doorDestroyed events never re-trigger conversion', () => {

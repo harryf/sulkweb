@@ -12,19 +12,19 @@ Music of 40K channel's explicit non-profit-with-credit terms (quoted below);
 the short film/game SFX cuts (Aliens, 1986; Alien: Isolation, 2014) carry no
 grant and are shipped as brief, attributed excerpts in a free fan work. The
 underlying works belong to their composers, publishers, and studios. This is
-a good-faith fan-project posture, not a clean chain of title — if you are a
+a good-faith fan-project posture, not a clean chain of title; if you are a
 rights holder and want anything credited differently or removed, open an
 issue and it will be resolved promptly. If you fork this project for anything
 beyond a non-profit fan game, clear or replace every fetched asset first.
 
-## Ambient mission music — Music of 40K
+## Ambient mission music: Music of 40K
 
 The per-mission ambient soundtrack is used with thanks under the
 [Music of 40K](https://www.youtube.com/@Musicof40K) channel's non-profit-use
 terms ("You can use my soundscapes for non-profit projects… just be sure to
 credit Music of 40K and include a link to the soundscape you used"). The
 channel curates existing music; the underlying works belong to their composers
-— support the artists.
+Support the artists.
 
 Source playlist: [Space Hulk Ambient Music](https://www.youtube.com/playlist?list=PLyLLeKcxw24V5T-4J8D5KEXpvbTVIRwoh)
 
@@ -54,13 +54,13 @@ the original author's source comment marks `assault_cannon_burst.wav` as
 
 **Derived cuts** (committed under `assets/audio/`, cut by `fetchAudio.ts`):
 
-- Storm-bolter fire — cut from
+- Storm-bolter fire: cut from
   [Aliens Pulse Rifle Sound Effect](https://www.youtube.com/watch?v=uz0UkvGU2qE)
   (uploaded by MuTtLeYiSm; M41A pulse rifle from *Aliens*, 1986, 20th Century Fox).
-- Motion tracker ping — cut from
+- Motion tracker ping: cut from
   [Aliens Motion Tracker sound FX clean](https://www.youtube.com/watch?v=VancAKcmO6s)
   (uploaded by thatSFXguy; *Aliens*, 1986).
-- Genestealer movement/attack/death voices — segmented from
+- Genestealer movement/attack/death voices: segmented from
   [Alien: Isolation – Alien Sounds](https://www.youtube.com/watch?v=qiyXFQKheOU)
   (uploaded by Bradley Cypser; *Alien: Isolation*, 2014, Creative Assembly/SEGA).
   Segment cut points + role classification live in

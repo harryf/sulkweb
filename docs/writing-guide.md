@@ -41,7 +41,7 @@ Replace with plain alternatives.
 - Avoid `from X to Y` false ranges where X and Y share no real scale.
 - Prefer `is/are` over `serves as`, `stands as`, `holds the distinction of`.
 - Don't capitalize Every Main Word In Headings unless required by style.
-- No em dashes (—) used for dramatic emphasis. A comma, colon, or parenthesis is usually right.
+- No em dashes. Ever, anywhere, for any purpose. A comma, colon, semicolon, or parenthesis is always available; restructure the sentence if none fit.
 - No excessive bold. Bold only for genuinely critical terms, not key takeaways.
 - No inline-header bullet lists: **Term:** Description. Use prose or a table.
 

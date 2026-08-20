@@ -5,14 +5,14 @@
 # with SULK_VERSION set from the tag (shown in the UI as #app-version), and
 # publishes packages/client/dist to https://harryf.github.io/sulkweb/.
 #
-# Plain pushes to main never deploy — that is the release gateway.
+# Plain pushes to main never deploy; that is the release gateway.
 #
 # The full processed audio set (assets/audio/) is committed and ships with
 # the site; per-source attribution lives on /credits.html (generated from
 # audioManifest.ts) and in CREDITS.md.
 #
 # Manual redeploys: re-run this workflow's jobs from the Actions UI on the
-# tag's run — the ref (and therefore the version stamp) stays the tag.
+# tag's run: the ref (and therefore the version stamp) stays the tag.
 
 name: Deploy to GitHub Pages
 

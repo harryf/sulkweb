@@ -16,6 +16,6 @@ packages/client/coverage/
 
 # Raw audio download cache (regenerate with `bun scripts/fetchAudio.ts`).
 # The processed set under packages/client/public/assets/audio/ IS committed
-# and ships with the deployed site — attribution lives on /credits.html and
+# and ships with the deployed site; attribution lives on /credits.html and
 # in CREDITS.md.
 .audio-cache/

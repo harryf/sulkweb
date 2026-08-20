@@ -1,10 +1,10 @@
 # Sulk Web
 
-A browser port of [Sulk](https://sulk.sourceforge.net/), the open-source Space Hulk clone: turn-based squad tactics in the corridors of a derelict ship, your Terminator marines against an endless genestealer swarm. The entire original campaign is playable — nine missions transcribed from the original game's sources, with the original boards, sprites, rules, and a full soundtrack.
+A browser port of [Sulk](https://sulk.sourceforge.net/), the open-source Space Hulk clone: turn-based squad tactics in the corridors of a derelict ship, your Terminator marines against an endless genestealer swarm. The entire original campaign is playable: nine missions transcribed from the original game's sources, with the original boards, sprites, rules, and a full soundtrack.
 
-**▶ Play it now: <https://harryf.github.io/sulkweb/>** — no install, runs in your browser.
+**▶ Play it now: <https://harryf.github.io/sulkweb/>**: no install, runs in your browser.
 
-**📖 Read the [field manual](https://harryf.github.io/sulkweb/manual.html)** — friendly rules, controls, and a rendered map of every mission.
+**📖 Read the [field manual](https://harryf.github.io/sulkweb/manual.html)**: friendly rules, controls, and a rendered map of every mission.
 
 ![Mid-mission: the squad advances down the north corridor while blips close in](docs/images/gameplay.png)
 
@@ -45,7 +45,7 @@ pnpm build                             # engine tsc + client vite build
 
 ## Releases
 
-The live site deploys from **version tags only** — pushing to `main` never
+The live site deploys from **version tags only**: pushing to `main` never
 touches it. A tag runs the full verification gate (typecheck + all unit
 suites) and, only if green, builds and publishes to GitHub Pages with the tag
 as the in-game version string. Details: [docs/architecture.md](docs/architecture.md).
@@ -54,7 +54,7 @@ as the in-game version string. Details: [docs/architecture.md](docs/architecture
 
 Sulk Web is free software under the
 [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html)
-(see [LICENSE](LICENSE)) — the same license as the original Sulk game it
+(see [LICENSE](LICENSE)), the same license as the original Sulk game it
 recreates. Audio and music assets carry their own licenses, credited in
 [CREDITS.md](CREDITS.md) and on the deployed
 [audio credits page](https://harryf.github.io/sulkweb/credits.html).

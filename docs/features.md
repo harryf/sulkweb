@@ -4,29 +4,29 @@ What's in the game, mission by mission and system by system. For the rules as im
 
 **The entire original campaign is playable.** Nine missions transcribed from the original game's sources (`data/missions/<family>/MISH_*.py`).
 
-Opening the bare app URL (`http://localhost:5173/`) shows the **homepage**: a title overlay with an intro, the mission-select list, credits, and a link to the **field manual** (`/manual.html` — friendly rules with TypeScript-rendered maps of every mission), over a dimmed attract-mode board. During a mission an **Abort mission** button (two-click confirm) returns to the homepage, and the end-of-mission dialog offers **Retry** or **Choose another mission**.
+Opening the bare app URL (`http://localhost:5173/`) shows the **homepage**: a title overlay with an intro, the mission-select list, credits, and a link to the **field manual** (`/manual.html`, friendly rules with TypeScript-rendered maps of every mission), over a dimmed attract-mode board. During a mission an **Abort mission** button (two-click confirm) returns to the homepage, and the end-of-mission dialog offers **Retry** or **Choose another mission**.
 
 ## The missions
 
-- **`debug_1`**: "Suicide Mission with no forces" — one storm-bolter marine
+- **`debug_1`**: "Suicide Mission with no forces", one storm-bolter marine
   vs a one-blip-per-turn trickle (adapted reach-the-exit objective). A training
   scenario, kept off the mission-select list.
   `http://localhost:5173/?mission=debug_1`
-- **`space_hulk_1`**: the ORIGINAL scenario — 3 storm bolters, a sergeant and a
+- **`space_hulk_1`**: the ORIGINAL scenario; 3 storm bolters, a sergeant and a
   heavy flamer deploy in the north corridor and must fight across the hulk to
   **set the Launch Control room on fire**. Defeat the moment the flamer marine dies
-  or runs out of ammo (6 shots — self-destruct also wins if he's inside the room).
+  or runs out of ammo (6 shots; self-destruct also wins if he's inside the room).
   Reinforcements are uncapped, exactly like the source.
   `http://localhost:5173/?mission=space_hulk_1`
 - **`space_hulk_2`** "Exterminate": a fresh 204-square board. Squad Constantine
-  (3 storm bolters + sergeant + heavy flamer) starts scattered — one marine per
-  room, per the original deployment rule — against two blips a turn, uncapped.
+  (3 storm bolters + sergeant + heavy flamer) starts scattered (one marine per
+  room, per the original deployment rule) against two blips a turn, uncapped.
   Win by **killing 30 stealers** (a dead blip counts its hidden 1–3 value) or by
   **blockading every entry** (a marine within 6 squares of each); lose when the
   squad is wiped. The HUD shows the running toll (`Kills: n/30`).
   `http://localhost:5173/?mission=space_hulk_2`
-- **`space_hulk_3`** "Rescue": two squads escort the **C.A.T.** — a neutral
-  crawling recorder that wanders on its own until a marine scoops it up — off
+- **`space_hulk_3`** "Rescue": two squads escort the **C.A.T.** (a neutral
+  crawling recorder that wanders on its own until a marine scoops it up) off
   the board through an exit. Stealers reaching the loose C.A.T. skewer it:
   once = damaged (escaping then is only a **draw**), twice = destroyed (defeat).
 - **`space_hulk_4`** "Cleanse and Burn": two squads, two heavy flamers, two
@@ -35,19 +35,19 @@ Opening the bare app URL (`http://localhost:5173/`) shows the **homepage**: a ti
 - **`space_hulk_5`** "Decoy": get **five of ten marines out** through the
   single exit; lose when the squad drops below five.
 - **`space_hulk_6`** "Defend": survive to the **end of turn 16** while
-  protecting the ducting (a stealer stepping on it tears it out — instant
+  protecting the ducting (a stealer stepping on it tears it out, instant
   defeat) and keeping the control room unburnt. Flamers carry only 4 shots
-  here, and firing one from inside the control room wrecks the ducting —
+  here, and firing one from inside the control room wrecks the ducting,
   exactly the source's own booby-trap.
 - **`beta_1`** "Messenger": get any one marine out through the far exit.
 - **`beta_2`** "Download": the full exotic armoury. A sergeant must HOLD the
   **Data Room** square through four quiet end-phases (moving resets the
   counter) while the squad covers him with the **assault cannon** (3 dice,
   kill on 5+, 10 rounds + one reload, 2-AP AUTOFIRE that shreds stealers,
-  doors and even battle-brothers — and can catastrophically MALFUNCTION), the
+  doors and even battle-brothers, and can catastrophically MALFUNCTION), the
   **chain fist** (cuts doors apart for good), the **power-sword sergeant**
   (parries the best enemy die) and the heavy flamer. The stealers seed
-  **ambush counters** behind your lines — two in three are bluffs that bait
+  **ambush counters** behind your lines: two in three are bluffs that bait
   your overwatch into wasted fire, jams, and cannon mishaps.
   `http://localhost:5173/?mission=beta_2`
 
@@ -77,14 +77,14 @@ skips the phase for quick testing.
 | `Z` / `C` | Move diagonally back-left / back-right (2 AP, facing kept) |
 | `A` / `D` | Turn left / right |
 | `S` (or `H`) | Open/close door ahead |
-| `F` | Fire at the nearest target — or at a closed door under the cursor (bolter destroys on a 6, assault cannon on 5+) |
+| `F` | Fire at the nearest target, or at a closed door under the cursor (bolter destroys on a 6, assault cannon on 5+) |
 | `F` (heavy flamer) | First press arms targeting: valid squares get a crosshair cursor and the blast section is previewed in orange; second press fires into the hovered square. Any action key cancels |
 | `M` | Close combat (enemy directly ahead) |
 | `O` | Overwatch on/off (2 AP) |
 | `U` | Unjam bolter |
 | `R` / `T` | Reload (4 AP) / autofire (assault cannon only) |
 | `G` | Cut the door ahead (chain fist only, 1 AP) |
-| `B` `B` | Heavy flamer self-destruct — press twice to confirm (torches his own section) |
+| `B` `B` | Heavy flamer self-destruct: press twice to confirm (torches his own section) |
 | `P` | Spend a Command Point (+1 AP) |
 | `K` | Mute sound on/off (persists) |
 | `L` (hold) | Show line of sight |
@@ -97,13 +97,13 @@ skips the phase for quick testing.
 ## Marine roster panel
 
 A card grid to the right of the canvas shows the whole force, one row per
-squad — titled after its sergeant per the Space Hulk convention ("Squad
-Hectarion"), with the original mission squad key (Calvin, Constantine,
-Sakharov…) kept as the grouping identity — sergeant and special-weapon
-marines first. Each card carries the marine's icon, a
+squad, sergeant and special-weapon marines first. Each row is titled after
+its sergeant per the Space Hulk convention ("Squad Hectarion"), with the
+original mission squad key (Calvin, Constantine, Sakharov…) kept as the
+grouping identity. Each card carries the marine's icon, a
 static Deathwing-flavoured name (`Sgt. Gideon`, `Bro. Claudio`), live AP and
 ammo, weapon label, and state badges (overwatch, jam, C.A.T. carried). Cards
-grey out `KIA` as marines die — the thinning roster IS the pressure gauge —
+grey out `KIA` as marines die (the thinning roster IS the pressure gauge)
 and mark `ESCAPED` separately on escape missions. During deployment, reserve
 marines show dashed-blue `RESERVE` cards that double as the deployment picker.
 The selected marine's card glows gold; clicking a card selects him on the map
@@ -158,23 +158,23 @@ raw downloads are cached in the gitignored `.audio-cache/`):
 pnpm fetch-audio
 ```
 
-- **Ambient music** — a different [Music of 40K](https://www.youtube.com/@Musicof40K)
+- **Ambient music**: a different [Music of 40K](https://www.youtube.com/@Musicof40K)
   soundscape per mission, looping continuously, loudness-normalised, ducked
-  quiet during your phase and swelling while the stealers act (900ms fades —
+  quiet during your phase and swelling while the stealers act (900ms fades;
   the room literally gets louder when it isn't your turn).
-- **SFX** — the original Sulk public-domain wavs voice the marines; storm
+- **SFX**: the original Sulk public-domain wavs voice the marines; storm
   bolters fire the *Aliens* M41A pulse-rifle burst; genestealers move, attack
   and die with *Alien: Isolation* vocalisations (cut points + role guesses in
-  `src/audio/alienSegments.ts` — flagged `guess` until confirmed by ear).
-- **Positional volume** — sounds the swarm makes (doors creaking open, skittering,
+  `src/audio/alienSegments.ts`, flagged `guess` until confirmed by ear).
+- **Positional volume**: sounds the swarm makes (doors creaking open, skittering,
   blip conversions, death cries) attenuate with distance from your squad: a door
   opened far across the hulk creaks faintly in the dark; anything adjacent plays
   at full volume. Marine-caused sounds are by definition close and stay full.
-- **Motion tracker** — the *Aliens* tracker ping runs continuously, its
+- **Motion tracker**: the *Aliens* tracker ping runs continuously, its
   cadence and pitch tightening as the nearest blip closes on your marines:
   a 2.4s idle sweep at 20+ squares, a 300ms panic tick at 2.
 - `K` mutes (persisted). Without fetched audio the game boots and plays
-  silently (original-wav bolter fallback aside) — audio is never load-bearing.
+  silently (original-wav bolter fallback aside): audio is never load-bearing.
 
 The game never blocks on audio: playback starts on your first click (browser
 autoplay policy), all sounds are event-driven off the same engine event stream

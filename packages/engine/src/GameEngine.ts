@@ -148,6 +148,13 @@ export class GameEngine {
       if (PieceEvents.replaying || this.phase === 'Deploy') return // replays and pre-game staging — not new sight lines
       if (this.state.result === 'ongoing') convertRevealedBlips(this.state.board)
     })
+    // A door DESTROYED (bolter shot, cannon autofire, chain-fist cut) opens the
+    // same sight lines as a door opened, but travels on its own event. Stealers
+    // never destroy doors, so this never fires inside the captured stealer phase.
+    PieceEvents.on('doorDestroyed', () => {
+      if (PieceEvents.replaying || this.phase === 'Deploy') return
+      if (this.state.result === 'ongoing') convertRevealedBlips(this.state.board)
+    })
     // A death vacates a square, which can OPEN sight lines: a marine shooting
     // the stealer in front of a blip must flip that blip at once. Covers
     // shooting and close-combat kills in the marine phase. (Stealer-phase

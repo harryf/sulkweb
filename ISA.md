@@ -4,10 +4,10 @@ task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: "907/908 (latest pipeline hardened: ISC-969..975; ISC-71 deferred)"
+progress: "915/916 (blip converts on door destruction: ISC-976..983; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-20T15:45:00Z
+updated: 2026-08-21T00:20:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -320,6 +320,17 @@ Anti-criteria:
 - [x] ISC-974: Anti: docs-only PUSHES still deploy nothing (release-driven re-dispatches intentionally bypass paths-ignore) (Bash gh run list)
 - [x] ISC-975: Anti: zero em dashes on any added line (git diff grep)
 
+### Blip conversion on door destruction (2026-08-21, eighth run)
+
+- [x] ISC-976: the bug is reproduced by a failing engine test before any fix: shooting a door hiding a blip leaves the blip unconverted (vitest fail output captured)
+- [x] ISC-977: GameEngine subscribes to doorDestroyed and runs convertRevealedBlips with the same replay/Deploy/result guards as doorToggled (Read)
+- [x] ISC-978: a bolter shot that demolishes a door hiding a blip converts it on the spot, stealers appear on the blip square (vitest)
+- [x] ISC-979: the one handler covers all three destruction paths because bolter shootDoor, cannon autofire, and chain-fist cut all emit through demolishDoor (grep: demolishDoor is the only doorDestroyed emitter)
+- [x] ISC-980: Anti: a REPLAYED doorDestroyed event never converts blips against the final board (vitest)
+- [x] ISC-981: Anti: conversion timing everywhere else is untouched; all pre-existing conversion tests still pass (vitest suite)
+- [x] ISC-982: full engine and client unit suites green after the fix (pnpm -r test)
+- [x] ISC-983: Anti: zero em dashes on any added line (git diff grep)
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
@@ -509,6 +520,8 @@ Anti-criteria:
 
 ## Decisions
 
+- 2026-08-21 (door-destruction run): user playtest report: blip behind a door stayed a blip after the door was shot away. Root cause: door destruction emits doorDestroyed (demolishDoor in rules/Door.ts), but GameEngine's immediate-conversion wiring only covered doorToggled, marine pieceMoved, pieceDied, and sectionFlamed, so no sight re-check ran until the next unrelated trigger. Fix at the ingestion point: one doorDestroyed subscription in the GameEngine constructor mirroring the doorToggled guards (replaying, Deploy phase, result ongoing). This single handler covers all three destruction weapons since bolter shootDoor, cannon autofire, and chain-fist cut all emit through demolishDoor. Handler is capture-safe: stealers only open doors, never destroy them, so it cannot fire inside the suppressed stealer phase. Reproduce-first honored: both new tests failed before the fix, passed after. Forge waived (11th): codex binary still absent; reviewer + test-analyzer agents are the delegation pair.
+
 - 2026-08-20 (hardening run): root cause of the invisible-feature incident split into two legs. Process leg: nothing forced the reach-stable decision at ship time and "release" was read as the automatic /latest/ deploy; codified as the CLAUDE.md Shipping policy. Technical leg: the shared pages concurrency group keeps ONE pending run, so a release queued behind a main push replaces that push's pending deploy-latest run and the commit never reaches /latest/ until the next push; healed by deploy.yml's redispatch-latest job. Reviewer round (4 findings, ALL adopted): heal moved to an always-run job (displacement happens at queue time, a red release gate still owes the heal); continue-on-error + ::warning so a dispatch failure never turns a deployed release red; actions: write scoped per-job away from the third-party-code build job; docs corrected (content-identical rebuild not no-op, release-driven dispatch bypasses paths-ignore, ISC-974 narrowed to pushes). Reviewer also confirmed: no recursion path, rollback dispatch is harmless (deploy-latest never touches root/frozen dirs, versions.html regenerates from the rolled-back STABLE_VERSION), YAML valid. Advisor waived show-math: the change is ~40 workflow lines with a live dispatch proof and a full reviewer round as the second opinion.
 - 2026-08-20 (gamelog run): capture hook is a tap on the Emitter itself, firing at real emit time BEFORE capture() buffering and skipping replaying re-emissions. Alternatives rejected: per-type .on subscription (misses capture-suppressed stealer events, depends on animation replay running to completion) and logging calls inside GameEngine rules methods (invasive, scatters concerns). Tap gives exactly-once, true chronological order, zero rules-code churn, and headless testability.
 - 2026-08-20 (gamelog run): event filter drops only 'selected' and 'apChanged' (pure UI noise / derivable from actions); everything else recorded, cpChanged included (marine resource decisions are analysis signal). Shot and closeCombat payloads already embed actual dice rolls, so hit-rate analysis needs no re-simulation.
@@ -634,3 +647,14 @@ Latest-pipeline hardening run (2026-08-20 seventh run, ISC-969..975):
 - ISC-973: Read; architecture.md caveat paragraph now names the healed /latest/ path and narrows the watch-to-green rule to releases.
 - ISC-974: Bash; the two md-only ISA pushes this run fired zero workflow runs (gh run list unchanged); workflow-file pushes fired deploy-latest as expected (runs 32385881992, 32386661790, both green, /latest/ stamped 7b1d409 then 290790e = head).
 - ISC-975: git diff added-lines grep: 0 em dashes across both commits; YAML lint passed on both workflow files.
+
+### Blip conversion on door destruction (2026-08-21, eighth run)
+
+- ISC-976: vitest fail output pre-fix: "Tests 2 failed | 3 passed" in conversion_on_sight.spec.ts, blip.alive stayed true after shootDoor and after live doorDestroyed emit.
+- ISC-977: Read GameEngine.ts: doorDestroyed handler present beside doorToggled with identical replaying/Deploy/ongoing guards.
+- ISC-978: vitest: "shooting a door apart that reveals a blip converts it on the spot" passes; stealer present on (10,6).
+- ISC-979: grep: demolishDoor is the only doorDestroyed emitter; callers are StormBolterMarine.shootDoor, AssaultCannonMarine autofire, chain-fist cut.
+- ISC-980: vitest: "REPLAYED doorDestroyed events never re-trigger conversion" passes; replay leaves blip alive, live emit converts.
+- ISC-981: vitest: all 3 pre-existing conversion_on_sight tests still pass unchanged.
+- ISC-982: pnpm -r test: engine 34 files / 336 tests passed, client 11 files / 87 tests passed.
+- ISC-983: git diff added-lines grep for em dash: 0 matches.

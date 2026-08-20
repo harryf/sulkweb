@@ -1,6 +1,7 @@
 import { it, expect, describe } from 'vitest';
 import { GameEngine } from '../GameEngine.js';
 import { Blip } from '../pieces/Blip.js';
+import { StormBolterMarine } from '../pieces/StormBolterMarine.js';
 import { RollQueue } from '../core/Dice.js';
 import { PieceEvents } from '../events/PieceEvents.js';
 import type { CompiledMission } from '../missions/missionTypes.js';
@@ -61,6 +62,36 @@ describe('blips convert immediately when a marine action reveals them', () => {
     expect(blip.alive).toBe(true); // untouched by the replay
     PieceEvents.emit('doorToggled', { x: 10, y: 5, facing: 0, open: true }); // live event → rule applies
     expect(blip.alive).toBe(false);
+  });
+
+  it('shooting a door apart that reveals a blip converts it on the spot', () => {
+    // User playtest report 2026-08-21: blip behind a door stayed a blip after
+    // the door was shot away. Destruction emits doorDestroyed, not doorToggled.
+    const engine = new GameEngine(doorMission);
+    const board = engine.state.board;
+    board.dice = new RollQueue([6, 6]); // door shot: 2 dice, any >= 6 destroys
+    const marine = engine.marines[0] as StormBolterMarine;
+    const blip = new Blip(board, { c: 10, r: 6 }, 1); // behind the closed door edge (10,5) up
+    const door = board.doorBetween({ c: 10, r: 4 }, { c: 10, r: 5 })!;
+    expect(blip.alive).toBe(true); // closed door blocks LOS
+
+    expect(marine.shootDoor(door)).toBe(true); // demolished
+
+    expect(blip.alive).toBe(false); // seen through the wreckage, converted
+    expect(board.pieces.some(p => (p as any).kind === 'stealer' && p.pos.c === 10 && p.pos.r === 6)).toBe(true);
+  });
+
+  it('REPLAYED doorDestroyed events never re-trigger conversion', () => {
+    const engine = new GameEngine(doorMission);
+    const board = engine.state.board;
+    board.dice = new RollQueue([1, 1, 1, 1]);
+    const marine = engine.marines[0];
+    marine.useDoor(); // open the door first, THEN place the blip in plain sight
+    const blip = new Blip(board, { c: 10, r: 6 }, 1);
+    PieceEvents.replay({ type: 'doorDestroyed', payload: { x: 10, y: 5, facing: 0, cause: 'shot' } });
+    expect(blip.alive).toBe(true); // untouched by the replay
+    PieceEvents.emit('doorDestroyed', { x: 10, y: 5, facing: 0, cause: 'shot' });
+    expect(blip.alive).toBe(false); // live event applies the sight rule
   });
 
   it('opening a door that reveals a blip converts it on the spot', () => {

@@ -5,10 +5,11 @@ import { SECTIONS, QUOTES, CONTROLS_INTRO } from './content.js';
 import { missionMapSVG, MAP_LEGEND } from './missionMapSVG.js';
 import { PLAYABLE_MISSIONS } from '../ui/missionMeta.js';
 import { KEY_ROWS, SPECIAL_KEYS, KEY_NOTES } from '../ui/keyboardHelp.js';
+import { versionsHref } from './versionsLink.js';
 
 /**
  * The field manual: a static page assembled from the same modules the game
- * runs on — mission maps render from the engine's own mission JSON, the key
+ * runs on: mission maps render from the engine's own mission JSON, the key
  * chart from the game's keyboard layout data. Nothing here can drift from
  * the game without failing to compile.
  */
@@ -161,5 +162,6 @@ const footer = el('footer', 'manual-footer',
   + 'Space Hulk is a trademark of Games Workshop; this project is unaffiliated '
   + 'and claims no rights over Games Workshop&rsquo;s intellectual property. '
   + '&middot; <a id="credits-link" href="credits.html">Audio credits</a> '
+  + `&middot; <a id="versions-link" href="${versionsHref(location.pathname)}">All versions</a> `
   + `&middot; <span id="app-version">${__APP_VERSION__}</span>`);
 root.appendChild(footer);

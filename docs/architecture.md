@@ -123,7 +123,17 @@ Things to know before shipping:
 1. **The full audio set is committed.** `packages/client/public/assets/audio/` (music, SFX cuts, alien voices) ships with the site, attributed on `/credits.html` and in `CREDITS.md`. `pnpm fetch-audio` (needs `yt-dlp` and `ffmpeg`) exists to regenerate it from the source videos. Every audio load is cache-guarded, so a build missing any file plays silently rather than breaking.
 2. **The build is mount-point-agnostic.** `vite.config.ts` sets `base: './'` and all runtime asset paths are relative, so the same build works at the domain root, under a subpath (GitHub Pages project site), or from `vite preview`.
 3. **The dev-only 404 middleware does not deploy.** In dev, a custom Vite plugin (`assets404`) makes missing `/assets/*` files return real 404s instead of the SPA fallback page, which Phaser would try to decode as audio. Static hosts return real 404s natively, so no production equivalent is needed. If you ever front the deploy with an SPA rewrite rule, exclude `/assets/` from it for the same reason.
-4. **CI deploys from tags.** `.github/workflows/deploy.yml` runs typecheck + both unit suites, then builds and publishes to GitHub Pages, on `v*` tag pushes only. Playwright e2e (`pnpm --filter ./packages/client e2e`) runs locally before tagging.
+4. **The live site is versioned.** Three kinds of URL, all served from one GitHub Pages site:
+
+| URL | What it serves | Updated by |
+|---|---|---|
+| `/` | The last **stable** release | `deploy.yml` on `v*` tags (full verification gate) |
+| `/X.Y.Z/` | A **frozen** snapshot of that release; only its own tag's re-run ever rewrites it (with identical content) | its own tag |
+| `/latest/` | Head of `main`, **may be broken** (no test gate, build only) | `deploy-latest.yml` on every game-relevant push to `main` |
+
+A generated `/versions.html` (see `scripts/genVersionsPage.sh`) lists them all, and the manual footer links to it from any depth. The persistent site tree lives on the **`gh-pages` branch**: each workflow updates only its slice (a release rewrites the root and its own version dir; a latest deploy rewrites only `latest/`), pushes the branch, and publishes the entire tree as the Pages artifact. Both workflows share one concurrency group, so deploys serialize; one caveat: GitHub keeps only ONE pending run per group, so a queued release run can be cancelled by a later main push arriving behind it. Always watch a tag's deploy run to green (the codified release order) and re-run it if it was pre-empted. The build is mount-point-agnostic (`base: './'`), which is what lets the same build run at any depth. Each deployed directory carries a `manifest.json` (version, sha, build time).
+
+Rollback: dispatch `deploy.yml` against an older tag ref (Actions UI, "Run workflow", pick the tag); the stable root becomes that version again while every frozen dir stays intact. Re-running the old run works too but expires 30 days after it ran; the dispatch never expires. Size arithmetic: each frozen version is ~40MB (the committed audio set) against the 1GB Pages soft limit; revisit retention (for example moving old versions to Release tarballs) after roughly 20 releases.
 
 ### Cutting a release
 
@@ -132,11 +142,13 @@ git tag v0.5.0          # semver tag = the release gateway AND the UI version
 git push origin v0.5.0  # CI: typecheck + full unit suites, then build + deploy
 ```
 
-Pushing to `main` never touches the live site; only the tag does. The workflow
-builds with `SULK_VERSION` set from the tag, which Vite injects as
-`__APP_VERSION__`, visible in the homepage credits and the manual footer
-(`dev` on local builds). If the verification gate fails, nothing deploys.
-After the deploy run goes green, publish the GitHub release for the tag.
+Docs-only pushes to `main` deploy nothing; game-relevant pushes update only
+`/latest/`. The release workflow builds with `SULK_VERSION` set from the tag,
+which Vite injects as `__APP_VERSION__`: visible in the homepage credits and
+the manual footer (`dev` on local builds, `latest-<sha>` on `/latest/`).
+If the verification gate fails, nothing deploys. After the deploy run goes
+green, publish the GitHub release for the tag. Playwright e2e
+(`pnpm --filter ./packages/client e2e`) runs locally before tagging.
 
 ## Verifying a deploy
 

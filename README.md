@@ -43,12 +43,16 @@ pnpm build                             # engine tsc + client vite build
 | [CLAUDE.md](CLAUDE.md) | Working agreements and context routing for AI-assisted development |
 | [ISA.md](ISA.md) | The system of record: every verified criterion, decision, and piece of test evidence |
 
-## Releases
+## Releases and versions
 
-The live site deploys from **version tags only**: pushing to `main` never
-touches it. A tag runs the full verification gate (typecheck + all unit
-suites) and, only if green, builds and publishes to GitHub Pages with the tag
-as the in-game version string. Details: [docs/architecture.md](docs/architecture.md).
+The live site is versioned. [The root URL](https://harryf.github.io/sulkweb/)
+always serves the last **stable** release; every release also lives forever at
+its own frozen URL (for example [/0.5.0/](https://harryf.github.io/sulkweb/0.5.0/));
+and [/latest/](https://harryf.github.io/sulkweb/latest/) tracks the head of
+`main`, which may be broken. [All versions](https://harryf.github.io/sulkweb/versions.html)
+lists everything playable. A `v*` tag runs the full verification gate and, only
+if green, updates the stable root and freezes its snapshot; pushes to `main`
+update only `/latest/`. Details: [docs/architecture.md](docs/architecture.md).
 
 ## License
 

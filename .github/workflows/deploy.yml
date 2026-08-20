@@ -1,27 +1,39 @@
-# Release-gated GitHub Pages deploy.
+# Release-gated GitHub Pages deploy (stable root + frozen version snapshot).
 #
 # The git tag is the single source of truth for a release: pushing a v* tag
 # runs the verification gate (typecheck + full unit suites), builds the client
-# with SULK_VERSION set from the tag (shown in the UI as #app-version), and
-# publishes packages/client/dist to https://harryf.github.io/sulkweb/.
+# with SULK_VERSION set from the tag, and publishes the build TWICE into the
+# gh-pages site tree:
 #
-# Plain pushes to main never deploy; that is the release gateway.
+#   /            the stable root (always the last released version)
+#   /X.Y.Z/      a frozen snapshot that never changes again (X.Y.Z = tag minus v)
 #
-# The full processed audio set (assets/audio/) is committed and ships with
-# the site; per-source attribution lives on /credits.html (generated from
-# audioManifest.ts) and in CREDITS.md.
+# The gh-pages branch is the persistent site tree; every deploy pushes it and
+# then publishes the ENTIRE tree as the Pages artifact, so frozen versions and
+# /latest/ survive every subsequent deploy. /latest/ is owned exclusively by
+# deploy-latest.yml; this workflow never writes it. versions.html is
+# regenerated from whatever version dirs exist on disk.
 #
-# Manual redeploys: re-run this workflow's jobs from the Actions UI on the
-# tag's run: the ref (and therefore the version stamp) stays the tag.
+# A re-run of a tag only rewrites the root and that tag's own directory (the
+# dir name derives from the ref), never any other version. That is also the
+# ROLLBACK lever: re-run an older tag's workflow from the Actions UI and the
+# stable root becomes that version again (its own frozen dir is rewritten with
+# identical content).
+#
+# Site-size note: each frozen version is roughly 40MB (audio included) against
+# the 1GB Pages soft limit; revisit asset dedup after ~20 releases.
 
-name: Deploy to GitHub Pages
+name: Deploy release to GitHub Pages
 
 on:
   push:
     tags: ['v*']
+  # Dispatch against a tag ref = permanent rollback lever (run re-runs from
+  # the Actions UI expire after 30 days; a dispatch never does).
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -30,7 +42,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  verify-and-build:
+  verify-build-publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -61,18 +73,60 @@ jobs:
           SULK_VERSION: ${{ github.ref_name }}
         run: pnpm --filter client build
 
+      - name: Sync build into the versioned site tree (root + frozen /X.Y.Z/)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSION_DIR="${GITHUB_REF_NAME#v}"
+          # Strict vX.Y.Z only: the preserve-regex, the versions-page glob, and
+          # the manual's version-dir regex all assume it. A looser tag would
+          # create a snapshot the NEXT release silently deletes, and a
+          # pathological tag like vlatest would clobber /latest/.
+          [[ "$VERSION_DIR" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+            || { echo "release tags must be vX.Y.Z, got ${GITHUB_REF_NAME}"; exit 1; }
+          mkdir site && cd site
+          git init -q -b gh-pages
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          # depth=1: never materialize the branch's ever-growing history.
+          # Self-bootstrapping: if gh-pages does not exist yet, start an orphan
+          # tree; every root file is (re)written unconditionally below, so the
+          # from-scratch result is a complete, correct site.
+          { git fetch -q --depth=1 origin gh-pages && git checkout -q gh-pages; } \
+            || git checkout -q --orphan gh-pages
+          # Refresh the stable root: clear root-level entries but preserve
+          # every frozen version dir, latest/, and .git itself.
+          find . -maxdepth 1 ! -name . ! -name .git ! -name latest \
+            -regextype posix-extended ! -regex '\./[0-9]+\.[0-9]+\.[0-9]+' \
+            -exec rm -rf {} +
+          cp -R ../packages/client/dist/. .
+          rm -rf "$VERSION_DIR"
+          cp -R ../packages/client/dist "$VERSION_DIR"
+          echo "$GITHUB_REF_NAME" > STABLE_VERSION
+          touch .nojekyll
+          MANIFEST="{\"version\":\"${GITHUB_REF_NAME}\",\"sha\":\"${GITHUB_SHA}\",\"built\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+          echo "$MANIFEST" > manifest.json
+          echo "$MANIFEST" > "$VERSION_DIR/manifest.json"
+          bash ../scripts/genVersionsPage.sh
+          git add -A
+          git -c user.name=sulkweb-deploy -c user.email=deploy@users.noreply.github.com \
+            commit -q -m "Release ${GITHUB_REF_NAME}: stable root + frozen /${VERSION_DIR}/" \
+            || echo "site tree unchanged"
+          git push -q origin gh-pages
+          rm -rf .git
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
 
-      - name: Upload Pages artifact
+      - name: Upload Pages artifact (entire site tree)
         uses: actions/upload-pages-artifact@v3
         with:
-          path: packages/client/dist
+          path: site
 
   deploy:
-    needs: verify-and-build
+    needs: verify-build-publish
     runs-on: ubuntu-latest
     environment:
       name: github-pages

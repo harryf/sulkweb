@@ -1,0 +1,104 @@
+# Head-of-main deploy to /latest/ on GitHub Pages.
+#
+# Every push to main (docs-only pushes excluded) rebuilds the client stamped
+# SULK_VERSION=latest-<short sha> and replaces ONLY the /latest/ directory in
+# the gh-pages site tree. There is deliberately NO test gate here: /latest/ is
+# allowed to be broken gameplay; the build compiling is the only bar. The
+# stable root and every frozen /X.Y.Z/ snapshot are never touched by this
+# workflow (they are owned by deploy.yml, the release workflow).
+#
+# The gh-pages branch is the persistent site tree: update it, push it, then
+# publish the ENTIRE tree as the Pages artifact so the rest of the site
+# redeploys unchanged alongside the fresh /latest/.
+#
+# Note: because docs-only pushes are ignored, the latest-<sha> stamp is the
+# last GAME-relevant commit, which may trail main's true HEAD by docs commits.
+
+name: Deploy latest to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '.gitignore'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build client (version = latest-sha)
+        run: SULK_VERSION="latest-${GITHUB_SHA:0:7}" pnpm --filter client build
+
+      - name: Sync build into /latest/ of the site tree
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir site && cd site
+          git init -q -b gh-pages
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          # depth=1: never materialize the branch's ever-growing history.
+          # No orphan fallback here on purpose: a from-scratch tree built by
+          # this workflow would have /latest/ but no stable root. The release
+          # workflow (deploy.yml) is the bootstrapper; fail loudly instead.
+          git fetch -q --depth=1 origin gh-pages \
+            || { echo "gh-pages branch missing: run a release (v* tag) deploy first to bootstrap the site tree"; exit 1; }
+          git checkout -q gh-pages
+          rm -rf latest
+          cp -R ../packages/client/dist latest
+          echo "{\"version\":\"latest-${GITHUB_SHA:0:7}\",\"sha\":\"${GITHUB_SHA}\",\"built\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > latest/manifest.json
+          touch .nojekyll
+          bash ../scripts/genVersionsPage.sh
+          git add -A
+          git -c user.name=sulkweb-deploy -c user.email=deploy@users.noreply.github.com \
+            commit -q -m "latest: ${GITHUB_SHA}" \
+            || echo "site tree unchanged"
+          git push -q origin gh-pages
+          rm -rf .git
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload Pages artifact (entire site tree)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build-publish
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

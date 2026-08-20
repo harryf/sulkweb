@@ -39,7 +39,7 @@ test('audio credits: one linked row per music track, every SFX source, channel t
   }
 
   // Version stamp and back link
-  await expect(page.locator('#app-version')).toHaveText(/^(dev|v\d+\.\d+(\.\d+)?(-[\w.]+)?)$/);
+  await expect(page.locator('#app-version')).toHaveText(/^(dev|latest-[0-9a-f]{7}|v\d+\.\d+(\.\d+)?(-[\w.]+)?)$/);
   await page.click('#back-to-game');
   await page.waitForURL(url => !url.pathname.includes('credits'));
   await expect(page.locator('#home-overlay')).toBeVisible();
@@ -52,4 +52,6 @@ test('homepage and manual link the audio credits page', async ({ page }) => {
   await expect(page.locator('#home-overlay #credits-link')).toHaveAttribute('href', 'credits.html');
   await page.goto('/manual.html');
   await expect(page.locator('.manual-footer #credits-link')).toHaveAttribute('href', 'credits.html');
+  // Served from the site root, the versions page sits alongside the manual.
+  await expect(page.locator('.manual-footer #versions-link')).toHaveAttribute('href', 'versions.html');
 });

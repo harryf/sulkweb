@@ -11,8 +11,10 @@
 # publish the ENTIRE tree as the Pages artifact so the rest of the site
 # redeploys unchanged alongside the fresh /latest/.
 #
-# Note: because docs-only pushes are ignored, the latest-<sha> stamp is the
+# Note: because docs-only pushes are ignored, a PUSH-triggered run stamps the
 # last GAME-relevant commit, which may trail main's true HEAD by docs commits.
+# A release-driven re-dispatch (deploy.yml's redispatch-latest job) bypasses
+# paths-ignore and stamps whatever main HEAD is, docs-only commits included.
 
 name: Deploy latest to GitHub Pages
 

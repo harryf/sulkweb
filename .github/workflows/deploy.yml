@@ -32,12 +32,8 @@ on:
   # the Actions UI expire after 30 days; a dispatch never does).
   workflow_dispatch:
 
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-  # Needed by the final step: re-dispatching deploy-latest after the release.
-  actions: write
+# Permissions are scoped PER JOB below (least privilege): the build job runs
+# third-party code (pnpm lifecycle scripts) and must not hold actions: write.
 
 concurrency:
   group: pages
@@ -46,6 +42,10 @@ concurrency:
 jobs:
   verify-build-publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -130,6 +130,9 @@ jobs:
   deploy:
     needs: verify-build-publish
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -138,15 +141,29 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-      # /latest/ tracks main HEAD, but the shared "pages" concurrency group
-      # keeps only ONE pending run: a release queued right after a main push
-      # can REPLACE that push's pending deploy-latest run, and the commit then
-      # never reaches /latest/ until the next push. Heal it deterministically:
-      # every release re-dispatches deploy-latest against main head. A no-op
-      # rebuild is cheap and idempotent (explicit dispatch API calls with
-      # GITHUB_TOKEN are allowed; only token-caused push/PR events are blocked
-      # by the anti-recursion guard).
+  # /latest/ tracks main HEAD, but the shared "pages" concurrency group keeps
+  # only ONE pending run: this release run entering the queue can REPLACE a
+  # main push's pending deploy-latest run, and that commit then never reaches
+  # /latest/ until the next push. Heal it deterministically: every release run
+  # re-dispatches deploy-latest against main head, ALWAYS (if: always()): the
+  # displacement happens at queue time, so a release that fails its test gate
+  # still owes the heal. The rebuild is content-identical but re-stamps the
+  # manifest (not a literal no-op). Dispatch failure must never turn an
+  # already-deployed release red: continue-on-error plus a loud warning.
+  # (Explicit dispatch API calls with GITHUB_TOKEN are allowed; only
+  # token-caused push/PR events are blocked by the anti-recursion guard.
+  # deploy-latest dispatches nothing itself, so there is no recursion path.)
+  redispatch-latest:
+    needs: [verify-build-publish, deploy]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    continue-on-error: true
+    steps:
       - name: Re-dispatch latest deploy (heal queue pre-emption)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run deploy-latest.yml --ref main --repo "$GITHUB_REPOSITORY"
+        run: |
+          gh workflow run deploy-latest.yml --ref main --repo "$GITHUB_REPOSITORY" \
+            || echo "::warning::latest re-dispatch failed; run 'gh workflow run deploy-latest.yml --ref main' manually"

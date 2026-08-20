@@ -317,7 +317,7 @@ Anti-criteria:
 - [ ] ISC-971: the dispatch mechanism is proven live: gh workflow run deploy-latest → run green → /latest/ manifest stamped at main head sha (Bash + curl); in-workflow dispatch itself fires at the next v* release [DEFERRED-VERIFY: next release run]
 - [ ] ISC-972: sulkweb CLAUDE.md codifies the ship-time policy: user-facing gameplay changes are offered a stable v* release in the same run; "release"/"ship" from the user means a v* release, never just the automatic /latest/ deploy; every ship report names the exact URL that has the change; deploy-latest runs are watched to green after any game-code push (Read)
 - [ ] ISC-973: architecture.md deployment section documents the post-release re-dispatch and marks the pre-emption caveat healed for /latest/ (Read)
-- [ ] ISC-974: Anti: docs-only pushes still deploy nothing (gh run list after the ISA pushes) (Bash)
+- [ ] ISC-974: Anti: docs-only PUSHES still deploy nothing (release-driven re-dispatches intentionally bypass paths-ignore) (Bash gh run list)
 - [ ] ISC-975: Anti: zero em dashes on any added line (git diff grep)
 
 ## Test Strategy

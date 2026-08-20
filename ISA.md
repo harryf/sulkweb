@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: execute
-progress: "899/901 (v0.6.0 release in flight: ISC-968)"
+phase: complete
+progress: "900/901 (v0.6.0 stable carries the gameplay log export; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-20T14:05:00Z
+updated: 2026-08-20T15:20:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -308,7 +308,7 @@ Anti-criteria:
 
 ### v0.6.0: gameplay log export reaches the stable root (2026-08-20, sixth run)
 
-- [ ] ISC-968: v0.6.0 released through the versioned workflow; run green FIRST, then release published; live root end dialog carries the notes field and Download game log button; /0.6.0/ frozen; /0.5.1/, /0.5.0/ and /latest/ byte-untouched; versions.html lists v0.6.0 as Stable (curl + Playwright live probe suite)
+- [x] ISC-968: v0.6.0 released through the versioned workflow; run green FIRST, then release published; live root end dialog carries the notes field and Download game log button; /0.6.0/ frozen; /0.5.1/, /0.5.0/ and /latest/ byte-untouched; versions.html lists v0.6.0 as Stable (curl + Playwright live probe suite)
 
 ## Test Strategy
 
@@ -612,3 +612,6 @@ Gameplay log export run (2026-08-20 fifth run, ISC-934..967):
 - Visual evidence: Playwright screenshot (Interceptor stand-in per standing waiver) shows the end dialog with debrief textarea + DOWNLOAD GAME LOG button styled consistently: scratchpad/end-dialog-export.png.
 - Review round amendments (same run): engine suite now 334/334 (14 gamelog tests incl. envelope-collision, deep-copy mutation, throwing-tap isolation, deploy-phase placements, phase-integrity walk, rolls presence); client e2e 118/118 incl. pressSequentially human-typing proof, retry-fresh-logger, attract negative; both tsc clean after every fix. Advisor verdict adjudicated in Decisions (2 adopted incl. structuredClone, 2 deferred to formatVersion 2, 4 declined with rationale); code-reviewer 7/7 adopted (CRITICAL textarea key-capture fix verified by the failing-then-passing typed-key e2e); test-analyzer 6 adopted / 3 declined.
 - Live probe (post-push): deploy-latest run 32375734730 green; /latest/manifest.json = latest-bfac487 (built 2026-08-20T13:42:17Z); /latest/ main bundle contains "Download game log" and the sulk-log_ filename stamp; stable root manifest UNTOUCHED (v0.5.1 sha 009f58f): slice ownership held. The feature reaches the stable root at the next v* release.
+
+v0.6.0 release run (2026-08-20 sixth run, ISC-968):
+- ISC-968: reproduced first (live Playwright: stable root end dialog had NO notes/download, /latest/ had both: the root was the frozen v0.5.1 build). Release run 32384520292 green FIRST (full build+test gate), then https://github.com/harryf/sulkweb/releases/tag/v0.6.0 published. Live probes: root + /0.6.0/ manifests both v0.6.0 sha ae548ec built 15:11:02Z; root bundle main-DTTxxxsY.js contains "Download game log"; /0.5.1/ manifest untouched (009f58f); /0.5.0/ bundle byte-unchanged (main-BsS2_Wa0.js sha a4dabfba1efd; its missing manifest.json is the pre-existing bootstrap gap, snapshots before v0.5.1 never had one); /latest/ untouched (latest-bfac487); versions.html lists Stable (v0.6.0), latest, 0.6.0, 0.5.1, 0.5.0. Final user-path probe ON THE STABLE ROOT: typed "live check" into #end-notes (registered), clicked #end-download, got sulk-log_debug_1_2026-08-20_17-12-49.json, zero page errors.

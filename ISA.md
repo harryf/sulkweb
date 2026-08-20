@@ -4,7 +4,7 @@ task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: "830/832 (em dash purge + ISA split shipped, ISC-884..900; ISC-71/899 open)"
+progress: "831/832 (em dash purge + ISA split shipped, ISC-884..900; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-08-20T10:20:00Z
@@ -209,7 +209,7 @@ Deferred and open items living in archives (pointers, not duplicates):
 - [x] ISC-896: sulkweb CLAUDE.md describes the ISA split and points at docs/isa/ (grep)
 - [x] ISC-897: Anti: no ISC renumbered by the split; ISC-77, ISC-472, ISC-567 exist verbatim in their archives (grep)
 - [x] ISC-898: every relative link in root ISA.md and docs/isa/*.md resolves (linkcheck)
-- [ ] ISC-899: pushed; github.com renders ISA.md with a metadata table instead of the YAML error banner (curl)
+- [x] ISC-899: pushed; github.com renders ISA.md with a metadata table instead of the YAML error banner (curl)
 - [x] ISC-900: the four agent-scrubbed docs pages read correctly and carry zero em dashes (rg + Read spot-check)
 
 ## Test Strategy
@@ -452,4 +452,5 @@ Em dash purge + ISA restructure (2026-08-20 second run, ISC-884..900):
 - ISC-892/897: bun script; 900 unique ISC ids across root + archives, 0 duplicates; ISC-77/472/567 verbatim in engine-core/client-ui/stealer-ai.
 - ISC-893/894/896: grep; archive protocol + index table in root Criteria; 3 deferred pointers; CLAUDE.md routes to docs/isa/.
 - ISC-898: linkcheck; ALL_LINKS_OK across root ISA + all docs/isa files.
+- ISC-899: curl; github.com/harryf/sulkweb/blob/main/ISA.md returns 200 with zero "Error in user YAML" matches and the frontmatter task rendered in the metadata table (commit 743c837 pushed 609f01a..743c837).
 - ISC-883: this record. Review round: code-reviewer agent audited the diff; links all clean (48 targets incl. angle-bracket space paths), 3 findings ADOPTED (CLAUDE.md stale "see README Known gaps" heading → docs/status.md; stale remaining-work paragraph rewritten to the genuinely-open list; release recipe + SULK_VERSION→__APP_VERSION__ chain restored as architecture.md "Cutting a release"; the one real information loss); both sub-threshold wording notes also adopted ("one squad" → "your Terminator marines"; "square-for-square" softened). git log --follow shows 2 commits on the moved roadmap file (rename detected at 100%).

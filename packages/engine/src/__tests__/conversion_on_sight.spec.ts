@@ -112,8 +112,8 @@ describe('blips convert immediately when a marine action reveals them', () => {
   it('REPLAYED doorDestroyed events never re-trigger conversion', () => {
     const engine = new GameEngine(doorMission);
     const board = engine.state.board;
-    board.dice = new RollQueue([1, 1, 1, 1]);
-    const marine = engine.marines[0];
+    const marine = engine.marines[0]; // useDoor consumes no dice
+
     marine.useDoor(); // open the door first, THEN place the blip in plain sight
     const blip = new Blip(board, { c: 10, r: 6 }, 1);
     PieceEvents.replay({ type: 'doorDestroyed', payload: { x: 10, y: 5, facing: 0, cause: 'shot' } });

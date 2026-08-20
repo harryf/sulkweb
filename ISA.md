@@ -4,10 +4,10 @@ task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: "915/916 (blip converts on door destruction: ISC-976..983; ISC-71 deferred)"
+progress: "921/921 (v0.6.1 released: ISC-984..988; ISC-971 deferred probe closed; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-21T00:20:00Z
+updated: 2026-08-21T00:45:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -314,7 +314,7 @@ Anti-criteria:
 
 - [x] ISC-969: deploy.yml permissions include actions: write (Read)
 - [x] ISC-970: deploy.yml's deploy job ends by dispatching deploy-latest, so a release can never leave /latest/ lagging a pre-empted pending run (Read)
-- [x] ISC-971: the dispatch mechanism is proven live: gh workflow run deploy-latest → run green → /latest/ manifest stamped at main head sha (Bash + curl); in-workflow dispatch itself fires at the next v* release [DEFERRED-VERIFY: next release run]
+- [x] ISC-971: the dispatch mechanism is proven live: gh workflow run deploy-latest → run green → /latest/ manifest stamped at main head sha (Bash + curl); in-workflow dispatch CONFIRMED on the v0.6.1 release run: redispatch-latest job success, dispatched run 32424973007 green, /latest/ re-stamped at head (deferred probe closed 2026-08-21)
 - [x] ISC-972: sulkweb CLAUDE.md codifies the ship-time policy: user-facing gameplay changes are offered a stable v* release in the same run; "release"/"ship" from the user means a v* release, never just the automatic /latest/ deploy; every ship report names the exact URL that has the change; deploy-latest runs are watched to green after any game-code push (Read)
 - [x] ISC-973: architecture.md deployment section documents the post-release re-dispatch and marks the pre-emption caveat healed for /latest/ (Read)
 - [x] ISC-974: Anti: docs-only PUSHES still deploy nothing (release-driven re-dispatches intentionally bypass paths-ignore) (Bash gh run list)
@@ -330,6 +330,14 @@ Anti-criteria:
 - [x] ISC-981: Anti: conversion timing everywhere else is untouched; all pre-existing conversion tests still pass (vitest suite)
 - [x] ISC-982: full engine and client unit suites green after the fix (pnpm -r test)
 - [x] ISC-983: Anti: zero em dashes on any added line (git diff grep)
+
+### v0.6.1: blip conversion fix reaches the stable root (2026-08-21, ninth run)
+
+- [x] ISC-984: v0.6.1 released through the codified order: main pushed, tag pushed, run 32424784501 green FIRST, then release published (gh run view + release URL)
+- [x] ISC-985: live root and frozen /0.6.1/ manifests both read v0.6.1 at head sha 05220d1; /latest/ re-stamped at the same sha; /0.6.0/ untouched (curl)
+- [x] ISC-986: redispatch-latest job succeeded on a real release and its dispatched deploy-latest run 32424973007 completed green (gh run view); closes ISC-971's deferred probe
+- [x] ISC-987: live root boots the game with zero console and page errors (Playwright probe: phase MarineAction turn 1, errorCount 0)
+- [x] ISC-988: Anti: no frozen version dir was deleted or altered by the release (curl 200 on /0.6.0/manifest.json)
 
 ## Test Strategy
 
@@ -660,3 +668,11 @@ Latest-pipeline hardening run (2026-08-20 seventh run, ISC-969..975):
 - ISC-981: vitest: all 3 pre-existing conversion_on_sight tests still pass unchanged.
 - ISC-982: pnpm -r test: engine 34 files / 336 tests passed, client 11 files / 87 tests passed.
 - ISC-983: git diff added-lines grep for em dash: 0 matches.
+
+### v0.6.1: blip conversion fix reaches the stable root (2026-08-21, ninth run)
+
+- ISC-984: Bash; run 32424784501 completed success (verify-build-publish, deploy, redispatch-latest all green) before gh release create; release at https://github.com/harryf/sulkweb/releases/tag/v0.6.1.
+- ISC-985: curl; root manifest {"version":"v0.6.1","sha":"05220d1..."}, /0.6.1/ identical, /latest/ {"version":"latest-05220d1"}, /0.6.0/ manifest returns 200.
+- ISC-986: gh run view 32424973007: event workflow_dispatch, conclusion success; /latest/ built one minute after the release deploy.
+- ISC-987: Playwright on https://harryf.github.io/sulkweb/?mission=debug_1&seed=1: engine live (phase MarineAction, turn 1), errorCount 0.
+- ISC-988: curl 200 + unchanged version field on /0.6.0/manifest.json after the release completed.

@@ -50,10 +50,28 @@ type Handler<T> = (payload: T) => void
 
 export type CapturedEvent<Events> = { type: keyof Events; payload: Events[keyof Events] }
 
+export type Tap<Events> = (ev: CapturedEvent<Events>) => void
+
 /** Minimal typed pub/sub — mitt-compatible surface, no dependency. */
 class Emitter<Events extends Record<string, unknown>> {
   readonly all = new Map<keyof Events, Handler<never>[]>()
   private capturing: CapturedEvent<Events>[] | null = null
+  /**
+   * Observers of the raw emission stream (the game logger). Taps fire at REAL
+   * emit time: inside capture() sections (before the event is buffered, where
+   * ordinary handlers are suppressed) but never for replayed re-emissions, so
+   * each game event is observed exactly once, in true chronological order.
+   */
+  private taps: Tap<Events>[] = []
+
+  tap(fn: Tap<Events>): void {
+    this.taps.push(fn)
+  }
+
+  untap(fn: Tap<Events>): void {
+    const i = this.taps.indexOf(fn)
+    if (i >= 0) this.taps.splice(i, 1)
+  }
 
   /**
    * True while a captured stream is being re-emitted for animation. Replayed
@@ -87,6 +105,13 @@ class Emitter<Events extends Record<string, unknown>> {
   }
 
   emit<K extends keyof Events>(type: K, payload: Events[K]): void {
+    if (!this.replaying) {
+      for (const t of [...this.taps]) {
+        // Taps are isolated observers: a throwing logger must never abort
+        // handler delivery or the capture buffer (i.e. break the game).
+        try { t({ type, payload }) } catch { /* observer errors are swallowed */ }
+      }
+    }
     if (this.capturing) {
       this.capturing.push({ type, payload })
       return

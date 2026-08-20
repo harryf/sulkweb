@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { GameEngine, loadMission, missions, Square, Piece, StormBolterMarine, HeavyFlamerMarine, AssaultCannonMarine, ChainFistMarine, Genestealer, PieceEvents, visibleSquares, closeCombat, DIR_VEC, SeededRng, autoplay, runMarineTurn, flameFlood, Door, deploySeconds } from "@sulk/engine/index.js";
+import { GameEngine, GameLogger, loadMission, missions, Square, Piece, StormBolterMarine, HeavyFlamerMarine, AssaultCannonMarine, ChainFistMarine, Genestealer, PieceEvents, visibleSquares, closeCombat, DIR_VEC, SeededRng, autoplay, runMarineTurn, flameFlood, Door, deploySeconds } from "@sulk/engine/index.js";
 import { Selection } from "../ui/Selection";
 import { Minimap } from '../ui/Minimap.js';
 import { HighlightSprite } from '../ui/HighlightSprite.js';
@@ -87,6 +87,9 @@ export default class GameScene extends Phaser.Scene {
   /** Mission REGISTRY key (space_hulk_1…) — the audio manifest keys on this,
    *  NOT on mission.name (a display title like "Suicide Mission"). */
   private readonly missionKey: string;
+  /** Gameplay-event recorder for the end-of-mission log export; null in
+   *  attract mode. Public via window.sulk for the e2e suite. */
+  readonly gameLog: GameLogger | null;
   /** Deterministic motion probe: every motion decision (piece steps, door
    *  slides, recoil, deaths) in arrival order, capped — the e2e suite asserts
    *  profiles from this instead of racing tweens mid-flight. */
@@ -132,7 +135,13 @@ export default class GameScene extends Phaser.Scene {
     // all off — see the `attract` guards in create()).
     const params = new URLSearchParams(window.location.search);
     const seedParam = params.get('seed');
-    const dice = seedParam ? new SeededRng(Number(seedParam)) : undefined;
+    // Parse ONCE so the dice and the logged meta.seed can never disagree
+    // (?seed=abc used to build SeededRng(NaN) while the log said null; an
+    // empty ?seed= logged 0 while the game ran unseeded). Non-numeric or
+    // empty means unseeded, full stop.
+    const seed = seedParam !== null && seedParam !== '' && Number.isFinite(Number(seedParam))
+      ? Number(seedParam) : null;
+    const dice = seed !== null ? new SeededRng(seed) : undefined;
     const missionParam = params.get('mission');
     this.attract = missionParam === null;
     this.deployRequested = params.get('deploy') !== '0';
@@ -143,7 +152,14 @@ export default class GameScene extends Phaser.Scene {
       ? requested : 'debug_1') as keyof typeof missions;
     this.missionKey = missionName;
     this.engine = new GameEngine(loadMission(missionName), [], dice);
-    (window as any).sulk = { engine: this.engine, Selection, scene: this, SeededRng, autoplay, runMarineTurn, PieceEvents, Genestealer }; // dev/debug + autoplay handle
+    // Gameplay-log recorder (see docs/gamelog-format.md), real missions only:
+    // the attract backdrop is scenery, not data worth collecting.
+    this.gameLog = this.attract ? null : new GameLogger(this.engine, {
+      mission: missionName,
+      seed,
+      version: __APP_VERSION__,
+    });
+    (window as any).sulk = { engine: this.engine, Selection, scene: this, SeededRng, autoplay, runMarineTurn, PieceEvents, Genestealer, gameLog: this.gameLog }; // dev/debug + autoplay handle
   }
 
   preload() {
@@ -446,10 +462,24 @@ export default class GameScene extends Phaser.Scene {
       this.add.text(cam.width / 2, cam.height / 2, msg, {
         fontFamily: UI_FONT, fontSize: '48px', color, fontStyle: 'bold'
       }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
+      // The game is over: release ALL Phaser input before the DOM dialog
+      // mounts. enabled=false stops the scene handlers ('k'/digits/ESC would
+      // still drive mute, roster and pause behind the dialog), but the
+      // GAME-level KeyboardManager keeps calling preventDefault on its 25
+      // captured keycodes on window with no target check, eating most
+      // keystrokes typed into the debrief-notes textarea: clearCaptures()
+      // is the lever that actually frees typing.
+      this.input.enabled = false;
+      this.input.keyboard!.enabled = false;
+      this.input.keyboard!.clearCaptures();
       // DOM dialog on top of the banner: retry (reload — a pinned ?seed
-      // replays the identical game) or back to mission select.
-      showEndDialog(result);
+      // replays the identical game) or back to mission select, plus the
+      // gameplay-log export (notes + download) when a logger is recording.
+      showEndDialog(result, this.gameLog);
     });
+    // PieceEvents is a module singleton: without this, a future scene restart
+    // would leave the old logger tapped and double-record into a dead log.
+    this.events.once('shutdown', () => this.gameLog?.detach());
 
 
     pieces.forEach(p => this.createPieceSprite(p));

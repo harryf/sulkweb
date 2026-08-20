@@ -102,6 +102,24 @@ sequenceDiagram
     C->>C: finishReplay(): reconcile to engine truth
 ```
 
+### 4. The gameplay log: tap and export
+
+The emitter also supports `tap(fn)` observers, and they follow one rule the
+ordinary handlers don't: a tap fires at REAL emit time, inside `capture()`
+sections (where handler delivery is suppressed) and never for replayed
+re-emissions. That gives an observer exactly-once, true-chronological coverage
+of the whole game regardless of the animation pipeline.
+
+`log/GameLogger.ts` builds on that: attached in the GameScene constructor for
+real missions, it records every event (except the UI-noise `selected` and
+`apChanged`) in an envelope of `{seq, turn, phase, type, ...payload}`, plus
+mission/seed/version metadata and the initial piece layout. When the mission
+ends, the end dialog offers a debrief-notes field and a **Download game log**
+button that saves the record as
+`sulk-log_<mission>_<timestamp>.json` via a client-side Blob (no network).
+The collected corpus is the input for mission-generic stealer-AI analysis;
+the full schema is in [gamelog-format.md](gamelog-format.md).
+
 ### Determinism and test hooks
 
 The engine takes an optional `DiceSource`; `SeededRng` and `RollQueue` pin every roll, which the Playwright suite uses to script exact battles. `GameScene` exposes `window.sulk` (engine, scene, `Selection`, autopilot helpers) so e2e tests and debugging sessions can reach both sides of the boundary. Mission selection is a URL parameter: `?mission=space_hulk_3` (unknown values fall back to `debug_1`). A bare URL with no mission param is the homepage: `space_hulk_1` loads as an attract-mode backdrop (input, clock, and audio disabled) under the DOM landing overlay.

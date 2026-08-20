@@ -179,3 +179,12 @@ pnpm fetch-audio
 The game never blocks on audio: playback starts on your first click (browser
 autoplay policy), all sounds are event-driven off the same engine event stream
 the replays use, so what you hear tracks what you see.
+
+## Gameplay log export
+
+When a mission ends, the end dialog offers a debrief-notes field and a
+**Download game log** button. The saved JSON
+(`sulk-log_<mission>_<timestamp>.json`) records every move, shot (with actual
+dice rolls), death, door, spawn and phase of the game plus your notes: a
+growing corpus of real games used to improve the stealer AI with
+mission-generic rules. Schema: [gamelog-format.md](gamelog-format.md).

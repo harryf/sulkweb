@@ -454,6 +454,47 @@ body {
 
 .end-buttons button:hover, #abort-mission:hover { border-color: #e8c840; color: #e8c840; }
 
+/* Gameplay-log export block under the end-dialog buttons */
+.end-log {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #2c2c2c;
+  text-align: left;
+}
+.end-log label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: #9a9a9a;
+}
+.end-log textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  padding: 6px 8px;
+  font-family: 'Kanit', sans-serif;
+  font-size: 13px;
+  color: #e8e8e8;
+  background: #101012;
+  border: 1px solid #444;
+  border-radius: 6px;
+  resize: vertical;
+}
+.end-log button {
+  font-family: 'Kanit', sans-serif;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-size: 13px;
+  color: #e8e8e8;
+  background: #1b1b1b;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.end-log button:hover { border-color: #e8c840; color: #e8c840; }
+
 /* ---- Abort-mission control (in-mission only) ---- */
 
 #abort-mission {

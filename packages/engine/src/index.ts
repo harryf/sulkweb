@@ -33,3 +33,5 @@ export { Blip } from './pieces/Blip.js';
 export { runStealerActions, spawnBlips, convertRevealedBlips, squareSeenByMarine } from './ai/StealerAI.js';
 export { runMarineTurn, autoplay } from './ai/MarineAutopilot.js';
 export { DEPLOY_SECONDS_PER_SQUAD, deployFacing, deploySquadCount, deploySeconds, orderSquaresFrontToBack, autoDeployOrder } from './rules/deploy.js';
+export { GameLogger, GAMELOG_FORMAT_VERSION } from './log/GameLogger.js';
+export type { GameLog, GameLogMeta, LoggedEvent, LoggerEngine } from './log/GameLogger.js';

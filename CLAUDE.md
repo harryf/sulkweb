@@ -10,6 +10,7 @@ ALL NINE missions registered (space_hulk 1–6, beta_1, beta_2, debug_1); the co
 | **System of record**: goals, recent runs, archive index (900+ criteria) | `ISA.md` |
 | Archived run records by code area (read before changing that area) | `docs/isa/` |
 | Missions, controls, roster, deployment phase | `docs/features.md` |
+| Gameplay log export schema (stealer-AI analysis corpus) | `docs/gamelog-format.md` |
 | Roadmap state and known gaps | `docs/status.md` |
 | Original milestone specs (M0–M8) and roadmap | `docs/history/prompts/` |
 | Canonical game rules (AP costs, dice, blips, phases) | `docs/history/SULK Manual Combined.pdf`; distilled digest in ISA Decisions |
@@ -175,7 +176,8 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
    differently from plain autoplay; scan loss seeds under THAT pattern (endMarinePhase
    first, then autoplay). If a rules change alters dice-consumption order, re-scan and re-pin.
 4. `window.sulk` in the client exposes `{ engine, Selection, scene, SeededRng, autoplay,
-   runMarineTurn, PieceEvents, Genestealer }` for e2e and console debugging.
+   runMarineTurn, PieceEvents, Genestealer, gameLog }` for e2e and console debugging
+   (`gameLog` is the GameLogger, null in attract mode).
 
 ## Gotchas (hard-won)
 

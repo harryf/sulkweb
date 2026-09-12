@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E3
 effort_source: classifier
-phase: verify
-progress: "1085/1086 (real-time plan round 2 ISC-1134..1153; ISC-1152 awaits the commit; ISC-1038 dropped; ISC-71 deferred)"
+phase: complete
+progress: "1086/1086 (real-time plan rounds 1 and 2 complete, open questions 15..22 pending Harry; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T17:45:00Z
+updated: 2026-09-12T17:50:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -543,7 +543,7 @@ Harry answered open questions 1..14 in the plan and added a "CP Replacement Idea
 - [x] ISC-1149: Anti: zero banned writing-guide words in the plan (grep)
 - [x] ISC-1150: advisor consulted on the command pause; adopted and rejected points in Decisions (Read)
 - [x] ISC-1151: Decisions entry for this round records the assessment and the doc changes (Read)
-- [ ] ISC-1152: plan and ISA committed on main (git log)
+- [x] ISC-1152: plan and ISA committed on main (git log)
 - [x] ISC-1153: PROJECTS.md records the second round as pending Harry's answers (grep)
 
 ## Test Strategy
@@ -825,6 +825,11 @@ Older entries: [docs/isa/decisions-log.md](docs/isa/decisions-log.md).
 ## Changelog
 
 The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/isa/changelog-log.md). New entries land here first and are archived once their run is.
+
+- 2026-09-12 | conjectured: command points survive the real-time conversion as a per-cycle d6 spent for +1 AP, because CP has a real job (an emergency burst).
+  refuted by: Harry's command-pause idea plus the advisor: the resource CP models is command capacity, and once a budgeted pause exists a second currency for the same resource teaches the player nothing and doubles the HUD.
+  learned: when translating a turn-based resource into real time, name what the resource IS (here: how much commanding the player gets to do) before choosing its new form; the form the original used (+1 AP) was an artefact of turns.
+  criterion now: ISC-1137 (CP kept through stage 3, replaced by the pause pool at stage 4; the d6 top-up is open question 16).
 
 - 2026-09-12 | conjectured: the real-time change needs a three-level command hierarchy with a priority system, and the hard part is the tick engine.
   refuted by: the code survey (the turn structure sits in four files and the rules kernel never reads the phase) and a unanimous four-voice council plus the advisor: idle marines are the design hole, so the marine default AI is the load-bearing piece, two order levels plus a default cover the function, and "most specific live order wins, and expires" replaces priorities.
@@ -1137,3 +1142,4 @@ Latest-pipeline hardening run (2026-08-20 seventh run, ISC-969..975):
 - ISC-1150: Read: Decisions "round 2, assessment of the command pause" lists advisor points a..e adopted and the lockout kept as a question
 - ISC-1151: Read: the same Decisions entry lists every doc change
 - ISC-1153: grep -c "open questions 15..22" PROJECTS.md = 1
+- ISC-1152: git log: 7a5780e "docs: real-time plan round 2, command pause assessed, questions 15..22" on main; closed by the following ISA commit

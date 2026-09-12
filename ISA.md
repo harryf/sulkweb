@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: context-override
-phase: verify
-progress: "1247/1257 (stage 1 run ISC-1166..1324: release ISCs and two human verdicts open; ISC-1038 dropped; ISC-71 deferred)"
+phase: complete
+progress: "1255/1257 (stage 1 shipped as v2.0.0-alpha.1; ISC-1323/1324 human verdicts deferred; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T20:40:00Z
+updated: 2026-09-12T20:55:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -653,13 +653,13 @@ Build stage 1 of docs/realtime-plan.md from its "Stage 1 kickoff" section: the e
 - [x] ISC-1308: the root-refresh preserve regex keeps prerelease dirs (Read)
 - [x] ISC-1309: genVersionsPage.sh lists prerelease dirs labelled prerelease (Read)
 - [x] ISC-1310: versionsHref treats a prerelease dir as a version dir (client unit spec)
-- [ ] ISC-1311: tag v2.0.0-alpha.1 pushed and its deploy run concluded success (gh run)
-- [ ] ISC-1312: GitHub release v2.0.0-alpha.1 published as a prerelease (gh release view)
-- [ ] ISC-1313: https://harryf.github.io/sulkweb/2.0.0-alpha.1/ returns 200 and its manifest names v2.0.0-alpha.1 (curl)
-- [ ] ISC-1314: Anti: the root manifest still names v1.1.0 after the release (curl)
-- [ ] ISC-1315: deploy-latest run green after the main push (gh run)
-- [ ] ISC-1316: versions.html lists 2.0.0-alpha.1 (curl)
-- [ ] ISC-1317: the ship report names the exact URL that has the change (this run's summary)
+- [x] ISC-1311: tag v2.0.0-alpha.1 pushed and its deploy run concluded success (gh run)
+- [x] ISC-1312: GitHub release v2.0.0-alpha.1 published as a prerelease (gh release view)
+- [x] ISC-1313: https://harryf.github.io/sulkweb/2.0.0-alpha.1/ returns 200 and its manifest names v2.0.0-alpha.1 (curl)
+- [x] ISC-1314: Anti: the root manifest still names v1.1.0 after the release (curl)
+- [x] ISC-1315: deploy-latest run green after the main push (gh run)
+- [x] ISC-1316: versions.html lists 2.0.0-alpha.1 (curl)
+- [x] ISC-1317: the ship report names the exact URL that has the change (this run's summary)
 
 #### Closing
 
@@ -667,9 +667,9 @@ Build stage 1 of docs/realtime-plan.md from its "Stage 1 kickoff" section: the e
 - [x] ISC-1319: Anti: no `as any` added to the engine public API (git diff grep)
 - [x] ISC-1320: refined 2026-09-12: three commits, one per group of steps that interlock (engine 1 to 7, client 8 and 9, tests, docs and release plumbing 10 to 12), suites green at each, pushed to main, tree clean at the end (git log)
 - [x] ISC-1321: ISA archive protocol applied: the two oldest kept runs moved to docs/isa (Read)
-- [ ] ISC-1322: PROJECTS.md records stage 1 shipped and the two open verdicts (grep)
-- [ ] ISC-1323: [DEFERRED-VERIFY] human verdict 1 recorded in Decisions: does square-per-AP direct movement feel like moving or stuttering (follow-up: Harry playtest of /2.0.0-alpha.1/)
-- [ ] ISC-1324: [DEFERRED-VERIFY] human verdict 2 recorded in Decisions: is real time more fun than the timed phase (follow-up: same playtest)
+- [x] ISC-1322: PROJECTS.md records stage 1 shipped and the two open verdicts (grep)
+- [DEFERRED-VERIFY] ISC-1323: human verdict 1 recorded in Decisions: does square-per-AP direct movement feel like moving or stuttering (follow-up: Harry playtest of /2.0.0-alpha.1/)
+- [DEFERRED-VERIFY] ISC-1324: human verdict 2 recorded in Decisions: is real time more fun than the timed phase (follow-up: same playtest)
 
 ## Test Strategy
 
@@ -916,6 +916,8 @@ Build stage 1 of docs/realtime-plan.md from its "Stage 1 kickoff" section: the e
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-12 20:55 (stage 1, RELEASED): tag v2.0.0-alpha.1 on 14365c1; "Deploy release to GitHub Pages" run 34699089071 succeeded in all three jobs (verify-build-publish, deploy, redispatch-latest); GitHub release published as a prerelease at https://github.com/harryf/sulkweb/releases/tag/v2.0.0-alpha.1; the live prerelease is https://harryf.github.io/sulkweb/2.0.0-alpha.1/ (manifest v2.0.0-alpha.1, sha 14365c1); the root manifest and STABLE_VERSION still read v1.1.0 (sha 8a83743), so the shipping policy's callout is: the change lives ONLY at /2.0.0-alpha.1/ (and /latest/), never at the root, by design of the 2.x line. deploy-latest for the main push (34699075087) and the post-release re-dispatch both green. Human verdicts ISC-1323 and ISC-1324 are DEFERRED-VERIFY: Harry plays /2.0.0-alpha.1/?mission=debug_1 and space_hulk_1 and answers (a) does square-per-AP direct movement feel like moving or stuttering (if stuttering, the fix is the tick and regeneration constants first, tried through ?tuning= before any AI work) and (b) is real time more fun than the timed phase; both gate stage 2. Interceptor real-Chrome boot check stays deferred (ISC-619's condition unchanged); the headless real-Chromium boot check stands in. Closing advisor call (terse retry after the first returned empty): verdict "code complete, pending playtest sign-off", ADOPTED as the framing: the build is verified, the stage exit gate is the two verdicts, written with pass/fail: (a) PASS = "moving" (a step reads as a heavy stride, not a stutter), FAIL = "stuttering" (then ?tuning= on tickMs/regen before any AI work); (b) PASS = "more fun than the timed phase", FAIL = stage 2 does not start and the identity question (plan Q13) reopens. Its multi-client/Colyseus/soak points do not apply (single-player, no server; the advisor read the March memory note); rejected with that reason. Its self-verification question: the 159 criteria were written at OBSERVE before any code, and two were refined afterwards with ID-stable notes (ISC-1253, ISC-1320).
 
 - 2026-09-12 20:30 (stage 1, BUILD to VERIFY): what changed from the kickoff, each with its reason (also recorded in the plan's "Stage 1 as built" subsection so stage 2 starts from the code): (1) commands apply at once between ticks and are logged against the tick they followed, no drain at the next tick: determinism needs an ordered log, not a delay, and 0 to 250 ms of input lag would corrupt the movement-feel verdict; a re-entrancy guard defers a command issued from inside a tick. (2) Tick order is regeneration, deferred commands, marine AI, stealer tick, expiry sweep and cycle offset events, boundary, due reinforcements, victory, tick event (the advisor's finding that regenerating after the marine AI handed stealers fresh AP and marines stale AP; marines still act first). (3) The default list shoots before it fights (11/36 per bolter shot against roughly 1/12 for a marine's close combat) and an overwatching marine holds even with a stealer adjacent (free reaction fire at one shot per two ticks out-rates aimed fire). (4) One scene renamed in place (GameScene to LiveScene by git mv) instead of a `?rules=live` twin: the engine change made the old scene inert either way, and /1.1.0/ plus git history keep it. (5) Same-entry spawns retry until the cycle ends, then fall back, else drop unbilled (the advisor's bunching point). (6) Extermination requires the reinforcement budget spent (the debug_1 empty-board regression, now clock.spec). (7) Hive counters advance at the first plan of each new cycle before the launch check (a first cut incremented on the cycle's first plan and launched a cycle early; stealer_tick.spec pins the fixed cadence). (8) Blip voluntary conversion = spent nothing since the pool was last full, or idle blipIdleTicks. (9) runStealerActions kept as a test-only whole-activation driver sharing the loop body; hive.spec's zero-dice counts hold through it; dies with the shim in stage 2. (10) The autopilot issues commands and covers when enemies are within 10 squares, and holds for the flamer's 2 AP in reach (it was walking the flamer into the objective room and the lone debug_1 marine blind into the dark). (11) Music ducks on contact within 8 squares; the HUD button is START while deploying and PAUSE afterwards; a hidden tab pauses. Advisor (commitment boundary): adopted the regen order, absolute tick stamps everywhere, the re-entrancy guard, spawn retry, pause on blur; rejected stealers-before-marine-AI (the plan's marine-first tie is deliberate and the lease answers the AP contention) and separate RNG streams (the ordered log fixes the interleaving). Balance evidence (autopilot-driven, not a verdict): debug_1 wins 1 of 30 seeds at marine regen 4 (seed 30, the pinned fixture) and 4 of 30 at regen 3; space_hulk_1 loses every seed inside cycle 1 (the flamer-led column, the 1.x autopilot artefact); space_hulk_2 wipes 24 of 30 squads inside 8 cycles (seed 2 re-pinned). Interceptor: stale daemon on port 19222 again, the extension needs a manual reload; the Claude-in-Chrome tab reported document.hidden and Phaser never finished create(); the boot check is the headless real-Chromium run (packages/client/boot-check.mjs: clock ticks 8 to 32, HUD "Cycle 1, 8s / 10s, PAUSE Esc", two blips, four bolters on overwatch by tick 8, Esc freezes the tick count, zero page errors, screenshots under test-results/boot-check-*.png). Delegation: a fork ported the e2e suite in parallel with the docs (116 of 116 green, no client hooks needed, focus.spec deleted, tests/harness.ts added); Forge and Cato waived (codex absent). E2e re-run by me: 116 passed. Seeds pinned once after the last behavioural change: debug_1 30, space_hulk_1 3, space_hulk_2 2.
 
@@ -1258,3 +1260,6 @@ The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/
 - ISC-1298..1306: grep features.md "Esc / PAUSE" and "The clock (2.x)"; architecture.md "Sequence of one tick"; rules-reference.md "## The clock (2.x)"; content.ts "How the clock works"; CLAUDE.md "The clock (2.x" invariant and the rewritten replay and sight-conversion bullets; status.md "stage 1 shipped as v2.0.0-alpha.1"; realtime-plan.md Status line and "Stage 1 as built"; em dash grep on the changed docs and new code = 0; banned words = 0
 - ISC-1307..1310: Read deploy.yml: regex accepts -alpha.N, PRERELEASE branch skips the root, STABLE_VERSION and manifest.json; preserve regex includes the prerelease shape; genVersionsPage.sh labels prereleases; versionsLink.spec covers 2.0.0-alpha.1
 - ISC-1318..1321: engine_lint.spec (no phaser/window/document); git diff grep "as any" in engine src = 0; three commits with green suites; docs/isa/client-ui.md and docs-meta.md received the deployment and repo-cleanup runs
+- ISC-1311..1317: gh run view 34699089071 conclusion success, jobs verify-build-publish/deploy/redispatch-latest all success; gh release view: isPrerelease true; curl /2.0.0-alpha.1/manifest.json = {"version":"v2.0.0-alpha.1","sha":"14365c1..."} and /2.0.0-alpha.1/ = 200; root manifest.json version v1.1.0 and STABLE_VERSION v1.1.0; deploy-latest 34699075087 success; versions.html lists 2.0.0-alpha.1; the ship report names the URL
+- ISC-1322: PROJECTS.md Sulk entry rewritten: stage 1 built, prerelease URL, the two verdicts as NEXT, balance evidence, gotchas
+- ISC-1323, ISC-1324: DEFERRED-VERIFY, follow-up: Harry's playtest of /2.0.0-alpha.1/ (recorded in Decisions 2026-09-12 20:55)

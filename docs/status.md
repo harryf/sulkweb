@@ -35,6 +35,13 @@ Where the port stands: what shipped, in what order, and what's knowingly missing
   see [rules-reference.md](rules-reference.md) and
   [features.md](features.md#deployment-phase)
 
+## Next line: 2.x real-time (PROPOSAL, 2026-09-12)
+
+A reviewed plan for turning the port into a real-time game (ticking clock,
+marine default AI, individual and squad orders, sergeant loss as command
+latency, staged delivery) lives in [realtime-plan.md](realtime-plan.md).
+Nothing in it is implemented; the 1.x line stays the faithful turn-based port.
+
 ## Known gaps / residue
 
 Autopilot numbers below were measured 2026-08-15, before the v0.4.9 melee

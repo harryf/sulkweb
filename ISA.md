@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: complete
-progress: "1027/1027 (v1.1.0 released: ISC-1091..1094; ISC-1038 dropped; ISC-71 deferred)"
+phase: learn
+progress: "1065/1066 (real-time plan run ISC-1095..1133; ISC-1131 awaits the commit; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T13:50:00Z
+updated: 2026-09-12T15:55:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -477,10 +477,59 @@ Review round (2026-09-12):
 - [x] ISC-1093: Anti: /1.0.0/ and /0.6.1/ manifests unchanged (curl)
 - [x] ISC-1094: live root boots space_hulk_1 with fog on and zero page or console errors (headless Playwright probe)
 
+### Real-time gameplay plan: turn-based to ticking clock with a command hierarchy (2026-09-12, sixteenth run, PLANNING ONLY)
+
+Deliverable is a reviewed plan document, docs/realtime-plan.md, plus this ISA's decisions. No game code changes in this run.
+
+- [x] ISC-1095: docs/realtime-plan.md exists with these top-level sections in order: Summary, Verdict, Real-time rules, Command model, Marine AI, Codebase impact, Stages, Risks, Open questions (Read)
+- [x] ISC-1096: Verdict names what the real-time design gains and what it loses, each claim tied to a current-code fact or to the earlier attempt's playtest evidence, no unsupported taste claims (Read)
+- [x] ISC-1097: the plan cites the earlier real-time attempt (sibling sulk repo: docs/game-design.md, docs/reviews/) and lists what to reuse, what to drop, and why that attempt stalled (Read)
+- [x] ISC-1098: tick model decided: one pure engine tick entry point, tick rate, per-side AP regeneration table, and where the tick is driven from (client clock) (Read)
+- [x] ISC-1099: every turn-boundary rule in GameEngine.endMarinePhase (reinforcements, blip conversion sweep, ambush counters, download tick, victory checks, flame clearing, C.A.T. wander, defend turn limit, AP reset, CP roll, phase flip) has a named real-time replacement or an explicit "drop" (Read against a grep of endMarinePhase)
+- [x] ISC-1100: overwatch in real time is specified: persistent state, fire trigger, cadence, AP cost per shot, jam, end conditions (Read)
+- [x] ISC-1101: the marine phase timer and command points have a stated real-time replacement (mission clock or none; CP regeneration or removal) (Read)
+- [x] ISC-1102: command model specifies the four control levels (direct keyboard, individual order, squad order, mission order), the priority rule between them, and the one-slot-per-level queue on each marine (Read)
+- [x] ISC-1103: sergeant loss mechanic is a single chosen rule with rationale, alternatives listed and rejected with reasons (Read)
+- [x] ISC-1104: individual AI default behaviour is specified as a decision list (hold, overwatch, face threat, fight adjacent, unjam, door handling) with the order of precedence (Read)
+- [x] ISC-1105: per-type AI variations are specified for storm bolter, sergeant, heavy flamer, assault cannon, chain fist, with what differs from the default (Read)
+- [x] ISC-1106: squad AI specifies at least: defend-area (sight-line coverage assignment), advance-to (cover-and-move with a rear guard), clear-door; each as an algorithm sketch naming the engine functions it reuses (Read)
+- [x] ISC-1107: mission-level orders are either specified or explicitly deferred to a named stage (Read)
+- [x] ISC-1108: player input for issuing orders is specified as a keymap and pointer table that extends docs/features.md Controls without breaking existing keys (Read)
+- [x] ISC-1109: codebase impact table lists every non-test engine source file with a change kind (untouched, extend, rewrite, new) and a one-line reason (Read; count matches find packages/engine/src)
+- [x] ISC-1110: codebase impact table lists every non-test client source file the same way (Read; count matches find packages/client/src)
+- [x] ISC-1111: test impact states which engine unit specs and e2e specs break under a tick model and the replacement strategy (scripted RollQueue kept, pinned seeds re-pinned per stage, capture/replay retired) (Read)
+- [x] ISC-1112: new engine events are named with payloads (tick, orderIssued, orderCompleted, aiActed or equivalent) and the stealer-phase capture/replay channel has a stated fate (Read)
+- [x] ISC-1113: determinism section states how seeded runs stay reproducible under ticks (fixed tick order, no wall-clock reads in the engine) (Read)
+- [x] ISC-1114: hive AI adaptation is specified: replan cadence in ticks, which hive.ts functions survive unchanged, what the zero-dice invariant becomes (Read)
+- [x] ISC-1115: at least three delivery stages, each ending in a playable build with a version number, stage 1 narrow enough to ship on its own (Read)
+- [x] ISC-1116: every stage lists verifiable exit criteria that can become ISCs in its own run (Read)
+- [x] ISC-1117: the fate of the turn-based mode is an explicit decision (kept as a mode, kept in a frozen release only, or dropped) (Read)
+- [x] ISC-1118: fog of war interplay is stated: the frozen sight-set and pre-phase snapshots (fogMarineSnap, fogRadarSnap) have a real-time replacement (Read)
+- [x] ISC-1119: Risks section lists at least five risks, each with a mitigation and the stage where it bites (Read)
+- [x] ISC-1120: Open questions section lists every decision left to the user with a recommended default (Read)
+- [x] ISC-1121: Anti: no game code changed in this run (git diff --stat main -- packages/ empty)
+- [x] ISC-1122: Anti: zero em dashes in the new plan and in this run's ISA text (grep)
+- [x] ISC-1123: Anti: zero banned writing-guide words in the plan (grep for the guide's banned list)
+- [x] ISC-1124: Council debate outcome (positions, disagreements, resolution) is recorded in Decisions (Read)
+- [x] ISC-1125: FirstPrinciples output (hard constraints, soft constraints, unvalidated assumptions) is recorded in Decisions and reflected in the plan's Verdict (Read)
+- [x] ISC-1126: SystemsThinking output (the causal loops of command latency, sergeant loss, and marine AI autonomy) is recorded in Decisions (Read)
+- [x] ISC-1127: the Architect agent's independent impact assessment is reconciled with the plan; divergences and their resolution are listed in Decisions (Read)
+- [x] ISC-1128: advisor called before the plan is final; adopted and rejected points recorded in Decisions (Read)
+- [x] ISC-1129: the plan is linked from CLAUDE.md's read-first table and from docs/status.md (grep)
+- [x] ISC-1130: PROJECTS.md Sulk entry records the plan as pending user review (grep)
+- [ ] ISC-1131: the plan and ISA changes are committed on main (git log)
+- [x] ISC-1132: Antecedent: the plan reads in one sitting, at most 700 lines (wc -l)
+- [x] ISC-1133: Antecedent: the Summary states what stage 1 delivers within the first 40 lines (Read)
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
+| ISC-1095..1120,1124..1128,1133 | plan-doc | Read the named section of docs/realtime-plan.md or the ISA Decisions and confirm the stated content | present as stated | Read |
+| ISC-1099,1109,1110 | cross-check | grep endMarinePhase rules / find source files and compare counts to the plan's tables | every rule and file accounted for | Bash grep, find |
+| ISC-1121..1123 | anti | git diff scope, em dash grep, banned-word grep | 0 changes / 0 matches | Bash |
+| ISC-1129..1131 | repo | grep CLAUDE.md, status.md, PROJECTS.md; git log | links present, commit on main | Bash grep, git |
+| ISC-1132 | size | wc -l docs/realtime-plan.md | <= 700 | Bash |
 | ISC-934..946,964 | unit | Emitter tap semantics + GameLogger record/serialize/filename + autoplay integration log | all new engine vitest cases pass | Bash vitest |
 | ISC-947..953,965 | UI/e2e | window.sulk.gameLog probes, end-dialog DOM, Playwright download event + JSON content | new gamelog spec passes | Bash playwright |
 | ISC-954..957 | regression | full unit + e2e suites, engine build, client tsc | exit 0 everywhere | Bash |
@@ -591,6 +640,14 @@ Review round (2026-09-12):
 
 ## Features
 
+### Real-time plan run (2026-09-12, planning only)
+
+| name | description | satisfies | depends_on | parallelizable |
+|---|---|---|---|---|
+| plan-doc | docs/realtime-plan.md: summary, verdict, rules, command model, marine AI, impact, stages, risks, open questions | ISC-1095..1120, 1132, 1133 | none | no |
+| plan-review | Council, FirstPrinciples, SystemsThinking, independent assessment, advisor; outcomes in Decisions | ISC-1124..1128 | plan-doc | yes (forks) |
+| plan-hygiene | no code changes, no em dashes, no banned words, links from CLAUDE.md and status.md, PROJECTS.md, commit | ISC-1121..1123, 1129..1131 | plan-doc | no |
+
 ### Fog of war run (2026-08-21)
 
 | name | description | satisfies | depends_on | parallelizable |
@@ -674,6 +731,20 @@ Review round (2026-09-12):
 
 ## Decisions
 
+- 2026-09-12 15:40 (real-time plan, advisor): first call timed out at 170 s; second call (terse, 400 s budget) returned three points. (1) Persistent free reaction fire without a fire-rate gate is a balance trap the default AI will exploit at once: ADOPTED, the plan now names OVERWATCH_COOLDOWN (default 2 ticks) plus jam as stage 1 requirements with a unit test in the exit criteria. (2) The 1:2 regeneration ratio doubles the stealer edge over the tabletop 4:6 with costs unchanged: ADOPTED as a caution, the constants live as unvalidated data in CostTables with a ?tuning= override and the first sweep tests marine 1 per 3 ticks. (3) Square-per-AP movement under direct control may feel like stuttering, which is the real pass/fail of the port and must be tested in stage 1 before any AI: ADOPTED into the stage 1 verdict questions and the Risks table. Also flagged: a single 40-tick heartbeat fires every per-turn rule in one burst; ADOPTED as per-entity offsets within the cycle. The advisor called the rest (fixed tick, deterministic sim, most-specific-live-order-wins, sequencing) sound.
+
+- 2026-09-12 15:05 (real-time plan, Council): Quick council of four composed voices (board-game veteran, real-time tactics designer, principal engineer, solo-dev product coach). Unanimous: the design as described is worse than the turn game, a trimmed version could be better, and the mission layer is premature; the hierarchy should be two levels (individual, squad) on top of a default self-defence AI. Unanimous first slice: one marine under the keys, default AI on the rest, stealers spawning and closing continuously, fixed tick, seeded dice, no orders, no sergeant mechanic; "if that is not tense alone, the design is dead, exactly where March died". Sergeant loss: three of four for command latency (a slope, felt as tension, one constant in a deterministic sim); the dissent (product coach) argued vanish is one boolean and ships in an evening. Standing concerns carried into the plan: the veteran's "this is no longer Space Hulk" (recorded as an identity decision for the user, open question 13), the designer's "one keyboard marine makes the other four spectators" (stage 1's human verdict asks exactly this), the engineer's "keep it a fixed-tick seeded replayable state machine or the suite dies", the coach's "build the slice beside the v1.1 root, not on top". ADOPTED: two levels plus default, latency with vanish behind a flag for an A/B, stage 1 as the trimmed slice, LiveScene beside GameScene. NOT ADOPTED: the designer's "bake one squad order (hold with overwatch) into stage 1": the default AI already holds and overwatches, so the order adds a UI with no new behaviour.
+
+- 2026-09-12 15:05 (real-time plan, FirstPrinciples): hard constraints: engine purity and events as the only channel (the port's law); determinism with seeded dice and scripted RollQueue tests; that an idle marine in real time is a design hole (a hard consequence, not a preference). Soft constraints: the turn structure itself (four files: GameEngine, StealerAI, hive, GameScene), the stealer-phase capture/replay animation (exists only because the stealer side acts in a batch, becomes dead code), fidelity to the original rules (the kernel stays faithful, the scheduler does not), sergeant loss must matter (design wish). Unvalidated assumptions: that real time is more fun than the original's 120 s timed phase (never tested; the March attempt never reached a verdict); that three command levels are needed (two plus a default achieve the function "steer a squad without micromanaging"); that a priority system is needed ("most specific live order wins, and expires" removes the tunable); that the hive planner survives per-tick calls (a cadence and a cache, verified against hive.ts's structure). Key insight: the load-bearing piece is the marine default AI, so it ships first and alone.
+
+- 2026-09-12 15:05 (real-time plan, SystemsThinking): three causal loops built. (1) Command latency and attention: order granularity, marine autonomy and sergeant loss feed player workload; micromanagement relieves it instantly (balancing) but starves the squad layer of use and evidence (reinforcing), which is the Shifting the Burden archetype. (2) Tempo: stealer regeneration against marine fire rate, overwatch jams and reinforcements; jam is the balancing loop that keeps persistent overwatch from turning corridors into walls. (3) Trust in squad AI: a move that looks wrong reads as a failure, the player takes over, the layer never earns trust. Highest leverage (Meadows): make squad intent visible (order markers and a one-word reason on the roster card) so a surprising move reads as a decision; graceful sergeant loss as a slope (latency) rather than a cliff (vanish); lowest leverage: tuning jam and spawn rates. ADOPTED into the plan's Verdict, the roster order word, and the latency rule.
+
+- 2026-09-12 15:05 (real-time plan, independent impact assessment reconciled): the Plan agent read the same sources independently and produced an impact map, tick model, module layout, test impact, staging and risks. Agreements: 250 ms tick, cycle mapping of per-turn mission numbers, one action per piece per tick with the existing reaction chain, plan cadence, LiveScene beside GameScene, stage order and stage 1 as the riskiest. Divergences and resolution: (a) it counted 74 files (mission JSONs, declaration files, config.ts and gameConfig.ts included) where the draft had 30 engine and 28 client; the draft's client count was a truncated listing (tail -30), corrected to 31 source plus 4 declaration files, JSONs listed as untouched in prose. (b) It routes ALL player input through an engine command queue so a seed plus a command log replays a game: adopted (the draft only had direct-control keys queued). (c) Board.flaming as a map of square to expiry tick and sustained fire decaying by idle ticks: adopted. (d) An endMarinePhase shim equal to runTicks(CYCLE) for stage 1 spec porting: adopted, deleted in stage 2. (e) Threat cache keyed on a board version counter and a same-seed same-log state-hash vitest plus a lint ban on Date in the engine: adopted. (f) Its flamer profile (fire when two or more stealer-side pieces stand in the target section) differs from the draft's last-stand rule: kept as an alternative in open question 9. (g) It keeps MarineAutopilot beside new marine AI modules; the draft rewrites it as the order issuer: the draft stands (one scripted player, not two), with its helpers lifted into MarineAI. (h) Its "player-held lease" on the individual slot after a key press: adopted as open question 14 with a default. Nothing it verified contradicted a fact in the draft; its unverified items (per-tick vision cost, Playwright stepping under CI load) are carried as risks.
+
+- 2026-09-12 15:05 (real-time plan, process): Claude Code plan mode not entered although the tier is E4: the deliverable of this run IS a plan document plus ISA entries, and plan mode blocks writing files; the "plan means stop" rule is honoured by touching no game code (ISC-1121). Forge waived (fifteenth time) and Cato waived: codex binary absent; delegation was the Plan agent (independent assessment) and the Council's four composed agents plus the SystemsThinking fork.
+
+- 2026-09-12 (real-time plan, sixteenth run, OBSERVE): user directive: plan, do not implement, the change from turn-based to real-time (fast stealers, slow heavy marines with more firepower), with marine AI at three levels plus direct control, a priority scheme between command levels, a short per-marine order queue, per-type AI, and a sergeant-loss mechanic; assess the gameplay's merits, the codebase impact, and stage the delivery. Preflight found the earlier real-time attempt in the sibling repo (~/Code/personal/sulk, March 2026): a full tick-based design doc (500 ms ticks, integer AP accumulators, persistent overwatch, click-to-move) and a one-day build that playtested badly (no stealers spawning, nothing interactive, mock-heavy tests) before the user restarted with the faithful turn-based port that became sulkweb. That history is the strongest input this plan has: the design thinking is reusable, the delivery style is the thing to avoid. Cross-vendor waivers: codex binary absent (`which codex` empty), so Cato (mandatory at E4) and Forge cannot run; delegation is the Architect agent (independent impact assessment) plus the Council's composed agents. ISC floor: 39 ISCs against the E4 soft floor of 128; show-your-math: the unit of work is one document plus decisions, and every section of it has its own probe already; padding to 128 would split prose paragraphs into criteria that no tool can distinguish.
+
 - 2026-09-12 (v1.1.0 release): user asked to cut v1.1.0 and asked why main was "still on 0.6.1". It was not: the previous ship report's STORY bullet described the state BEFORE the v1.0.0 run, and the root was serving v1.0.0 at the time. Lesson for the ship report: the story's first bullet must be time-stamped as the starting state or dropped, never read as current. Release cut from main 8a83743 with the two v1.1 items (conversion facing, wheel panning); title "v1.1.0: squared up and scrolling". Old versions stay frozen under /1.0.0/ and /0.6.1/, listed on versions.html.
 
 - 2026-09-12 (toward v1.1, plan): user asked for two small improvements for the next minor version. (1) Stealers emerging from a converted blip face their nearest marine, reusing the same rule the hive's phase-end charge sweep applies (facingToward + Chebyshev nearest, board-order tie) but at the moment of conversion, so a contact that bursts out of hiding is already turned toward its prey; the sweep still runs at phase end for everyone else. Placed in Blip.convert (the single conversion site, AmbushCounter routes through super.convert) rather than in the two callers. No dice consumed, so pinned engine fixtures hold. (2) Mouse wheel pans the camera like the arrow keys: wheel down pans down, horizontal wheel or trackpad swipe pans sideways; implemented as direct scroll writes (the drag precedent) that cancel inertia and any programmatic pan, ignored over the HUD strip. Shipped to main, which lands on /latest/ only; v1.1.0 not cut here since the user framed these as items FOR the next minor, and the minor may collect more.
@@ -721,6 +792,11 @@ Older entries: [docs/isa/decisions-log.md](docs/isa/decisions-log.md).
 ## Changelog
 
 The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/isa/changelog-log.md). New entries land here first and are archived once their run is.
+
+- 2026-09-12 | conjectured: the real-time change needs a three-level command hierarchy with a priority system, and the hard part is the tick engine.
+  refuted by: the code survey (the turn structure sits in four files and the rules kernel never reads the phase) and a unanimous four-voice council plus the advisor: idle marines are the design hole, so the marine default AI is the load-bearing piece, two order levels plus a default cover the function, and "most specific live order wins, and expires" replaces priorities.
+  learned: when a real-time conversion is proposed, the schedule is soft and cheap; what is hard is everything the turn structure was silently doing for the player (nobody acts while you think), and that must be replaced before any command surface exists. The March 2026 attempt built the surface first and had nothing shooting back.
+  criterion now: ISC-1115 (stage 1 is ticks plus default AI plus direct control only), ISC-1102 (two levels plus default, one slot each), ISC-1103 (latency, not vanish).
 
 - 2026-08-21 (fog of war): conjectured: the creep reveal can read live engine marine positions every frame because marines never move during the stealer phase. refuted by: code review; marines never MOVE during the phase but they DIE during it, and death splices them from engine state before frame 1 of the replay, so a killed marine stopped revealing his own killer's approach. learned: any per-frame fog input must come from the same epoch as the frozen sight set; "position can't change" is not "the piece list can't change"; the codebase already encodes this exact hazard in the replay-focus anchors snapshot two lines above where the fix landed. criterion now: ISC-1009 (creep reveal rides the pre-phase snapshot during replays, engine truth resumes at finishReplay).
 
@@ -964,3 +1040,44 @@ Latest-pipeline hardening run (2026-08-20 seventh run, ISC-969..975):
 - ISC-1092: curl root {"version":"v1.1.0","sha":"8a837432...","built":"2026-09-12T11:23:06Z"}; /1.1.0/ identical; /latest/ reads latest-3e21a48 (the code head; 8a83743 differs from it by ISA text only)
 - ISC-1093: curl /1.0.0/ {"version":"v1.0.0","sha":"46aadd30..."} and /0.6.1/ {"version":"v0.6.1","sha":"05220d1c..."} unchanged
 - ISC-1094: headless probe on the root: {"phase":"MarineAction","turn":1,"fog":true,"fogSight":5,"blipsVisible":"2/2","errors":[]}
+
+### Real-time plan run (2026-09-12)
+
+- ISC-1095: Read/grep: docs/realtime-plan.md headers in order at lines 5 Summary, 18 Verdict, 46 Real-time rules, 144 Command model, 171 Marine AI, 245 Codebase impact, 319 Stages, 349 Risks, 365 Open questions
+- ISC-1096: Read: Verdict "What is gained" and "What is lost" lists cite docs/status.md (interrupt gap), CLAUDE.md (two-level sight conversion), the council verdict, and the March playtest reviews
+- ISC-1097: Read: Verdict closes with "Why the March 2026 attempt stalled" naming docs/game-design.md reuse (tick order, accumulators, persistent overwatch, corridor arithmetic) and the review findings (no spawns, nothing interactive)
+- ISC-1098: Read: "The tick and the cycle" names GameEngine.tick(), 250 ms client-driven, ?tick=, the 40-tick cycle, and the AP table
+- ISC-1099: grep: every endMarinePhase rule named in the mapping table (Kill-quota 2, Phase flip 1, Reinforcements 3, conversion sweep 2, Ambush counter 3, Download counter 3, clearFlames 1, wanderCat 2, turn limit 5, turnNumber 1, resetAP 6, rollCommandPoints 1, Overwatch cleared 1 hits)
+- ISC-1100: Read: Overwatch section lists persistent state, trigger via overwatchReactions, OVERWATCH_COOLDOWN 2 ticks (line 118), free shots, jam, end conditions
+- ISC-1101: Read: "Marine timer and command points": clock dropped, sergeant bonus moves to relay speed, CP roll per cycle kept with P spend, drop listed as alternative
+- ISC-1102: Read: Command model table L0..L3 (lines 153..156), rule "the most specific live order wins", one slot per level, direct key clears L1
+- ISC-1103: Read: "Sergeant loss": chosen command latency 8 ticks plus uncoordinated execution; three rejected alternatives with reasons
+- ISC-1104: Read: "Default behaviour" seven-step decision list (line 176) plus the door rule
+- ISC-1105: Read: "Per-type variations" table: storm bolter, sergeant, heavy flamer, assault cannon, chain fist
+- ISC-1106: Read: "Squad AI": defend (reachDistances, visibleSquares, greedy set cover), advance (distanceField, deploy order, leapfrog), clear, hold
+- ISC-1107: Read: "Mission orders (stage 4)" deferred with the reason (needs two squads on one board)
+- ISC-1108: Read: "Input summary" table extends Controls; existing keys kept; Esc, Space, Enter changes stated
+- ISC-1109: find/grep loop: every one of the 30 engine source files (drafts excluded) appears in the plan; missing=0
+- ISC-1110: find/grep loop: every one of the 35 client .ts files appears; missing=0; header says 31 source plus 4 declaration files
+- ISC-1111: Read: "Tests": breaking engine specs enumerated, 22 of 36 untouched, endMarinePhase shim for stage 1, RollQueue re-baseline, seeds re-pinned per stage, stepping harness ?tick=0 and sulk.step(n)
+- ISC-1112: Read: PieceEvents row names tick, orderIssued, orderCleared; capture/replay fate stated (retained until the client stops using them, then removed)
+- ISC-1113: Read: "Determinism": no clock in the engine, fixed order, board.dice only, command log replay, state-hash vitest, Date lint ban
+- ISC-1114: Read: "Hive adaptation": plan every 8 ticks or on marine death, threat cache by board version, one action per piece per tick, counters in cycles, zero-dice invariant kept
+- ISC-1115: Read: four stages (lines 326..344) each with a version tag; stage 1 = ticks + default AI + direct control only
+- ISC-1116: Read: every stage has an "Exit criteria" line with tool-checkable items
+- ISC-1117: Read: Summary and open question 7: 1.x frozen at /1.1.0/, no mode in code
+- ISC-1118: Read: "Fog of war": dirty-flag recompute, fogMarineSnap and fogRadarSnap removed with the replay pipeline
+- ISC-1119: Read: Risks table has 11 rows, each with stage and mitigation
+- ISC-1120: Read: Open questions table has 14 rows each with a recommended default and an alternative
+- ISC-1121: git diff --stat main -- packages/ printed 0 lines
+- ISC-1122: grep '—' docs/realtime-plan.md = 0; grep on the run block and the six new Decisions entries = 0
+- ISC-1123: grep -i -w banned list = 0; phrase list = 0
+- ISC-1124: Read: Decisions "real-time plan, Council" entry: positions, 3:1 split on sergeant loss, adopted and not adopted
+- ISC-1125: Read: Decisions "real-time plan, FirstPrinciples" entry; Verdict's "What the review changed" reflects it
+- ISC-1126: Read: Decisions "real-time plan, SystemsThinking" entry: three loops, Shifting the Burden, leverage points
+- ISC-1127: Read: Decisions "independent impact assessment reconciled" entry lists divergences a..h with resolutions
+- ISC-1128: Read: Decisions "real-time plan, advisor" entry: first call timed out, second call's three points adopted
+- ISC-1129: grep realtime-plan CLAUDE.md line 15; docs/status.md line 42
+- ISC-1130: grep -c realtime-plan PROJECTS.md = 1 ("PENDING HARRY REVIEW")
+- ISC-1132: wc -l docs/realtime-plan.md = 384
+- ISC-1133: grep: "Stage 1 delivers" at line 14

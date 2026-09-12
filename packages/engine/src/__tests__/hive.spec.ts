@@ -4,10 +4,11 @@ import { Genestealer } from '../pieces/Genestealer.js';
 import { StormBolterMarine } from '../pieces/StormBolterMarine.js';
 import { Dir } from '../core/Direction.js';
 import { RollQueue } from '../core/Dice.js';
-import { runStealerActions, spawnBlips } from '../ai/StealerAI.js';
+import { spawnBlips } from '../ai/StealerAI.js';
 import { Blip } from '../pieces/Blip.js';
 import { computeThreat, pathStep, threatPenalty, findStragglers, planHive, marineDistanceField } from '../ai/hive.js';
 import { PieceEvents } from '../events/PieceEvents.js';
+import { stealerActivation } from './rt.fixtures.js';
 
 /** Column of squares c, rows r0..r1 inclusive. */
 const col = (c: number, r0: number, r1: number) =>
@@ -63,16 +64,16 @@ describe('hive pathing', () => {
     marine.overwatchOn();
     const stealer = new Genestealer(board, { c: 1, r: 6 }, Dir.N);
 
-    runStealerActions(board); // staged already (hidden, in the ring) — holds
+    stealerActivation(board); // staged already (hidden, in the ring) — holds
     expect(stealer.pos).toEqual({ c: 1, r: 6 });
     stealer.resetAP();
-    runStealerActions(board); // patience 1 — still massing
+    stealerActivation(board); // patience 1 — still massing
     expect(stealer.pos).toEqual({ c: 1, r: 6 });
     stealer.resetAP();
-    runStealerActions(board); // patience 2 — still massing
+    stealerActivation(board); // patience 2 — still massing
     expect(stealer.pos).toEqual({ c: 1, r: 6 });
     stealer.resetAP();
-    runStealerActions(board); // patience cap: the wave launches
+    stealerActivation(board); // patience cap: the wave launches
     // Six AP of dark-lane running: it flanks all the way to the marine's side
     // square without ever entering the fire lane — not one reaction die drawn.
     expect(stealer.pos).toEqual({ c: 1, r: 0 });
@@ -86,7 +87,7 @@ describe('hive pathing', () => {
     marine.overwatchOn();
     (marine as any).jammed = true; // bolter fouled — the lane is free
     const stealer = new Genestealer(board, { c: 1, r: 6 }, Dir.N);
-    runStealerActions(board);
+    stealerActivation(board);
     // No kill zone anywhere → instant launch, straight down the corridor to CC
     expect(stealer.pos).toEqual({ c: 1, r: 1 });
     expect(stealer.alive).toBe(true);
@@ -103,7 +104,7 @@ describe('hive objective awareness', () => {
     const marine = new StormBolterMarine(board, { c: 2, r: 0 }, Dir.S);
     marine.overwatchOn();
     const stealer = new Genestealer(board, { c: 1, r: 6 }, Dir.N);
-    runStealerActions(board, { objectives: [{ c: 2, r: 1 }] }); // destination 1 square from him
+    stealerActivation(board, { objectives: [{ c: 2, r: 1 }] }); // destination 1 square from him
     expect(stealer.pos).not.toEqual({ c: 1, r: 6 }); // reckless: charged immediately
   });
 
@@ -123,7 +124,7 @@ describe('hive objective awareness', () => {
     const objective = { c: 10, r: 6 };
     const stealer = new Genestealer(board, { c: 4, r: 11 }, Dir.E);
     for (let t = 0; t < 3; t++) {
-      runStealerActions(board, { objectives: [objective] });
+      stealerActivation(board, { objectives: [objective] });
       stealer.resetAP();
     }
     const dist = Math.max(Math.abs(stealer.pos.c - objective.c), Math.abs(stealer.pos.r - objective.r));
@@ -158,7 +159,7 @@ describe('hive zigzag advance', () => {
     const stealer = new Genestealer(board, { c: 1, r: 7 }, Dir.N);
     let shots = 0;
     PieceEvents.on('shot', () => { shots++; });
-    runStealerActions(board);
+    stealerActivation(board);
     expect(stealer.alive).toBe(true);
     expect(stealer.pos.c).toBe(0); // ends tucked in an alcove, not standing in the lane
     expect(shots).toBe(1); // the INVARIANT: one burst for the whole advance, not one per step
@@ -202,15 +203,15 @@ describe('hive blood in the water', () => {
     const m4 = new StormBolterMarine(board, { c: 0, r: 1 }, Dir.N);
     const stealer = new Genestealer(board, { c: 0, r: 8 }, Dir.N);
 
-    runStealerActions(board); // full squad: dist ~7 is inside the ring — holds
+    stealerActivation(board); // full squad: dist ~7 is inside the ring — holds
     expect(stealer.pos).toEqual({ c: 0, r: 8 });
 
     m3.die();
     m4.die(); // half the squad down — blood in the water
     stealer.resetAP();
-    runStealerActions(board);
+    stealerActivation(board);
     stealer.resetAP();
-    runStealerActions(board);
+    stealerActivation(board);
     const dist = marineDistanceField(board).get(`${stealer.pos.c},${stealer.pos.r}`)!;
     expect(dist).toBeLessThanOrEqual(4); // crept into the tightened ring
     expect(stealer.pos.c).toBe(0);       // still in the dark lane
@@ -253,14 +254,14 @@ describe('hive hunger (idle frustration)', () => {
     const blip = new Blip(board, { c: 1, r: 9 }, 2);
     const door = board.doorBetween({ c: 1, r: 7 }, { c: 1, r: 6 })!;
 
-    runStealerActions(board); // advances to the door, refuses it
+    stealerActivation(board); // advances to the door, refuses it
     expect(blip.pos).toEqual({ c: 1, r: 7 });
     expect(door.isOpen).toBe(false);
     // The plan samples positions BEFORE pieces move, so the arrival call still
     // reads as movement; three further stationary plans reach the idle cap.
     for (let t = 0; t < 4; t++) {
       blip.resetAP();
-      runStealerActions(board); // settled, idle 1, idle 2, idle 3 → frustrated
+      stealerActivation(board); // settled, idle 1, idle 2, idle 3 → frustrated
     }
     expect(blip.alive).toBe(false); // converted from cover despite marines being 7 away
     const stealers = board.pieces.filter(p => (p as any).kind === 'stealer');
@@ -309,7 +310,7 @@ describe('hive approach spread', () => {
     const s2 = new Genestealer(board, { c: 6, r: 13 }, Dir.N);
 
     for (let t = 0; t < 3; t++) {
-      runStealerActions(board);
+      stealerActivation(board);
       for (const s of [s1, s2]) s.resetAP();
     }
     const sides = [s1, s2].map(s => (s.pos.c <= 4 ? 'west' : s.pos.c >= 6 ? 'east' : 'lane'));
@@ -336,7 +337,7 @@ describe('hive straggler hunt', () => {
     const s2 = new Genestealer(board, { c: 5, r: 6 }, Dir.S);
     const before1 = Math.max(Math.abs(s1.pos.c - 10), Math.abs(s1.pos.r - 10));
     const before2 = Math.max(Math.abs(s2.pos.c - 10), Math.abs(s2.pos.r - 10));
-    runStealerActions(board);
+    stealerActivation(board);
     const after1 = Math.max(Math.abs(s1.pos.c - straggler.pos.c), Math.abs(s1.pos.r - straggler.pos.r));
     const after2 = Math.max(Math.abs(s2.pos.c - straggler.pos.c), Math.abs(s2.pos.r - straggler.pos.r));
     expect(after1).toBeLessThan(before1); // both hunters converged on the straggler…
@@ -368,7 +369,7 @@ describe('hive sacrifice blocker', () => {
     const f2 = new Genestealer(board, { c: 0, r: 11 }, Dir.E);
 
     expect(computeThreat(board).kill.has('2,11')).toBe(true); // lane live end to end
-    runStealerActions(board);
+    stealerActivation(board);
 
     expect(blocker.alive).toBe(true);
     expect(blocker.pos.c).toBe(2);          // stepped INTO the fire lane…
@@ -388,7 +389,7 @@ describe('hive sacrifice blocker', () => {
     // Next activation: the blocker holds; the column keeps building behind the
     // shield without drawing a single further reaction.
     for (const p of [blocker, f1, f2]) p.resetAP();
-    runStealerActions(board);
+    stealerActivation(board);
     expect(blocker.pos).toEqual({ c: 2, r: 9 }); // parked — holding, not charging
     const later = computeThreat(board);
     for (const f of [f1, f2]) {
@@ -412,7 +413,7 @@ describe('hive door play', () => {
     expect(computeThreat(board).seen.has('0,3')).toBe(false);
     expect(computeThreat(board).kill.has('1,4')).toBe(true);
 
-    runStealerActions(board);
+    stealerActivation(board);
     expect(door.isOpen).toBe(false);       // shut it — massing goes dark behind it
     expect(stealer.pos).toEqual({ c: 0, r: 3 }); // without leaving cover
     expect(computeThreat(board).kill.has('1,4')).toBe(false); // the lane is gone

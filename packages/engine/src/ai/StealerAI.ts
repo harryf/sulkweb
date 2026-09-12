@@ -245,7 +245,11 @@ function stealerAct(board: Board, p: Piece, plan: HivePlan, threat: ThreatMap, r
   } else if (role === 'block') {
     // Raw shortest path into the fire lane: the sacrifice takes the
     // reaction bursts (each one a jam roll) and parks on the first watched
-    // square it survives, shutting the corridor behind its body.
+    // square it survives, shutting the corridor behind its body. Once parked
+    // it holds until the next plan re-roles it (per tick, the same piece is
+    // asked again before the plan is due; walking further up the lane would
+    // eat a burst per step for nothing).
+    if (threat.kill.has(`${p.pos.c},${p.pos.r}`)) return 'stop';
     const goals: Coord[] = marines(board).map(m => m.pos);
     step = stepToward(board, p, goals);
   } else {
@@ -321,7 +325,9 @@ interface TickState {
 const tickStates = new WeakMap<Board, TickState>();
 
 /**
- * Real-time driver (2.x): one tick of the stealer side. The hive plan is
+ * The stealer side's one driver (2.x): one tick of the stealer side. The
+ * 1.x whole-activation loop is gone; the hive's behaviour fixtures drive
+ * this per tick through rt.fixtures stealerActivation. The hive plan is
  * recomputed every TUNING.hivePlanTicks ticks or as soon as a marine has
  * died; the threat map is recomputed at most once per tick and only when the
  * board changed since it was last computed (board.version), so a quiet tick
@@ -360,34 +366,6 @@ export function stealerTick(board: Board, ctx: HiveContext = {}): void {
     stealerAct(board, p, state.plan, state.threat, role, state.plan.huntTarget.get(p.id));
     if (marines(board).length === 0) return;
   }
-}
-
-/**
- * Whole-activation driver: every stealer-side piece drains its AP in one
- * call under a fresh plan, then the charge sweep runs. This was the stealer
- * PHASE of the 1.x turn game; in 2.x it is a TEST HELPER for the hive's
- * behaviour fixtures (hive.spec, ai_pathing.spec, blips_ai.spec), which
- * stage a board and ask "what does the horde do with a full activation".
- * The engine never calls it; stealerTick is the live driver.
- */
-export function runStealerActions(board: Board, ctx: HiveContext = {}): void {
-  if (marines(board).length === 0) return;
-  const plan: HivePlan = planHive(board, computeThreat(board), ctx);
-  for (const p of activationOrder(board, plan, computeThreat(board))) {
-    if (p.kind === 'marine' || !p.alive) continue;
-    const role = plan.roles.get(p.id) ?? 'assault';
-    if (role === 'hold') continue;
-    // Fresh threat per activation: parked blockers, opened/closed doors and
-    // dead watchers all change the map mid-phase.
-    const threat = computeThreat(board);
-    const hunt = plan.huntTarget.get(p.id);
-    let guard = 0;
-    while (p.alive && p.ap > 0 && guard++ < 20) {
-      if (stealerAct(board, p, plan, threat, role, hunt) === 'stop') break;
-    }
-    if (marines(board).length === 0) return;
-  }
-  chargeOrientation(board);
 }
 
 /**

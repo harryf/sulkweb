@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { GameEngine, GameLogger, loadMission, missions, Square, Piece, StormBolterMarine, SergeantMarine, HeavyFlamerMarine, AssaultCannonMarine, ChainFistMarine, Genestealer, PieceEvents, visibleSquares, DIR_VEC, SeededRng, autoplay, runMarineTurn, flameFlood, Door, deploySeconds, TUNING, applyTuning, parseTuning, type MarineCommand } from "@sulk/engine/index.js";
+import { GameEngine, GameLogger, loadMission, missions, Square, Piece, StormBolterMarine, SergeantMarine, HeavyFlamerMarine, AssaultCannonMarine, ChainFistMarine, Genestealer, PieceEvents, visibleSquares, DIR_VEC, SeededRng, autoplay, runMarineTurn, flameFlood, Door, deploySeconds, TUNING, applyTuning, parseTuning, orderLabel, type MarineCommand, type MarineOrder } from "@sulk/engine/index.js";
 import { Selection } from "../ui/Selection";
 import { Minimap } from '../ui/Minimap.js';
 import { HighlightSprite } from '../ui/HighlightSprite.js';
@@ -54,6 +54,9 @@ export default class LiveScene extends Phaser.Scene {
   private doorSprites: { [coord: string]: Phaser.GameObjects.Image } = {};
   private owMarkers: { [id: string]: Phaser.GameObjects.Image } = {};
   private jamMarkers: { [id: string]: Phaser.GameObjects.Image } = {};
+  /** Order markers (stage 2): one ring per marine with a live order, on the
+   *  target square (door orders: on the edge midpoint). Keyed by piece id. */
+  private orderMarkers: { [id: string]: Phaser.GameObjects.Graphics } = {};
   private flameSprites: { [coord: string]: Phaser.GameObjects.Image } = {};
   private ductingSprites: { [coord: string]: Phaser.GameObjects.Image } = {};
   private catSprite?: Phaser.GameObjects.Image;
@@ -665,6 +668,7 @@ export default class LiveScene extends Phaser.Scene {
           overwatch: p.overwatch ?? false,
           jammed: p.jammed ?? false,
           facing: p.facing,
+          word: orderLabel(p),
         };
       },
       (id) => this.selectFromRoster(id),
@@ -780,8 +784,13 @@ export default class LiveScene extends Phaser.Scene {
     this.flamePreviewGfx = this.add.graphics().setDepth(0.85);
     this.fireReticleGfx = this.add.graphics().setDepth(2.5);
 
+    // Right-click is the order button (stage 2); the browser menu never shows.
+    this.input.mouse?.disableContextMenu();
+    PieceEvents.on('orderChanged', ({ pieceId, order }) => this.setOrderMarker(pieceId, order));
+
     // Input handler for piece selection
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      if (p.rightButtonDown()) { this.handleOrderClick(p); return; }
       // Clicks on the HUD strip (minimap, PAUSE) are their own controls; they
       // must never fall through and clear the selection (ISC-675).
       if (p.x > this.scale.width - HUD_WIDTH) return;
@@ -1431,6 +1440,83 @@ export default class LiveScene extends Phaser.Scene {
     delete this.owMarkers[pieceId];
     this.jamMarkers[pieceId]?.destroy();
     delete this.jamMarkers[pieceId];
+    this.orderMarkers[pieceId]?.destroy();
+    delete this.orderMarkers[pieceId];
+  }
+
+  /** Draw or clear the order marker for a marine (orderChanged handler). A
+   *  ring on the target square, gold for "then hold", cyan for "then
+   *  overwatch"; a short bar across the edge for a door order. */
+  private setOrderMarker(pieceId: string, order: MarineOrder | null): void {
+    this.orderMarkers[pieceId]?.destroy();
+    delete this.orderMarkers[pieceId];
+    if (!order) return;
+    const T = TILE_SIZE;
+    const g = this.add.graphics().setDepth(0.95).setName('order-marker');
+    g.setData('pieceId', pieceId);
+    g.setData('kind', order.type);
+    if (order.type === 'moveTo') {
+      g.setData('then', order.then);
+      const colour = order.then === 'overwatch' ? 0x33ccff : 0xffcc33;
+      g.lineStyle(2, colour, 0.9);
+      g.strokeCircle(order.x * T + T / 2, order.y * T + T / 2, T * 0.32);
+      g.lineStyle(1, colour, 0.5);
+      g.strokeCircle(order.x * T + T / 2, order.y * T + T / 2, T * 0.42);
+    } else {
+      const v = DIR_VEC[order.facing as 0 | 1 | 2 | 3];
+      const mx = (order.x + 0.5 + v.dc * 0.5) * T, my = (order.y + 0.5 + v.dr * 0.5) * T;
+      g.lineStyle(3, 0xff9933, 0.9);
+      // The bar lies ALONG the edge (perpendicular to the door's facing).
+      g.lineBetween(mx - v.dr * T * 0.3, my - v.dc * T * 0.3, mx + v.dr * T * 0.3, my + v.dc * T * 0.3);
+    }
+    this.orderMarkers[pieceId] = g;
+  }
+
+  /** The door edge under the pointer, if the pointer sits near one: the
+   *  closed door edge on the hovered square whose midpoint is within a third
+   *  of a tile of the pointer. Right-clicking it means "go and open it". */
+  private doorUnderPointer(p: Phaser.Input.Pointer): Door | undefined {
+    const T = TILE_SIZE;
+    const hx = Math.floor(p.worldX / T), hy = Math.floor(p.worldY / T);
+    let best: Door | undefined;
+    let bestDist = T * 0.34;
+    for (const d of this.engine.state.board.allDoors()) {
+      if (d.isOpen) continue;
+      const o = d.otherSide();
+      if (!((d.square.x === hx && d.square.y === hy) || (o.c === hx && o.r === hy))) continue;
+      const mx = (d.square.x + o.c + 1) / 2 * T, my = (d.square.y + o.r + 1) / 2 * T;
+      const dist = Math.hypot(p.worldX - mx, p.worldY - my);
+      if (dist < bestDist) { best = d; bestDist = dist; }
+    }
+    return best;
+  }
+
+  /**
+   * Right-click with a marine selected (stage 2 orders): a door edge under
+   * the pointer means "go and open it"; a square means "walk there, then
+   * hold" (Shift: then overwatch). Nothing selected, deployment, attract mode
+   * or a click on the HUD strip issues nothing. The order goes through
+   * engine.command like every other player action.
+   */
+  private handleOrderClick(p: Phaser.Input.Pointer): void {
+    if (this.attract || this.deployMode || this.engine.state.result !== 'ongoing') return;
+    if (p.x > this.scale.width - HUD_WIDTH) return;
+    const selectedId = Selection.get();
+    if (!selectedId) return;
+    const piece = this.engine.findPiece(selectedId);
+    if (!piece || piece.kind !== 'marine') return;
+    const door = this.doorUnderPointer(p);
+    let order: MarineOrder;
+    if (door) {
+      order = { type: 'openDoor', x: door.square.x, y: door.square.y, facing: door.facing };
+    } else {
+      const hx = Math.floor(p.worldX / TILE_SIZE), hy = Math.floor(p.worldY / TILE_SIZE);
+      if (!this.engine.state.board.get(hx, hy)) return;
+      const shift = (p.event as MouseEvent | undefined)?.shiftKey ?? false;
+      order = { type: 'moveTo', x: hx, y: hy, then: shift ? 'overwatch' : 'hold' };
+    }
+    this.engine.command(piece.id, { type: 'order', order });
+    this.updateHighlight();
   }
 
   /** If the vanished piece owned the selection, clear it and tell the HUD. */

@@ -17,8 +17,12 @@ export const TURN_COST: Record<'LEFT' | 'RIGHT' | 'ABOUT', number> = {
 export const AP_PER_TURN = 4;
 
 /**
- * Real-time tuning (2.x). UNVALIDATED starting values from docs/realtime-plan.md;
- * the balance sweep owns them. They are data, not constants: the client applies
+ * Real-time tuning (2.x). Starting values from docs/realtime-plan.md. The
+ * 2026-09-12 stage 2 scan (autopilot, seeds 1 to 30, three missions) chose
+ * regen.marine 3: space_hulk_2 went from 0 to 3 wins in 30 and debug_1 lost
+ * nothing it was winning; overwatchCooldown 1 moved nothing and stays 2;
+ * cycleTicks 60 cost space_hulk_2 two wins and stays 40. Every other value
+ * is still unvalidated; the balance sweep owns them. They are data, not constants: the client applies
  * `?tuning=` overrides through applyTuning() before the engine is built, so a
  * playtest can vary them without a rebuild. Every tick-denominated number in
  * the engine reads from here.
@@ -53,7 +57,7 @@ export interface Tuning {
 export const TUNING: Tuning = {
   tickMs: 250,
   cycleTicks: 40,
-  regen: { marine: 4, stealer: 2, blip: 2 },
+  regen: { marine: 3, stealer: 2, blip: 2 },
   apCap: { marine: 4, stealer: 6, blip: 6 },
   overwatchCooldown: 2,
   flameTicks: 40,

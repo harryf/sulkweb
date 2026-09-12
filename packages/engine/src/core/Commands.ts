@@ -10,6 +10,16 @@
  */
 export type MoveDir = 'forward' | 'backward' | 'forwardLeft' | 'forwardRight' | 'backLeft' | 'backRight';
 
+/**
+ * An individual order (2.x stage 2): standing intent the default AI executes
+ * one action per tick until it completes; any direct command clears it.
+ * moveTo walks to a square then holds or overwatches (an optional facing is
+ * taken on arrival); openDoor walks to a door edge and opens it.
+ */
+export type MarineOrder =
+  | { type: 'moveTo'; x: number; y: number; then: 'hold' | 'overwatch'; facing?: number }
+  | { type: 'openDoor'; x: number; y: number; facing: number };
+
 export type MarineCommand =
   | { type: 'move'; dir: MoveDir }
   | { type: 'turn'; delta: -1 | 1 | 2 }
@@ -24,4 +34,6 @@ export type MarineCommand =
   | { type: 'autofire' }
   | { type: 'reload' }
   | { type: 'cutDoor' }
-  | { type: 'cp' };
+  | { type: 'cp' }
+  | { type: 'order'; order: MarineOrder }
+  | { type: 'clearOrder' };

@@ -186,7 +186,7 @@ test('every page links the marine favicon', async ({ page }) => {
 
 test('mission won: end dialog offers retry and mission select', async ({ page }) => {
   test.setTimeout(120000);
-  await page.goto('/?deploy=0&tick=0&mission=debug_1&seed=30'); // the pinned real-time win seed
+  await page.goto('/?deploy=0&tick=0&mission=space_hulk_1&seed=26'); // the pinned stage 2 win seed (orders alone)
   await waitForScene(page);
 
   await page.evaluate(() => {
@@ -202,7 +202,7 @@ test('mission won: end dialog offers retry and mission select', async ({ page })
   // Retry reloads the same mission (URL and pinned seed preserved)
   await dialog.locator('#end-retry').click();
   await waitForScene(page);
-  expect(page.url()).toContain('mission=debug_1');
+  expect(page.url()).toContain('mission=space_hulk_1');
   await expect(page.locator('#end-dialog')).toHaveCount(0); // fresh game
 
   // Win again, choose another mission → homepage

@@ -4,9 +4,10 @@ import { Dir } from '../core/Direction.js';
 import { StormBolterMarine } from '../pieces/StormBolterMarine.js';
 import { Genestealer } from '../pieces/Genestealer.js';
 import { Blip } from '../pieces/Blip.js';
-import { chargeOrientation, runStealerActions } from '../ai/StealerAI.js';
+import { chargeOrientation } from '../ai/StealerAI.js';
 import { PieceEvents } from '../events/PieceEvents.js';
 import { RollQueue } from '../core/Dice.js';
+import { stealerActivation } from './rt.fixtures.js';
 
 /** Row of squares at r, cols c0..c1 inclusive. */
 const row = (r: number, c0: number, c1: number) =>
@@ -91,15 +92,15 @@ describe('charge orientation: stealers end the phase facing their prey (ISC-763.
     expect(turned[0]).toMatchObject({ x: 7, y: 5 }); // facing-only: position unchanged
   });
 
-  it('integration: runStealerActions leaves every close-in stealer facing a marine (ISC-763)', () => {
+  it('integration: a stealer activation leaves every close-in stealer facing a marine (ISC-763)', () => {
     const board = openBoard(10, 10);
     board.dice = new RollQueue(new Array(40).fill(3));
     const m = new StormBolterMarine(board, { c: 1, r: 1 }, Dir.S);
     const s = new Genestealer(board, { c: 6, r: 6 }, Dir.S);
-    runStealerActions(board);
+    stealerActivation(board);
     // Vacuity guard: all-3s dice draw every combat — nobody dies, so the
     // facing assertion below MUST run (a silent skip here would leave the
-    // runStealerActions call site of the sweep completely unpinned).
+    // activation call site of the sweep completely unpinned).
     expect(s.alive && m.alive).toBe(true);
     // Wherever the activation parked it, the epilogue points it at prey.
     const dc = m.pos.c - s.pos.c, dr = m.pos.r - s.pos.r;
@@ -136,7 +137,7 @@ describe('charge orientation: stealers end the phase facing their prey (ISC-763.
     new StormBolterMarine(board, { c: 1, r: 1 }, Dir.E);
     const mobile = new Genestealer(board, { c: 3, r: 1 }, Dir.W);
     const pocket = new Genestealer(board, { c: 5, r: 1 }, Dir.E); // facing AWAY from prey
-    const stream = PieceEvents.capture(() => runStealerActions(board));
+    const stream = PieceEvents.capture(() => stealerActivation(board));
     const pocketEvents = stream.filter((e: any) => e.payload?.pieceId === pocket.id);
     expect(pocketEvents).toHaveLength(1); // captured once — never live, never doubled
     const spin = pocketEvents[0] as any;

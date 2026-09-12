@@ -35,7 +35,7 @@ Where the port stands: what shipped, in what order, and what's knowingly missing
   see [rules-reference.md](rules-reference.md) and
   [features.md](features.md#deployment-phase)
 
-## Next line: 2.x real-time (stage 1 shipped as v2.0.0-alpha.1, 2026-09-12)
+## Next line: 2.x real-time (stage 2 shipped as v2.0.0-alpha.2, 2026-09-12)
 
 The reviewed plan for turning the port into a real-time game (ticking clock,
 marine default AI, individual and squad orders, sergeant loss as command
@@ -47,8 +47,13 @@ piece per tick, overwatch persists with a cooldown, every key is an engine
 command, and the turn-based client is gone. The stable root stays on v1.1.0
 (the faithful turn-based port, frozen at /1.1.0/) until 2.0.0. Playtest
 verdict (2026-09-12): it works and is playable, and it is really hard right
-now; stage 2 (individual orders) opens with a tuning pass, per the plan's
-"Stage 1 verdict and stage 2 handover" section.
+now. Stage 2 (individual orders) followed the same day as
+https://harryf.github.io/sulkweb/2.0.0-alpha.2/ : right-click orders (walk
+there then hold or overwatch, go open a door) carried out by the default AI,
+the autopilot rewritten as an order issuer, the two 1.x test shims deleted,
+and marine regeneration tuned from 4 to 3 ticks per AP. The plan's "Stage 2
+as built" subsection records the deviations and the balance numbers; stage 3
+(squad orders, the chain of command) is next.
 
 ## Known gaps / residue
 

@@ -10,6 +10,7 @@ import { closeCombat } from '../rules/combat.js';
 import { flameFlood } from '../rules/flame.js';
 import { looseCatPos } from '../rules/exotic.js';
 import { TUNING } from '../core/CostTables.js';
+import { orderStep, turnWouldBearOn } from './orders.js';
 
 /**
  * Marine default AI (2.x, docs/realtime-plan.md "Default behaviour"): what a
@@ -31,7 +32,9 @@ import { TUNING } from '../core/CostTables.js';
  *     the blast section holds no marine and nothing the mission needs.
  *  7. A stealer visible but outside the fire arc: turn toward the nearest.
  *  8. An open door directly ahead with a stealer seen beyond it and no
- *     friendly marine beyond it: close it.
+ *     friendly marine beyond it: close it, unless a marine opened that door
+ *     within the last cycle (an openDoor order must not be undone by its
+ *     own executor the tick after).
  *  9. Assault cannon with an empty drum and no stealer in sight: reload.
  * 10. Not on overwatch, AP >= 2, weapon can overwatch: overwatch on.
  * 11. Hold.
@@ -41,9 +44,16 @@ import { TUNING } from '../core/CostTables.js';
  * its own except rule 6; the assault cannon never autofires here and never
  * overwatches with an empty drum; the chain fist never cuts a door here.
  * Autofire, flaming and cutting are order or direct-control actions.
+ *
+ * Orders (stage 2, ai/orders.ts): a live order is read between rule 6 and
+ * rule 7. Rules 1 and 3 to 6 (the reactions) still win; rule 2 is skipped
+ * because the order step takes the marine off overwatch itself; the transit
+ * version of rule 7 fires only when the turn would bring the seen stealer
+ * into the fire lane; rules 8 to 11 never fire while an order is live.
  */
 export type MarineAiAction =
-  | 'unjam' | 'shoot' | 'melee' | 'turn' | 'flame' | 'closeDoor' | 'reload' | 'overwatch';
+  | 'unjam' | 'shoot' | 'melee' | 'turn' | 'flame' | 'closeDoor' | 'reload' | 'overwatch'
+  | 'step' | 'openDoor' | 'done';
 
 /** Living stealer-side pieces, board order. */
 export function threatsOn(board: Board): Piece[] {
@@ -109,6 +119,7 @@ function shouldCloseDoorAhead(board: Board, m: Piece): boolean {
   const ahead = { c: m.pos.c + v.dc, r: m.pos.r + v.dr };
   const door = board.doorBetween(m.pos, ahead);
   if (!door || !door.isOpen || door.destroyed) return false;
+  if (board.tick - door.lastOpenedByMarine < TUNING.cycleTicks) return false;
   const beyond = (p: Piece) => inFireArc(m, { x: p.pos.c, y: p.pos.r });
   const seenBeyond = threatsOn(board).some(t => {
     const sq = board.get(t.pos.c, t.pos.r);
@@ -132,8 +143,9 @@ export function marineTick(engine: GameEngine, m: Piece): MarineAiAction | null 
 
   // 1. jammed: unjam
   if (bolter?.jammed) return bolter.unjam() ? 'unjam' : null;
-  // 2. on overwatch: hold, the reaction fire is his action
-  if (bolter?.overwatch) return null;
+  // 2. on overwatch: hold, the reaction fire is his action (an ordered
+  //    marine skips this: the order step takes him off overwatch)
+  if (bolter?.overwatch && !m.order) return null;
   // 3. shoot what can be shot
   if (bolter) {
     const target = nearestShootable(board, bolter);
@@ -156,6 +168,13 @@ export function marineTick(engine: GameEngine, m: Piece): MarineAiAction | null 
   if (m instanceof HeavyFlamerMarine) {
     const sq = lastStandTarget(engine, m);
     if (sq && m.flameAt(sq) !== undefined) return 'flame';
+  }
+  // Orders: transit reaction, then the order step; nothing below fires.
+  if (m.order) {
+    const seenInTransit = nearestSeen(board, m);
+    if (seenInTransit && turnWouldBearOn(board, m, seenInTransit)
+        && faceIfNeeded(m, facingToward(m.pos, seenInTransit.pos))) return 'turn';
+    return orderStep(engine, m);
   }
   // 7. seen but not shootable: turn toward the nearest
   const seen = nearestSeen(board, m);

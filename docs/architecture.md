@@ -69,14 +69,16 @@ The engine reads no clock. `GameEngine.tick()` advances the game by one tick in 
 
 1. AP regeneration for every piece (`apChanged` on each gain)
 2. commands deferred from inside the previous tick (a handler issuing a command; normally none)
-3. the marine default AI (`ai/MarineAI.ts`): one action per marine with AP and no live direct-control lease
+3. the marine default AI (`ai/MarineAI.ts`): one action per marine with AP and no live direct-control lease; a marine with a live order (`ai/orders.ts`, stage 2) runs the reactions first and then one step of the order
 4. the stealer side (`stealerTick`): one action per piece with AP under a hive plan cached for `TUNING.hivePlanTicks` ticks, with the threat map cached under `Board.version`
 5. the expiry sweep: piece timers (sustained fire, blip idleness), flames past their tick, and the cycle's offset events (C.A.T. wander, download counter, ambush counter)
 6. the cycle boundary every `TUNING.cycleTicks` ticks: defend turn limit, the blockade victory check, reinforcements booked at per-entry slots, the CP roll, the charge orientation sweep; then due reinforcements land
 7. the victory check
 8. the `tick` event
 
-Marines regenerate and act before stealers: the deliberate marine edge in a tie. Every event the engine emits during a tick is delivered at once; there is no captured stream and no replay. `PieceEvents.capture()` and `replay()` remain in the emitter for the logger's exactly-once tap semantics and for tests, and nothing in the client calls them. `endMarinePhase()` survives as a test shim equal to one cycle of ticks so the 1.x mission specs port by search and replace; it is deleted in stage 2.
+Marines regenerate and act before stealers: the deliberate marine edge in a tie. Every event the engine emits during a tick is delivered at once; there is no captured stream and no replay. `PieceEvents.capture()` and `replay()` remain in the emitter for the logger's exactly-once tap semantics and for tests, and nothing in the client calls them. The 1.x test shims (`endMarinePhase`, `runStealerActions`) are gone since stage 2; the mission specs run cycles of real ticks (`rt.fixtures.ts` `runCycle`) and the hive fixtures drive `stealerTick` per tick (`stealerActivation`).
+
+Orders (stage 2) are the third kind of command: `order` stores a `MarineOrder` in the marine's slot (`Piece.order`) and `clearOrder` empties it; the engine emits `orderChanged` on every change, including completion. Neither stamps the direct-control lease (the order is executed by the default AI the lease would silence; `order` resets the lease so the march starts on the next tick), and every other command, accepted or refused, clears the slot: the player took the wheel. Both rules key off receipt, which the command log records, so a replay makes the same choices.
 
 ### Sequence of one tick
 
@@ -86,13 +88,13 @@ sequenceDiagram
     participant C as LiveScene (client)
     participant E as GameEngine (engine)
     participant B as PieceEvents bus
-    P->>C: W / F / O keys, clicks
+    P->>C: W / F / O keys, clicks, right-click orders
     C->>E: engine.command(id, command)
     E->>B: command, pieceMoved, shot, apChanged...
     B->>C: render sprite moves, flashes, HUD
     C->>E: tick() every 250 ms (update accumulator)
-    E->>E: regen, marine AI, stealer tick, expiry, boundary, victory
-    E->>B: pieceMoved, shot, blipConverted, tick...
+    E->>E: regen, marine AI (reactions, then the order step), stealer tick, expiry, boundary, victory
+    E->>B: pieceMoved, shot, orderChanged, blipConverted, tick...
     B->>C: sprites, fog dirty flag, HUD clock
 ```
 

@@ -10,6 +10,7 @@ import { loadMission } from '../missions/missionLoader.js';
 import { autoplay } from '../ai/MarineAutopilot.js';
 import { squareSeenByMarine } from '../ai/StealerAI.js';
 import type { CompiledMission } from '../missions/missionTypes.js';
+import { runCycle } from './rt.fixtures.js';
 
 /**
  * Sulk rule follow-up (user report 2026-08-15): a death VACATES a square,
@@ -80,7 +81,7 @@ describe('deaths that open sight lines convert the revealed blips', () => {
     const marine = engine.marines[0];
     expect(marine.overwatchOn()).toBe(true);
 
-    const events = PieceEvents.capture(() => engine.endMarinePhase());
+    const events = PieceEvents.capture(() => runCycle(engine));
 
     expect(stealer.alive).toBe(false); // overwatch killed it on its first step
     expect(blip.alive).toBe(false);    // reveal converted it despite capture

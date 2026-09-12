@@ -70,6 +70,9 @@ export const KEY_ROWS: KeyRow[] = [
 export const SPECIAL_KEYS: KeyCap[] = [
   { key: '1-0', label: 'select marine' },
   { key: 'Esc', label: 'pause' },
+  { key: 'RMB', label: 'walk there' },
+  { key: 'Shift+RMB', label: 'walk, then overwatch' },
+  { key: 'RMB door', label: 'go open it' },
 ];
 
 /** Usage notes that need more room than a keycap label. */
@@ -81,4 +84,5 @@ export const KEY_NOTES: string[] = [
   'Flamer: F aims at the hovered square, F again fires, any other key cancels.',
   'B twice within 2.5 seconds self-destructs the flamer.',
   'R reloads and T autofires the assault cannon. G is the chain fist door cut.',
+  'Orders: right-click a square and the selected marine walks there on his own, opening doors on the way, then holds; Shift right-click and he goes on overwatch when he arrives; right-click a closed door and he goes to open it. He still shoots what he sees on the way. Any key takes the wheel back and drops the order. His card reads MOVE, DOOR, OW or HOLD.',
 ];

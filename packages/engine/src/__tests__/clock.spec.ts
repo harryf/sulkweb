@@ -69,9 +69,9 @@ describe('the engine clock (2.x stage 1)', () => {
     expect(engine.cp).toBe(5);
   });
 
-  it('endMarinePhase() is the test shim: exactly one cycle of ticks', () => {
+  it('runTicks(TUNING.cycleTicks) is exactly one cycle: the boundary fires on the last tick', () => {
     const engine = new GameEngine(corridor(6));
-    engine.endMarinePhase();
+    engine.runTicks(TUNING.cycleTicks);
     expect(engine.tickCount).toBe(TUNING.cycleTicks);
     expect(engine.turnNumber).toBe(2);
   });
@@ -84,10 +84,10 @@ describe('the engine clock (2.x stage 1)', () => {
     engine.command(marine.id, { type: 'move', dir: 'forward' }); // north is rock: refused, but the lease stamps
     marine.ap = 2;
     marine.lastCommandTick = 1e9; // a lease that never expires: pure regeneration
-    engine.runTicks(3);
+    engine.runTicks(TUNING.regen.marine - 1);
     expect(marine.ap).toBe(2);
     engine.tick();
-    expect(marine.ap).toBe(3); // tick 4: one AP per TUNING.regen.marine ticks
+    expect(marine.ap).toBe(3); // one AP per TUNING.regen.marine ticks (3 since the stage 2 scan)
     engine.runTicks(TUNING.cycleTicks);
     expect(marine.ap).toBe(4); // capped, never reset
   });

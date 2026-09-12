@@ -8,8 +8,9 @@ import { AssaultCannonMarine, ChainFistMarine } from '../pieces/AssaultCannonMar
 import { Dir } from '../core/Direction.js';
 import { PieceEvents } from '../events/PieceEvents.js';
 import { marineTick, runMarineAI } from '../ai/MarineAI.js';
-import { autoplay } from '../ai/MarineAutopilot.js';
+import { autoplay, runMarineTurn } from '../ai/MarineAutopilot.js';
 import { loadMission } from '../missions/missionLoader.js';
+import { TUNING } from '../core/CostTables.js';
 import type { CompiledMission, SquareJSON } from '../missions/missionTypes.js';
 import { room, corridor, missStream } from './rt.fixtures.js';
 
@@ -205,14 +206,45 @@ describe('marine default AI: the decision list, first match wins', () => {
     expect(shots[2]).toBe(engine.marines[1].id);
   });
 
-  it('the autopilot issues commands and drives a whole game to a result', () => {
-    const engine = new GameEngine(loadMission('debug_1'), [], new SeededRng(30));
-    let commands = 0;
-    const h = () => { commands += 1; };
+  it('the autopilot issues orders and drives a whole game to a result', () => {
+    // space_hulk_1 seed 26 (stage 2 pin, 2026-09-12): under orders with the
+    // default AI defending, the squad delivers the flamer and wins (2 of 60
+    // seeds do). debug_1 is no longer the win fixture: at the shipped
+    // regeneration the lone marine loses the exit race on 60 of 60 seeds,
+    // and at regen.marine 2 he wins all 30 without a shot fired (a walk,
+    // not a game); see ISA Decisions.
+    const engine = new GameEngine(loadMission('space_hulk_1'), [], new SeededRng(26));
+    const types: string[] = [];
+    const h = ({ command }: { command: { type: string } }) => { types.push(command.type); };
     PieceEvents.on('command', h);
     autoplay(engine, 60);
     PieceEvents.off('command', h);
-    expect(commands).toBeGreaterThan(20);
-    expect(engine.state.result).toBe('win'); // the pinned e2e win seed (re-pinned 2026-09-12)
+    expect(types.filter(t => t === 'order').length).toBeGreaterThan(4);
+    expect(types).toContain('flame');
+    expect(types.some(t => ['move', 'turn', 'shoot', 'melee'].includes(t))).toBe(false); // the issuer never plays the marines directly (door: the flamer's firing door only)
+    expect(engine.state.result).toBe('win');
+  }, 30000);
+
+  it('the issuer never touches the direct-control lease: orders leave lastCommandTick alone', () => {
+    // The core stage 2 claim (advisor, 2026-09-12): an order is executed by
+    // the default AI, so issuing one must not start the lease that silences it.
+    const engine = new GameEngine(loadMission('space_hulk_1'), [], new SeededRng(26));
+    runMarineTurn(engine);
+    expect(engine.marines.filter(m => m.order !== null).length).toBeGreaterThan(0);
+    for (const m of engine.marines) expect(m.lastCommandTick).toBe(-Infinity);
+    engine.runTicks(5);
+    for (const m of engine.marines) if (m.order) expect(m.lastCommandTick).toBe(-Infinity);
+  });
+
+  it('balance signal, not a target: debug_1 loses the exit race at the shipped regeneration (flip this when tuning changes it)', () => {
+    // Stage 2 scan (2026-09-12): under the order issuer the lone marine of
+    // debug_1 loses on 60 of 60 seeds at regen.marine 3 and wins 30 of 30
+    // without a shot fired at regen.marine 2 (a walk, not a game). This pins
+    // the signal so a tuning change that moves it fails loudly here instead
+    // of vanishing (advisor: keep the evidence in the suite).
+    expect(TUNING.regen.marine).toBe(3);
+    const engine = new GameEngine(loadMission('debug_1'), [], new SeededRng(1));
+    autoplay(engine, 60);
+    expect(engine.state.result).toBe('loss');
   }, 30000);
 });

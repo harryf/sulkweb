@@ -5,14 +5,14 @@ import { readFile } from 'node:fs/promises';
  * End-of-mission gameplay-log export (see docs/gamelog-format.md): the end
  * dialog offers debrief notes and a Download game log button; the saved JSON
  * is the analysis corpus for mission-generic stealer-AI improvements.
- * Uses the pinned debug_1 seed-30 win (real time, 2026-09-12) (same path as win.spec) so the dialog
+ * Uses the pinned space_hulk_1 seed-26 win by orders (stage 2, 2026-09-12; the same path as win.spec) so the dialog
  * appears deterministically.
  */
 test('end dialog exports the gameplay log with notes, mission and timestamp filename', async ({ page }) => {
   test.setTimeout(120000);
   const errors: string[] = [];
   page.on('pageerror', (err: Error) => errors.push(err.message));
-  await page.goto('/?deploy=0&tick=0&mission=debug_1&seed=30');
+  await page.goto('/?deploy=0&tick=0&mission=space_hulk_1&seed=26');
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
 
   // The logger is live from scene construction on a real mission.
@@ -42,13 +42,13 @@ test('end dialog exports the gameplay log with notes, mission and timestamp file
 
   // Filename: mission key + local timestamp keeps a collected corpus unique.
   expect(download.suggestedFilename())
-    .toMatch(/^sulk-log_debug_1_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.json$/);
+    .toMatch(/^sulk-log_space_hulk_1_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.json$/);
 
   const path = await download.path();
   const log = JSON.parse(await readFile(path!, 'utf8'));
   expect(log.meta.formatVersion).toBe(1);
-  expect(log.meta.mission).toBe('debug_1');
-  expect(log.meta.seed).toBe(30);
+  expect(log.meta.mission).toBe('space_hulk_1');
+  expect(log.meta.seed).toBe(26);
   expect(log.meta.result).toBe('win');
   expect(typeof log.meta.version).toBe('string');
   expect(log.meta.startedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
@@ -63,7 +63,7 @@ test('end dialog exports the gameplay log with notes, mission and timestamp file
 
 test('retry starts a fresh logger (reload resets the recording)', async ({ page }) => {
   test.setTimeout(120000);
-  await page.goto('/?deploy=0&tick=0&mission=debug_1&seed=30');
+  await page.goto('/?deploy=0&tick=0&mission=space_hulk_1&seed=26');
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
   await page.evaluate(() => { const { engine, autoplay } = (window as any).sulk; autoplay(engine, 60); });
   await expect(page.locator('#end-dialog')).toBeVisible();

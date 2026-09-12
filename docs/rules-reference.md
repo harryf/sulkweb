@@ -33,7 +33,7 @@ Victory checks also fire the moment the original demands it: a kill-quota win la
 
 ### Action points (AP)
 
-Every piece has an AP pool and **regenerates** toward it: marines 1 AP every 4 ticks (one a second) up to 4; genestealers and blips 1 AP every 2 ticks up to 6. A full pool banks nothing, so a spend always restarts a whole interval. Nothing is ever reset or lost at a boundary. The costs of every action are unchanged from the original.
+Every piece has an AP pool and **regenerates** toward it: marines 1 AP every 3 ticks (0.75 s; the 2026-09-12 stage 2 scan chose it over 4) up to 4; genestealers and blips 1 AP every 2 ticks up to 6. A full pool banks nothing, so a spend always restarts a whole interval. Nothing is ever reset or lost at a boundary. The costs of every action are unchanged from the original.
 
 ### Command points (CP)
 
@@ -55,9 +55,20 @@ A key press steers the selected marine at once and gives him a **lease** of 8 ti
 10. not on overwatch with 2 AP or more and a weapon that can overwatch: overwatch;
 11. hold.
 
-The default never opens a door, never walks toward the objective, never autofires the cannon, never cuts a door with the chain fist and never flames outside the last stand; those are the player's calls (and, from stage 2, orders).
+The default never opens a door, never walks toward the objective, never autofires the cannon, never cuts a door with the chain fist and never flames outside the last stand; those are the player's calls, or orders.
 
-All the real-time numbers above (tick length, cycle length, regeneration, caps, overwatch cooldown, flame duration, lease, plan cadence, slot spacing, event offsets) are unvalidated starting values kept as data in `core/CostTables.ts` (`TUNING`); the client's `?tuning=` query overrides them before a game is built.
+### Orders (2.x stage 2)
+
+Every marine has one **order slot**. An order is standing intent that his default behaviour carries out one action per tick until it is done:
+
+- **moveTo (then hold or overwatch)**: he walks the shortest path (marines block it, closed doors on it are opened on contact, 1 AP each; he turns before each change of direction, so he arrives facing the way he came), then holds or, with 2 AP, goes on overwatch. An optional facing is taken on arrival first. A target square held by another marine counts as reached when he stands next to it.
+- **openDoor**: he walks to either side of the door edge, faces across it and opens it.
+
+While an order is live the reactions still come first (unjam, shoot what is shootable, fight what is ahead, turn to what is adjacent, the flamer's last stand), plus one transit reaction: a seen stealer that a turn would bring into the fire arc is turned to. The parking rules (close a door on a threat, overwatch with spare AP) sleep: an order that cannot progress this tick holds its AP for the next. A door a marine opened stays open for a cycle as far as the door-close rule is concerned, so an openDoor order is not undone by its own executor.
+
+Orders are commands (`order`, `clearOrder`) and are logged like every command, but they do not start a direct-control lease (that would silence the behaviour that executes them; an order ends any lease running). Every other command, accepted or refused, clears the slot: the player took the wheel. Completion clears it too. Orders draw no dice.
+
+All the real-time numbers above (tick length, cycle length, regeneration, caps, overwatch cooldown, flame duration, lease, plan cadence, slot spacing, event offsets) are kept as data in `core/CostTables.ts` (`TUNING`); the client's `?tuning=` query overrides them before a game is built. The 2026-09-12 stage 2 scan set marine regeneration to 3 ticks; everything else is still a starting value.
 
 ## Movement
 

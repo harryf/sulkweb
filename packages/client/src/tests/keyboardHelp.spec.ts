@@ -12,6 +12,8 @@ describe('keyboard help layout data', () => {
       // ... plus the dedicated keydown handlers (Enter only starts the
       // mission during deployment and is described in the deploy note)
       'L', 'K', '1-0', 'Esc',
+      // ... and the mouse orders (stage 2)
+      'RMB', 'Shift+RMB', 'RMB door',
     ]
     const keys = bound.map(c => c.key)
     expect([...keys].sort()).toEqual([...expected].sort())

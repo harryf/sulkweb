@@ -17,6 +17,10 @@ export class Door extends Feature {
   destroyed = false
   /** Which neighbor of the anchor square the door edge borders. */
   readonly facing: Dir
+  /** Board tick at which a marine last opened this door (2.x stage 2): the
+   *  default AI's door-close rule leaves such a door alone for a cycle, so
+   *  an openDoor order is not undone by the marine who carried it out. */
+  lastOpenedByMarine = -Infinity
   /** Set by the owning Board: a real state change bumps the board version
    *  (the hive's threat cache key). Silent peeks never call it. */
   onChange?: () => void

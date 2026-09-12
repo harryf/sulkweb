@@ -8,6 +8,7 @@ import {
   orderSquaresFrontToBack, autoDeployOrder,
 } from '../rules/deploy.js';
 import type { DeploySquareJSON, MarineType } from '../missions/missionTypes.js';
+import { runCycle } from './rt.fixtures.js';
 
 /** Two-squad fixture mirroring Decoy's geometry in miniature: Abraham walks
  *  right along a row, Harken walks left along another. */
@@ -72,11 +73,11 @@ describe('GameEngine deployment phase (ISC-798..811)', () => {
     const e = new GameEngine(loadMission('space_hulk_1'));
     expect(e.beginDeployment()).toBe(true);
     expect(e.beginDeployment()).toBe(false); // already deploying
-    // endMarinePhase runs the whole turn synchronously and lands back at
+    // runCycle runs the whole cycle synchronously and lands back at
     // MarineAction with turnNumber 2 — so THIS refusal is the turn guard,
     // not the phase guard (asserted explicitly to keep it that way).
     const live = new GameEngine(loadMission('space_hulk_1'), [], new SeededRng(1));
-    live.endMarinePhase();
+    runCycle(live);
     expect(live.phase).toBe('Live');
     expect(live.turnNumber).toBe(2);
     expect(live.beginDeployment()).toBe(false);
@@ -155,7 +156,7 @@ describe('GameEngine deployment phase (ISC-798..811)', () => {
     expect((a as any).unjam()).toBe(false);
     expect(a.useDoor()).toBe(false);
     expect(a.ap).toBe(a.apInitial); // nothing above spent a point
-    e.endMarinePhase(); // no-op in Deploy
+    runCycle(e); // no-op in Deploy
     expect(e.phase).toBe('Deploy');
     expect(e.turnNumber).toBe(1);
   });

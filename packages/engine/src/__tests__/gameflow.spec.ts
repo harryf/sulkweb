@@ -5,6 +5,7 @@ import { Genestealer } from '../pieces/Genestealer.js';
 import { Dir } from '../core/Direction.js';
 import type { CompiledMission } from '../missions/missionTypes.js';
 import { loadMission } from '../missions/missionLoader.js';
+import { runCycle } from './rt.fixtures.js';
 
 /** Tiny 1-corridor mission: marines north, entry south, exit south. */
 function tinyMission(overrides: Partial<CompiledMission> = {}): CompiledMission {
@@ -32,12 +33,12 @@ describe('GameEngine turn flow', () => {
     expect(engine.turnNumber).toBe(1);
   });
 
-  it('endMarinePhase advances the turn and resets AP', () => {
+  it('a cycle of ticks advances the turn and regenerates AP', () => {
     const engine = new GameEngine(tinyMission({ objective: 'reach-exit' }));
     const marine = engine.marines[0];
     marine.moveForward();
     expect(marine.ap).toBe(3);
-    engine.endMarinePhase();
+    runCycle(engine);
     expect(engine.turnNumber).toBe(2);
     expect(engine.phase).toBe('Live');
     expect(marine.ap).toBe(4);
@@ -47,7 +48,7 @@ describe('GameEngine turn flow', () => {
     const engine = new GameEngine(tinyMission({ blipsPerTurn: 1, objective: 'reach-exit' }));
     engine.state.board.dice = new SeededRng(7);
     expect(engine.stealerSide).toHaveLength(0);
-    engine.endMarinePhase();
+    runCycle(engine);
     expect(engine.stealerSide.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -89,7 +90,7 @@ describe('GameEngine turn flow', () => {
     expect(engine.state.result).toBe('win');
     expect(marine.moveForward()).toBe(false);
     expect(marine.tryTurn(1)).toBe(false);
-    engine.endMarinePhase();
+    runCycle(engine);
     expect(engine.turnNumber).toBe(1); // no further turns
   });
 

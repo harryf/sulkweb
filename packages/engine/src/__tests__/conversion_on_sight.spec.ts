@@ -31,7 +31,7 @@ describe('blips convert immediately when a marine action reveals them', () => {
     const marine = engine.marines[0];
     expect(marine.tryTurn(2)).toBe(true); // about-face to south — blip now straight ahead
 
-    expect(blip.alive).toBe(false); // converted, no endMarinePhase involved
+    expect(blip.alive).toBe(false); // converted on sight, no cycle boundary involved
     expect(board.pieces.filter(p => (p as any).kind === 'blip')).toHaveLength(0);
     expect(board.pieces.filter(p => (p as any).kind === 'stealer')).toHaveLength(2); // value 2 → both spawn
   });

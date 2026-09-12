@@ -131,8 +131,8 @@ export function destroyDuctingAt(board: Board, pos: Coord): boolean {
 /**
  * Post-action interactions for a stealer that just moved: entering the loose
  * CAT's square skewers it; entering an intact ducting square tears the duct
- * out. Called from runStealerActions after each successful move (event
- * handlers are suppressed inside the captured stealer phase, so this cannot
+ * out. Called from the stealer tick after each successful move (event
+ * handlers are suppressed inside the captured stealer action, so this cannot
  * live on a pieceMoved handler).
  */
 export function stealerExoticInteractions(board: Board, stealer: Piece): void {

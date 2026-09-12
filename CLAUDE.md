@@ -12,7 +12,7 @@ ALL NINE missions registered (space_hulk 1–6, beta_1, beta_2, debug_1); the co
 | Missions, controls, roster, deployment phase | `docs/features.md` |
 | Gameplay log export schema (stealer-AI analysis corpus) | `docs/gamelog-format.md` |
 | Roadmap state and known gaps | `docs/status.md` |
-| **2.x real-time plan (APPROVED 2026-09-12; stage 1 shipped as v2.0.0-alpha.1 and played: "works, playable, really hard"; START THE NEXT SESSION at its last section, "Stage 1 verdict and stage 2 handover": tuning pass first, then the stage 2 build order and the shims to delete)** | `docs/realtime-plan.md` |
+| **2.x real-time plan (APPROVED 2026-09-12; stage 1 shipped as v2.0.0-alpha.1 and played: "works, playable, really hard"; stage 2 shipped as v2.0.0-alpha.2 the same day; START THE NEXT SESSION at its last section, "Stage 2 as built": the tuning numbers, the deviations, and the stage 3 notes)** | `docs/realtime-plan.md` |
 | Original milestone specs (M0–M8) and roadmap | `docs/history/prompts/` |
 | Canonical game rules (AP costs, dice, blips, phases) | `docs/history/SULK Manual Combined.pdf`; distilled digest in ISA Decisions |
 | Original Pygame engine analysis | `docs/history/Analysis Sulk Pygame*.html` |
@@ -24,7 +24,7 @@ Resuming work = extend `ISA.md` (new ISCs, decisions, changelog); don't invent a
 ```bash
 pnpm install
 pnpm --filter ./packages/client dev      # play at localhost:5173
-pnpm --filter ./packages/engine test     # 406 unit tests + coverage (~98% lines)
+pnpm --filter ./packages/engine test     # 431 unit tests + coverage (~98% lines)
 pnpm --filter ./packages/client test     # HUD/minimap units (vitest, --dir src only)
 pnpm --filter ./packages/client e2e      # Playwright no-mock suite (real browser, no mocks)
 pnpm build                               # engine tsc -b + client vite build
@@ -193,11 +193,15 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
    STALE since 2026-09-12 (sight through stealer bodies converts blips earlier and
    widens the hive's seen map): the next balance run re-scans and owns these numbers.
    CAUTION: playthrough.spec idles turn 1 before its DONE click, so it consumes dice
-   differently from plain autoplay; scan loss seeds under THAT pattern (endMarinePhase
-   first, then autoplay). If a rules change alters dice-consumption order, re-scan and re-pin.
+   differently from plain autoplay; scan loss seeds under THAT pattern. If a rules change
+   alters dice-consumption order, re-scan and re-pin. Stage 2 pins (2026-09-12): the win
+   fixture is space_hulk_1 seed 26 by orders alone (win.spec, marine_ai.spec, gamelog.spec);
+   space_hulk_2 survivor seed 29 (quota_victory.spec); debug_1 is a walking race at every
+   regeneration tried (0 of 60 at the shipped 3, 30 of 30 without a shot at 2) and is no
+   longer a win fixture.
 4. `window.sulk` in the client exposes `{ engine, Selection, scene, SeededRng, autoplay,
-   runMarineTurn, PieceEvents, Genestealer, gameLog }` for e2e and console debugging
-   (`gameLog` is the GameLogger, null in attract mode).
+   runMarineTurn, PieceEvents, Genestealer, gameLog, TUNING, step(n), command(id, cmd) }`
+   for e2e and console debugging (`gameLog` is the GameLogger, null in attract mode).
 
 ## Gotchas (hard-won)
 
@@ -235,12 +239,25 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
   `engine.command(id, MarineCommand)`, applied at once between ticks and logged against the
   tick it followed (the replay unit); the client NEVER calls piece action methods. A command
   stamps `lastCommandTick` (the direct-control lease, `TUNING.leaseTicks`) and the default AI
-  skips leased marines. `endMarinePhase()` and `runStealerActions()` are TEST SHIMS (one cycle
-  of ticks; a whole activation) that die in stage 2. All real-time numbers live in
-  `core/CostTables.ts` `TUNING` (unvalidated; `?tuning=k:v` overrides before construction).
-  Pinned e2e fixtures: debug_1 seed 30 wins under autoplay, space_hulk_1 loses on every seed
-  (the autopilot feeds the flamer to the first contact); re-pin only after the last behavioural
-  change of a stage.
+  skips leased marines. The 1.x test shims are GONE (engine_lint retires their names): mission
+  specs run `runCycle(engine)` and the hive fixtures `stealerActivation(board)` from
+  `rt.fixtures.ts` (hivePlanTicks calls of the live `stealerTick`, board tick stepped by hand).
+  All real-time numbers live in `core/CostTables.ts` `TUNING` (`?tuning=k:v` overrides before
+  construction; regen.marine 3 was chosen by the stage 2 scan, the rest is unvalidated).
+  Re-pin the seed fixtures only after the last behavioural change of a stage.
+- **Orders (2.x stage 2, 2026-09-12):** `Piece.order` holds one `MarineOrder` (moveTo then
+  hold|overwatch, optional facing; openDoor); `ai/orders.ts` executes it inside `marineTick`
+  AFTER the reactions (unjam, shoot, adjacent fight/turn, flamer last stand, plus the transit
+  turn when a turn would bring a seen stealer into the fire lane) and INSTEAD of rules 7 to 11.
+  Commands `order`/`clearOrder` never stamp the lease (`order` resets it); every other
+  command, accepted or refused, clears the slot; `orderChanged` fires on set/replace/clear/
+  completion. `chooseStep` prefers straight lines over pathStep's diagonal weave. A door a
+  marine opened is immune to the default's door-close rule for a cycle
+  (`Door.lastOpenedByMarine`). The autopilot is an ORDER ISSUER (moveTo, flame, clearOrder as
+  cover; the flamer's firing door is the one direct `door` command, issued one square short of
+  the room's section). Client: right-click = order (`LiveScene.handleOrderClick`,
+  `disableContextMenu`), marker = Graphics named 'order-marker' with pieceId/kind/then data,
+  roster `.m-order` word from `orderLabel`.
 - **AI is a hive (AI1, 2026-08-17; per tick since 2.x):** `ai/hive.ts` plans the stealer side
   (2.x: every `TUNING.hivePlanTicks` ticks or on a marine death, cached on the board; the
   threat map is cached under `Board.version`; patience/massing/idle counters advance once
@@ -317,8 +334,9 @@ All nine missions are registered and playable; the campaign equipment (assault
 cannon, chain fist, parry sergeant, C.A.T., ambush counters) shipped with them.
 The 2.x line (docs/realtime-plan.md) is in progress: stage 1 (the clock) shipped
 as v2.0.0-alpha.1 and dissolved the old "marine interrupts" gap (marines act at
-any time now); stage 2 (individual orders) waits on the two playtest verdicts
-in the plan. Still open: thunder hammer + captain/grenades + librarian psi (no
+any time now); stage 2 (individual orders, right-click) shipped as
+v2.0.0-alpha.2; stage 3 (squad orders, the chain of command) starts from the
+plan's "Stage 2 as built" section. Still open: thunder hammer + captain/grenades + librarian psi (no
 registered mission uses them; sprites exist unused per docs/asset-index.md),
 off-board entry-limbo lurking, the first balance sweep of the real-time
 constants. Deferred verifications: FPS probe (ISC-71), live real-Chrome boot

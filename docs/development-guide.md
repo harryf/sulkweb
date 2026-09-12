@@ -24,7 +24,7 @@ Pick a mission with a URL parameter: `http://localhost:5173/?mission=beta_2` (de
 
 | Path | Contents | Touch it when... |
 |---|---|---|
-| `GameEngine.ts` | State owner: the deployment phase (`beginDeployment`/`autoDeploy`/`finishDeployment`, helpers in `rules/deploy.ts`), phase driver (`endMarinePhase`), victory checks, CP | changing turn structure, victory rules, deployment |
+| `GameEngine.ts` | State owner: the deployment phase (`beginDeployment`/`autoDeploy`/`finishDeployment`, helpers in `rules/deploy.ts`), the clock (`tick()`, `cycleBoundary()`, `cycleEvents()`), the command path (`command()`), victory checks, CP | changing the tick order, victory rules, deployment |
 | `board/` | `Board`, `Square`, `los.ts`, `vision.ts` (sight and fire arcs) | changing movement space, LOS, arcs |
 | `pieces/` | `Piece` base + every unit class (marines, `Genestealer`, `Blip`, `AmbushCounter`) | adding or changing a unit type |
 | `rules/` | `Door.ts`, `combat.ts` (close combat), `flame.ts`, `exotic.ts` (C.A.T., ducting) | changing a cross-piece rule |
@@ -119,7 +119,7 @@ Success looks like: deploy the new `type` in a mission JSON, load it, and see th
 ## Recipe: add a new objective / victory rule
 
 1. Add the name to the `objective` union (plus any config fields) in `missionTypes.ts`, with a doc comment; the schema file doubles as the mission-format documentation.
-2. Implement the win/loss logic in `GameEngine.checkVictory` and, if it ticks per turn, in `endMarinePhase` (the `download` objective is a complete worked example of both plus its own event).
+2. Implement the win/loss logic in `GameEngine.checkVictory` and, if it fires once a cycle, in `cycleBoundary` or `cycleEvents` (the `download` objective is a complete worked example of both plus its own event).
 3. If the HUD must show progress, emit a `PieceEvents` event and render it in `HudPanel` (see `casualtiesChanged` → `Kills: n/30`).
 4. Cover it with an engine spec modeled on `exotic_victory.spec.ts` or `quota_victory.spec.ts`.
 

@@ -7,8 +7,8 @@ import type { CompiledMission } from '../missions/missionTypes.js';
 import { HeavyFlamerMarine } from '../pieces/HeavyFlamerMarine.js';
 import { igniteSquares } from '../rules/flame.js';
 import { destroyDuctingAt, looseCatPos, damageCat } from '../rules/exotic.js';
-import { runStealerActions } from '../ai/StealerAI.js';
 import { PieceEvents } from '../events/PieceEvents.js';
+import { runCycle, stealerActivation } from './rt.fixtures.js';
 
 /**
  * Victory conditions + exotic systems for the completed missions
@@ -52,7 +52,7 @@ describe('escape (lurking adaptation)', () => {
       objective: 'escape-count', escapeQuota: 2, exitPoints: [{ x: 1, y: 9 }],
     }), [], new SeededRng(1));
     engine.marines[0].die();
-    engine.endMarinePhase();
+    runCycle(engine);
     expect(engine.state.result).toBe('loss'); // 0 alive + 0 escaped < 2
   });
 });
@@ -96,7 +96,7 @@ describe('C.A.T. (mission 3 systems)', () => {
     const engine = new GameEngine(catMission({ marineDeployment: [{ x: 1, y: 0, facing: 'down' }] }), [], new SeededRng(1));
     const board = engine.state.board;
     new Genestealer(board, { c: 1, r: 6 }, Dir.N); // two below the cat at (1,4)
-    runStealerActions(board); // the stealer lunges at the cat — with 6 AP it
+    stealerActivation(board); // the stealer lunges at the cat — with 6 AP it
     expect(board.cat!.damaged).toBe(true); // lands at least one hit, often two
     if (!board.cat!.destroyed) damageCat(board); // second hit
     expect(board.cat!.destroyed).toBe(true);
@@ -115,7 +115,7 @@ describe('C.A.T. (mission 3 systems)', () => {
     const positions: string[] = [];
     for (let run = 0; run < 2; run++) {
       const engine = new GameEngine(catMission({ marineDeployment: [{ x: 1, y: 0, facing: 'up' }] }), [], new SeededRng(9));
-      engine.endMarinePhase();
+      runCycle(engine);
       const cat = engine.state.board.cat!;
       positions.push(`${cat.pos.c},${cat.pos.r}`);
     }
@@ -147,7 +147,7 @@ describe('flame-objectives (mission 4 systems)', () => {
     engine.checkVictory();
     expect(engine.cleansed.has('1,0')).toBe(true);
     expect(engine.state.result).toBe('ongoing');
-    engine.endMarinePhase(); // flames disperse…
+    runCycle(engine); // flames disperse…
     expect(board.isFlaming({ c: 1, r: 0 })).toBe(false);
     expect(engine.cleansed.has('1,0')).toBe(true); // …the cleanse does not
   });
@@ -181,9 +181,9 @@ describe('defend (mission 6 systems)', () => {
 
   it('surviving to the end of the turn limit wins (ISC-228)', () => {
     const engine = new GameEngine(defend(), [], new SeededRng(1));
-    engine.endMarinePhase(); // end of turn 1
+    runCycle(engine); // end of turn 1
     expect(engine.state.result).toBe('ongoing');
-    engine.endMarinePhase(); // end of turn 2 = the limit
+    runCycle(engine); // end of turn 2 = the limit
     expect(engine.state.result).toBe('win');
   });
 
@@ -191,8 +191,8 @@ describe('defend (mission 6 systems)', () => {
     const engine = new GameEngine(defend({ turnLimit: 30 }), [], new SeededRng(1));
     const board = engine.state.board;
     new Genestealer(board, { c: 1, r: 5 }, Dir.N);
-    runStealerActions(board); // paths to the ducting at (1,0)… may take a phase
-    if (!board.ducting.get('1,0') === false) runStealerActions(board);
+    stealerActivation(board); // paths to the ducting at (1,0)… may take a phase
+    if (!board.ducting.get('1,0') === false) stealerActivation(board);
     // Either way, destroying it must lose:
     destroyDuctingAt(board, { c: 1, r: 0 });
     engine.checkVictory();

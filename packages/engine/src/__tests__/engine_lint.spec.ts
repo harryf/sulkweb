@@ -38,7 +38,7 @@ describe('engine source lint', () => {
   });
 
   it('carries no 1.x phase or clock names', () => {
-    expect(offenders(/\bMarineAction\b|\bStealerAction\b|marinePhaseSeconds|timerBonus|MARINE_PHASE_SECONDS/)).toEqual([]);
+    expect(offenders(/\bMarineAction\b|\bStealerAction\b|marinePhaseSeconds|timerBonus|MARINE_PHASE_SECONDS|\bendMarinePhase\b|\brunStealerActions\b/)).toEqual([]);
   });
 
   it('imports nothing from the browser or Phaser', () => {

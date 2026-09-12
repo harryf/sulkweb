@@ -17,7 +17,8 @@ export { flameFlood, igniteSquares, sectionSquares, clearFlames, expireFlames } 
 export { Dir } from './core/Direction.js';
 export { AP_PER_TURN, MOVE_COST, TURN_COST, TUNING, applyTuning, parseTuning } from './core/CostTables.js';
 export type { Tuning, TuningPatch } from './core/CostTables.js';
-export type { MarineCommand, MoveDir } from './core/Commands.js';
+export type { MarineCommand, MoveDir, MarineOrder } from './core/Commands.js';
+export { orderStep, orderLabel, orderIsValid, setOrder } from './ai/orders.js';
 
 export { Door } from './rules/Door.js';
 export * from './events/PieceEvents.js';
@@ -32,7 +33,7 @@ export { closeCombat, isFacing } from './rules/combat.js';
 export type { CombatResult } from './rules/combat.js';
 export type { PieceKind } from './pieces/Piece.js';
 export { Blip } from './pieces/Blip.js';
-export { runStealerActions, stealerTick, spawnBlips, rankEntries, convertRevealedBlips, squareSeenByMarine, chargeOrientation } from './ai/StealerAI.js';
+export { stealerTick, spawnBlips, rankEntries, convertRevealedBlips, squareSeenByMarine, chargeOrientation } from './ai/StealerAI.js';
 export { runMarineTurn, autoplay } from './ai/MarineAutopilot.js';
 export { runMarineAI, marineTick, nearestShootable, nearestSeen, threatsOn } from './ai/MarineAI.js';
 export type { MarineAiAction } from './ai/MarineAI.js';

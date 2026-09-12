@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: context-override
-phase: complete
-progress: "1273/1273 (stage 1 shipped and played; handover written; ISC-1038 dropped; ISC-71 deferred)"
+phase: verify
+progress: "1396/1405 (stage 2 built and verified; release ISCs 1453..1461 pending; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T22:15:00Z
+updated: 2026-09-13T01:20:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -692,10 +692,167 @@ Harry played v2.0.0-alpha.1 and said: "OK it works and it's playable. It's _real
 - [x] ISC-1339: the ISA frontmatter reads phase complete with every stage 1 criterion closed (Read)
 - [x] ISC-1340: deploy-latest stays green or is not triggered by the docs-only push (gh run list)
 
+### Stage 2: individual orders (2026-09-12, twenty-first run)
+
+Harry: "OK let's implement stage 2". Source: docs/realtime-plan.md "Stage 1 verdict and stage 2 handover" (tuning pass first, then the eight-step build order). Ships as v2.0.0-alpha.2, a prerelease in its own frozen dir; the root stays v1.1.0.
+
+Tuning pass (before any order code; the autopilot seed scan is the instrument, three missions, seeds 1 to 30, autoplay 60 cycles):
+
+- [x] ISC-1341: a scan script in the scratchpad imports the engine source, applies a TUNING patch, runs autoplay(engine, 60) over seeds 1..30 for debug_1, space_hulk_1, space_hulk_2 and prints win/loss/ongoing counts (Bash output)
+- [x] ISC-1342: baseline row at the stage 1 defaults recorded in Decisions (regen.marine 4, overwatchCooldown 2, cycleTicks 40)
+- [x] ISC-1343: regen.marine 3 row recorded against the baseline
+- [x] ISC-1344: overwatchCooldown 1 row recorded (on top of the regen choice)
+- [x] ISC-1345: cycleTicks 60 row recorded (on top of the choices so far)
+- [x] ISC-1346: leaseTicks judged in Decisions (the scan cannot see it: the autopilot re-issues every cycle; note what would move it)
+- [x] ISC-1347: the chosen values are written into TUNING in core/CostTables.ts (grep the literals)
+- [x] ISC-1348: the TUNING doc comment says which values the 2026-09-12 scan chose and which stay unvalidated (grep "scan")
+- [x] ISC-1349: docs that quote the clock numbers (features.md, rules-reference.md, architecture.md) match the new TUNING (grep "every 4 ticks" = 0 if regen changed)
+- [x] ISC-1350: engine specs that assumed the old numbers (clock.spec, regen_flames.spec, overwatch_ticks.spec) are green under the new TUNING
+- [x] ISC-1351: Decisions entry names each chosen value with the scan numbers behind it and the knobs left alone with the reason
+- [x] ISC-1352: after the LAST behavioural change of the stage, the win seed is re-pinned once and win.spec, marine_ai.spec and gamelog.spec agree on it (grep the seed literal in all three) [refined 2026-09-12: the win fixture is space_hulk_1 seed 26 by orders alone; debug_1 left the fixture set, see Decisions and Changelog]
+- [x] ISC-1353: the space_hulk_1 seed in playthrough.spec is re-scanned under the new autopilot and pinned with its outcome stated in the spec comment
+- [x] ISC-1354: the space_hulk_2 survivor seed in quota_victory.spec is re-scanned and pinned
+- [x] ISC-1355: Anti: no default-AI rule changed during the tuning pass (git diff of ai/MarineAI.ts at the tuning commit is empty)
+- [x] ISC-1356: Anti: no mission JSON changed (git diff --stat -- packages/engine/src/missions = 0 for the whole run)
+
+Orders in the engine (core/Commands.ts, pieces/Piece.ts, ai/orders.ts, ai/MarineAI.ts, GameEngine.ts):
+
+- [x] ISC-1357: Commands.ts exports MarineOrder: moveTo {x, y, then: 'hold' | 'overwatch', facing?} and openDoor {x, y, facing} (grep)
+- [x] ISC-1358: MarineCommand gains {type: 'order', order} and {type: 'clearOrder'} (grep)
+- [x] ISC-1359: Piece carries order: MarineOrder | null, default null (grep)
+- [x] ISC-1360: ai/orders.ts exists and exports orderStep(engine, marine) and orderLabel(marine) (grep)
+- [x] ISC-1361: an order command on a living marine sets the slot and returns true (orders.spec)
+- [x] ISC-1362: a moveTo to a square that is not on the board returns false and leaves the slot untouched (orders.spec)
+- [x] ISC-1363: an openDoor naming no door edge returns false (orders.spec)
+- [x] ISC-1364: clearOrder empties the slot; returns true when one was set, false when empty (orders.spec)
+- [x] ISC-1365: every other command, accepted or refused (move, turn, door, shoot, overwatch, melee), clears a live order: the player took the wheel (orders.spec)
+- [x] ISC-1366: order and clearOrder do not stamp lastCommandTick, and order resets it to -Infinity so the AI executes on the very next tick (orders.spec)
+- [x] ISC-1367: an orderChanged event {pieceId, order} fires on set, replace, clear and completion (orders.spec, PieceEvents capture)
+- [x] ISC-1368: the command event and the GameLogger envelope carry the order payload for an order command (gamelog.spec)
+- [x] ISC-1369: an ordered marine with AP and nothing to react to advances one pathStep square per tick toward the target (orders.spec, corridor fixture)
+- [x] ISC-1370: a step first turns to face the step direction (one tick), then moves forward (next tick): arrival facing is the travel direction (orders.spec)
+- [x] ISC-1371: a closed door on the path is faced and opened on contact (useDoor), then the march continues (orders.spec)
+- [x] ISC-1372: marines block the path (pathStep marineAt); a target square occupied by another marine completes the order when the walker is adjacent to it (orders.spec)
+- [x] ISC-1373: a target unreachable this tick (walled off by marines) leaves the marine holding with the order kept (orders.spec)
+- [x] ISC-1374: arrival with then hold clears the slot and spends nothing more (orders.spec)
+- [x] ISC-1375: arrival with then overwatch: a bolter with AP >= 2 goes on overwatch and the slot clears; with less AP he waits, slot kept, until overwatch is on (orders.spec)
+- [x] ISC-1376: an order with facing turns the marine to that facing on arrival before hold or overwatch (orders.spec)
+- [x] ISC-1377: an ordered marine on overwatch leaves overwatch (free) and moves on the next tick (orders.spec)
+- [x] ISC-1378: reactions win over a step: jammed unjams, a shootable stealer is shot, an adjacent stealer ahead is fought, one elsewhere is turned to, the flamer's last stand fires; each before any step (orders.spec, one case each)
+- [x] ISC-1379: under an order the default's rules 7 to 10 do not fire: no turn toward a seen non-shootable stealer, no door close, no overwatch spend; an order that cannot progress holds its AP (orders.spec)
+- [x] ISC-1380: openDoor: the marine paths to either flank square of the edge, faces across it, opens it, and the slot clears; an already open or destroyed door completes at once (orders.spec)
+- [x] ISC-1381: an order command for a dead marine returns false; a marine who dies mid-order leaves nothing behind (orders.spec)
+- [x] ISC-1382: order execution draws no dice: a RollQueue count before and after a full march is equal (orders.spec)
+- [x] ISC-1383: two engines from one seed replaying the same order log agree on stateHash at every tick (determinism.spec case)
+- [x] ISC-1384: orderLabel returns MOVE for moveTo, DOOR for openDoor, OW for overwatch with no order, HOLD otherwise (orders.spec)
+- [x] ISC-1385: a heavy flamer accepts moveTo (Piece-level, not bolter-only); then overwatch on a flamer completes as hold (orders.spec)
+- [x] ISC-1386: index.ts exports MarineOrder, orderStep, orderLabel; PieceEvents types include orderChanged (grep)
+- [x] ISC-1387: engine tsc --noEmit is clean
+- [x] ISC-1388: engine_lint.spec's retired list gains endMarinePhase and runStealerActions (grep)
+- [x] ISC-1389: the engine suite is green with coverage >= 98% lines (pnpm --filter ./packages/engine test)
+- [x] ISC-1390: Anti: the engine imports no phaser, window or document (engine_lint green)
+- [x] ISC-1466: an order command is refused during the Deploy phase and after game over (command() gate; orders.spec)
+- [x] ISC-1467: a moveTo to the marine's own square completes on the next tick (then applies at once) (orders.spec)
+- [x] ISC-1468: a second order replaces the first: one slot, one orderChanged (orders.spec)
+
+Autopilot as the scripted order issuer (ai/MarineAutopilot.ts):
+
+- [x] ISC-1391: runMarineTurn issues one moveTo order per marine without a live order, toward the mission target (marine_ai.spec / autopilot case)
+- [x] ISC-1392: on flame missions the escorts are ordered to the flamer's square (they follow and stop adjacent) with then hold (spec)
+- [x] ISC-1393: the flamer in reach with 2 AP gets the flame command; in reach without AP no command is issued (spec)
+- [x] ISC-1394: cover branch: a bolter with enemies within 10 squares gets clearOrder while one is live and no new order until they are gone; the default list covers him (spec)
+- [x] ISC-1395: kill-quota posts are issued as moveTo then overwatch (spec on space_hulk_2 first cycle)
+- [x] ISC-1396: the autopilot issues no shoot, melee, turn or move commands any more (grep of MarineAutopilot.ts for those type literals = 0) [refined 2026-09-12: one direct door command survives, the flamer's firing door opened from one square short of the room's section; marine_ai.spec asserts the rest]
+- [x] ISC-1397: autoplay stays runMarineTurn plus tick until a result or maxCycles (grep)
+- [x] ISC-1398: debug_1 wins under autoplay on the pinned seed (marine_ai.spec)
+- [x] ISC-1399: the autopilot's private nextStep BFS is deleted; pathStep is the one planner (grep nextStep = 0)
+- [x] ISC-1400: unopposed space_hulk_1 (stealers removed) is won by orders alone: the flamer reaches a firing square and the flame command wins (flamer.spec port)
+
+Shims deleted, specs ported to ticks:
+
+- [x] ISC-1401: GameEngine.endMarinePhase is gone (grep in src excluding __tests__ = 0)
+- [x] ISC-1402: runStealerActions is gone from StealerAI.ts and index.ts (grep = 0)
+- [x] ISC-1403: rt.fixtures.ts gains runCycle(engine) (TUNING.cycleTicks ticks) and stealerActivation(board, ctx) (TUNING.hivePlanTicks stealerTick calls with board.tick stepped by hand, then chargeOrientation) with a doc comment naming the cadence argument (grep)
+- [x] ISC-1404: gameflow.spec ported and green
+- [x] ISC-1405: quota_victory.spec ported and green
+- [x] ISC-1406: beta2_mission.spec ported and green
+- [x] ISC-1407: deploy.spec ported and green
+- [x] ISC-1408: exotic_victory.spec ported and green
+- [x] ISC-1409: kill_reveals.spec ported and green
+- [x] ISC-1410: flamer.spec ported and green
+- [x] ISC-1411: ai_pathing.spec ported and green
+- [x] ISC-1412: debug1_mission.spec ported and green
+- [x] ISC-1413: blips_ai.spec ported and green
+- [x] ISC-1414: charge.spec ported and green
+- [x] ISC-1415: hive.spec ported and green (nineteen calls)
+- [x] ISC-1416: clock.spec's shim test replaced by a runTicks cycle test, green
+- [x] ISC-1417: conversion_on_sight.spec comment no longer names the shim
+- [x] ISC-1418: client tests/fog.spec.ts ported to sulk.step, green
+- [x] ISC-1419: hive.spec's zero-dice invariants hold through the tick helper (its RollQueue counts unchanged)
+- [x] ISC-1420: grep for the two names across packages/ (src, tests, docs excluded) = 0
+
+Client (scenes/LiveScene.ts, ui/RosterPanel.ts, ui/keyboardHelp.ts):
+
+- [x] ISC-1421: the browser context menu is disabled on the canvas (disableContextMenu; e2e right-click leaves no menu)
+- [x] ISC-1422: right-click on a board square with a marine selected issues order moveTo then hold (e2e: piece.order shape)
+- [x] ISC-1423: Shift right-click issues moveTo then overwatch (e2e)
+- [x] ISC-1424: right-click with a door edge under the pointer issues openDoor for that edge (e2e)
+- [x] ISC-1425: right-click with nothing selected, or during deployment, issues nothing (e2e)
+- [x] ISC-1426: right-click on the HUD strip issues nothing and keeps the selection (e2e)
+- [x] ISC-1427: an order marker is drawn on the target square (door orders: the edge midpoint) for every marine with a live order (e2e: a named 'order-marker' object exists)
+- [x] ISC-1428: the marker disappears on completion or clear (e2e after stepping to arrival)
+- [x] ISC-1429: the marker distinguishes then hold from then overwatch (two colours; e2e reads the marker's data)
+- [x] ISC-1430: the roster card shows the order word: HOLD, OW, MOVE, DOOR (e2e text)
+- [x] ISC-1431: the word refreshes on orderChanged and overwatchChanged (e2e: MOVE while marching, OW after arrival)
+- [x] ISC-1469: a marine's marker is removed when he dies (pieceDied handler; unit or e2e)
+- [x] ISC-1432: keyboardHelp SPECIAL_KEYS gains the right-click rows (move there, Shift: then overwatch, on a door: open it); keyboardHelp.spec updated
+- [x] ISC-1433: docs/features.md controls table gains the three right-click rows
+- [x] ISC-1434: client tsc --noEmit clean
+- [x] ISC-1435: client unit suite green (roster.spec covers the order word)
+- [x] ISC-1436: e2e orders.spec: sulk.command order across the corridor, step ticks, the marine stands on the target with then overwatch on and slot null
+- [x] ISC-1437: e2e: a real right-click through page.mouse (canvas rect mapping) sets the order
+- [x] ISC-1438: e2e: a direct key (W) after an order clears it (piece.order null, marker gone)
+- [x] ISC-1439: e2e: roster card reads MOVE while ordered and OW after arrival
+- [x] ISC-1440: e2e orders-only space_hulk_1 fixture: orders plus the default AI plus the flame command reach the objective on a pinned seed, or, if no seed in 1..30 wins, the fixture asserts the flamer reaches the firing square and the Decisions entry says so [refined 2026-09-12: seed 26 wins; win.spec IS this fixture and asserts zero direct move/turn/shoot/melee commands]
+- [x] ISC-1441: the full e2e suite is green (count reported)
+- [x] ISC-1442: boot-check.mjs on the built client: the scene boots, ticks advance, zero page errors, a right-click order appears
+- [x] ISC-1443: Anti: the client calls no piece action method (grep LiveScene for tryMove|useDoor|tryTurn|overwatchOn|flameAt|shoot( = 0)
+- [x] ISC-1444: Anti: left-click selection, hotkeys and roster behaviour unchanged (hotkeys.spec, roster.spec, hover.spec green)
+- [x] ISC-1445: Anti: zero em dashes in every changed file (grep on the diff)
+
+Docs, release, run close:
+
+- [x] ISC-1446: docs/features.md has an orders paragraph under the clock section (what right-click does, what cancels an order)
+- [x] ISC-1447: docs/architecture.md tick sequence names the order step and the orderChanged event
+- [x] ISC-1448: docs/rules-reference.md gains an orders subsection (slot, completion, cancellation, reactions win)
+- [x] ISC-1449: docs/realtime-plan.md gains "Stage 2 as built" with the deviations, and its Status line says alpha.2
+- [x] ISC-1450: docs/status.md next-line paragraph names alpha.2 and its URL
+- [x] ISC-1451: CLAUDE.md invariants updated: shims gone, orders, window.sulk, test counts
+- [x] ISC-1452: banned writing-guide words = 0 in the changed docs
+- [ ] ISC-1453: commits on main carry the two trailer lines and are pushed (git log)
+- [ ] ISC-1454: deploy-latest is green after the game-code push (gh run list)
+- [ ] ISC-1455: tag v2.0.0-alpha.2 pushed; the release workflow's three jobs green
+- [ ] ISC-1456: the GitHub release is marked prerelease (gh release view)
+- [ ] ISC-1457: https://harryf.github.io/sulkweb/2.0.0-alpha.2/manifest.json reads version 2.0.0-alpha.2 (curl)
+- [ ] ISC-1458: the root manifest.json and STABLE_VERSION still read v1.1.0 (curl)
+- [ ] ISC-1459: versions.html lists 2.0.0-alpha.2 labelled as a prerelease (curl)
+- [ ] ISC-1460: this run closes with every criterion [x], Verification blocks, a Decisions trail and a Changelog entry
+- [ ] ISC-1461: PROJECTS.md Sulk entry updated with the stage 2 state and the stage 3 next step
+- [x] ISC-1462: packages/engine/tsconfig.tsbuildinfo is not committed (git status clean after pnpm build)
+- [x] ISC-1463: the advisor was called at the PLAN boundary and before complete, both recorded in Decisions
+- [x] ISC-1464: Cato ran, or is waived with the reason recorded (codex absent) in Decisions
+- [x] ISC-1465: Anti: /1.1.0/ and the root are byte-identical to before the release (curl root manifest sha)
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
+| ISC-1341..1356 | balance | scan script output rows, TUNING literals, spec runs | counts recorded; specs green | Bash, grep |
+| ISC-1357..1390, 1466..1468 | engine | orders.spec, determinism.spec, gamelog.spec, tsc, lint, coverage | green; >= 98% lines | vitest, tsc, grep |
+| ISC-1391..1400 | autopilot | autopilot spec cases, grep of command literals | green; 0 | vitest, grep |
+| ISC-1401..1420 | port | grep the two names; per-spec runs | 0; green | grep, vitest |
+| ISC-1421..1445, 1469 | client | e2e orders.spec, existing suites, boot-check, greps | green; 0 | Playwright, node, grep |
+| ISC-1446..1465 | docs/release | greps, gh run list, curl of the three URLs | present; green; versions match | grep, gh, curl |
 | ISC-1325..1340 | docs/repo | grep and Read of ISA, plan, status, CLAUDE.md, PROJECTS.md; git and gh probes | present as stated; 0 / 0; green or not triggered | Bash, Read |
 | ISC-1166..1187, 1188..1197 | engine | vitest specs under packages/engine/src/__tests__ (clock.spec, regen.spec, flames_ticks.spec) plus Read of tick() | green; order as stated | vitest, Read |
 | ISC-1198..1208 | engine | command.spec, determinism.spec, gamelog.spec; grep of packages/client/src | green; grep 0 | vitest, Bash |
@@ -831,6 +988,17 @@ Harry played v2.0.0-alpha.1 and said: "OK it works and it's playable. It's _real
 
 ## Features
 
+### Stage 2: individual orders (2026-09-12)
+
+| Feature | Description | Satisfies | Depends on | Parallel |
+|---|---|---|---|---|
+| tuning-pass | seed scan script, TUNING values, docs numbers, Decisions rows | ISC-1341..1351, 1355, 1356 | none | no |
+| orders-engine | MarineOrder, Piece slot, orders.ts, MarineAI order branch, order/clearOrder commands, orderChanged, lint | ISC-1357..1390, 1466..1468 | tuning-pass | no |
+| autopilot-issuer | runMarineTurn as order issuer, nextStep deleted | ISC-1391..1400 | orders-engine | no |
+| shim-port | endMarinePhase and runStealerActions deleted, fixtures helpers, fourteen specs ported | ISC-1401..1420 | orders-engine | yes (fork, engine specs only) |
+| client-orders | right-click input, markers, roster words, help rows, e2e | ISC-1421..1445, 1469 | orders-engine | yes (with shim-port) |
+| repin-docs-release | seeds re-pinned, docs, CLAUDE.md, alpha.2 tag, verification, close | ISC-1352..1354, 1446..1465 | all above | no |
+
 ### Stage 1: the clock (2026-09-12)
 
 | Feature | Description | Satisfies | Depends on | Parallel |
@@ -939,6 +1107,16 @@ Harry played v2.0.0-alpha.1 and said: "OK it works and it's playable. It's _real
 
 ## Decisions
 
+- 2026-09-12 (stage 2, VERIFY, advisor before complete): terse call answered in one pass. Its structural point (the --auto-state slug resolved to an unrelated MEMORY/WORK ISA) is a tool artefact: the project ISA is this file and was never the input; noted, no action. Adopted: (1) a spec that pins the debug_1 balance signal instead of letting it vanish with the fixture move (ISC-1472); (2) a direct assertion that autopilot-issued orders leave the lease untouched (ISC-1471); (3) the straggler grep is recorded (engine_lint line only) and the tag notes state that the gameplay log gains two command types (order, clearOrder) and drops nothing, so 1.x logs still parse. Its "don't push without Harry's say-so" is answered by the request itself: "implement stage 2" per the handover, whose step 8 is the prerelease tag with the root untouched. Interceptor: deferred again (stale daemon pattern; headless real Chromium used and screenshots read), made a beta blocker note in the plan's stage 3 notes.
+
+- 2026-09-12 (stage 2, BUILD, tuning pass): the seed scan (three missions, seeds 1 to 30, autoplay 60 cycles) with the stage 1 autopilot: base debug_1 W1 (seed 30), sh1 W0, sh2 W0; regen.marine 3: W0 / W0 / W3 (seeds 4, 12, 28); regen3 plus overwatchCooldown 1: W0 / W0 / W3 (no change); regen3 plus cycleTicks 60: W0 / W0 / W1; regen.marine 2: W4 / W7 / W1. Decision: regen.marine 3 (the handover's first knob; the only positive signal on a squad mission), overwatchCooldown stays 2 (moved nothing), cycleTicks stays 40 (cost sh2 two wins), leaseTicks stays 8 (invisible to the scan: the autopilot re-issues every cycle; it moves on feel, Harry's call). Re-scanned after the order issuer and the blocker fix, 60 seeds at the shipped values: debug_1 W0, sh1 W2 (26, 27), sh2 W2 (29, 36); at regen 2 debug_1 W30 in 55 ticks with no shot fired, sh1 W1, sh2 W1. debug_1 is a walking race whose outcome flips on the regen ratio alone (unwinnable at 3, trivial at 2), not balance evidence for the squad missions: the win fixture moved to space_hulk_1 seed 26 by orders alone (win.spec, home.spec, gamelog.spec e2e; marine_ai.spec, gamelog.spec engine), sh2 to seed 29, playthrough.spec keeps seed 3 (loss). The knob for Harry's next playtest: ?tuning=regen.marine:2.
+
+- 2026-09-12 (stage 2, THINK to BUILD, SystemsThinking fork): six loops mapped; four were already dead in the design (orders and clearOrder never stamp the lease, order resets it, steps go through piece methods not commands, the order step drops overwatch itself), one adopted (the door pump: a door a marine opened is immune to rule 8 for a cycle, Door.lastOpenedByMarine, ISC-1470), one rejected: its leverage point "stamp the lease only for direct commands that acted" would change stage 1's refused-key semantics (clock.spec relies on the stamp) for a loop (R1, the autopilot's refused corner-cut moves) that the issuer rewrite removes anyway; receipt-keyed stamping stays, deterministic because the log records refused commands. Advisor at the plan boundary: adopted "turn toward a seen stealer in transit when the turn would bear on it" (the transit reaction) and "clear on receipt is fine if the log records refusals" (it does); its fixture-port warning ("hand-stepping the board tick re-implements the shim") was weighed and answered: stealerTick IS the live driver and board.tick is exactly what the engine sets before calling it, so hivePlanTicks calls of it is the real entrypoint N times, not a loop rewrite.
+
+- 2026-09-12 (stage 2, BUILD, deviations): (1) orders execute inside marineTick between the reactions and the parking rules, not as a tick step; (2) chooseStep prefers straight lines over pathStep's diagonal weave (a marine ordered down a room walked to the wall first); (3) a moveTo whose target is held by another marine completes when adjacent; an unreachable target holds with AP banked; (4) the autopilot's cover branch is off on reach-exit and escape-count missions (a lone marine who stops to cover dies: debug_1 0 of 30 with cover on, at any regen); (5) the flamer opens his firing door with a direct door command from one square short of it, issued even at 0 AP (the refused command still parks him; the next turn's re-issue succeeds), because the door square belongs to the room's section (flamer.spec unopposed win was failing: the order walked him onto the door square, section 19, from where Launch Control can never be flamed); (6) the fork's port found a live bug: the sacrifice blocker, asked again each tick under a cached plan, kept walking up the fire lane once parked, eating a burst per tick; it now stops on a kill-zone square until the next plan (StealerAI block role). Delegation: Forge and Cato waived (codex absent, which codex empty); a fork agent ported the fourteen specs (two expectation changes with comments, hive dice counts unchanged) while the client was built; no e2e ran while it edited engine src (the HMR gotcha). Archive rotation (the "one or two runs kept" protocol) deferred to the next session: the root holds runs 2 to 21 and moving the planning runs is its own careful job.
+
+- 2026-09-12 (stage 2, OBSERVE): Harry: "OK let's implement stage 2". Classifier said ALGORITHM E3 on the bare prompt; escalated to E4 by conversation context (the same shape as stage 1: engine, client, fourteen spec ports, a release). Delegation floor: Forge and Cato are waived again, codex is not installed on this machine (`which codex` empty); the cross-vendor slot is covered by the advisor calls and a fork agent for the spec port. Order semantics decided before code, from the plan's "the player took the wheel" line: (1) an order is standing intent executed by the default AI, so the order command must NOT stamp the direct-control lease (it would delay execution by leaseTicks); it resets the lease to -Infinity so the march starts on the next tick. (2) Every other command, accepted or refused, clears the slot. (3) Reactions (unjam, shoot, adjacent fight and turn, flamer last stand) run before the order step; the default's rules 7 to 10 are skipped while an order is live, and an order that cannot progress holds its AP rather than falling through to the overwatch spend. (4) A step is turn-then-move (facing follows travel), doors on the path are opened on contact, marines block (hive pathStep), and a target held by another marine completes when adjacent (so "follow him" orders resolve). (5) The autopilot becomes an issuer: moveTo orders, the flame command, and clearOrder as the cover branch (an ordered marine would leave overwatch and walk into the enemy, so cover means "no order while enemies are within 10"). Tuning pass runs first with the stage 1 autopilot as the instrument and the seeds are re-pinned once at the end.
+
 - 2026-09-12 22:05 (stage 1 verdict): Harry played the prerelease: "OK it works and it's playable. It's _really_ hard to play now but we can tune that later." Reading: the go/no-go for stage 2 is a GO (playable, no stutter complaint, no "less fun than the timed phase"); "really hard" is the balance evidence the build already produced (autopilot 1 win in 30 on debug_1; the 1:2 regeneration ratio the advisor cautioned about; the marine default list shoots and overwatches but never advances, so a squad under one keyboard moves at one marine's pace while the swarm regenerates twice as fast). Decision: stage 2 opens with a short tuning pass BEFORE orders, driven by ?tuning= on the live build and by the autopilot seed scan, in this order: marine regeneration 1 per 3 ticks (4 of 30 wins against 1 of 30), then overwatch cooldown, then the reinforcement cadence (blips per cycle is the mission's blipsPerTurn; a cycle of 60 ticks is the cheap lever), then the lease length; the default AI stays as it is until a knob has been tried. Movement feel is recorded as passing by inference (he did not name stuttering); if it comes up in the tuning pass the fix is tickMs and regen first, per the plan. Notes written into docs/realtime-plan.md "Stage 1 verdict and stage 2 handover" so the next session starts there after compaction.
 
 - 2026-09-12 20:55 (stage 1, RELEASED): tag v2.0.0-alpha.1 on 14365c1; "Deploy release to GitHub Pages" run 34699089071 succeeded in all three jobs (verify-build-publish, deploy, redispatch-latest); GitHub release published as a prerelease at https://github.com/harryf/sulkweb/releases/tag/v2.0.0-alpha.1; the live prerelease is https://harryf.github.io/sulkweb/2.0.0-alpha.1/ (manifest v2.0.0-alpha.1, sha 14365c1); the root manifest and STABLE_VERSION still read v1.1.0 (sha 8a83743), so the shipping policy's callout is: the change lives ONLY at /2.0.0-alpha.1/ (and /latest/), never at the root, by design of the 2.x line. deploy-latest for the main push (34699075087) and the post-release re-dispatch both green. Human verdicts ISC-1323 and ISC-1324 are DEFERRED-VERIFY: Harry plays /2.0.0-alpha.1/?mission=debug_1 and space_hulk_1 and answers (a) does square-per-AP direct movement feel like moving or stuttering (if stuttering, the fix is the tick and regeneration constants first, tried through ?tuning= before any AI work) and (b) is real time more fun than the timed phase; both gate stage 2. Interceptor real-Chrome boot check stays deferred (ISC-619's condition unchanged); the headless real-Chromium boot check stands in. Closing advisor call (terse retry after the first returned empty): verdict "code complete, pending playtest sign-off", ADOPTED as the framing: the build is verified, the stage exit gate is the two verdicts, written with pass/fail: (a) PASS = "moving" (a step reads as a heavy stride, not a stutter), FAIL = "stuttering" (then ?tuning= on tickMs/regen before any AI work); (b) PASS = "more fun than the timed phase", FAIL = stage 2 does not start and the identity question (plan Q13) reopens. Its multi-client/Colyseus/soak points do not apply (single-player, no server; the advisor read the March memory note); rejected with that reason. Its self-verification question: the 159 criteria were written at OBSERVE before any code, and two were refined afterwards with ID-stable notes (ISC-1253, ISC-1320).
@@ -1014,6 +1192,11 @@ Older entries: [docs/isa/decisions-log.md](docs/isa/decisions-log.md).
 ## Changelog
 
 The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/isa/changelog-log.md). New entries land here first and are archived once their run is.
+
+- 2026-09-12 | conjectured: marine regeneration at 1 AP per 3 ticks would make debug_1 winnable again and the debug_1 win seed could be re-pinned once at the end of stage 2 (the handover's evidence: 4 wins in 30 at regen 3 against 1 at regen 4).
+  refuted by: the stage 2 scan: under the order issuer debug_1 is 0 in 60 at regen 3 and 30 in 30 at regen 2 with 0 shots fired and 1 command per game; the outcome depends on the regen ratio alone, not on play.
+  learned: a lone-marine reach-exit mission is a walking race, and a race is a determinism fixture only at the setting where it is won; it says nothing about the five-marine missions, where regen 2 changed nothing (sh1 1 in 30, sh2 1 in 30). Balance evidence must come from squad missions; the win fixture must live on one.
+  criterion now: ISC-1352 refined (the win fixture is space_hulk_1 seed 26 by orders alone), ISC-1472 pins the debug_1 signal so a tuning change that moves it fails loudly.
 
 - 2026-09-12 | conjectured: the player's commands should be queued and drained at the next tick, one per marine, so the replay unit is a clean (tick, marine, action) triple.
   refuted by: the first-principles pass on the kickoff: determinism needs an ORDERED log, not a delayed one; a drain adds 0 to 250 ms of input latency on a 250 ms tick, and stage 1's whole purpose is the movement-feel verdict that latency would corrupt.
@@ -1301,3 +1484,34 @@ The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/
 - ISC-1338: commit 99c5579 on main, pushed, git status clean
 - ISC-1339: frontmatter phase complete, progress 1273/1273 with the two standing exceptions
 - ISC-1340: deploy-latest for the docs push: the latest run is the earlier green one (docs-only push not triggered, paths-ignore)
+
+### Stage 2: individual orders (2026-09-12)
+
+- ISC-1341..1346: scan.ts (scratchpad) rows: stage 1 autopilot base debug_1 W1 (seed 30) sh1 W0 sh2 W0; regen3 W0/W0/W3 (4,12,28); regen3_ow1 W0/W0/W3; regen3_cycle60 W0/W0/W1; regen2 W4/W7/W1; stage 2 issuer at the shipped values, 60 seeds: debug_1 W0, sh1 W2 (26,27), sh2 W2 (29,36); regen2 debug_1 W30 (55 ticks, 0 shots), sh1 W1, sh2 W1; lease judged in Decisions
+- ISC-1347, ISC-1348: grep CostTables.ts "regen: { marine: 3" and "stage 2 scan"
+- ISC-1349: grep "every 4 ticks" docs = 0; features.md "1 AP every three ticks", rules-reference.md "1 AP every 3 ticks"
+- ISC-1350: regen_flames.spec, clock.spec, overwatch_ticks.spec green in the full run
+- ISC-1351: Decisions (stage 2, tuning) entry
+- ISC-1352..1354: grep "seed=26" win.spec, "SeededRng(26)" marine_ai.spec and gamelog.spec; playthrough.spec seed 3 loss (e2e green); quota_victory.spec SeededRng(29)
+- ISC-1355: git diff at the tuning point touched CostTables.ts and the two regen specs only; the MarineAI.ts diff is the order branch and rule 8 guard
+- ISC-1356: git diff --stat -- packages/engine/src/missions = empty
+- ISC-1357..1360, 1386: grep Commands.ts "MarineOrder", "type: 'order'", "clearOrder"; Piece.ts "order: MarineOrder | null = null"; ai/orders.ts exports orderStep, orderLabel, orderIsValid, setOrder; index.ts exports them; PieceEvents.ts orderChanged
+- ISC-1361..1385, 1466..1468, 1470: orders.spec 25 tests green (slot, refusals, clearOrder, clear-on-any-command, lease, dead/deploy refusal, log payload, march, turn-then-move, door on the way, held target, unreachable, then overwatch with wait, facing, off overwatch, own square, flamer, zero dice, determinism 120 ticks, reactions, transit turn, door guard, openDoor both cases, orderLabel)
+- ISC-1387: engine tsc --noEmit exit 0
+- ISC-1388: engine_lint.spec retired list carries \bendMarinePhase\b|\brunStealerActions\b
+- ISC-1389, ISC-1390: engine suite 43 files, 433 tests, 98.4% lines (vitest run --coverage)
+- ISC-1391..1400, 1471, 1472: marine_ai.spec 18 green (issuer test: orders > 4, flame issued, no move/turn/shoot/melee; lease untouched; balance signal); flamer.spec "autopilot delivers the flamer ... unopposed" green; grep nextStep MarineAutopilot.ts = 0
+- ISC-1401..1420: fork report: shims deleted, helpers added, 14 specs ported (2 expectation changes with comments, hive dice counts unchanged), fog.spec on sulk.step; grep across packages/ = engine_lint line only
+- ISC-1421..1431, 1469: e2e orders.spec 3 green (command path with marker/word, real right-click plain/Shift/door edge/W clears, nothing-selected and HUD-strip cases); marker removal on death in removePieceSprite
+- ISC-1432, ISC-1433: keyboardHelp.ts SPECIAL_KEYS RMB rows, keyboardHelp.spec expected list; features.md controls rows
+- ISC-1434, ISC-1435: client tsc exit 0; client unit suite 11 files 92 tests green
+- ISC-1436..1440: e2e orders.spec and win.spec (space_hulk_1 seed 26: win, orders > 4, direct = 0)
+- ISC-1441: full e2e 119 passed (53.6 s)
+- ISC-1442: boot-check.mjs (ticks 9 to 33, HUD Cycle 1 8s/10s PAUSE, Esc freezes, 0 errors) and boot-check-orders.mjs (right-click at tick 5 sets moveTo (10,9) hold, marker kind moveTo then hold, word MOVE; at tick 23 the flamer stands on (10,9), order null, markers 0, word HOLD, 0 errors); screenshots test-results/boot-check-orders-{1,2}.png read: gold ring on (10,9), card MOVE, then HOLD
+- ISC-1443: grep LiveScene.ts for tryMove|useDoor|tryTurn|overwatchOn|flameAt|\.shoot( = 0 (only canFlame/canShootDoor readers)
+- ISC-1444: hotkeys.spec, roster.spec, hover.spec inside the green e2e run
+- ISC-1445, ISC-1452: em dash count over the diff's added lines = 0; banned-word grep over the docs diff = 0
+- ISC-1446..1451: grep features.md "Orders (2.x stage 2)", architecture.md "orderChanged", rules-reference.md "### Orders (2.x stage 2)", realtime-plan.md "## Stage 2 as built" and Status line "alpha.2", status.md "alpha.2", CLAUDE.md "Orders (2.x stage 2" and "Stage 2 as built"
+- ISC-1462: git checkout of tsconfig.tsbuildinfo after pnpm build; git status shows it clean
+- ISC-1463: advisor called twice (Decisions: plan boundary and before complete)
+- ISC-1464: Cato waived, codex not installed (which codex = empty); recorded in Decisions

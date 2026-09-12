@@ -2,6 +2,7 @@ import { it, expect, describe } from 'vitest';
 import { loadMission } from '../missions/missionLoader.js';
 import { missions } from '../missions/index.js';
 import { GameEngine } from '../GameEngine.js';
+import { runCycle } from './rt.fixtures.js';
 
 /**
  * MISH_debug_1.py ("Suicide Mission with no forces") fidelity note, 2026-08-15.
@@ -50,8 +51,8 @@ describe('debug_1 mission (MISH_debug_1)', () => {
 
   it('first reinforcement arrives in cycle 2, at its entry\'s slot (ISC-122)', () => {
     const engine = new GameEngine(debug);
-    engine.endMarinePhase(); // cycle 1: nothing spawns; the boundary books one blip
-    engine.endMarinePhase(); // cycle 2: its entry slot came round
+    runCycle(engine); // cycle 1: nothing spawns; the boundary books one blip
+    runCycle(engine); // cycle 2: its entry slot came round
     expect(engine.stealerSide.length).toBeGreaterThanOrEqual(1); // the (0,1) trickle
     expect(engine.stealerSide.length).toBeLessThanOrEqual(2);
   });

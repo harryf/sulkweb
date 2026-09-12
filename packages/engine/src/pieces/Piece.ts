@@ -3,6 +3,7 @@ import { Dir, DIR_VEC, ORTHO_VECS, turn, toRelative } from '../core/Direction.js
 import { MOVE_COST, TURN_COST, TUNING } from '../core/CostTables.js';
 import { PieceEvents } from '../events/PieceEvents.js';
 import { dropCat } from '../rules/exotic.js';
+import type { MarineOrder } from '../core/Commands.js';
 
 export type Coord = { c: number; r: number };
 
@@ -42,6 +43,11 @@ export abstract class Piece {
   /** Tick of the last direct player command: the default AI leaves a marine
    *  alone for TUNING.leaseTicks after it (the direct-control lease). */
   lastCommandTick = -Infinity;
+
+  /** The live individual order (2.x stage 2), executed by the default AI;
+   *  null when the marine is on his own. Set only through GameEngine.command
+   *  and ai/orders.ts setOrder so the orderChanged event never lies. */
+  order: MarineOrder | null = null;
 
   /**
    * One tick of AP regeneration (engine tick step 1): +1 AP every
@@ -128,6 +134,7 @@ export abstract class Piece {
     const door = this.findAdjacentDoor();
     if (!door) return false;
     door.toggle();
+    if (door.isOpen && this.kind === 'marine') door.lastOpenedByMarine = this.board.tick;
     this.ap -= 1;
     this.onActed('door');
     PieceEvents.emit('doorToggled', { x: door.square.x, y: door.square.y, facing: door.facing, open: door.isOpen });

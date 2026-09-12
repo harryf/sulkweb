@@ -7,6 +7,7 @@ import { autoplay, runMarineTurn } from '../ai/MarineAutopilot.js';
 import { AssaultCannonMarine, ChainFistMarine } from '../pieces/AssaultCannonMarine.js';
 import { SwordSergeantMarine, SergeantMarine } from '../pieces/StormBolterMarine.js';
 import { HeavyFlamerMarine } from '../pieces/HeavyFlamerMarine.js';
+import { runCycle } from './rt.fixtures.js';
 
 /**
  * beta_2 "Download" — victory machinery (original init/end_script/
@@ -33,14 +34,14 @@ describe('download victory (ISC-258..260)', () => {
     const engine = new GameEngine(downloadMission(), [], new SeededRng(1));
     const sgt = engine.marines[0];
     sgt.moveForward(); sgt.moveForward(); // onto (1,3)
-    engine.endMarinePhase(); // begins — counter holds at 4
+    runCycle(engine); // begins — counter holds at 4
     expect(engine.downloadCounter).toBe(4);
     for (const expected of [3, 2, 1]) {
-      engine.endMarinePhase();
+      runCycle(engine);
       expect(engine.downloadCounter).toBe(expected);
       expect(engine.state.result).toBe('ongoing');
     }
-    engine.endMarinePhase(); // 0 — download complete
+    runCycle(engine); // 0 — download complete
     expect(engine.downloadCounter).toBe(0);
     expect(engine.state.result).toBe('win');
   });
@@ -49,16 +50,16 @@ describe('download victory (ISC-258..260)', () => {
     const engine = new GameEngine(downloadMission(), [], new SeededRng(1));
     const sgt = engine.marines[0];
     sgt.moveForward(); sgt.moveForward();
-    engine.endMarinePhase(); // begin
-    engine.endMarinePhase(); // 3
+    runCycle(engine); // begin
+    runCycle(engine); // 3
     expect(engine.downloadCounter).toBe(3);
     sgt.tryTurn(1); // turning in place is allowed (now facing west)
-    engine.endMarinePhase();
+    runCycle(engine);
     expect(engine.downloadCounter).toBe(2);
     sgt.tryTurn(1);    // face north (up the corridor)…
     sgt.moveForward(); // …and step off — the download aborts
     expect(engine.downloadCounter).toBe(4);
-    engine.endMarinePhase();
+    runCycle(engine);
     expect(engine.state.result).toBe('ongoing');
   });
 
@@ -71,10 +72,10 @@ describe('download victory (ISC-258..260)', () => {
     }), [], new SeededRng(1));
     const [bolter, sword] = engine.marines;
     bolter.moveForward(); bolter.moveForward(); // bolter sits on the point
-    engine.endMarinePhase();
+    runCycle(engine);
     expect(engine.downloadCounter).toBe(4); // nothing happens
     sword.die(); // the only sergeant (sword counts as sergeant) dies
-    engine.endMarinePhase();
+    runCycle(engine);
     expect(engine.state.result).toBe('loss');
   });
 
@@ -84,8 +85,8 @@ describe('download victory (ISC-258..260)', () => {
     }), [], new SeededRng(1));
     const sgt = engine.marines[0];
     sgt.moveForward(); sgt.moveForward();
-    engine.endMarinePhase();
-    engine.endMarinePhase();
+    runCycle(engine);
+    runCycle(engine);
     expect(engine.downloadCounter).toBe(3);
   });
 });
@@ -146,7 +147,7 @@ describe('beta_2 fidelity (ISC-261/262)', () => {
     const sgt = engine.marines[0];
     sgt.moveForward(); sgt.moveForward();
     expect(sgt.pos).toEqual({ c: 12, r: 22 });
-    for (let i = 0; i < 5 && engine.state.result === 'ongoing'; i++) engine.endMarinePhase();
+    for (let i = 0; i < 5 && engine.state.result === 'ongoing'; i++) runCycle(engine);
     expect(engine.state.result).toBe('win');
     expect(engine.downloadCounter).toBe(0);
   });
@@ -169,7 +170,7 @@ describe('beta_2 fidelity (ISC-261/262)', () => {
       while (lead && engine.cp > 0) { if (!engine.spendCP(lead)) break; }
       runMarineTurn(engine);
       if (engine.state.result !== 'ongoing') break;
-      engine.endMarinePhase();
+      runCycle(engine);
     }
     expect(engine.state.result).toBe('loss'); // no sergeant survives the camped ring
     expect(t).toBeLessThan(45);               // decided, not stalled

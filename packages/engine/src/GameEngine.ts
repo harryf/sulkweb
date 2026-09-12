@@ -11,6 +11,7 @@ import { TUNING } from './core/CostTables.js';
 import type { MarineCommand } from './core/Commands.js';
 import { stealerTick, spawnBlips, rankEntries, convertRevealedBlips, chargeOrientation } from './ai/StealerAI.js';
 import { runMarineAI } from './ai/MarineAI.js';
+import { orderIsValid, setOrder } from './ai/orders.js';
 import { expireFlames } from './rules/flame.js';
 import { closeCombat } from './rules/combat.js';
 import { deployFacing, orderSquaresFrontToBack, autoDeployOrder } from './rules/deploy.js';
@@ -468,16 +469,6 @@ export class GameEngine {
     for (let i = 0; i < n && this.state.result === 'ongoing' && this.phase === 'Live'; i++) this.tick()
   }
 
-  /**
-   * TEST SHIM (stage 1 only). The 1.x "end the marine phase" call now runs
-   * exactly one cycle of ticks, so the mission and victory specs written
-   * against turns port by search and replace. Nothing in the client calls it.
-   * Deleted in stage 2 along with runStealerActions.
-   */
-  endMarinePhase(): void {
-    this.runTicks(TUNING.cycleTicks)
-  }
-
   /** Cycle events at their offsets inside every cycle (tick 0 of the cycle
    *  is the boundary itself). Staggered so the hulk does not beat like a
    *  metronome: each event lands on its own tick. */
@@ -613,7 +604,15 @@ export class GameEngine {
   }
 
   private applyCommand(m: Piece, cmd: MarineCommand): boolean {
-    m.lastCommandTick = this.tickCount
+    // Orders are executed by the default AI, so they never stamp the lease
+    // (that would silence their own executor); every other command, accepted
+    // or refused, is the player taking the wheel: it clears a live order.
+    // Both rules key off receipt, which the command log records, so a replay
+    // makes the same choices.
+    if (cmd.type !== 'order' && cmd.type !== 'clearOrder') {
+      m.lastCommandTick = this.tickCount
+      if (m.order) setOrder(m, null)
+    }
     const ok = this.execute(m, cmd)
     PieceEvents.emit('command', { tick: this.tickCount, pieceId: m.id, command: cmd, ok })
     if (ok) {
@@ -678,6 +677,17 @@ export class GameEngine {
       case 'reload': return m instanceof AssaultCannonMarine && m.reload()
       case 'cutDoor': return m instanceof ChainFistMarine && m.cutDoor()
       case 'cp': return this.spendCP(m)
+      case 'order': {
+        if (!orderIsValid(board, cmd.order)) return false
+        setOrder(m, cmd.order)
+        m.lastCommandTick = -Infinity // the AI starts on it next tick
+        return true
+      }
+      case 'clearOrder': {
+        if (!m.order) return false
+        setOrder(m, null)
+        return true
+      }
     }
     return false
   }

@@ -14,6 +14,8 @@ export interface PieceStats {
   jammed: boolean;
   /** Board facing 0-3 (up/right/down/left) — rendered as the card's arrow. */
   facing: number;
+  /** The marine's live state word (stage 2 orders): MOVE, DOOR, OW or HOLD. */
+  word?: string;
 }
 
 
@@ -79,6 +81,7 @@ export class RosterPanel {
           `<span class="m-stats"></span>` +
           `<span class="m-ammo"></span>` +
           `<span class="m-badges"></span>` +
+          `<span class="m-order"></span>` +
           `<span class="m-state"></span>`;
         card.addEventListener('click', () => {
           if (card.classList.contains('dead') || card.classList.contains('escaped')) return;
@@ -102,6 +105,7 @@ export class RosterPanel {
     PieceEvents.on('ammoChanged', ({ pieceId }) => this.refreshCard(pieceId));
     PieceEvents.on('jammed', ({ pieceId }) => this.refreshCard(pieceId));
     PieceEvents.on('overwatchChanged', ({ pieceId }) => this.refreshCard(pieceId));
+    PieceEvents.on('orderChanged', ({ pieceId }) => this.refreshCard(pieceId));
     PieceEvents.on('pieceDied', ({ pieceId }) => this.markState(pieceId, 'dead', 'KIA'));
     PieceEvents.on('marineEscaped', ({ pieceId }) => this.markState(pieceId, 'escaped', 'ESCAPED'));
     PieceEvents.on('catPickedUp', ({ carrierId }) => this.setCatCarrier(carrierId));
@@ -149,6 +153,7 @@ export class RosterPanel {
     if (s.jammed) badges.push('JAM');
     if (card.classList.contains('has-cat')) badges.push('C.A.T.');
     card.querySelector('.m-badges')!.textContent = badges.join(' · ');
+    card.querySelector('.m-order')!.textContent = s.word ?? '';
   }
 
   private markState(id: string, cls: 'dead' | 'escaped', label: string): void {
@@ -158,6 +163,7 @@ export class RosterPanel {
     card.classList.remove('selected');
     card.querySelector('.m-state')!.textContent = label;
     card.querySelector('.m-badges')!.textContent = '';
+    card.querySelector('.m-order')!.textContent = '';
     card.querySelector('.m-face')!.textContent = '';
     card.querySelector('.m-hotkey')?.remove(); // the number key is inert now
   }

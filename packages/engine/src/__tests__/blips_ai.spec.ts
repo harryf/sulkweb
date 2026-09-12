@@ -5,8 +5,9 @@ import { Genestealer } from '../pieces/Genestealer.js';
 import { StormBolterMarine } from '../pieces/StormBolterMarine.js';
 import { Dir } from '../core/Direction.js';
 import { RollQueue } from '../core/Dice.js';
-import { runStealerActions, spawnBlips, convertRevealedBlips } from '../ai/StealerAI.js';
+import { spawnBlips, convertRevealedBlips, stealerTick } from '../ai/StealerAI.js';
 import { loadMission } from '../missions/missionLoader.js';
+import { stealerActivation } from './rt.fixtures.js';
 
 describe('Blip', () => {
   it('moves any direction for 1 AP and has 6 AP', () => {
@@ -66,7 +67,7 @@ describe('convertRevealedBlips', () => {
   });
 });
 
-describe('runStealerActions (AI0)', () => {
+describe('stealer activation (AI0)', () => {
   it('stealer closes on the nearest marine and attacks it', () => {
     const board = new Board(3, 12);
     // Marine facing away so no overwatch/defence surprises; scripted CC dice
@@ -74,7 +75,7 @@ describe('runStealerActions (AI0)', () => {
     const stealer = new Genestealer(board, { c: 1, r: 8 }, Dir.N);
     // stealer walks 5 forward (5 AP), then CC (1 AP): stealer 3 dice vs marine 1
     board.dice = new RollQueue([6, 5, 4, 1]);
-    runStealerActions(board);
+    stealerActivation(board);
     expect(stealer.pos).toEqual({ c: 1, r: 3 });
     expect(marine.alive).toBe(false);
     expect(stealer.alive).toBe(true);
@@ -87,7 +88,11 @@ describe('runStealerActions (AI0)', () => {
     new StormBolterMarine(board, { c: 1, r: 2 }, Dir.S); // looking south down the corridor
     const blip = new Blip(board, { c: 1, r: 7 }, 2);
     board.dice = new RollQueue([1, 1, 1, 1, 1, 1, 1, 1]);
-    runStealerActions(board);
+    // One tick, not a whole activation: the decision under test is the blip's
+    // single action; on later ticks the converted stealers would charge into
+    // the overwatch lane (the per-tick driver activates them at once).
+    board.tick += 1;
+    stealerTick(board);
     expect(blip.alive).toBe(false); // converted in place, not exposed by movement
     const stealers = board.pieces.filter(p => (p as Genestealer).kind === 'stealer');
     expect(stealers.length).toBe(2);
@@ -99,7 +104,7 @@ describe('runStealerActions (AI0)', () => {
     const board = new Board(3, 20);
     new StormBolterMarine(board, { c: 1, r: 2 }, Dir.N); // facing AWAY — corridor unseen
     const blip = new Blip(board, { c: 1, r: 18 }, 2);    // 16 squares away — not "near"
-    runStealerActions(board);
+    stealerActivation(board);
     expect(blip.alive).toBe(true);       // still hidden
     expect(blip.pos.r).toBeLessThan(18); // but it closed the distance
   });
@@ -111,7 +116,7 @@ describe('runStealerActions (AI0)', () => {
     const stealer = new Genestealer(board, { c: 1, r: 8 }, Dir.N);
     // First reaction shot kills: 6,1 (no double)
     board.dice = new RollQueue([6, 1]);
-    runStealerActions(board);
+    stealerActivation(board);
     expect(stealer.alive).toBe(false);
     expect(marine.alive).toBe(true);
   });

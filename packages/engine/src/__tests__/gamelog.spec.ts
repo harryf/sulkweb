@@ -197,12 +197,12 @@ describe('GameLogger', () => {
   });
 
   it('a full seeded autoplay game produces a coherent, duplicate-free log', () => {
-    // debug_1 seed 30 (2026-09-12 real-time pin): a full lone-marine game that
-    // ends in a win with kills, shots and moves along the way. (The 1.x note
-    // about an instant exterminate win on the empty opening board is history:
-    // extermination now needs the reinforcement budget spent, see GameEngine.)
-    const engine = new GameEngine(loadMission('debug_1'), [], new SeededRng(30));
-    const log = new GameLogger(engine, { mission: 'debug_1', seed: 30 });
+    // space_hulk_1 seed 26 (2026-09-12 stage 2 pin): a full squad game under
+    // orders that ends in a win with kills, shots and moves along the way.
+    // (debug_1 seed 30 was the stage 1 pin; the lone marine no longer wins
+    // the exit race at the shipped regeneration, see marine_ai.spec.)
+    const engine = new GameEngine(loadMission('space_hulk_1'), [], new SeededRng(26));
+    const log = new GameLogger(engine, { mission: 'space_hulk_1', seed: 26 });
     try {
       autoplay(engine, 60);
     } finally {

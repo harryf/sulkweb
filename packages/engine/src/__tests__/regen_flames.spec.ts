@@ -23,10 +23,13 @@ describe('AP regeneration', () => {
     engine.runTicks(2);
     expect(marine.ap).toBe(0);
     expect(stealer.ap).toBe(1);
-    engine.runTicks(2);
-    expect(marine.ap).toBe(1);
-    expect(stealer.ap).toBe(2);
-    expect(TUNING.regen).toEqual({ marine: 4, stealer: 2, blip: 2 });
+    engine.runTicks(1);
+    expect(marine.ap).toBe(1); // tick 3: the stage 2 scan chose 1 AP per 3 ticks
+    expect(stealer.ap).toBe(1);
+    engine.runTicks(3);
+    expect(marine.ap).toBe(2);
+    expect(stealer.ap).toBe(3);
+    expect(TUNING.regen).toEqual({ marine: 3, stealer: 2, blip: 2 });
   });
 
   it('never regenerates past the cap, and a full pool banks nothing toward the next AP', () => {
@@ -36,7 +39,7 @@ describe('AP regeneration', () => {
     engine.runTicks(TUNING.cycleTicks);
     expect(marine.ap).toBe(4);
     marine.ap = 3; // spent right after a long full stretch
-    engine.runTicks(3);
+    engine.runTicks(TUNING.regen.marine - 1);
     expect(marine.ap).toBe(3); // a whole interval must pass
     engine.tick();
     expect(marine.ap).toBe(4);

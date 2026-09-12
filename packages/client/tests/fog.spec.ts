@@ -17,14 +17,14 @@ const boot = async (page: import('@playwright/test').Page, url: string) => {
 };
 
 /** debug_1 starts with no blips on the board (the trickle arrives at end
- *  phase; seed 1 even wins on turn 1), so end the marine phase straight on
+ *  phase; seed 1 even wins on turn 1), so run whole cycles straight on
  *  the engine until blips exist: handlers run live, sprites arrive through
  *  pieceAdded, no replay involved. */
 const trickle = async (page: import('@playwright/test').Page) => {
   const spawned = await page.evaluate(() => {
-    const { engine } = (window as any).sulk;
+    const { engine, step, TUNING } = (window as any).sulk;
     for (let i = 0; i < 4 && engine.state.result === 'ongoing'; i++) {
-      engine.endMarinePhase();
+      step(TUNING.cycleTicks); // one cycle of ticks: the boundary books and places the trickle
       if (engine.state.pieces.some((p: any) => p.kind === 'blip')) break;
     }
     return engine.state.pieces.filter((p: any) => p.kind === 'blip').length;

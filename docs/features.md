@@ -69,10 +69,10 @@ game clock starts with it. `?deploy=0` skips the phase for quick testing.
 ## The clock (2.x)
 
 There are no turns. The game runs on a fixed clock: one **tick** every 250 ms,
-forty ticks to a **cycle** (10 s). Every marine regenerates **1 AP per second**
-up to his pool of 4; genestealers and blips regenerate **1 AP per half second**
-up to 6, so the swarm is twice as quick as the squad and the squad answers
-with firepower. Every rule the original ran once a turn (reinforcements, the
+forty ticks to a **cycle** (10 s). Every marine regenerates **1 AP every three
+ticks** (0.75 s) up to his pool of 4; genestealers and blips regenerate **1 AP
+per half second** up to 6, so the swarm is half as quick again as the squad
+and the squad answers with firepower. Every rule the original ran once a turn (reinforcements, the
 command-point roll, the C.A.T. wander, the download counter, ambush counters,
 the defend turn limit) now fires once a cycle, at its own moment inside it,
 so the hulk never beats like a metronome. Overwatch is a standing order: it
@@ -86,7 +86,19 @@ is looking through, and otherwise goes on overwatch with two AP. He never
 opens a door and never walks toward the objective on his own; the heavy
 flamer holds his fuel unless a stealer comes within two squares of a section
 nothing friendly stands in. A marine you have just steered is left alone for
-two seconds. For tuning without a rebuild, `?tick=<ms>` sets the tick and
+two seconds.
+
+**Orders (2.x stage 2).** Right-click a square with a marine selected and he
+walks there on his own, opening doors on the way, and holds when he arrives;
+Shift right-click and he goes on overwatch on arrival; right-click a closed
+door and he goes and opens it. An order is standing intent: the marine keeps
+shooting what he can see and fighting what reaches him while he walks, and
+turns toward a stealer he could bring into his fire arc. A ring on the target
+square (gold for hold, blue for overwatch, an orange bar on a door) shows the
+order; his roster card reads MOVE, DOOR, OW or HOLD. Any key you press takes
+the wheel back and drops the order. A square another marine stands on is
+reached when he stands next to it, so "go to him" resolves. For tuning without
+a rebuild, `?tick=<ms>` sets the tick and
 `?tuning=regen.marine:3,overwatchCooldown:1` overrides the real-time
 constants (see `TUNING` in the engine); `?tick=0` stops the clock and hands
 it to `window.sulk.step(n)`, which is how the e2e suite drives a game.
@@ -96,6 +108,9 @@ it to `window.sulk.step(n)`, which is how the e2e suite drives a game.
 | Input | Action |
 |-------|--------|
 | Click marine / roster card | Select (card click also pans the camera to him) |
+| Right-click square | Order the selected marine: walk there (doors opened on the way), then hold |
+| Shift + right-click square | Order: walk there, then overwatch |
+| Right-click closed door | Order: go and open it |
 | `1`-`0` | Select marine by number: 1-5 the first squad, 6-0 the second (shown as `[n]` on his card; dead marines' keys go inert) |
 | `W` / `X` | Move forward (1 AP) / backward (2 AP) |
 | `Q` / `E` | Move diagonally forward-left / forward-right (1 AP, facing kept) |

@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: context-override
-phase: think
-progress: "1405/1429 (facing run ISC-1473..1496 open; ISC-1038 dropped; ISC-71 deferred)"
+phase: complete
+progress: "1430/1430 (facing rule shipped on /latest/; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-13T09:00:00Z
+updated: 2026-09-12T18:57:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -847,31 +847,31 @@ Docs, release, run close:
 
 Harry: "marines should automatically turn to face the nearest threat if inactive including blips - I had cases where a marine would face a wall in overwatch - if there isn't an obvious threat a marine should turn to face the direction that gives them the greatest line of sight". Interim notes first, then the default list.
 
-- [ ] ISC-1473: docs/realtime-plan.md gains "Playtest notes on alpha.2" quoting the finding and the reading (grep)
-- [ ] ISC-1474: ISA Decisions entry records the finding and the design (Read)
-- [ ] ISC-1475: PROJECTS.md Sulk entry names the finding and the run (grep)
-- [ ] ISC-1476: MarineAI exports nearestThreatInSight(board, m): the nearest stealer-side piece with a clear sight line from the marine's square in ANY direction, blips included (unit)
-- [ ] ISC-1477: rule 7 turns toward that threat even when it stands behind the marine (unit: stealer behind, out of the 180 arc, the marine turns)
-- [ ] ISC-1478: a blip behind him counts (unit)
-- [ ] ISC-1479: Anti: a threat behind a closed door or rock is not in sight and causes no turn (unit)
-- [ ] ISC-1480: on overwatch with a threat in sight outside the fire arc, and the turn would put it in his line of fire: turn (overwatch dropped), then re-arm next tick with 2 AP (unit)
-- [ ] ISC-1481: on overwatch with the threat inside the fire arc: hold as before (existing test green)
-- [ ] ISC-1482: preferredFacing(board, m) returns the facing that shows the most squares; the current facing wins ties and anything within one square of the best (unit)
-- [ ] ISC-1483: no threat, facing rock: the marine turns to the preferred facing BEFORE overwatch (unit: corridor marine facing the wall turns down the corridor, overwatches next tick)
-- [ ] ISC-1484: no threat, already the best facing: no turn, overwatch as before (existing rule 10 test green)
-- [ ] ISC-1485: Anti: no dithering: five ticks on a still board produce at most one turn (unit)
-- [ ] ISC-1486: a move order arriving with then overwatch and no ordered facing takes the preferred facing first when no threat is in sight (orders.spec)
-- [ ] ISC-1487: an ordered facing is kept (existing orders.spec test green)
-- [ ] ISC-1488: a leased marine is untouched (existing runMarineAI test green)
-- [ ] ISC-1489: the rule is Piece-level: a heavy flamer turns to face a threat behind him too (unit)
-- [ ] ISC-1490: engine tsc clean; the engine suite green with coverage >= 98% lines
-- [ ] ISC-1491: seeds re-scanned once after the change; every moved fixture re-pinned (scan output in Decisions)
-- [ ] ISC-1492: docs updated: rules-reference default list (rules 2, 7, the new facing rule), features.md paragraph, CLAUDE.md invariant (grep)
-- [ ] ISC-1493: Anti: zero em dashes and banned words in the diff (grep)
-- [ ] ISC-1494: committed on main with the trailers, pushed, deploy-latest green, /latest/ manifest sha = HEAD (gh, curl)
-- [ ] ISC-1495: the ship report names the /latest/ URL (shipping policy callout) and that alpha.3 carries it
-- [ ] ISC-1496: the e2e suite is green (orders.spec arrival-facing assertion updated if the preferred facing differs)
-- [ ] ISC-1497: Anti: a threat already in the fire arc vetoes every facing turn: an overwatcher with a stealer in his lane and a nearer blip behind holds; a flamer in the same spot neither turns nor flames (marine_ai.spec; the advisor's flip-flop case)
+- [x] ISC-1473: docs/realtime-plan.md gains "Playtest notes on alpha.2" quoting the finding and the reading (grep)
+- [x] ISC-1474: ISA Decisions entry records the finding and the design (Read)
+- [x] ISC-1475: PROJECTS.md Sulk entry names the finding and the run (grep)
+- [x] ISC-1476: MarineAI exports nearestThreatInSight(board, m): the nearest stealer-side piece with a clear sight line from the marine's square in ANY direction, blips included (unit)
+- [x] ISC-1477: rule 7 turns toward that threat even when it stands behind the marine (unit: stealer behind, out of the 180 arc, the marine turns)
+- [x] ISC-1478: a blip behind him counts (unit)
+- [x] ISC-1479: Anti: a threat behind a closed door or rock is not in sight and causes no turn (unit)
+- [x] ISC-1480: on overwatch with a threat in sight outside the fire arc, and the turn would put it in his line of fire: turn (overwatch dropped), then re-arm next tick with 2 AP (unit)
+- [x] ISC-1481: on overwatch with the threat inside the fire arc: hold as before (existing test green)
+- [x] ISC-1482: preferredFacing(board, m) returns the facing that shows the most squares; the current facing wins ties and anything within one square of the best (unit)
+- [x] ISC-1483: no threat, facing rock: the marine turns to the preferred facing BEFORE overwatch (unit: corridor marine facing the wall turns down the corridor, overwatches next tick)
+- [x] ISC-1484: no threat, already the best facing: no turn, overwatch as before (existing rule 10 test green)
+- [x] ISC-1485: Anti: no dithering: five ticks on a still board produce at most one turn (unit)
+- [x] ISC-1486: a move order arriving with then overwatch and no ordered facing takes the preferred facing first when no threat is in sight (orders.spec)
+- [x] ISC-1487: an ordered facing is kept (existing orders.spec test green)
+- [x] ISC-1488: a leased marine is untouched (existing runMarineAI test green)
+- [x] ISC-1489: the rule is Piece-level: a heavy flamer turns to face a threat behind him too (unit)
+- [x] ISC-1490: engine tsc clean; the engine suite green with coverage >= 98% lines
+- [x] ISC-1491: seeds re-scanned once after the change; every moved fixture re-pinned (scan output in Decisions)
+- [x] ISC-1492: docs updated: rules-reference default list (rules 2, 7, the new facing rule), features.md paragraph, CLAUDE.md invariant (grep)
+- [x] ISC-1493: Anti: zero em dashes and banned words in the diff (grep)
+- [x] ISC-1494: committed on main with the trailers, pushed, deploy-latest green, /latest/ manifest sha = HEAD (gh, curl)
+- [x] ISC-1495: the ship report names the /latest/ URL (shipping policy callout) and that alpha.3 carries it
+- [x] ISC-1496: the e2e suite is green (orders.spec arrival-facing assertion updated if the preferred facing differs)
+- [x] ISC-1497: Anti: a threat already in the fire arc vetoes every facing turn: an overwatcher with a stealer in his lane and a nearer blip behind holds; a flamer in the same spot neither turns nor flames (marine_ai.spec; the advisor's flip-flop case)
 
 ## Test Strategy
 
@@ -1137,6 +1137,8 @@ Harry: "marines should automatically turn to face the nearest threat if inactive
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-13 (facing, VERIFY to LEARN): built as designed with one metric correction found by the first test run: the 180 degree vision count ranks a wall-facing in a corridor as high as the corridor itself, because the original's vision rule counts the whole flank line as seen; the ranking uses the 90 degree fire cone instead (what overwatch actually covers), with a closed door straight ahead peeked open so a marine posted at a door keeps covering it (the chain-fist anti test caught the door case). Four fixtures that drive a marine by hand (reinforcement booking, the stealer's pace, the download counter) now lease him, since an unleased idle marine facing rock is exactly what the new rule turns. Seeds unchanged (scan above). Advisor: named the flip-flop between two threats on two sides (each turn drops overwatch) and the nearer-blip-behind case; both adopted as one veto, no facing turn while any threat sits in the fire arc (threatInArc, ISC-1497); its first call failed on the tool's argument form (auto-state omitted needs three arguments), re-issued. Delegation floor waived: one engine file, its spec, three doc touches. Shipped on /latest/ per the shipping policy's callout; v2.0.0-alpha.3 (stage 3) carries it to a frozen dir.
 
 - 2026-09-13 (alpha.2 playtest, OBSERVE): Harry: "marines should automatically turn to face the nearest threat if inactive including blips - I had cases where a marine would face a wall in overwatch - if there isn't an obvious threat a marine should turn to face the direction that gives them the greatest line of sight". Classifier E2, honoured. Cause in the list: rule 7 was arc-bound (a threat behind him was invisible to the rule), rule 2 held an overwatcher regardless, rule 10 armed overwatch in whatever facing the marine had. Design: (1) "threat in sight" is a clear sight line from his square in any direction (the piece is on the board and nothing but rock, a closed door or a marine body sits between), blips included; not omniscience, a closed door hides. (2) Rule 7 uses it: turn toward the nearest. (3) Rule 2: an overwatcher turns when the nearest threat in sight is outside his fire arc and the turn would put it in his line of fire (turnWouldBearOn), accepting the 2 AP re-arm: a wall-facing overwatcher is worth nothing. (4) A new rule before overwatch: with no threat in sight, turn to the facing that shows the most squares (visibleSquares count), current facing kept on ties and within one square of the best (no dithering on symmetric rooms). (5) The same preferred facing is taken at a move order's arrival when then overwatch and no facing was ordered. (6) The player's own facing is respected while his lease runs; after it, the AI treats him as idle, which is the request. Delegation floor waived: one engine file and its spec. Ships on /latest/ with the URL called out; v2.0.0-alpha.3 (stage 3) carries it to a frozen dir.
 
@@ -1560,3 +1562,22 @@ The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/
 - ISC-1460: this block; frontmatter phase complete, progress 1405/1405 with the two standing exceptions
 - ISC-1461: PROJECTS.md Sulk entry: "STAGE 2 BUILT" and the stage 3 next step (grep)
 - ISC-1465: root manifest sha unchanged from the stage 1 record (8a83743), /1.1.0/ untouched by the prerelease path
+
+### Alpha.2 playtest: facing (2026-09-13)
+
+- ISC-1473: grep realtime-plan.md "## Playtest notes on alpha.2" = 1, the finding quoted verbatim
+- ISC-1474: Decisions (alpha.2 playtest, OBSERVE) and (facing, VERIFY) entries
+- ISC-1475: grep PROJECTS.md "ALPHA.2 PLAYTEST NOTE"
+- ISC-1476..1479, 1489: marine_ai.spec facing cases: stealer behind turned to (facing S), blip behind is nearestThreatInSight kind blip and turned to, stealer behind a closed door is undefined and the marine overwatches facing N, heavy flamer turns too
+- ISC-1480, 1481: overwatcher with a stealer behind: 'turn', overwatch false, facing S, then 'shoot' with the stealer in the lane; the existing "on overwatch: hold, even with a shootable stealer in view" test green
+- ISC-1482..1485: preferredFacing S for a rock-facing corridor marine, undefined after the turn, 'turn' then 'overwatch' then five nulls with the facing kept; the room middle row ties (undefined facing N), facing E returns N; existing rule 10 test green
+- ISC-1486, 1487: orders.spec: moveTo the corridor's dead end then overwatch arrives facing rock and turns N before overwatch; the ordered-facing test green
+- ISC-1488: runMarineAI lease test green; four hand-driven fixtures (clock x2, stealer_tick, beta2 download) now lease their marine, each with a comment saying why
+- ISC-1490: engine tsc exit 0; suite 43 files, 440 tests, 98.5% lines
+- ISC-1491: scan (60 seeds, shipped tuning): debug_1 W0, sh1 W2 (26, 27), sh2 W3 (29, 36, 58): the pinned seeds 26 and 29 hold, nothing re-pinned
+- ISC-1492: grep rules-reference.md "9b. nothing in sight", features.md "covers the most squares", CLAUDE.md "Facing (alpha.2 playtest"
+- ISC-1493: em dash count over the diff's added lines = 0; banned-word grep = 0
+- ISC-1494: commit 9398c7c on main with the trailers, pushed; deploy-latest run 34712690614 success; /latest/manifest.json sha 9398c7c
+- ISC-1495: the ship report names https://harryf.github.io/sulkweb/latest/ and that v2.0.0-alpha.3 carries the change to a frozen dir
+- ISC-1496: full e2e 119 passed
+- ISC-1497: marine_ai.spec veto case green (overwatcher holds, flamer holds facing N)

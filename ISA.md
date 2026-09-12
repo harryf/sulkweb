@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E3
 effort_source: classifier
-phase: verify
-progress: "1097/1098 (plan approved, stage 1 kickoff notes ISC-1154..1165; ISC-1165 awaits the commit; ISC-1038 dropped; ISC-71 deferred)"
+phase: complete
+progress: "1098/1098 (real-time plan APPROVED; stage 1 not started, kickoff notes in docs/realtime-plan.md; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T18:20:00Z
+updated: 2026-09-12T18:30:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -561,7 +561,7 @@ Harry answered questions 15..22 (all agreed). This run commits the answers, mark
 - [x] ISC-1162: Anti: zero em dashes in the plan and this run's ISA text (grep)
 - [x] ISC-1163: Anti: the kickoff section stays under 80 lines (a handover, not a second plan) (wc on the section)
 - [x] ISC-1164: Decisions entry records the approval and the row 19 fill (Read)
-- [ ] ISC-1165: plan, ISA, CLAUDE.md committed on main and pushed (git log, origin/main)
+- [x] ISC-1165: plan, ISA, CLAUDE.md committed on main and pushed (git log, origin/main)
 
 ## Test Strategy
 
@@ -1179,3 +1179,4 @@ Latest-pipeline hardening run (2026-08-20 seventh run, ISC-969..975):
 - ISC-1162: grep '—' docs/realtime-plan.md = 0; this run's ISA text = 0
 - ISC-1163: kickoff section line count under 80 (sed from the header to end of file, wc -l)
 - ISC-1164: Read: Decisions "real-time plan approved, kickoff" entry present
+- ISC-1165: git log: b97bd8d "docs: real-time plan approved (questions 15..22 answered), stage 1 kickoff notes" on main, pushed with the closing ISA commit

@@ -39,6 +39,8 @@ export class RosterPanel {
   private byId = new Map<string, RosterEntry>();
   /** Team command-point pool (shared) — shown on every living card. */
   private cp = 0;
+  /** Squad row headers by squad name, with the plain title to rebuild from. */
+  private squadRows = new Map<string, { row: HTMLElement; h: HTMLElement; title: string }>();
 
   constructor(
     entries: RosterEntry[],
@@ -61,8 +63,10 @@ export class RosterPanel {
       section.className = 'squad-row';
       section.dataset.squad = row.squad;
       const h = document.createElement('h3');
-      h.textContent = row.title;
+      h.innerHTML = `<span class="s-title"></span><span class="s-order"></span>`;
+      h.querySelector('.s-title')!.textContent = row.title;
       section.appendChild(h);
+      this.squadRows.set(row.squad, { row: section, h, title: row.title });
       const cards = document.createElement('div');
       cards.className = 'cards';
       for (const e of row.members) {
@@ -111,6 +115,22 @@ export class RosterPanel {
     PieceEvents.on('catPickedUp', ({ carrierId }) => this.setCatCarrier(carrierId));
     PieceEvents.on('catDropped', () => this.setCatCarrier(null));
     PieceEvents.on('selected', ({ pieceId }) => this.highlight(pieceId));
+    PieceEvents.on('orderChanged', ({ pieceId }) => this.refreshCard(pieceId)); // a task changes the word too
+  }
+
+  /** The squad's live order word on its row header (stage 3): DEFEND,
+   *  ADVANCE or CLEAR, with "relay" while the order is still in transit
+   *  (no sergeant); empty when none. */
+  setSquadOrder(squad: string, word: string, relaying: boolean): void {
+    const r = this.squadRows.get(squad);
+    if (!r) return;
+    r.h.querySelector('.s-order')!.textContent = word ? (relaying ? `${word} (relay)` : word) : '';
+    r.row.classList.toggle('ordered', word !== '');
+  }
+
+  /** Light the selected squad's row (null clears). */
+  highlightSquad(squad: string | null): void {
+    for (const [name, r] of this.squadRows) r.row.classList.toggle('selected', name === squad);
   }
 
   /** Re-read every living card's stats from the engine (post-replay truth). */

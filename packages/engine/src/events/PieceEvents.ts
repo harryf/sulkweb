@@ -1,4 +1,4 @@
-import type { MarineCommand, MarineOrder } from '../core/Commands.js'
+import type { MarineCommand, MarineOrder, SquadOrder } from '../core/Commands.js'
 
 export type ApInfo = { apRemaining: number; apInitial: number }
 
@@ -8,8 +8,13 @@ export type PieceEventsType = {
   /** A player command was applied (2.x): the replay unit. `tick` is the tick
    *  it followed; `ok` says whether the piece acted. */
   command: { tick: number; pieceId: string; command: MarineCommand; ok: boolean }
-  /** A marine's order slot was set, replaced, cleared or completed (2.x stage 2). */
-  orderChanged: { pieceId: string; order: MarineOrder | null }
+  /** A marine's order slot (level 1, the player's) or task slot (level 2,
+   *  the squad planner's) was set, replaced, cleared or completed. */
+  orderChanged: { pieceId: string; order: MarineOrder | null; level: 1 | 2 }
+  /** A squad's order was set, replaced, cleared or completed (2.x stage 3).
+   *  `dueTick` is when the planner first acts on it; `coordinated` says a
+   *  living sergeant relays it. */
+  squadOrderChanged: { squad: string; order: SquadOrder | null; coordinated: boolean; dueTick: number }
   /** Selection changed. `ap` is present when a piece is selected; `ammo` when it carries a limited-ammo weapon. */
   selected: { pieceId: string | null; ap?: ApInfo; ammo?: number }
   apChanged: { pieceId: string } & ApInfo

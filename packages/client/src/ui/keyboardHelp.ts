@@ -73,6 +73,12 @@ export const SPECIAL_KEYS: KeyCap[] = [
   { key: 'RMB', label: 'walk there' },
   { key: 'Shift+RMB', label: 'walk, then overwatch' },
   { key: 'RMB door', label: 'go open it' },
+  { key: 'Tab', label: 'select squad' },
+  { key: 'RMB squad', label: 'defend there' },
+  { key: 'Shift+RMB squad', label: 'advance there' },
+  { key: 'RMB door squad', label: 'clear it' },
+  { key: 'Esc squad', label: 'squad: hold' },
+  { key: 'Space', label: 'command pause' },
 ];
 
 /** Usage notes that need more room than a keycap label. */
@@ -85,4 +91,6 @@ export const KEY_NOTES: string[] = [
   'B twice within 2.5 seconds self-destructs the flamer.',
   'R reloads and T autofires the assault cannon. G is the chain fist door cut.',
   'Orders: right-click a square and the selected marine walks there on his own, opening doors on the way, then holds; Shift right-click and he goes on overwatch when he arrives; right-click a closed door and he goes to open it. He still shoots what he sees on the way. Any key takes the wheel back and drops the order. His card reads MOVE, DOOR, OW or HOLD.',
+  'Squad orders: Tab selects a squad (the selected marine\'s, then the next). Right-click a square and the squad defends that section, each marine taking a post that covers an entrance; Shift right-click and the squad advances there in a column with a rear guard; right-click a closed door and two marines cover it while a third opens it. Esc drops the order. Orders reach the squad through its sergeant; without one they arrive two seconds late and every marine acts on his own. The squad row reads DEFEND, ADVANCE or CLEAR.',
+  'Space is the command pause: the clock stops while you give orders (right-click, Tab, Esc); the keys that move a marine wait until Space resumes.',
 ];

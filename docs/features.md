@@ -106,6 +106,31 @@ a rebuild, `?tick=<ms>` sets the tick and
 constants (see `TUNING` in the engine); `?tick=0` stops the clock and hands
 it to `window.sulk.step(n)`, which is how the e2e suite drives a game.
 
+**Squad orders (2.x stage 3).** Tab selects a squad (the selected marine's,
+then the next squad on each press); every member gets a ring in the squad
+colour and the roster row lights up. Right-click a square and the squad
+defends that section: each marine walks to a post that covers one of its
+entrances and goes on overwatch there, the assault cannon on the longest
+lane, the flamer tucked inside facing the nearest way in. Shift right-click
+and the squad advances there in a column, two squares at a hop, the rear
+marine on overwatch facing the way you came until the column pulls away
+from him; a stealer closing in stops the leader until it is dealt with.
+Right-click a closed door and two marines take positions that fire through
+it, a third goes and opens it, the flamer waits a square behind him. Esc
+drops the order (and the squad selection). The target carries a marker in
+the squad colour (a double ring for defend, a ring with a chevron for
+advance, a bar on the door edge for clear), each marine's own post shows as
+the same ring shape in that colour, the squad row reads DEFEND, ADVANCE or
+CLEAR, and his card reads the squad word while he is on the squad's business
+(his own MOVE or DOOR first). Orders reach the squad through its sergeant:
+with him alive they take effect at once; without him they arrive two
+seconds late and every marine acts on his own (holds where he stands, walks
+to the target alone, the nearest one opens the door). A marine you steer
+yourself keeps his ground for a cycle before the squad plan takes him back.
+Space is the command pause: the clock stops, the board stays readable,
+right-click orders, Tab and Esc still work, and the keys that move a marine
+wait until Space resumes.
+
 ## Controls
 
 | Input | Action |
@@ -114,6 +139,12 @@ it to `window.sulk.step(n)`, which is how the e2e suite drives a game.
 | Right-click square | Order the selected marine: walk there (doors opened on the way), then hold |
 | Shift + right-click square | Order: walk there, then overwatch |
 | Right-click closed door | Order: go and open it |
+| `Tab` | Select the selected marine's squad, then the next squad on each press (rings on every member; Cmd/Ctrl/Alt+Tab stay with the browser) |
+| Right-click square (squad selected) | Squad order: defend that section (posts covering every entrance) |
+| Shift + right-click square (squad selected) | Squad order: advance there in a column with a rear guard |
+| Right-click closed door (squad selected) | Squad order: clear it (two cover, one opens, the flamer waits behind) |
+| `Esc` (squad selected) | Squad order: hold (drops the order and the squad selection) |
+| `Space` | Command pause: the clock stops, orders (right-click, Tab, Esc) still go, direct-control keys wait; Space resumes |
 | `1`-`0` | Select marine by number: 1-5 the first squad, 6-0 the second (shown as `[n]` on his card; dead marines' keys go inert) |
 | `W` / `X` | Move forward (1 AP) / backward (2 AP) |
 | `Q` / `E` | Move diagonally forward-left / forward-right (1 AP, facing kept) |

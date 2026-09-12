@@ -16,6 +16,7 @@ Two things to know:
 | [audio.md](audio.md) | Music, SFX, motion tracker, fades |
 | [releases-infra.md](releases-infra.md) | CI, GitHub Pages deploys, release hygiene |
 | [docs-meta.md](docs-meta.md) | Documentation and repo meta work |
+| [realtime-2x.md](realtime-2x.md) | The 2.x real-time line: the three planning runs and stage 1 (the clock) |
 | [decisions-log.md](decisions-log.md) | Chronological archive of older Decisions entries |
 | [changelog-log.md](changelog-log.md) | The conjecture/refutation/learning trail |
 

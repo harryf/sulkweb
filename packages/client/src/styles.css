@@ -517,3 +517,12 @@ body {
   border-color: #ff4040;
   opacity: 1;
 }
+
+/* Squad selection (Tab) and the squad's live order word (stage 3) */
+.squad-row.selected h3 { color: #ff8cff; text-shadow: 0 0 6px #ff66ff88; }
+.squad-row h3 .s-order {
+  margin-left: 8px;
+  color: #ff8cff;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}

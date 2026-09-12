@@ -20,6 +20,19 @@ export type MarineOrder =
   | { type: 'moveTo'; x: number; y: number; then: 'hold' | 'overwatch'; facing?: number }
   | { type: 'openDoor'; x: number; y: number; facing: number };
 
+/**
+ * A squad order (2.x stage 3): standing intent for a whole squad, executed by
+ * a planner that writes L2 tasks (`Piece.task`) into its members' slots and
+ * re-plans on its triggers. defend covers an area's entrances from inside it;
+ * advance walks a column to a square with a rear guard; clear posts covers on
+ * a door and opens it. Relayed through a living sergeant (next tick) or after
+ * TUNING.relayTicks without one, uncoordinated.
+ */
+export type SquadOrder =
+  | { type: 'defend'; x: number; y: number }
+  | { type: 'advance'; x: number; y: number }
+  | { type: 'clear'; x: number; y: number; facing: number };
+
 export type MarineCommand =
   | { type: 'move'; dir: MoveDir }
   | { type: 'turn'; delta: -1 | 1 | 2 }
@@ -36,4 +49,7 @@ export type MarineCommand =
   | { type: 'cutDoor' }
   | { type: 'cp' }
   | { type: 'order'; order: MarineOrder }
-  | { type: 'clearOrder' };
+  | { type: 'clearOrder' }
+  /** Addressed to any member: the squad is the marine's deployment tag. */
+  | { type: 'squadOrder'; order: SquadOrder }
+  | { type: 'clearSquadOrder' };

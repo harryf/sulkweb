@@ -35,7 +35,7 @@ Where the port stands: what shipped, in what order, and what's knowingly missing
   see [rules-reference.md](rules-reference.md) and
   [features.md](features.md#deployment-phase)
 
-## Next line: 2.x real-time (stage 2 shipped as v2.0.0-alpha.2, 2026-09-12)
+## Next line: 2.x real-time (stage 3 shipped as v2.0.0-alpha.3, 2026-09-13)
 
 The reviewed plan for turning the port into a real-time game (ticking clock,
 marine default AI, individual and squad orders, sergeant loss as command
@@ -56,8 +56,19 @@ as built" subsection records the deviations and the balance numbers. The
 alpha.2 playtest's one finding (marines on overwatch facing walls) is fixed
 on https://harryf.github.io/sulkweb/latest/ (idle marines face the nearest
 threat in sight, else the widest fire lane; commit 9398c7c) and will be
-frozen with v2.0.0-alpha.3; stage 3 (squad orders, the chain of command) is
-next.
+frozen with v2.0.0-alpha.3.
+
+Stage 3 (squad orders and the chain of command) is built and ships as
+v2.0.0-alpha.3, a prerelease in its own frozen directory at
+https://harryf.github.io/sulkweb/2.0.0-alpha.3/ (the root stays v1.1.0):
+Tab selects a squad, right-click gives it defend, advance (Shift) or clear
+(a door), Esc is hold; the planners write each marine's post as a squad
+task behind his own orders, a living sergeant relays an order on the next
+tick and a dead one costs two seconds and the coordination, and Space is
+the unmetered command pause. The plan's "Stage 3 as built" subsection
+records the deviations. Stage 4 (mission orders, the metered pause pool
+replacing command points, the balance sweep across all nine missions,
+2.0.0 on the root) is next.
 
 ## Known gaps / residue
 

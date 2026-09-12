@@ -12,6 +12,8 @@ import type { MarineCommand } from './core/Commands.js';
 import { stealerTick, spawnBlips, rankEntries, convertRevealedBlips, chargeOrientation } from './ai/StealerAI.js';
 import { runMarineAI } from './ai/MarineAI.js';
 import { orderIsValid, setOrder } from './ai/orders.js';
+import { squadTick, newSquadState, squadOf, hasSergeant, squadMembers, completeSquadOrder, type SquadState } from './ai/squad.js';
+import type { SquadOrder } from './core/Commands.js';
 import { expireFlames } from './rules/flame.js';
 import { closeCombat } from './rules/combat.js';
 import { deployFacing, orderSquaresFrontToBack, autoDeployOrder } from './rules/deploy.js';
@@ -85,6 +87,19 @@ export class GameEngine {
   readonly reserve: Piece[] = []
   /** id to mission deployment metadata, recorded as the squad is constructed. */
   private readonly deployMeta = new Map<string, { squad?: string; type: MarineType }>()
+
+  /** Squad order state per squad (2.x stage 3), created on first use. */
+  readonly squads = new Map<string, SquadState>()
+
+  /** The squad names in deployment order ("Squad" for untagged marines). */
+  squadNames(): string[] {
+    const out: string[] = []
+    for (const m of this.marines) { const s = squadOf(m); if (!out.includes(s)) out.push(s) }
+    return out
+  }
+
+  /** A squad's order state, if any order was ever issued to it. */
+  squadState(squad: string): SquadState | undefined { return this.squads.get(squad) }
   private readonly entries: Coord[]
 
   constructor(mission: CompiledMission, extraPieces: Piece[] = [], dice?: DiceSource) {
@@ -109,6 +124,7 @@ export class GameEngine {
     for (const d of mission.marineDeployment ?? []) {
       const Cls = MARINE_CLASSES[d.type ?? 'storm_bolter']
       const marine = new Cls(board, { c: d.x, r: d.y }, FACING_WORD[d.facing ?? 'down'])
+      marine.squad = d.squad
       this.deployMeta.set(marine.id, { squad: d.squad, type: d.type ?? 'storm_bolter' })
     }
     // Per-mission heavy-flamer ammo override (mission 6 post_deploy_script).
@@ -417,7 +433,9 @@ export class GameEngine {
    * over. Fixed order:
    *  1. AP regeneration for every piece (apChanged on each gain)
    *  2. commands deferred from inside the previous tick (normally none)
-   *  3. marine default AI: one action per unleased marine with AP
+   *  3. squad planners: every due squad order writes its members' tasks
+   *     (stage 3, ai/squad.ts), then the marine default AI: one action per
+   *     unleased marine with AP
    *  4. stealer side: one action per piece with AP under the cached plan
    *  5. expiry sweep: piece timers, flames, then the cycle's offset events
    *     (C.A.T. wander, download counter, ambush counter)
@@ -444,6 +462,7 @@ export class GameEngine {
         if (m && m.kind === 'marine' && m.alive) this.applyCommand(m, d.cmd)
       }
       if (this.state.result !== 'ongoing') return
+      squadTick(this)
       runMarineAI(this)
       if (this.state.result !== 'ongoing') return
       stealerTick(board, this.hiveContext())
@@ -609,7 +628,7 @@ export class GameEngine {
     // or refused, is the player taking the wheel: it clears a live order.
     // Both rules key off receipt, which the command log records, so a replay
     // makes the same choices.
-    if (cmd.type !== 'order' && cmd.type !== 'clearOrder') {
+    if (cmd.type !== 'order' && cmd.type !== 'clearOrder' && cmd.type !== 'squadOrder' && cmd.type !== 'clearSquadOrder') {
       m.lastCommandTick = this.tickCount
       if (m.order) setOrder(m, null)
     }
@@ -686,6 +705,32 @@ export class GameEngine {
       case 'clearOrder': {
         if (!m.order) return false
         setOrder(m, null)
+        return true
+      }
+      case 'squadOrder': {
+        if (!squadOrderIsValid(board, cmd.order)) return false
+        const squad = squadOf(m)
+        const st = this.squads.get(squad) ?? newSquadState(squad)
+        this.squads.set(squad, st)
+        const members = squadMembers(this, squad)
+        // Relay: a living sergeant delivers next tick, else TUNING.relayTicks
+        // later and without coordination; fixed for the life of the order.
+        st.coordinated = hasSergeant(members)
+        st.order = cmd.order
+        st.issuedTick = this.tickCount
+        st.dueTick = this.tickCount + (st.coordinated ? 1 : TUNING.relayTicks)
+        st.planKey = ''
+        st.started = false
+        st.contactDist = Infinity
+        st.contactTick = -Infinity
+        st.coverIssuedTick = -1
+        PieceEvents.emit('squadOrderChanged', { squad, order: cmd.order, coordinated: st.coordinated, dueTick: st.dueTick })
+        return true
+      }
+      case 'clearSquadOrder': {
+        const st = this.squads.get(squadOf(m))
+        if (!st?.order) return false
+        completeSquad(this, st)
         return true
       }
     }
@@ -896,4 +941,14 @@ export class GameEngine {
     this.phase = phase
     PieceEvents.emit('phaseChanged', { phase, turn: this.cycle })
   }
+}
+
+/** A squad order names a square on the board, or a door edge that exists. */
+function squadOrderIsValid(board: Board, order: SquadOrder): boolean {
+  if (order.type === 'clear') return board.doorsAt({ c: order.x, r: order.y }).some(d => d.facing === order.facing)
+  return board.get(order.x, order.y) !== undefined
+}
+
+function completeSquad(engine: GameEngine, st: SquadState): void {
+  completeSquadOrder(engine, st, squadMembers(engine, st.squad))
 }

@@ -24,7 +24,7 @@ The engine models the complete game with no knowledge of how it will be drawn:
 - `pieces/`: `Piece` (abstract base) and its subclasses: `StormBolterMarine` (also the base for `SergeantMarine`, `SwordSergeantMarine`), `HeavyFlamerMarine`, `AssaultCannonMarine`, `ChainFistMarine`, `Genestealer`, `Blip`, `AmbushCounter`. Pieces own their own rules: `tryMove`, `shoot`, `overwatchOn`, and so on, and emit events as they act.
 - `rules/`: cross-piece rules: doors (`Door.ts`, edge-model), close combat (`combat.ts`), flame templates (`flame.ts`), exotic objects like the C.A.T. and ducting (`exotic.ts`).
 - `GameEngine.ts`: turn structure. `GameEngine` owns the state, deploys the squad from mission JSON, and drives the stealer and end phases (`PhaseName` is a string union; there is no phase-class hierarchy). Missions open in a `Deploy` phase: `beginDeployment()` lifts the constructed squad into `engine.reserve` and locks the board, the client places marines through `deployMarine`/`undeployMarine`/`autoDeploy`, and `finishDeployment()` fills the rest, unlocks, and starts the marine phase. Deployment is dice-free and consequence-free: the same seed gives the identical mission however the squad is arranged.
-- `ai/`: `StealerAI.ts` (blip spawning, hunting, conversion) and `MarineAutopilot.ts` (drives full autoplay games in tests).
+- `ai/`: `StealerAI.ts` (blip spawning, hunting, conversion), `MarineAI.ts` (the marine default list), `orders.ts` (the order executor for both slots), `squad.ts` (the squad planners: defend, advance, clear, and the relay through the sergeant; stage 3), and `MarineAutopilot.ts` (drives full autoplay games in tests as an order issuer).
 - `missions/`: mission JSON files, the `missions` registry, `loadMission`, and the `RawMissionJSON_v2` schema.
 - `core/Dice.ts`: the dice abstraction. `SeededRng` and `RollQueue` make any game reproducible, which is what makes the e2e suite deterministic.
 - `events/PieceEvents.ts`: the typed pub/sub bus described below.
@@ -69,7 +69,7 @@ The engine reads no clock. `GameEngine.tick()` advances the game by one tick in 
 
 1. AP regeneration for every piece (`apChanged` on each gain)
 2. commands deferred from inside the previous tick (a handler issuing a command; normally none)
-3. the marine default AI (`ai/MarineAI.ts`): one action per marine with AP and no live direct-control lease; a marine with a live order (`ai/orders.ts`, stage 2) runs the reactions first and then one step of the order
+3. the squad planners (`ai/squad.ts`, stage 3): every squad with a due order writes its members' tasks (the level 2 slot, `Piece.task`), rewriting a task only when the plan changes; then the marine default AI (`ai/MarineAI.ts`): one action per marine with AP and no live direct-control lease; a marine with a live order or task (`ai/orders.ts`) runs the reactions first and then one step of it, his own order before the squad's task
 4. the stealer side (`stealerTick`): one action per piece with AP under a hive plan cached for `TUNING.hivePlanTicks` ticks, with the threat map cached under `Board.version`
 5. the expiry sweep: piece timers (sustained fire, blip idleness), flames past their tick, and the cycle's offset events (C.A.T. wander, download counter, ambush counter)
 6. the cycle boundary every `TUNING.cycleTicks` ticks: defend turn limit, the blockade victory check, reinforcements booked at per-entry slots, the CP roll, the charge orientation sweep; then due reinforcements land
@@ -80,6 +80,8 @@ Marines regenerate and act before stealers: the deliberate marine edge in a tie.
 
 Orders (stage 2) are the third kind of command: `order` stores a `MarineOrder` in the marine's slot (`Piece.order`) and `clearOrder` empties it; the engine emits `orderChanged` on every change, including completion. Neither stamps the direct-control lease (the order is executed by the default AI the lease would silence; `order` resets the lease so the march starts on the next tick), and every other command, accepted or refused, clears the slot: the player took the wheel. Both rules key off receipt, which the command log records, so a replay makes the same choices.
 
+Squad orders (stage 3) add a second slot, `Piece.task`, that only the squad planners write, and two commands addressed to any member of the squad (the squad is the marine's deployment tag): `squadOrder` stores a `SquadOrder` (defend, advance, clear) in the engine's per-squad state with a due tick (the next tick with a living sergeant, `TUNING.relayTicks` later without one, and then uncoordinated) and `clearSquadOrder` empties it and every member's task. The engine emits `squadOrderChanged` on every change (including completion) and `orderChanged` carries a `level` of 1 or 2 so the client can tell the player's ring from the squad's. Neither command stamps the lease; a direct command clears the player's slot only, and the task resumes after the lease. The gameplay log format is unchanged: the two command types and the one event are new entries under the same version.
+
 ### Sequence of one tick
 
 ```mermaid
@@ -88,13 +90,13 @@ sequenceDiagram
     participant C as LiveScene (client)
     participant E as GameEngine (engine)
     participant B as PieceEvents bus
-    P->>C: W / F / O keys, clicks, right-click orders
+    P->>C: W / F / O keys, clicks, right-click orders, Tab and squad orders
     C->>E: engine.command(id, command)
     E->>B: command, pieceMoved, shot, apChanged...
     B->>C: render sprite moves, flashes, HUD
     C->>E: tick() every 250 ms (update accumulator)
-    E->>E: regen, marine AI (reactions, then the order step), stealer tick, expiry, boundary, victory
-    E->>B: pieceMoved, shot, orderChanged, blipConverted, tick...
+    E->>E: regen, squad planners (tasks), marine AI (reactions, then the order step), stealer tick, expiry, boundary, victory
+    E->>B: pieceMoved, shot, orderChanged, squadOrderChanged, blipConverted, tick...
     B->>C: sprites, fog dirty flag, HUD clock
 ```
 

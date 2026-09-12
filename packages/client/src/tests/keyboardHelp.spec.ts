@@ -14,6 +14,8 @@ describe('keyboard help layout data', () => {
       'L', 'K', '1-0', 'Esc',
       // ... and the mouse orders (stage 2)
       'RMB', 'Shift+RMB', 'RMB door',
+      // ... and the squad orders and the command pause (stage 3)
+      'Tab', 'RMB squad', 'Shift+RMB squad', 'RMB door squad', 'Esc squad', 'Space',
     ]
     const keys = bound.map(c => c.key)
     expect([...keys].sort()).toEqual([...expected].sort())

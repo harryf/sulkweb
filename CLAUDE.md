@@ -12,7 +12,7 @@ ALL NINE missions registered (space_hulk 1–6, beta_1, beta_2, debug_1); the co
 | Missions, controls, roster, deployment phase | `docs/features.md` |
 | Gameplay log export schema (stealer-AI analysis corpus) | `docs/gamelog-format.md` |
 | Roadmap state and known gaps | `docs/status.md` |
-| **2.x real-time plan (APPROVED 2026-09-12; stage 1 shipped as v2.0.0-alpha.1 and played: "works, playable, really hard"; stage 2 shipped as v2.0.0-alpha.2 the same day; the alpha.2 playtest's facing fix is on /latest/ (commit 9398c7c) and alpha.3 will carry it; START THE NEXT SESSION at its last two sections, "Stage 2 as built" (tuning numbers, deviations, stage 3 notes) and "Playtest notes on alpha.2" (the facing fix and the next-session line))** | `docs/realtime-plan.md` |
+| **2.x real-time plan (APPROVED 2026-09-12; stage 1 shipped as v2.0.0-alpha.1 and played: "works, playable, really hard"; stage 2 shipped as v2.0.0-alpha.2 the same day; stage 3 (squad orders, the chain of command, the command pause) shipped as v2.0.0-alpha.3 on 2026-09-13; START THE NEXT SESSION at its last section, "Stage 3 as built" (what changed from the sketches, the stage 4 notes and the playtest questions))** | `docs/realtime-plan.md` |
 | Original milestone specs (M0–M8) and roadmap | `docs/history/prompts/` |
 | Canonical game rules (AP costs, dice, blips, phases) | `docs/history/SULK Manual Combined.pdf`; distilled digest in ISA Decisions |
 | Original Pygame engine analysis | `docs/history/Analysis Sulk Pygame*.html` |
@@ -24,7 +24,7 @@ Resuming work = extend `ISA.md` (new ISCs, decisions, changelog); don't invent a
 ```bash
 pnpm install
 pnpm --filter ./packages/client dev      # play at localhost:5173
-pnpm --filter ./packages/engine test     # 431 unit tests + coverage (~98% lines)
+pnpm --filter ./packages/engine test     # 478 unit tests + coverage (~98% lines)
 pnpm --filter ./packages/client test     # HUD/minimap units (vitest, --dir src only)
 pnpm --filter ./packages/client e2e      # Playwright no-mock suite (real browser, no mocks)
 pnpm build                               # engine tsc -b + client vite build
@@ -200,7 +200,8 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
    regeneration tried (0 of 60 at the shipped 3, 30 of 30 without a shot at 2) and is no
    longer a win fixture.
 4. `window.sulk` in the client exposes `{ engine, Selection, scene, SeededRng, autoplay,
-   runMarineTurn, PieceEvents, Genestealer, gameLog, TUNING, step(n), command(id, cmd) }`
+   runMarineTurn, PieceEvents, Genestealer, gameLog, TUNING, step(n), command(id, cmd),
+   selectSquad(name), squadOf }`
    for e2e and console debugging (`gameLog` is the GameLogger, null in attract mode).
 
 ## Gotchas (hard-won)
@@ -255,6 +256,26 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
   arms overwatch, and at a move order's arrival with then overwatch and no ordered facing.
   Never use the 180 degree vision count for this: the flank line counts as seen, which in a
   corridor ranks a wall-facing as high as the corridor.
+- **Squad orders (2.x stage 3, 2026-09-13):** `Piece.task` is the squad's slot (level 2),
+  written ONLY by the planners in `ai/squad.ts` (`setTask`, idempotent); the executor reads
+  `activeOrder` (order first, task second) and NEVER clears a task on completion (single
+  writer: the completed task keeps him on his post facing; a task that cannot progress on a
+  full pool lets rules 7 to 11 run). Squad commands (`squadOrder`, `clearSquadOrder`) are
+  addressed to any member (squad = deployment tag, "Squad" when untagged), never stamp the
+  lease; the order takes effect at `dueTick` (issued + 1 with a living sergeant, +
+  `TUNING.relayTicks` without, coordination fixed at issue) and its first plan clears the
+  members' player orders. Planners run as tick step 3 before `runMarineAI`. Defend: post set
+  by greedy set cover (entrance squares weigh 4, held posts +1), members deepest-first;
+  re-plan on death, cycle boundary, pin change (NOT door toggles). Advance: column fixed at
+  the first plan, flamer demoted once and never promoted, followers moveTo their predecessor,
+  rear guard overwatch facing back, leader hops two squares when closed up or plugged,
+  contact = threat within `contactRange` closing in. Clear: nearest marine opens (any type),
+  geometric covers, opener timeout. A member steered within the last cycle is pinned.
+  Client: Tab cycles squads (`Selection.selectSquad`, exclusive with the marine selection),
+  Esc with a squad = hold, Space = command pause (`commandPaused`, overlay 'command-pause');
+  markers 'squad-marker' and level 2 'order-marker' in the squad colour.
+  The pinned seeds and the autopilot scan do NOT cover squad orders (the autopilot issues
+  individual orders only): seed drift after a squad-planner change points elsewhere.
 - **Orders (2.x stage 2, 2026-09-12):** `Piece.order` holds one `MarineOrder` (moveTo then
   hold|overwatch, optional facing; openDoor); `ai/orders.ts` executes it inside `marineTick`
   AFTER the reactions (unjam, shoot, adjacent fight/turn, flamer last stand, plus the transit
@@ -345,8 +366,9 @@ cannon, chain fist, parry sergeant, C.A.T., ambush counters) shipped with them.
 The 2.x line (docs/realtime-plan.md) is in progress: stage 1 (the clock) shipped
 as v2.0.0-alpha.1 and dissolved the old "marine interrupts" gap (marines act at
 any time now); stage 2 (individual orders, right-click) shipped as
-v2.0.0-alpha.2; stage 3 (squad orders, the chain of command) starts from the
-plan's "Stage 2 as built" section. Still open: thunder hammer + captain/grenades + librarian psi (no
+v2.0.0-alpha.2; stage 3 (squad orders, the chain of command, the command
+pause) shipped as v2.0.0-alpha.3; stage 4 (mission orders, the metered pause,
+the balance sweep, 2.0.0) starts from the plan's "Stage 3 as built" section. Still open: thunder hammer + captain/grenades + librarian psi (no
 registered mission uses them; sprites exist unused per docs/asset-index.md),
 off-board entry-limbo lurking, the first balance sweep of the real-time
 constants. Deferred verifications: FPS probe (ISC-71), live real-Chrome boot

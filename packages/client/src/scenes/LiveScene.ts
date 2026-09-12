@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { GameEngine, GameLogger, loadMission, missions, Square, Piece, StormBolterMarine, SergeantMarine, HeavyFlamerMarine, AssaultCannonMarine, ChainFistMarine, Genestealer, PieceEvents, visibleSquares, DIR_VEC, SeededRng, autoplay, runMarineTurn, flameFlood, Door, deploySeconds, TUNING, applyTuning, parseTuning, orderLabel, type MarineCommand, type MarineOrder } from "@sulk/engine/index.js";
+import { GameEngine, GameLogger, loadMission, missions, Square, Piece, StormBolterMarine, SergeantMarine, HeavyFlamerMarine, AssaultCannonMarine, ChainFistMarine, Genestealer, PieceEvents, visibleSquares, DIR_VEC, SeededRng, autoplay, runMarineTurn, flameFlood, Door, deploySeconds, TUNING, applyTuning, parseTuning, orderLabel, squadOf, squadLabel, type MarineCommand, type MarineOrder, type SquadOrder } from "@sulk/engine/index.js";
 import { Selection } from "../ui/Selection";
 import { Minimap } from '../ui/Minimap.js';
 import { HighlightSprite } from '../ui/HighlightSprite.js';
@@ -57,6 +57,15 @@ export default class LiveScene extends Phaser.Scene {
   /** Order markers (stage 2): one ring per marine with a live order, on the
    *  target square (door orders: on the edge midpoint). Keyed by piece id. */
   private orderMarkers: { [id: string]: Phaser.GameObjects.Graphics } = {};
+  /** Squad task markers (level 2), one per marine, in the squad colour. */
+  private taskMarkers: { [id: string]: Phaser.GameObjects.Graphics } = {};
+  /** One marker per squad order, on its target. */
+  private squadMarkers: { [squad: string]: Phaser.GameObjects.Graphics } = {};
+  /** Rings on every member of the selected squad. */
+  private squadHighlight?: Phaser.GameObjects.Graphics;
+  /** The command pause (stage 3, unmetered): the clock stops, orders still go. */
+  private commandPaused = false;
+  private commandPauseOverlay?: Phaser.GameObjects.Container;
   private flameSprites: { [coord: string]: Phaser.GameObjects.Image } = {};
   private ductingSprites: { [coord: string]: Phaser.GameObjects.Image } = {};
   private catSprite?: Phaser.GameObjects.Image;
@@ -195,6 +204,9 @@ export default class LiveScene extends Phaser.Scene {
       step: (n = 1) => this.engine.runTicks(n),
       /** Issue a command as the player would. */
       command: (id: string, cmd: MarineCommand) => this.engine.command(id, cmd),
+      /** Squad selection as Tab would set it (null drops it). */
+      selectSquad: (name: string | null) => this.selectSquad(name),
+      squadOf,
     }; // dev/debug + autoplay handle
   }
 
@@ -541,7 +553,37 @@ export default class LiveScene extends Phaser.Scene {
     this.input.keyboard!.on('keydown-ESC', (e: KeyboardEvent) => {
       if (this.seenKeyEvents.has(e)) return;
       this.seenKeyEvents.add(e);
+      // A selected squad: Esc is "hold" (its order goes, the selection too);
+      // otherwise the free pause. During the command pause only the first.
+      const squad = Selection.getSquad();
+      if (squad && !this.paused) {
+        const member = this.squadMember(squad);
+        if (member && this.engine.squadState(squad)?.order) this.engine.command(member.id, { type: 'clearSquadOrder' });
+        this.selectSquad(null);
+        return;
+      }
+      if (this.commandPaused) return;
       this.togglePause();
+    });
+    // Tab cycles the squads (stage 3): the selected marine's squad first, then
+    // the next; Cmd/Ctrl/Alt+Tab stay with the browser.
+    this.input.keyboard!.on('keydown-TAB', (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      e.preventDefault();
+      if (this.seenKeyEvents.has(e)) return;
+      this.seenKeyEvents.add(e);
+      if (this.attract || this.deployMode || this.paused || this.engine.state.result !== 'ongoing') return;
+      this.cycleSquad();
+    });
+    // Space: the command pause (stage 3, unmetered). The clock stops, the
+    // board stays readable, orders (right-click, Tab, Esc) still go; direct
+    // control keys do nothing. Space again resumes.
+    this.input.keyboard!.on('keydown-SPACE', (e: KeyboardEvent) => {
+      e.preventDefault();
+      if (this.seenKeyEvents.has(e)) return;
+      this.seenKeyEvents.add(e);
+      if (this.attract || this.deployMode || this.paused) return;
+      this.toggleCommandPause();
     });
     // Camera bounds: the SINGLE clamp for every scroll path (keys, drag,
     // pan()): one-tile margin for off-board markers plus MARKER_OVERHANG for
@@ -668,7 +710,7 @@ export default class LiveScene extends Phaser.Scene {
           overwatch: p.overwatch ?? false,
           jammed: p.jammed ?? false,
           facing: p.facing,
-          word: orderLabel(p),
+          word: orderLabel(p, this.engine.squadState(squadOf(p))?.order ?? null),
         };
       },
       (id) => this.selectFromRoster(id),
@@ -786,7 +828,20 @@ export default class LiveScene extends Phaser.Scene {
 
     // Right-click is the order button (stage 2); the browser menu never shows.
     this.input.mouse?.disableContextMenu();
-    PieceEvents.on('orderChanged', ({ pieceId, order }) => this.setOrderMarker(pieceId, order));
+    PieceEvents.on('orderChanged', ({ pieceId, order, level }) => this.setOrderMarker(pieceId, order, level));
+    PieceEvents.on('squadOrderChanged', ({ squad, order, dueTick }) => {
+      this.setSquadMarker(squad, order);
+      this.roster.setSquadOrder(squad, squadLabel(order), order !== null && dueTick > this.engine.tickCount + 1);
+    });
+    PieceEvents.on('tick', ({ tick }) => {
+      // The relay word drops off the header the tick the order takes effect.
+      for (const name of this.engine.squadNames()) {
+        const st = this.engine.squadState(name);
+        if (st?.order && st.dueTick === tick) this.roster.setSquadOrder(name, squadLabel(st.order), false);
+      }
+    });
+    PieceEvents.on('pieceMoved', () => this.drawSquadHighlight());
+    PieceEvents.on('pieceDied', () => this.drawSquadHighlight());
 
     // Input handler for piece selection
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
@@ -849,7 +904,7 @@ export default class LiveScene extends Phaser.Scene {
     this.input.keyboard!.on('keydown', (_event: KeyboardEvent) => {
       if (this.seenKeyEvents.has(_event)) return; // Phaser replay of a handled press
       this.seenKeyEvents.add(_event);
-      if (this.paused || this.engine.state.result !== 'ongoing') return;
+      if (this.paused || this.commandPaused || this.engine.state.result !== 'ongoing') return;
       if (this.deployMode) {
         // Deployment controls: A/D rotate the selected deployed marine, free.
         // Everything else is swallowed; the board is locked anyway, but the
@@ -1151,7 +1206,7 @@ export default class LiveScene extends Phaser.Scene {
   /** The clock is running: live mission, not paused, not deploying, not the
    *  homepage backdrop, and a positive tick interval. */
   private get clockRunning(): boolean {
-    return this.tickMs > 0 && !this.paused && !this.deployMode && !this.attract
+    return this.tickMs > 0 && !this.paused && !this.commandPaused && !this.deployMode && !this.attract
       && this.engine.state.result === 'ongoing';
   }
 
@@ -1442,22 +1497,29 @@ export default class LiveScene extends Phaser.Scene {
     delete this.jamMarkers[pieceId];
     this.orderMarkers[pieceId]?.destroy();
     delete this.orderMarkers[pieceId];
+    this.taskMarkers[pieceId]?.destroy();
+    delete this.taskMarkers[pieceId];
   }
 
   /** Draw or clear the order marker for a marine (orderChanged handler). A
    *  ring on the target square, gold for "then hold", cyan for "then
-   *  overwatch"; a short bar across the edge for a door order. */
-  private setOrderMarker(pieceId: string, order: MarineOrder | null): void {
-    this.orderMarkers[pieceId]?.destroy();
-    delete this.orderMarkers[pieceId];
+   *  overwatch"; a short bar across the edge for a door order. A level 2
+   *  marker (the squad's task for him) takes the squad colour instead. */
+  private setOrderMarker(pieceId: string, order: MarineOrder | null, level: 1 | 2 = 1): void {
+    const store = level === 2 ? this.taskMarkers : this.orderMarkers;
+    store[pieceId]?.destroy();
+    delete store[pieceId];
     if (!order) return;
+    const piece = this.engine.findPiece(pieceId);
+    const squadTint = level === 2 && piece ? this.squadColour(squadOf(piece)) : undefined;
     const T = TILE_SIZE;
     const g = this.add.graphics().setDepth(0.95).setName('order-marker');
     g.setData('pieceId', pieceId);
     g.setData('kind', order.type);
+    g.setData('level', level);
     if (order.type === 'moveTo') {
       g.setData('then', order.then);
-      const colour = order.then === 'overwatch' ? 0x33ccff : 0xffcc33;
+      const colour = squadTint ?? (order.then === 'overwatch' ? 0x33ccff : 0xffcc33);
       g.lineStyle(2, colour, 0.9);
       g.strokeCircle(order.x * T + T / 2, order.y * T + T / 2, T * 0.32);
       g.lineStyle(1, colour, 0.5);
@@ -1465,11 +1527,11 @@ export default class LiveScene extends Phaser.Scene {
     } else {
       const v = DIR_VEC[order.facing as 0 | 1 | 2 | 3];
       const mx = (order.x + 0.5 + v.dc * 0.5) * T, my = (order.y + 0.5 + v.dr * 0.5) * T;
-      g.lineStyle(3, 0xff9933, 0.9);
+      g.lineStyle(3, squadTint ?? 0xff9933, 0.9);
       // The bar lies ALONG the edge (perpendicular to the door's facing).
       g.lineBetween(mx - v.dr * T * 0.3, my - v.dc * T * 0.3, mx + v.dr * T * 0.3, my + v.dc * T * 0.3);
     }
-    this.orderMarkers[pieceId] = g;
+    store[pieceId] = g;
   }
 
   /** The door edge under the pointer, if the pointer sits near one: the
@@ -1501,6 +1563,8 @@ export default class LiveScene extends Phaser.Scene {
   private handleOrderClick(p: Phaser.Input.Pointer): void {
     if (this.attract || this.deployMode || this.engine.state.result !== 'ongoing') return;
     if (p.x > this.scale.width - HUD_WIDTH) return;
+    const squad = Selection.getSquad();
+    if (squad) { this.handleSquadOrderClick(p, squad); return; }
     const selectedId = Selection.get();
     if (!selectedId) return;
     const piece = this.engine.findPiece(selectedId);
@@ -1518,6 +1582,137 @@ export default class LiveScene extends Phaser.Scene {
     this.engine.command(piece.id, { type: 'order', order });
     this.updateHighlight();
   }
+
+  /**
+   * Right-click with a squad selected (stage 3): a door edge means "clear
+   * it", a square "defend it" (Shift: "advance there"). The order is
+   * addressed to any living member; the engine keys the squad off him.
+   */
+  private handleSquadOrderClick(p: Phaser.Input.Pointer, squad: string): void {
+    const member = this.squadMember(squad);
+    if (!member) return;
+    const door = this.doorUnderPointer(p);
+    let order: SquadOrder;
+    if (door) {
+      order = { type: 'clear', x: door.square.x, y: door.square.y, facing: door.facing };
+    } else {
+      const hx = Math.floor(p.worldX / TILE_SIZE), hy = Math.floor(p.worldY / TILE_SIZE);
+      if (!this.engine.state.board.get(hx, hy)) return;
+      const shift = (p.event as MouseEvent | undefined)?.shiftKey ?? false;
+      order = shift ? { type: 'advance', x: hx, y: hy } : { type: 'defend', x: hx, y: hy };
+    }
+    this.engine.command(member.id, { type: 'squadOrder', order });
+  }
+
+  /** The first living member of a squad, if any. */
+  private squadMember(squad: string): Piece | undefined {
+    return this.engine.marines.find(m => m.alive && squadOf(m) === squad);
+  }
+
+  /** Squads with a living member, deployment order. */
+  private liveSquads(): string[] {
+    return this.engine.squadNames().filter(name => this.squadMember(name) !== undefined);
+  }
+
+  /** The squad's colour: by its position in the roster. */
+  private squadColour(squad: string): number {
+    const i = this.engine.squadNames().indexOf(squad);
+    return [0xff66ff, 0x99ff66, 0xffaa66, 0x66ffee][Math.max(0, i) % 4];
+  }
+
+  /** Select a squad (or drop it with null): rings on its members, its roster
+   *  row lit, the marine selection and the HUD panel cleared. */
+  selectSquad(name: string | null): void {
+    Selection.selectSquad(name);
+    this.disarmAndRefresh();
+    PieceEvents.emit('selected', { pieceId: null });
+    this.roster.highlightSquad(name);
+  }
+
+  /** Tab: the selected marine's squad, then the next squad each press. */
+  private cycleSquad(): void {
+    const names = this.liveSquads();
+    if (names.length === 0) return;
+    const current = Selection.getSquad();
+    const marineSquad = Selection.get() ? this.engine.findPiece(Selection.get()!) : undefined;
+    let next: string;
+    if (current) next = names[(names.indexOf(current) + 1) % names.length];
+    else if (marineSquad && names.includes(squadOf(marineSquad))) next = squadOf(marineSquad);
+    else next = names[0];
+    this.selectSquad(next);
+  }
+
+  /** Rings on every member of the selected squad (none when no squad is selected). */
+  private drawSquadHighlight(): void {
+    const squad = Selection.getSquad();
+    this.squadHighlight?.destroy();
+    this.squadHighlight = undefined;
+    if (!squad) return;
+    const T = TILE_SIZE;
+    const g = this.add.graphics().setDepth(0.96).setName('squad-highlight');
+    g.setData('squad', squad);
+    g.lineStyle(2, this.squadColour(squad), 0.9);
+    for (const m of this.engine.marines) {
+      if (!m.alive || squadOf(m) !== squad) continue;
+      g.strokeRect(m.pos.c * T + 3, m.pos.r * T + 3, T - 6, T - 6);
+    }
+    this.squadHighlight = g;
+  }
+
+  /** The squad order's marker on its target: a double ring (defend), a ring
+   *  with a chevron (advance) or a bar on the door edge (clear), in the
+   *  squad colour. */
+  private setSquadMarker(squad: string, order: SquadOrder | null): void {
+    this.squadMarkers[squad]?.destroy();
+    delete this.squadMarkers[squad];
+    if (!order) return;
+    const T = TILE_SIZE;
+    const colour = this.squadColour(squad);
+    const g = this.add.graphics().setDepth(0.94).setName('squad-marker');
+    g.setData('squad', squad);
+    g.setData('kind', order.type);
+    const cx = order.x * T + T / 2, cy = order.y * T + T / 2;
+    if (order.type === 'clear') {
+      const v = DIR_VEC[order.facing as 0 | 1 | 2 | 3];
+      const mx = (order.x + 0.5 + v.dc * 0.5) * T, my = (order.y + 0.5 + v.dr * 0.5) * T;
+      g.lineStyle(4, colour, 0.9);
+      g.lineBetween(mx - v.dr * T * 0.35, my - v.dc * T * 0.35, mx + v.dr * T * 0.35, my + v.dc * T * 0.35);
+    } else {
+      g.lineStyle(3, colour, 0.9);
+      g.strokeCircle(cx, cy, T * 0.46);
+      if (order.type === 'defend') {
+        g.lineStyle(1, colour, 0.6);
+        g.strokeCircle(cx, cy, T * 0.3);
+      } else {
+        // A chevron pointing up: "move here".
+        g.lineStyle(3, colour, 0.9);
+        g.lineBetween(cx - T * 0.2, cy + T * 0.1, cx, cy - T * 0.15);
+        g.lineBetween(cx, cy - T * 0.15, cx + T * 0.2, cy + T * 0.1);
+      }
+    }
+    this.squadMarkers[squad] = g;
+  }
+
+  /** Space: the command pause. */
+  private toggleCommandPause(): void {
+    if (this.engine.state.result !== 'ongoing') return;
+    this.commandPaused = !this.commandPaused;
+    if (this.commandPaused) {
+      const cam = this.cameras.main;
+      const bar = this.add.rectangle(0, 0, cam.width - HUD_WIDTH, 34, 0x000000, 0.65).setOrigin(0);
+      const label = this.add.text((cam.width - HUD_WIDTH) / 2, 17, 'COMMAND PAUSE   right-click orders, Tab squads, Space resumes', {
+        fontFamily: UI_FONT, fontSize: '16px', color: '#ffffff', fontStyle: 'bold'
+      }).setOrigin(0.5);
+      this.commandPauseOverlay = this.add.container(0, 0, [bar, label]).setScrollFactor(0).setDepth(90).setName('command-pause');
+    } else {
+      this.commandPauseOverlay?.destroy();
+      this.commandPauseOverlay = undefined;
+      this.tickAcc = 0;
+    }
+  }
+
+  /** True while the command pause holds the clock; public for the e2e suite. */
+  get isCommandPaused(): boolean { return this.commandPaused; }
 
   /** If the vanished piece owned the selection, clear it and tell the HUD. */
   private clearSelectionOf(pieceId: string, disarmFlamer: boolean): void {
@@ -1837,6 +2032,7 @@ export default class LiveScene extends Phaser.Scene {
   }
 
   private updateHighlight() {
+    this.drawSquadHighlight();
     const selectedId = Selection.get();
     if (!selectedId) {
       this.highlight.hide();

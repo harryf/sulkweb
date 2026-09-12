@@ -49,6 +49,20 @@ export abstract class Piece {
    *  and ai/orders.ts setOrder so the orderChanged event never lies. */
   order: MarineOrder | null = null;
 
+  /** The squad task (2.x stage 3): the L2 slot, written only by the squad
+   *  planners (ai/squad.ts) and executed exactly like an order once the L1
+   *  slot is empty. A direct command never touches it. */
+  task: MarineOrder | null = null;
+
+  /** Ticks the live order or task has made no progress on a full AP pool;
+   *  TUNING.orderStallTicks of them drop it (a blocked walk, a door someone
+   *  else opened). */
+  orderStall = 0;
+
+  /** Deployment squad tag (mission roster grouping); undefined for pieces
+   *  placed outside the deployment list. Set by GameEngine at construction. */
+  squad: string | undefined = undefined;
+
   /**
    * One tick of AP regeneration (engine tick step 1): +1 AP every
    * TUNING.regen[kind] ticks up to the cap. A full piece banks nothing: the

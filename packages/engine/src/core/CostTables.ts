@@ -52,6 +52,21 @@ export interface Tuning {
   spawnOffsetTicks: number;
   /** Tick inside the cycle (0 = the boundary) at which each cycle event fires. */
   offsets: { cat: number; download: number; ambush: number };
+  /** Squad orders (stage 3): ticks before a squad order takes effect without a
+   *  living sergeant (with one: the next tick). */
+  relayTicks: number;
+  /** A threat in sight within this many squares of a member suspends an advance. */
+  contactRange: number;
+  /** Ticks the advance stays suspended after the last close contact. */
+  contactHoldTicks: number;
+  /** defend on a corridor square: the area is the squares within this walk. */
+  defendRadius: number;
+  /** How far outside the area an entrance's lane reaches. */
+  laneDepth: number;
+  /** clear: the opener goes once the covers stand, or this many ticks after their tasks were issued. */
+  clearTimeoutTicks: number;
+  /** An order or task that makes no progress on a full pool for this many ticks is dropped. */
+  orderStallTicks: number;
 }
 
 export const TUNING: Tuning = {
@@ -67,6 +82,16 @@ export const TUNING: Tuning = {
   leaseTicks: 8,
   spawnOffsetTicks: 5,
   offsets: { cat: 10, download: 20, ambush: 30 },
+  // Stage 3 (2026-09-13): plan values, unvalidated by a scan (the autopilot
+  // issues no squad orders); relayTicks is the plan's 8, the rest are the
+  // advisor's stall guards. Tune on feel.
+  relayTicks: 8,
+  contactRange: 6,
+  contactHoldTicks: 8,
+  defendRadius: 3,
+  laneDepth: 8,
+  clearTimeoutTicks: 20,
+  orderStallTicks: 10,
 };
 
 /** Nested partial of Tuning: every leaf optional. */

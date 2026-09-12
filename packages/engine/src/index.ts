@@ -17,8 +17,10 @@ export { flameFlood, igniteSquares, sectionSquares, clearFlames, expireFlames } 
 export { Dir } from './core/Direction.js';
 export { AP_PER_TURN, MOVE_COST, TURN_COST, TUNING, applyTuning, parseTuning } from './core/CostTables.js';
 export type { Tuning, TuningPatch } from './core/CostTables.js';
-export type { MarineCommand, MoveDir, MarineOrder } from './core/Commands.js';
-export { orderStep, orderLabel, orderIsValid, setOrder } from './ai/orders.js';
+export type { MarineCommand, MoveDir, MarineOrder, SquadOrder } from './core/Commands.js';
+export { orderStep, orderLabel, orderIsValid, setOrder, setTask, activeOrder, squadLabel } from './ai/orders.js';
+export { squadTick, squadOf, squadMembers, hasSergeant, isPinned, planDefend, planClear, defendArea, entrancesOf, laneOf, entrancesCovered, columnOrder, battleOrder } from './ai/squad.js';
+export type { SquadState, DefendPost, ClearPlan } from './ai/squad.js';
 
 export { Door } from './rules/Door.js';
 export * from './events/PieceEvents.js';

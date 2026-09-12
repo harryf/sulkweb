@@ -12,7 +12,7 @@ import { closeCombat } from '../rules/combat.js';
 import { flameFlood } from '../rules/flame.js';
 import { looseCatPos } from '../rules/exotic.js';
 import { TUNING } from '../core/CostTables.js';
-import { orderStep, turnWouldBearOn } from './orders.js';
+import { activeOrder, noteOrderStall, orderStep, turnWouldBearOn } from './orders.js';
 
 /**
  * Marine default AI (2.x, docs/realtime-plan.md "Default behaviour"): what a
@@ -64,6 +64,9 @@ import { orderStep, turnWouldBearOn } from './orders.js';
  * because the order step takes the marine off overwatch itself; the transit
  * version of rule 7 fires only when the turn would bring the seen stealer
  * into the fire lane; rules 8 to 11 never fire while an order is live.
+ * Stage 3: the squad task (Piece.task) is read the same way once the
+ * player's order slot is empty (ai/orders.ts activeOrder), and a slot that
+ * makes no progress on a full pool for TUNING.orderStallTicks is dropped.
  */
 export type MarineAiAction =
   | 'unjam' | 'shoot' | 'melee' | 'turn' | 'flame' | 'closeDoor' | 'reload' | 'overwatch'
@@ -229,7 +232,7 @@ export function marineTick(engine: GameEngine, m: Piece): MarineAiAction | null 
   //    marine skips this: the order step takes him off overwatch); a threat
   //    in sight outside the arc that a turn would bring into the line of
   //    fire is worth the re-arm
-  if (bolter?.overwatch && !m.order) {
+  if (bolter?.overwatch && !activeOrder(m)) {
     const t = nearestThreatInSight(board, m);
     if (t && !threatInArc(board, m) && turnWouldBearOn(board, m, t)
         && faceIfNeeded(m, facingToward(m.pos, t.pos))) return 'turn';
@@ -258,12 +261,22 @@ export function marineTick(engine: GameEngine, m: Piece): MarineAiAction | null 
     const sq = lastStandTarget(engine, m);
     if (sq && m.flameAt(sq) !== undefined) return 'flame';
   }
-  // Orders: transit reaction, then the order step; nothing below fires.
-  if (m.order) {
+  // Orders and squad tasks: transit reaction, then the order step; nothing
+  // below fires. A step that returns null on a full pool counts toward the
+  // stall guard.
+  const active = activeOrder(m);
+  if (active) {
     const seenInTransit = nearestSeen(board, m);
     if (seenInTransit && turnWouldBearOn(board, m, seenInTransit)
         && faceIfNeeded(m, facingToward(m.pos, seenInTransit.pos))) return 'turn';
-    return orderStep(engine, m);
+    const action = orderStep(engine, m);
+    if (action !== null) { m.orderStall = 0; return action; }
+    if (active.level === 1) { noteOrderStall(m, TUNING.orderStallTicks); return null; }
+    // A squad task that cannot progress on a full pool (post unreachable,
+    // the column blocked) hands the tick to the parking rules below: he
+    // covers where he stands instead of standing idle. Short of a full
+    // pool he waits, since the task may be saving AP.
+    if (m.ap < m.apInitial) return null;
   }
   // 7. in sight (any direction) but not shootable: turn toward the nearest,
   //    never away from a threat already in the fire arc (the advisor's veto:

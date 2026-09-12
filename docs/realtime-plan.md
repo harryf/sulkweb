@@ -1,6 +1,6 @@
 # Real-time Sulk: plan for the 2.x line
 
-Status: APPROVED 2026-09-12; stage 1 BUILT the same day and shipped as v2.0.0-alpha.1 (ISA run block ISC-1166..1324; the "Stage 1 as built" subsection records what changed from the kickoff and the balance evidence the build produced); stage 2 BUILT the same day and shipped as v2.0.0-alpha.2 (ISA run block ISC-1341..1470; "Stage 2 as built" records its deviations and the tuning numbers); stage 3 BUILT 2026-09-13 and shipped as v2.0.0-alpha.3 (ISA run block ISC-1504..1582; "Stage 3 as built" at the end records what changed from the sketches and the stage 4 notes; stage 4 starts there). Round one (ISA run block ISC-1095..1133) was reviewed and Harry answered open questions 1 to 14 and added the command pause idea; round two (ISC-1134..1153) folded those answers in, assessed the idea and asked questions 15 to 22, which Harry answered the same day (all agreed). Every open question carries a decision; the Decision column is the record. Stage 2 starts from its own section once the two stage 1 verdicts are in.
+Status: APPROVED 2026-09-12; stage 1 BUILT the same day and shipped as v2.0.0-alpha.1 (ISA run block ISC-1166..1324; the "Stage 1 as built" subsection records what changed from the kickoff and the balance evidence the build produced); stage 2 BUILT the same day and shipped as v2.0.0-alpha.2 (ISA run block ISC-1341..1470; "Stage 2 as built" records its deviations and the tuning numbers); stage 3 BUILT 2026-09-13 and shipped as v2.0.0-alpha.3 (ISA run block ISC-1504..1582; "Stage 3 as built" records what changed from the sketches); Harry's verdict on alpha.3: "It's not bad. We're going to have to make it easier for the marines but for now this is good"; stage 4 starts at the LAST section, "Stage 3 verdict and stage 4 handover". Round one (ISA run block ISC-1095..1133) was reviewed and Harry answered open questions 1 to 14 and added the command pause idea; round two (ISC-1134..1153) folded those answers in, assessed the idea and asked questions 15 to 22, which Harry answered the same day (all agreed). Every open question carries a decision; the Decision column is the record. Stage 2 starts from its own section once the two stage 1 verdicts are in.
 
 ## Summary
 
@@ -590,3 +590,31 @@ Shipped as v2.0.0-alpha.3 (prerelease, its own frozen directory; the root stays 
 ### Stage 4 notes
 
 Mission orders are a squad order sent to every squad plus `objective` (the plan's L3); the squad state map and the planners are per squad, so an L3 is a loop over engine.squadNames(). The metered pause needs a pool on the engine advanced by tick() and a `pauseSpent` command at the resume tick; the unmetered flag lives in LiveScene.toggleCommandPause and the overlay is the container named 'command-pause'. The balance sweep should give the autopilot a squad-order issuer (defend the start section on the first cycle, advance toward the objective when quiet) so the scan sees stage 3; today it sees only stage 2. Playtest questions for Harry on alpha.3: does defend put marines where you would; does the relay lag read as the sergeant's worth; is the flamer-at-the-head opener right; is contact at 6 squares too jumpy.
+
+## Stage 3 verdict and stage 4 handover (2026-09-13)
+
+### The verdict
+
+Harry, after playing v2.0.0-alpha.3: "It's not bad. We're going to have to make it easier for the marines but for now this is good." Stage 3 passes as built; "easier for the marines" is carried into stage 4 as its first job, not a reason to reopen stage 3. Nothing was tuned on the verdict (his "for now this is good").
+
+### Easier for the marines: the levers, ranked
+
+The alpha he approved is the squad-orders game, and the only instrument that scores difficulty today is the autopilot seed scan, which issues individual orders only (space_hulk_1 won on 2 of 60 seeds, space_hulk_2 on 3 of 60, at the shipped tuning). A low win rate from a weak policy reads as a hard game. So the balance pass starts with the instrument, then a rule question, then numbers, in that order:
+
+1. The instrument first. Give the autopilot a squad-order issuer (defend the start section on the first cycle, advance toward the objective when nothing is in sight, clear the door in front of a stalled column) and re-run the same seeds on both hulk missions before changing any number. Keep the individual-orders scan as the floor. Two or three wins in 60 cannot rank one change against another: use more seeds per row, or report the interval.
+2. The transit exposure is a rule question, not a constant. A squad walking to its posts is off overwatch for the whole transit, and the first wipes in the boot check came in that window (space_hulk_1 seed 1, the room's west door, seven seconds in). Put the options to Harry as a design decision: overwatch kept while moving in formation; posting in stages (the nearest post first, the rest once it is covered); the order held until every post is reached; or accept the gap and have the issuer sequence around it. This is likely the cheapest honest way to make things easier.
+3. Numbers last, one lever at a time on fixed seeds, per mission before global: blips per cycle and the reinforcement budget (mission JSON, a per-mission difficulty multiplier would keep the fidelity numbers intact), the command pause pool size and refill once it exists, reinforcement timing (spawnOffsetTicks), then the global constants: stealer and blip regen (2), overwatchCooldown (2), and regen.marine (3) last. Ask Harry for a rough win-rate band per mission first; "easier" is not a number.
+
+The one mistake to avoid: tuning a global constant to fix a win rate the bot produced. regen.marine 2 was tried in stage 2: it makes debug_1 a trivial walking race (30 of 30 without a shot) while the squad missions barely move. Before easing a number, check whether a sensible human order would have avoided the loss; easing the game to cover a weak bot overshoots for the human.
+
+### Stage 4 build order (each step leaves the suites green)
+
+1. The autopilot squad-order issuer and a re-scan (the instrument), numbers into this file and CLAUDE.md.
+2. The transit rule decision from Harry, then its implementation and spec.
+3. All nine missions under the tick rules: a fixture per victory and loss path (defend's turn limit, download, escort, kill quota, blockade, flame objectives, escape count re-verified per cycle).
+4. Mission orders (a squad order sent to every squad plus `objective`; loop over engine.squadNames()).
+5. The metered command pause: `pausePool` on the engine advanced by tick() with the cap and recharge scaled by living sergeants (plan "Command pause"), the `pauseSpent` command at the resume tick, the pool meter on the HUD, P and command points retired.
+6. The balance sweep across all nine missions with the issuer, one lever at a time; the table in CLAUDE.md dated.
+7. Manual and rules reference final; tag v2.0.0 (deploy.yml strict tag path), root manifest and STABLE_VERSION to 2.0.0, /1.1.0/ unchanged.
+
+Housekeeping owed: the Interceptor real-Chrome pass (beta blocker, stale daemon pattern); the ISA rotation (the stage 2 run rotates to docs/isa/realtime-2x.md when stage 4 opens); FPS probe ISC-71.

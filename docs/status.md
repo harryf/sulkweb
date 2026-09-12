@@ -66,9 +66,11 @@ Tab selects a squad, right-click gives it defend, advance (Shift) or clear
 task behind his own orders, a living sergeant relays an order on the next
 tick and a dead one costs two seconds and the coordination, and Space is
 the unmetered command pause. The plan's "Stage 3 as built" subsection
-records the deviations. Stage 4 (mission orders, the metered pause pool
-replacing command points, the balance sweep across all nine missions,
-2.0.0 on the root) is next.
+records the deviations. Harry's verdict on alpha.3: "It's not bad. We're
+going to have to make it easier for the marines but for now this is good."
+Stage 4 (the balance pass first, then mission orders, the metered pause
+pool replacing command points, all nine missions, 2.0.0 on the root) starts
+at the plan's "Stage 3 verdict and stage 4 handover" section.
 
 ## Known gaps / residue
 

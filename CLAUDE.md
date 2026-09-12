@@ -12,7 +12,7 @@ ALL NINE missions registered (space_hulk 1–6, beta_1, beta_2, debug_1); the co
 | Missions, controls, roster, deployment phase | `docs/features.md` |
 | Gameplay log export schema (stealer-AI analysis corpus) | `docs/gamelog-format.md` |
 | Roadmap state and known gaps | `docs/status.md` |
-| **2.x real-time plan (APPROVED 2026-09-12; stage 1 shipped as v2.0.0-alpha.1 and played: "works, playable, really hard"; stage 2 shipped as v2.0.0-alpha.2 the same day; stage 3 (squad orders, the chain of command, the command pause) shipped as v2.0.0-alpha.3 on 2026-09-13; START THE NEXT SESSION at its last section, "Stage 3 as built" (what changed from the sketches, the stage 4 notes and the playtest questions))** | `docs/realtime-plan.md` |
+| **2.x real-time plan (APPROVED 2026-09-12; stage 1 shipped as v2.0.0-alpha.1 and played: "works, playable, really hard"; stage 2 shipped as v2.0.0-alpha.2 the same day; stage 3 (squad orders, the chain of command, the command pause) shipped as v2.0.0-alpha.3 on 2026-09-13 and played: "not bad, we're going to have to make it easier for the marines"; START THE NEXT SESSION at its last section, "Stage 3 verdict and stage 4 handover" (the levers ranked, the transit rule question, the stage 4 build order))** | `docs/realtime-plan.md` |
 | Original milestone specs (M0–M8) and roadmap | `docs/history/prompts/` |
 | Canonical game rules (AP costs, dice, blips, phases) | `docs/history/SULK Manual Combined.pdf`; distilled digest in ISA Decisions |
 | Original Pygame engine analysis | `docs/history/Analysis Sulk Pygame*.html` |
@@ -367,8 +367,11 @@ The 2.x line (docs/realtime-plan.md) is in progress: stage 1 (the clock) shipped
 as v2.0.0-alpha.1 and dissolved the old "marine interrupts" gap (marines act at
 any time now); stage 2 (individual orders, right-click) shipped as
 v2.0.0-alpha.2; stage 3 (squad orders, the chain of command, the command
-pause) shipped as v2.0.0-alpha.3; stage 4 (mission orders, the metered pause,
-the balance sweep, 2.0.0) starts from the plan's "Stage 3 as built" section. Still open: thunder hammer + captain/grenades + librarian psi (no
+pause) shipped as v2.0.0-alpha.3 and passed its playtest with one carried
+requirement, "easier for the marines"; stage 4 (the balance pass first: a
+squad-order autopilot issuer, the transit overwatch rule, then numbers;
+mission orders, the metered pause, all nine missions, 2.0.0) starts from the
+plan's "Stage 3 verdict and stage 4 handover" section. Still open: thunder hammer + captain/grenades + librarian psi (no
 registered mission uses them; sprites exist unused per docs/asset-index.md),
 off-board entry-limbo lurking, the first balance sweep of the real-time
 constants. Deferred verifications: FPS probe (ISC-71), live real-Chrome boot

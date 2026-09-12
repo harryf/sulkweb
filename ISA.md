@@ -4,10 +4,10 @@ task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: context-override
 phase: complete
-progress: "1515/1515 (stage 3 shipped as v2.0.0-alpha.3; ISC-1038 dropped; ISC-71 deferred)"
+progress: "1525/1525 (stage 3 verdict recorded, stage 4 handover written; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T20:16:00Z
+updated: 2026-09-12T20:30:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -701,10 +701,26 @@ Docs, housekeeping, release:
 - [x] ISC-1581: the advisor is called before BUILD and before complete; findings recorded in Decisions (grep)
 - [x] ISC-1582: Forge writes the squad e2e spec and its run is verified by me (Decisions, vitest output)
 
+### Stage 3 verdict and stage 4 handover notes (2026-09-13, twenty-fifth run)
+
+Harry, after playing v2.0.0-alpha.3: "It's not bad. We're going to have to make it easier for the marines but for now this is good. Write notes as needed then get ready to compact again to proceed to stage 4". Classifier E3; the natural granularity of a docs commit is ten probes (Decisions).
+
+- [x] ISC-1583: docs/realtime-plan.md gains "## Stage 3 verdict and stage 4 handover (2026-09-13)" with the verdict quoted verbatim (grep)
+- [x] ISC-1584: the handover names the balance direction (easier for the marines) as stage 4's first job with the levers ranked and the one mistake to avoid, from the FirstPrinciples pass and the advisor (grep "levers")
+- [x] ISC-1585: the handover gives the stage 4 build order, each step leaving the suites green (grep "Stage 4 build order")
+- [x] ISC-1586: the plan's Status line records the verdict and points stage 4 at the new section (grep)
+- [x] ISC-1587: CLAUDE.md read-first row points the next session at the new section; "Where work would continue" names the balance direction (grep)
+- [x] ISC-1588: docs/status.md next-line paragraph carries the verdict (grep "not bad")
+- [x] ISC-1589: PROJECTS.md Sulk entry carries the verdict and the next-session pointer (grep "not bad")
+- [x] ISC-1590: Anti: no code, mission JSON or TUNING change in this run (git diff --stat names docs, CLAUDE.md, ISA.md only)
+- [x] ISC-1591: Anti: zero em dashes and banned words in the added lines (grep)
+- [x] ISC-1592: committed on main with the trailers and pushed; tree clean; the docs-only push triggers no deploy
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
+| ISC-1583..1592 | docs/repo | greps, git diff stat, git status | present; docs only; clean | grep, git |
 | ISC-1504..1550 | engine | squad.spec, orders.spec, determinism.spec, gamelog.spec, tsc, lint, coverage | green; >= 98% lines | vitest, tsc, grep |
 | ISC-1551..1566 | client | Selection unit, squad e2e, keyboardHelp.spec, boot check | green; 0 console errors | vitest, playwright, node |
 | ISC-1567..1582 | docs/ship | greps, gh run, curl of manifests, git diff | present; green; sha match | grep, gh, curl |
@@ -957,6 +973,8 @@ Docs, housekeeping, release:
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-13 (stage 3 verdict, E3 by the classifier, honoured with the ISC floor waived: a docs commit has ten probes): Harry's verdict on alpha.3 quoted verbatim in the plan, status.md, CLAUDE.md and PROJECTS.md; nothing tuned ("for now this is good"). FirstPrinciples on "easier for the marines": determinism hard; the mission numbers and the regen constants soft; the transit exposure (a squad off overwatch while walking to its posts) an assumption dressed as balance, really a rule question; the autopilot as the difficulty instrument an assumption (it issues individual orders only, so its 2 of 60 reads a weak policy as a hard game). Advisor: build the squad-order issuer first and re-scan before any number moves; put the transit rule to Harry as a design decision with four options; sweep per-mission levers before global ones with a target band per mission; the one mistake is cutting regen.marine to 2 on the bot's win rate (tried in stage 2, debug_1 trivial). All of it is the handover section, with a seven-step stage 4 build order.
 
 - 2026-09-13 (stage 3, VERIFY and RELEASE): the advisor's pre-tag checks ran. Scripted squad-order sweep (48 games: space_hulk_1 and space_hulk_2, seeds 1 to 12, with and without the sergeant dying at tick 40; defend at 0, advance to the objective at 80, clear the nearest door at 200): replay determinism 48 of 48, no order alive past 400 ticks in an ongoing game; space_hulk_1 loses every seed by tick 88 to 205 under that script (the advance walks the squad into the hive, which is the script, not a stall), space_hulk_2 completes two or three orders per game and is ongoing at 600 ticks on six seeds. Two collision cases added (a later player order is never replaced by the planner: the level 1 stream is set then at most its own clear; the relay counts engine ticks so a paused clock freezes it). Forge's e2e spec stopped one case short at its turn limit (live stealers killing marines on the walk); finished by hand. Shipped: 5068ca9, tag v2.0.0-alpha.3, release run 34716328749 green, prerelease published, live at https://harryf.github.io/sulkweb/2.0.0-alpha.3/ (manifest v2.0.0-alpha.3), root v1.1.0 untouched, versions.html lists it. Known gaps stated in the release notes: no human playtest of squad orders, Interceptor blocked (headless Chromium stood in), the seeds and the scan do not cover squad orders. The archive rotation moved runs 16 to 19 to docs/isa/realtime-2x.md.
 
@@ -1341,3 +1359,12 @@ The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/
 - ISC-1580: git show --stat 5068ca9 -- packages/engine/src/missions is empty
 - ISC-1581: advisor_s3_1 (before BUILD: contact rule, clear gate, precedence) and advisor_s3_2 (before complete: the scripted squad-order sweep, the collision cases, the gap notes), both in Decisions
 - ISC-1582: Forge wrote packages/client/tests/squad.spec.ts (five tests) and stopped at its turn limit with one case still failing on live stealers; I finished it (quietStealers folded into the command-path case, the diagnostic spec it left deleted) and verified 5 passed, then 124 passed in the full suite
+
+### Stage 3 verdict and stage 4 handover (2026-09-13)
+
+- ISC-1583..1586: grep realtime-plan.md "## Stage 3 verdict and stage 4 handover (2026-09-13)", the verdict quoted, "the levers, ranked", "### Stage 4 build order", the Status line naming the verdict and the section
+- ISC-1587: grep CLAUDE.md read-first row "Stage 3 verdict and stage 4 handover"; "Where work would continue" names "easier for the marines"
+- ISC-1588, 1589: grep status.md and PROJECTS.md "not bad"
+- ISC-1590: git diff --stat before the commit: ISA.md, CLAUDE.md, docs/realtime-plan.md, docs/status.md only
+- ISC-1591: em dashes and banned words in the added lines 0
+- ISC-1592: the commit below on main with the trailers, pushed, tree clean; no workflow run for a docs-only push (paths-ignore)

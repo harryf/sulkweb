@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: context-override
-phase: verify
-progress: "1560/1562 (stage 4 step 1: ISC-1593..1627 verified, 1628 commit and 1629 the questions pending; ISC-1038 dropped; ISC-71 deferred)"
+phase: complete
+progress: "1562/1562 (stage 4 step 1 done: the instrument built and scanned, two decisions put to Harry; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T21:16:00Z
+updated: 2026-09-12T21:20:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -574,8 +574,8 @@ Housekeeping and close:
 - [x] ISC-1625: the stage 2 run, the alpha.2 facing run and the final write-up run rotate from ISA.md to docs/isa/realtime-2x.md (grep both files; README row updated)
 - [x] ISC-1626: this run block all [x] with a Verification block and the frontmatter progress updated
 - [x] ISC-1627: PROJECTS.md Sulk entry: stage 4 open, the numbers, the two questions pending
-- [ ] ISC-1628: commit on main with the trailers, pushed, tree clean; deploy-latest green for the engine change
-- [ ] ISC-1629: the transit rule (four options) and the win-rate band are put to Harry in this turn's close with the scan numbers beside them
+- [x] ISC-1628: commit on main with the trailers, pushed, tree clean; deploy-latest green for the engine change
+- [x] ISC-1629: the transit rule (four options) and the win-rate band are put to Harry in this turn's close with the scan numbers beside them
 
 ## Test Strategy
 
@@ -1198,3 +1198,5 @@ The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/
 - ISC-1625: ISA.md 1174 lines, ISC-14xx criteria 0 in the root and 129 in docs/isa/realtime-2x.md; README row names stage 2 and the facing fix
 - ISC-1626: this block; frontmatter progress below
 - ISC-1627: grep PROJECTS.md "STAGE 4 OPENED 2026-09-13, STEP 1 DONE"
+- ISC-1628: commit c31d701 on main with the trailers, pushed (HEAD == origin/main, tree clean); deploy-latest run 34719570072 success (build-publish, deploy); /latest/manifest.json version latest-c31d701
+- ISC-1629: the transit rule (four handover options plus the fifth from the data) and the win-rate band per mission are in this turn's closing summary with the scan table beside them; the ISA close commit follows this block

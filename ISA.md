@@ -4,7 +4,7 @@ task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: "1012/1012 (v1.0.0 released: ISC-1072..1079; ISC-1038 dropped; ISC-71 deferred)"
+progress: "1023/1023 (toward v1.1: ISC-1080..1090 on /latest/; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-09-12T13:20:00Z
@@ -468,7 +468,7 @@ Review round (2026-09-12):
 - [x] ISC-1087: docs/features.md keymap row names the wheel alongside arrows and drag (Read)
 - [x] ISC-1088: full Playwright suite green with wheel.spec added, pinned seeds intact (pnpm client e2e)
 - [x] ISC-1089: Anti: zero em dashes on any added line (git diff grep)
-- [ ] ISC-1090: both changes pushed to main and live on /latest/ with the callout URL in the ship report; v1.1.0 is NOT cut in this run (user chooses when the minor closes) (git push, curl /latest/manifest.json)
+- [x] ISC-1090: both changes pushed to main and live on /latest/ with the callout URL in the ship report; v1.1.0 is NOT cut in this run (user chooses when the minor closes) (git push, curl /latest/manifest.json)
 
 ## Test Strategy
 
@@ -947,3 +947,4 @@ Latest-pipeline hardening run (2026-08-20 seventh run, ISC-969..975):
 - ISC-1087: Read docs/features.md: "Arrows / drag / mouse wheel | Pan camera (wheel down pans down...)"
 - ISC-1088: pnpm client e2e: 124 passed (54.2s); client unit 105/105
 - ISC-1089: git diff HEAD | grep '^+' | grep -c em dash: 0
+- ISC-1090: git push e6a5d16..3e21a48 main; deploy-latest green; curl /latest/manifest.json reads latest-3e21a48; root still v1.0.0

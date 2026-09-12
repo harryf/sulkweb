@@ -5,6 +5,11 @@ import type { Piece } from '../pieces/Piece.js';
 import { chebyshev } from '../core/Direction.js';
 import type { Board } from '../board/Board.js';
 import type { MarineCommand, MarineOrder } from '../core/Commands.js';
+import { runSquadTurn, flamerApproach, sectionClearOfMarines } from './SquadAutopilot.js';
+
+/** Which issuer the autopilot plays: individual orders (stage 2, the pinned
+ *  fixtures) or squad orders with direct actions only (stage 4's instrument). */
+export type AutopilotPolicy = 'orders' | 'squads';
 
 /**
  * The scripted order issuer (2.x stage 2). The autopilot no longer plays the
@@ -27,19 +32,28 @@ import type { MarineCommand, MarineOrder } from '../core/Commands.js';
  * Deterministic for a seed: the pinned e2e fixtures and the seed scans ride
  * it. Doors on the route are opened by the order itself.
  */
-export function runMarineTurn(engine: GameEngine): void {
+export function runMarineTurn(engine: GameEngine, policy: AutopilotPolicy = 'orders'): void {
   const board = engine.state.board;
+  const squads = policy === 'squads';
   const goal = engine.mission.objectivePoint ?? engine.mission.exitPoints?.[0];
   const flameMission = engine.mission.objective === 'flame-objective';
   const flamer = engine.marines.find(f => f instanceof HeavyFlamerMarine);
   const enemiesNear = () => (board.pieces as Piece[]).some(p =>
     p.kind !== 'marine' && engine.marines.some(m => chebyshev(m.pos, p.pos) <= 10));
   const quotaPosts = engine.mission.objective === 'kill-quota' ? assignEntryPosts(engine) : undefined;
+  if (squads) runSquadTurn(engine);
 
   for (const m of [...engine.marines]) {
     if (!m.alive || engine.state.result !== 'ongoing') continue;
-    const cmd = chooseCommand(engine, m, { goal, flameMission, flamer, quotaPosts, enemiesNear });
-    if (cmd) engine.command(m.id, cmd);
+    const cmd = chooseCommand(engine, m, { goal, flameMission, flamer, quotaPosts, enemiesNear, squads });
+    if (!cmd) continue;
+    // The bot's flame is not the player taking the wheel: the pin that a
+    // direct command leaves (a cycle as a defend post, left alone by the
+    // other planners) would hold the column hostage to one shot. The
+    // parking commands keep their stamp on purpose (see chooseCommand).
+    const before = m.lastCommandTick;
+    engine.command(m.id, cmd);
+    if (squads && cmd.type === 'flame') m.lastCommandTick = before;
     if (engine.state.result !== 'ongoing') return;
   }
 }
@@ -50,6 +64,10 @@ interface TurnContext {
   flamer: Piece | undefined;
   quotaPosts: Map<string, { x: number; y: number }> | undefined;
   enemiesNear: () => boolean;
+  /** Squads policy: the squad planners move the marines; this pass issues
+   *  direct actions only (the flame, the firing door, the flamer's approach
+   *  to a firing square, the download sergeant, the cat fetcher). */
+  squads?: boolean;
 }
 
 /** The one command this marine gets now, or null. */
@@ -64,7 +82,11 @@ function chooseCommand(engine: GameEngine, m: Piece, ctx: TurnContext): MarineCo
       // In reach: hold for the 2 AP (a step would spend them and walk him
       // into the room he means to burn), then fire.
       if (m.order) return { type: 'clearOrder' };
-      return m.canFlame(inReach) ? { type: 'flame', x: inReach.x, y: inReach.y } : null;
+      if (m.canFlame(inReach) && (!ctx.squads || sectionClearOfMarines(engine, inReach))) return { type: 'flame', x: inReach.x, y: inReach.y };
+      // Squads: his squad task would spend the AP walking him on, so he is
+      // parked by a refused command (overwatch is not his) that stamps the
+      // lease, the same trick the firing door plays below.
+      return ctx.squads ? { type: 'overwatch', on: true } : null;
     }
     // The firing door: a closed door in his front three whose opening puts a
     // flame target in reach is opened from HERE, one square short of it (the
@@ -77,7 +99,18 @@ function chooseCommand(engine: GameEngine, m: Piece, ctx: TurnContext): MarineCo
       door.close(true);
       if (wouldReach) return { type: 'door' };
     }
+    // Squads: a flame target a short walk away pulls him out of the column
+    // to the nearest firing square outside its section (a player's order
+    // beats the squad task); the column waits for him.
+    if (ctx.squads && !m.order && m.ammo >= 1) {
+      for (const t of flamePoints) {
+        const sq = board.get(t.x, t.y);
+        const order = sq ? flamerApproach(board, m, sq) : undefined;
+        if (order) return { type: 'order', order };
+      }
+    }
   }
+  if (ctx.squads) return squadsIndividual(engine, m, ctx);
   // Cover: with the horde inside 10 squares a bolter drops his march and
   // lets the default list overwatch; not on missions whose job is to leave
   // (reach-exit, escape-count), where stopping to cover is how a lone
@@ -97,6 +130,34 @@ function chooseCommand(engine: GameEngine, m: Piece, ctx: TurnContext): MarineCo
     then: m instanceof StormBolterMarine ? 'overwatch' : 'hold',
   };
   return { type: 'order', order };
+}
+
+/** The squads policy's remaining individual orders: the download sergeant
+ *  walks to the Data Room square once the squad has arrived and he is not on
+ *  it; the marine nearest a loose cat fetches it and the carrier walks to
+ *  the nearest exit. Everyone else is the squad's. */
+function squadsIndividual(engine: GameEngine, m: Piece, ctx: TurnContext): MarineCommand | null {
+  if (m.order) return null;
+  const board = engine.state.board;
+  const squadLive = engine.squadState(m.squad ?? 'Squad')?.order != null;
+  const go = (t: { x: number; y: number }): MarineCommand | null =>
+    t.x === m.pos.c && t.y === m.pos.r ? null : { type: 'order', order: { type: 'moveTo', x: t.x, y: t.y, then: m instanceof StormBolterMarine ? 'overwatch' : 'hold' } };
+  if (engine.mission.objective === 'download' && m instanceof SergeantMarine && !squadLive) {
+    const dp = engine.mission.downloadPoint;
+    return dp ? go(dp) : null;
+  }
+  if (engine.mission.objective === 'escort-cat') {
+    const cat = board.cat;
+    if (cat && !cat.destroyed) {
+      if (cat.carrierId === m.id) { const exit = missionTarget(engine, m); return exit ? go(exit) : null; }
+      if (cat.carrierId === null) {
+        const fetcher = [...engine.marines].sort((a, b) =>
+          Math.hypot(a.pos.c - cat.pos.c, a.pos.r - cat.pos.r) - Math.hypot(b.pos.c - cat.pos.c, b.pos.r - cat.pos.r))[0];
+        if (fetcher?.id === m.id) return go({ x: cat.pos.c, y: cat.pos.r });
+      }
+    }
+  }
+  return ctx.goal && false ? null : null;
 }
 
 /** Per-mission movement target for one marine (undefined = hold/overwatch or
@@ -154,7 +215,7 @@ function missionTarget(engine: GameEngine, m: Piece): { x: number; y: number } |
  * entry within 6 board-walk squares (the blockade metric), which are removed
  * from the pool. Marines left over reinforce their nearest entry.
  */
-function assignEntryPosts(engine: GameEngine): Map<string, { x: number; y: number }> {
+export function assignEntryPosts(engine: GameEngine): Map<string, { x: number; y: number }> {
   const board = engine.state.board;
   const entries = engine.mission.entryPoints ?? [];
   const posts = new Map<string, { x: number; y: number }>();
@@ -197,9 +258,9 @@ function walkDist(board: Board, a: { x: number; y: number }, b: { x: number; y: 
 
 /** Play until the game resolves or the cycle cap is hit: one round of
  *  orders, one tick, repeat. */
-export function autoplay(engine: GameEngine, maxCycles = 30): void {
+export function autoplay(engine: GameEngine, maxCycles = 30, policy: AutopilotPolicy = 'orders'): void {
   while (engine.state.result === 'ongoing' && engine.cycle <= maxCycles) {
-    runMarineTurn(engine);
+    runMarineTurn(engine, policy);
     if (engine.state.result !== 'ongoing') return;
     engine.tick();
   }

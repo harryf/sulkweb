@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: context-override
-phase: complete
-progress: "1525/1525 (stage 3 verdict recorded, stage 4 handover written; ISC-1038 dropped; ISC-71 deferred)"
+phase: verify
+progress: "1560/1562 (stage 4 step 1: ISC-1593..1627 verified, 1628 commit and 1629 the questions pending; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T20:30:00Z
+updated: 2026-09-12T21:16:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -405,198 +405,6 @@ Harry played v2.0.0-alpha.1 and said: "OK it works and it's playable. It's _real
 - [x] ISC-1339: the ISA frontmatter reads phase complete with every stage 1 criterion closed (Read)
 - [x] ISC-1340: deploy-latest stays green or is not triggered by the docs-only push (gh run list)
 
-### Stage 2: individual orders (2026-09-12, twenty-first run)
-
-Harry: "OK let's implement stage 2". Source: docs/realtime-plan.md "Stage 1 verdict and stage 2 handover" (tuning pass first, then the eight-step build order). Ships as v2.0.0-alpha.2, a prerelease in its own frozen dir; the root stays v1.1.0.
-
-Tuning pass (before any order code; the autopilot seed scan is the instrument, three missions, seeds 1 to 30, autoplay 60 cycles):
-
-- [x] ISC-1341: a scan script in the scratchpad imports the engine source, applies a TUNING patch, runs autoplay(engine, 60) over seeds 1..30 for debug_1, space_hulk_1, space_hulk_2 and prints win/loss/ongoing counts (Bash output)
-- [x] ISC-1342: baseline row at the stage 1 defaults recorded in Decisions (regen.marine 4, overwatchCooldown 2, cycleTicks 40)
-- [x] ISC-1343: regen.marine 3 row recorded against the baseline
-- [x] ISC-1344: overwatchCooldown 1 row recorded (on top of the regen choice)
-- [x] ISC-1345: cycleTicks 60 row recorded (on top of the choices so far)
-- [x] ISC-1346: leaseTicks judged in Decisions (the scan cannot see it: the autopilot re-issues every cycle; note what would move it)
-- [x] ISC-1347: the chosen values are written into TUNING in core/CostTables.ts (grep the literals)
-- [x] ISC-1348: the TUNING doc comment says which values the 2026-09-12 scan chose and which stay unvalidated (grep "scan")
-- [x] ISC-1349: docs that quote the clock numbers (features.md, rules-reference.md, architecture.md) match the new TUNING (grep "every 4 ticks" = 0 if regen changed)
-- [x] ISC-1350: engine specs that assumed the old numbers (clock.spec, regen_flames.spec, overwatch_ticks.spec) are green under the new TUNING
-- [x] ISC-1351: Decisions entry names each chosen value with the scan numbers behind it and the knobs left alone with the reason
-- [x] ISC-1352: after the LAST behavioural change of the stage, the win seed is re-pinned once and win.spec, marine_ai.spec and gamelog.spec agree on it (grep the seed literal in all three) [refined 2026-09-12: the win fixture is space_hulk_1 seed 26 by orders alone; debug_1 left the fixture set, see Decisions and Changelog]
-- [x] ISC-1353: the space_hulk_1 seed in playthrough.spec is re-scanned under the new autopilot and pinned with its outcome stated in the spec comment
-- [x] ISC-1354: the space_hulk_2 survivor seed in quota_victory.spec is re-scanned and pinned
-- [x] ISC-1355: Anti: no default-AI rule changed during the tuning pass (git diff of ai/MarineAI.ts at the tuning commit is empty)
-- [x] ISC-1356: Anti: no mission JSON changed (git diff --stat -- packages/engine/src/missions = 0 for the whole run)
-
-Orders in the engine (core/Commands.ts, pieces/Piece.ts, ai/orders.ts, ai/MarineAI.ts, GameEngine.ts):
-
-- [x] ISC-1357: Commands.ts exports MarineOrder: moveTo {x, y, then: 'hold' | 'overwatch', facing?} and openDoor {x, y, facing} (grep)
-- [x] ISC-1358: MarineCommand gains {type: 'order', order} and {type: 'clearOrder'} (grep)
-- [x] ISC-1359: Piece carries order: MarineOrder | null, default null (grep)
-- [x] ISC-1360: ai/orders.ts exists and exports orderStep(engine, marine) and orderLabel(marine) (grep)
-- [x] ISC-1361: an order command on a living marine sets the slot and returns true (orders.spec)
-- [x] ISC-1362: a moveTo to a square that is not on the board returns false and leaves the slot untouched (orders.spec)
-- [x] ISC-1363: an openDoor naming no door edge returns false (orders.spec)
-- [x] ISC-1364: clearOrder empties the slot; returns true when one was set, false when empty (orders.spec)
-- [x] ISC-1365: every other command, accepted or refused (move, turn, door, shoot, overwatch, melee), clears a live order: the player took the wheel (orders.spec)
-- [x] ISC-1366: order and clearOrder do not stamp lastCommandTick, and order resets it to -Infinity so the AI executes on the very next tick (orders.spec)
-- [x] ISC-1367: an orderChanged event {pieceId, order} fires on set, replace, clear and completion (orders.spec, PieceEvents capture)
-- [x] ISC-1368: the command event and the GameLogger envelope carry the order payload for an order command (gamelog.spec)
-- [x] ISC-1369: an ordered marine with AP and nothing to react to advances one pathStep square per tick toward the target (orders.spec, corridor fixture)
-- [x] ISC-1370: a step first turns to face the step direction (one tick), then moves forward (next tick): arrival facing is the travel direction (orders.spec)
-- [x] ISC-1371: a closed door on the path is faced and opened on contact (useDoor), then the march continues (orders.spec)
-- [x] ISC-1372: marines block the path (pathStep marineAt); a target square occupied by another marine completes the order when the walker is adjacent to it (orders.spec)
-- [x] ISC-1373: a target unreachable this tick (walled off by marines) leaves the marine holding with the order kept (orders.spec)
-- [x] ISC-1374: arrival with then hold clears the slot and spends nothing more (orders.spec)
-- [x] ISC-1375: arrival with then overwatch: a bolter with AP >= 2 goes on overwatch and the slot clears; with less AP he waits, slot kept, until overwatch is on (orders.spec)
-- [x] ISC-1376: an order with facing turns the marine to that facing on arrival before hold or overwatch (orders.spec)
-- [x] ISC-1377: an ordered marine on overwatch leaves overwatch (free) and moves on the next tick (orders.spec)
-- [x] ISC-1378: reactions win over a step: jammed unjams, a shootable stealer is shot, an adjacent stealer ahead is fought, one elsewhere is turned to, the flamer's last stand fires; each before any step (orders.spec, one case each)
-- [x] ISC-1379: under an order the default's rules 7 to 10 do not fire: no turn toward a seen non-shootable stealer, no door close, no overwatch spend; an order that cannot progress holds its AP (orders.spec)
-- [x] ISC-1380: openDoor: the marine paths to either flank square of the edge, faces across it, opens it, and the slot clears; an already open or destroyed door completes at once (orders.spec)
-- [x] ISC-1381: an order command for a dead marine returns false; a marine who dies mid-order leaves nothing behind (orders.spec)
-- [x] ISC-1382: order execution draws no dice: a RollQueue count before and after a full march is equal (orders.spec)
-- [x] ISC-1383: two engines from one seed replaying the same order log agree on stateHash at every tick (determinism.spec case)
-- [x] ISC-1384: orderLabel returns MOVE for moveTo, DOOR for openDoor, OW for overwatch with no order, HOLD otherwise (orders.spec)
-- [x] ISC-1385: a heavy flamer accepts moveTo (Piece-level, not bolter-only); then overwatch on a flamer completes as hold (orders.spec)
-- [x] ISC-1386: index.ts exports MarineOrder, orderStep, orderLabel; PieceEvents types include orderChanged (grep)
-- [x] ISC-1387: engine tsc --noEmit is clean
-- [x] ISC-1388: engine_lint.spec's retired list gains endMarinePhase and runStealerActions (grep)
-- [x] ISC-1389: the engine suite is green with coverage >= 98% lines (pnpm --filter ./packages/engine test)
-- [x] ISC-1390: Anti: the engine imports no phaser, window or document (engine_lint green)
-- [x] ISC-1466: an order command is refused during the Deploy phase and after game over (command() gate; orders.spec)
-- [x] ISC-1467: a moveTo to the marine's own square completes on the next tick (then applies at once) (orders.spec)
-- [x] ISC-1468: a second order replaces the first: one slot, one orderChanged (orders.spec)
-
-Autopilot as the scripted order issuer (ai/MarineAutopilot.ts):
-
-- [x] ISC-1391: runMarineTurn issues one moveTo order per marine without a live order, toward the mission target (marine_ai.spec / autopilot case)
-- [x] ISC-1392: on flame missions the escorts are ordered to the flamer's square (they follow and stop adjacent) with then hold (spec)
-- [x] ISC-1393: the flamer in reach with 2 AP gets the flame command; in reach without AP no command is issued (spec)
-- [x] ISC-1394: cover branch: a bolter with enemies within 10 squares gets clearOrder while one is live and no new order until they are gone; the default list covers him (spec)
-- [x] ISC-1395: kill-quota posts are issued as moveTo then overwatch (spec on space_hulk_2 first cycle)
-- [x] ISC-1396: the autopilot issues no shoot, melee, turn or move commands any more (grep of MarineAutopilot.ts for those type literals = 0) [refined 2026-09-12: one direct door command survives, the flamer's firing door opened from one square short of the room's section; marine_ai.spec asserts the rest]
-- [x] ISC-1397: autoplay stays runMarineTurn plus tick until a result or maxCycles (grep)
-- [x] ISC-1398: debug_1 wins under autoplay on the pinned seed (marine_ai.spec)
-- [x] ISC-1399: the autopilot's private nextStep BFS is deleted; pathStep is the one planner (grep nextStep = 0)
-- [x] ISC-1400: unopposed space_hulk_1 (stealers removed) is won by orders alone: the flamer reaches a firing square and the flame command wins (flamer.spec port)
-
-Shims deleted, specs ported to ticks:
-
-- [x] ISC-1401: GameEngine.endMarinePhase is gone (grep in src excluding __tests__ = 0)
-- [x] ISC-1402: runStealerActions is gone from StealerAI.ts and index.ts (grep = 0)
-- [x] ISC-1403: rt.fixtures.ts gains runCycle(engine) (TUNING.cycleTicks ticks) and stealerActivation(board, ctx) (TUNING.hivePlanTicks stealerTick calls with board.tick stepped by hand, then chargeOrientation) with a doc comment naming the cadence argument (grep)
-- [x] ISC-1404: gameflow.spec ported and green
-- [x] ISC-1405: quota_victory.spec ported and green
-- [x] ISC-1406: beta2_mission.spec ported and green
-- [x] ISC-1407: deploy.spec ported and green
-- [x] ISC-1408: exotic_victory.spec ported and green
-- [x] ISC-1409: kill_reveals.spec ported and green
-- [x] ISC-1410: flamer.spec ported and green
-- [x] ISC-1411: ai_pathing.spec ported and green
-- [x] ISC-1412: debug1_mission.spec ported and green
-- [x] ISC-1413: blips_ai.spec ported and green
-- [x] ISC-1414: charge.spec ported and green
-- [x] ISC-1415: hive.spec ported and green (nineteen calls)
-- [x] ISC-1416: clock.spec's shim test replaced by a runTicks cycle test, green
-- [x] ISC-1417: conversion_on_sight.spec comment no longer names the shim
-- [x] ISC-1418: client tests/fog.spec.ts ported to sulk.step, green
-- [x] ISC-1419: hive.spec's zero-dice invariants hold through the tick helper (its RollQueue counts unchanged)
-- [x] ISC-1420: grep for the two names across packages/ (src, tests, docs excluded) = 0
-
-Client (scenes/LiveScene.ts, ui/RosterPanel.ts, ui/keyboardHelp.ts):
-
-- [x] ISC-1421: the browser context menu is disabled on the canvas (disableContextMenu; e2e right-click leaves no menu)
-- [x] ISC-1422: right-click on a board square with a marine selected issues order moveTo then hold (e2e: piece.order shape)
-- [x] ISC-1423: Shift right-click issues moveTo then overwatch (e2e)
-- [x] ISC-1424: right-click with a door edge under the pointer issues openDoor for that edge (e2e)
-- [x] ISC-1425: right-click with nothing selected, or during deployment, issues nothing (e2e)
-- [x] ISC-1426: right-click on the HUD strip issues nothing and keeps the selection (e2e)
-- [x] ISC-1427: an order marker is drawn on the target square (door orders: the edge midpoint) for every marine with a live order (e2e: a named 'order-marker' object exists)
-- [x] ISC-1428: the marker disappears on completion or clear (e2e after stepping to arrival)
-- [x] ISC-1429: the marker distinguishes then hold from then overwatch (two colours; e2e reads the marker's data)
-- [x] ISC-1430: the roster card shows the order word: HOLD, OW, MOVE, DOOR (e2e text)
-- [x] ISC-1431: the word refreshes on orderChanged and overwatchChanged (e2e: MOVE while marching, OW after arrival)
-- [x] ISC-1469: a marine's marker is removed when he dies (pieceDied handler; unit or e2e)
-- [x] ISC-1432: keyboardHelp SPECIAL_KEYS gains the right-click rows (move there, Shift: then overwatch, on a door: open it); keyboardHelp.spec updated
-- [x] ISC-1433: docs/features.md controls table gains the three right-click rows
-- [x] ISC-1434: client tsc --noEmit clean
-- [x] ISC-1435: client unit suite green (roster.spec covers the order word)
-- [x] ISC-1436: e2e orders.spec: sulk.command order across the corridor, step ticks, the marine stands on the target with then overwatch on and slot null
-- [x] ISC-1437: e2e: a real right-click through page.mouse (canvas rect mapping) sets the order
-- [x] ISC-1438: e2e: a direct key (W) after an order clears it (piece.order null, marker gone)
-- [x] ISC-1439: e2e: roster card reads MOVE while ordered and OW after arrival
-- [x] ISC-1440: e2e orders-only space_hulk_1 fixture: orders plus the default AI plus the flame command reach the objective on a pinned seed, or, if no seed in 1..30 wins, the fixture asserts the flamer reaches the firing square and the Decisions entry says so [refined 2026-09-12: seed 26 wins; win.spec IS this fixture and asserts zero direct move/turn/shoot/melee commands]
-- [x] ISC-1441: the full e2e suite is green (count reported)
-- [x] ISC-1442: boot-check.mjs on the built client: the scene boots, ticks advance, zero page errors, a right-click order appears
-- [x] ISC-1443: Anti: the client calls no piece action method (grep LiveScene for tryMove|useDoor|tryTurn|overwatchOn|flameAt|shoot( = 0)
-- [x] ISC-1444: Anti: left-click selection, hotkeys and roster behaviour unchanged (hotkeys.spec, roster.spec, hover.spec green)
-- [x] ISC-1445: Anti: zero em dashes in every changed file (grep on the diff)
-
-Docs, release, run close:
-
-- [x] ISC-1446: docs/features.md has an orders paragraph under the clock section (what right-click does, what cancels an order)
-- [x] ISC-1447: docs/architecture.md tick sequence names the order step and the orderChanged event
-- [x] ISC-1448: docs/rules-reference.md gains an orders subsection (slot, completion, cancellation, reactions win)
-- [x] ISC-1449: docs/realtime-plan.md gains "Stage 2 as built" with the deviations, and its Status line says alpha.2
-- [x] ISC-1450: docs/status.md next-line paragraph names alpha.2 and its URL
-- [x] ISC-1451: CLAUDE.md invariants updated: shims gone, orders, window.sulk, test counts
-- [x] ISC-1452: banned writing-guide words = 0 in the changed docs
-- [x] ISC-1453: commits on main carry the two trailer lines and are pushed (git log)
-- [x] ISC-1454: deploy-latest is green after the game-code push (gh run list)
-- [x] ISC-1455: tag v2.0.0-alpha.2 pushed; the release workflow's three jobs green
-- [x] ISC-1456: the GitHub release is marked prerelease (gh release view)
-- [x] ISC-1457: https://harryf.github.io/sulkweb/2.0.0-alpha.2/manifest.json reads version 2.0.0-alpha.2 (curl)
-- [x] ISC-1458: the root manifest.json and STABLE_VERSION still read v1.1.0 (curl)
-- [x] ISC-1459: versions.html lists 2.0.0-alpha.2 labelled as a prerelease (curl)
-- [x] ISC-1460: this run closes with every criterion [x], Verification blocks, a Decisions trail and a Changelog entry
-- [x] ISC-1461: PROJECTS.md Sulk entry updated with the stage 2 state and the stage 3 next step
-- [x] ISC-1462: packages/engine/tsconfig.tsbuildinfo is not committed (git status clean after pnpm build)
-- [x] ISC-1463: the advisor was called at the PLAN boundary and before complete, both recorded in Decisions
-- [x] ISC-1464: Cato ran, or is waived with the reason recorded (codex absent) in Decisions
-- [x] ISC-1465: Anti: /1.1.0/ and the root are byte-identical to before the release (curl root manifest sha)
-
-### Alpha.2 playtest: marines face the threat, or the best sight line (2026-09-13, twenty-second run)
-
-Harry: "marines should automatically turn to face the nearest threat if inactive including blips - I had cases where a marine would face a wall in overwatch - if there isn't an obvious threat a marine should turn to face the direction that gives them the greatest line of sight". Interim notes first, then the default list.
-
-- [x] ISC-1473: docs/realtime-plan.md gains "Playtest notes on alpha.2" quoting the finding and the reading (grep)
-- [x] ISC-1474: ISA Decisions entry records the finding and the design (Read)
-- [x] ISC-1475: PROJECTS.md Sulk entry names the finding and the run (grep)
-- [x] ISC-1476: MarineAI exports nearestThreatInSight(board, m): the nearest stealer-side piece with a clear sight line from the marine's square in ANY direction, blips included (unit)
-- [x] ISC-1477: rule 7 turns toward that threat even when it stands behind the marine (unit: stealer behind, out of the 180 arc, the marine turns)
-- [x] ISC-1478: a blip behind him counts (unit)
-- [x] ISC-1479: Anti: a threat behind a closed door or rock is not in sight and causes no turn (unit)
-- [x] ISC-1480: on overwatch with a threat in sight outside the fire arc, and the turn would put it in his line of fire: turn (overwatch dropped), then re-arm next tick with 2 AP (unit)
-- [x] ISC-1481: on overwatch with the threat inside the fire arc: hold as before (existing test green)
-- [x] ISC-1482: preferredFacing(board, m) returns the facing that shows the most squares; the current facing wins ties and anything within one square of the best (unit)
-- [x] ISC-1483: no threat, facing rock: the marine turns to the preferred facing BEFORE overwatch (unit: corridor marine facing the wall turns down the corridor, overwatches next tick)
-- [x] ISC-1484: no threat, already the best facing: no turn, overwatch as before (existing rule 10 test green)
-- [x] ISC-1485: Anti: no dithering: five ticks on a still board produce at most one turn (unit)
-- [x] ISC-1486: a move order arriving with then overwatch and no ordered facing takes the preferred facing first when no threat is in sight (orders.spec)
-- [x] ISC-1487: an ordered facing is kept (existing orders.spec test green)
-- [x] ISC-1488: a leased marine is untouched (existing runMarineAI test green)
-- [x] ISC-1489: the rule is Piece-level: a heavy flamer turns to face a threat behind him too (unit)
-- [x] ISC-1490: engine tsc clean; the engine suite green with coverage >= 98% lines
-- [x] ISC-1491: seeds re-scanned once after the change; every moved fixture re-pinned (scan output in Decisions)
-- [x] ISC-1492: docs updated: rules-reference default list (rules 2, 7, the new facing rule), features.md paragraph, CLAUDE.md invariant (grep)
-- [x] ISC-1493: Anti: zero em dashes and banned words in the diff (grep)
-- [x] ISC-1494: committed on main with the trailers, pushed, deploy-latest green, /latest/ manifest sha = HEAD (gh, curl)
-- [x] ISC-1495: the ship report names the /latest/ URL (shipping policy callout) and that alpha.3 carries it
-- [x] ISC-1496: the e2e suite is green (orders.spec arrival-facing assertion updated if the preferred facing differs)
-- [x] ISC-1497: Anti: a threat already in the fire arc vetoes every facing turn: an overwatcher with a stealer in his lane and a nearer blip behind holds; a flamer in the same spot neither turns nor flames (marine_ai.spec; the advisor's flip-flop case)
-
-### Final write-up before compaction (2026-09-13, twenty-third run)
-
-Harry: "write up anything else then let's commit and be ready to compact". E1-sized; the E2 ISC floor is waived for a four-pointer docs commit (Decisions).
-
-- [x] ISC-1498: CLAUDE.md read-first row names the facing fix on /latest/ and points the next session at the plan's last two sections (grep "Playtest notes on alpha.2" in CLAUDE.md)
-- [x] ISC-1499: docs/status.md next-line paragraph names the facing fix, its URL and that alpha.3 freezes it (grep "facing walls")
-- [x] ISC-1500: the plan's playtest note says fire cone, the door peek and the in-arc veto, and ends with a "### Next session" subsection naming the two playtest questions, the stage 3 entry points and the housekeeping owed (grep)
-- [x] ISC-1501: Anti: zero em dashes and banned words in the new text (grep)
-- [x] ISC-1502: everything committed on main with the trailers and pushed; git status clean; the docs-only push triggers no deploy (paths-ignore)
-- [x] ISC-1503: PROJECTS.md Sulk entry already carries the shipped fix and the next step (grep "FIXED AND SHIPPED ON /latest/")
-
 ### Stage 3: squad orders and the chain of command (2026-09-13, twenty-fourth run)
 
 Harry: "OK let's implement stage 3". Source: docs/realtime-plan.md "Stage 3" (ships list and exit criteria), "Command model" (levels, priority rule, command pause, sergeant loss) and "Squad AI (stage 3)" (defend, advance, clear, hold sketches), plus "Stage 3 notes" under "Stage 2 as built". The two playtest questions from "Next session" were not answered before the build: the shipped tuning (regen.marine 3) and the /latest/ facing fix ride along. Ships as v2.0.0-alpha.3, a prerelease in its own frozen dir; the root stays v1.1.0.
@@ -716,10 +524,67 @@ Harry, after playing v2.0.0-alpha.3: "It's not bad. We're going to have to make 
 - [x] ISC-1591: Anti: zero em dashes and banned words in the added lines (grep)
 - [x] ISC-1592: committed on main with the trailers and pushed; tree clean; the docs-only push triggers no deploy
 
+### Stage 4 step 1: the balance instrument (2026-09-13, twenty-sixth run)
+
+Harry: "OK let's continue with stage 4". The plan's build order puts the instrument first (an autopilot squad-order issuer and a re-scan before any number changes), then the transit rule and the win-rate band as Harry's decisions. This run builds step 1 and puts the two decisions to him with the numbers. E3.
+
+Issuer (engine, ai/MarineAutopilot.ts):
+
+- [x] ISC-1593: `runSquadTurn(engine)` is exported from ai/MarineAutopilot.ts and index.ts (grep)
+- [x] ISC-1594: `autoplay(engine, maxCycles, policy)` takes policy 'orders' (default) or 'squads'; the pinned fixtures hold unchanged (win.spec sh1 26, quota_victory sh2 29, playthrough sh1 3, gamelog, marine_ai) (suites green)
+- [x] ISC-1595: on the first issuer call every squad in engine.squadNames() receives a defend order at the square of its member nearest the mission target (refined: the prospective column head, whose next step the door check must see) (squadOrderChanged defend per squad, spec)
+- [x] ISC-1596: with no threat in sight of any member for `AUTOPILOT.quietTicks` ticks and a mission target, the issuer replaces the defend with an advance toward the target (spec on the quiet fixture)
+- [x] ISC-1597: a threat in sight within TUNING.contactRange restarts the quiet count and changes nothing else: the advance planner holds the leader, and a defend on contact would march the squad off overwatch under fire (refined by the SystemsThinking pass; spec)
+- [x] ISC-1598: once the contact has been out of sight for quietTicks the issuer advances again (spec)
+- [x] ISC-1599: when the leader's next step crosses a closed door edge the issuer orders clear on that door, before the advance is issued and on the way (refined: the leader opens the door himself on the first march tick otherwise; spec)
+- [x] ISC-1600: when the clear completes (squad order null, door open) the issuer re-issues the advance (spec)
+- [x] ISC-1601: a door already cleared twice by the issuer is not cleared a third time (the advance is issued regardless, spec)
+- [x] ISC-1602: the issuer never re-issues a live order of the same kind: over 100 quiet ticks on the quiet fixture the log holds exactly two squadOrder commands, defend then advance (spec)
+- [x] ISC-1603: in squads mode the individual pass issues no `order` command to a storm bolter or sergeant on sh1 in the first 120 ticks (the flamer's flame, firing door and approach to a firing square, the download sergeant and the cat fetcher are the only individual commands, spec)
+- [x] ISC-1604: `squadTarget(engine, members)` returns the expected square per objective: flame-objective the threshold square (the last square outside the objective's section on the way; refined: the squad must not walk into the room it burns), kill-quota the entry post nearest the squad, escort-cat and escape-count and exterminate-or-exit the nearest exit, flame-objectives the nearest uncleansed point, download the downloadPoint, defend undefined (table spec over the nine missions)
+- [x] ISC-1605: after an advance completes the issuer orders defend at the target (refined: the target's section, and no defend at all while the flamer's job is pending; spec on a download board)
+- [x] ISC-1606: two squads-policy games on the same seed produce identical stateHash sequences (spec)
+- [x] ISC-1607: squads-policy autoplay on all nine missions, seeds 1..10, resolves or reaches the cycle cap without a throw (scan run)
+- [x] ISC-1608: Anti: no packages/client path in git diff --stat (engine-only change, no release)
+- [x] ISC-1609: engine tsc --noEmit exit 0
+- [x] ISC-1610: engine suite green with the new spec; file and test counts reported
+- [x] ISC-1611: engine line coverage stays at or above 98%
+
+Scan instrument:
+
+- [x] ISC-1612: `packages/engine/scripts/scan.ts` runs under bun with --missions, --seeds, --policy, --cycles flags (help output)
+- [x] ISC-1613: each row prints mission, policy, W L D ongoing, win rate with a 95% Wilson interval, mean cycle and the win seeds
+- [x] ISC-1614: each row replays its first seed and prints a det column (identical hash sequence)
+- [x] ISC-1615: CLAUDE.md commands section names the scan command
+- [x] ISC-1616: the orders-policy row for space_hulk_1 over seeds 1..60 lists seed 26 among the wins (the pinned win seed under the unchanged default policy)
+
+Numbers and docs:
+
+- [x] ISC-1617: docs/realtime-plan.md gains "## Stage 4 step 1: the instrument (2026-09-13)" with the table (both policies, both hulks, 60 seeds, intervals) and a reading of it
+- [x] ISC-1618: CLAUDE.md balance paragraph: the STALE note replaced by the dated numbers and the scan command
+- [x] ISC-1619: docs/status.md names stage 4 as open with the instrument in place
+- [x] ISC-1620: docs/architecture.md autopilot paragraph names the squad issuer
+- [x] ISC-1621: Anti: em dashes in the diff's added lines 0
+- [x] ISC-1622: Anti: banned words in the diff's added lines 0
+- [x] ISC-1623: Anti: git diff on core/CostTables.ts is empty (no constant changed)
+- [x] ISC-1624: Anti: regen.marine stays 3 (grep CostTables.ts)
+
+Housekeeping and close:
+
+- [x] ISC-1625: the stage 2 run, the alpha.2 facing run and the final write-up run rotate from ISA.md to docs/isa/realtime-2x.md (grep both files; README row updated)
+- [x] ISC-1626: this run block all [x] with a Verification block and the frontmatter progress updated
+- [x] ISC-1627: PROJECTS.md Sulk entry: stage 4 open, the numbers, the two questions pending
+- [ ] ISC-1628: commit on main with the trailers, pushed, tree clean; deploy-latest green for the engine change
+- [ ] ISC-1629: the transit rule (four options) and the win-rate band are put to Harry in this turn's close with the scan numbers beside them
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
+| ISC-1593..1611 | engine | squad_autopilot.spec, suites, tsc | green, counts | vitest, tsc |
+| ISC-1612..1616 | script | bun scripts/scan.ts | rows with intervals | bun |
+| ISC-1617..1624 | docs | greps, git diff | present; 0 violations | grep, git |
+| ISC-1625..1629 | repo | greps, git, gh run | clean, green | git, gh |
 | ISC-1583..1592 | docs/repo | greps, git diff stat, git status | present; docs only; clean | grep, git |
 | ISC-1504..1550 | engine | squad.spec, orders.spec, determinism.spec, gamelog.spec, tsc, lint, coverage | green; >= 98% lines | vitest, tsc, grep |
 | ISC-1551..1566 | client | Selection unit, squad e2e, keyboardHelp.spec, boot check | green; 0 console errors | vitest, playwright, node |
@@ -871,6 +736,9 @@ Harry, after playing v2.0.0-alpha.3: "It's not bad. We're going to have to make 
 
 | Feature | Description | Satisfies | Depends on | Parallel |
 |---|---|---|---|---|
+| squad-issuer | runSquadTurn, squadTarget, autoplay policy, spec | ISC-1593..1611 | none | no |
+| scan-script | scripts/scan.ts with Wilson intervals and det column (Forge) | ISC-1612..1616 | squad-issuer for the squads rows | yes |
+| stage4-docs | plan section, CLAUDE.md, status, architecture, rotation, PROJECTS | ISC-1617..1629 | scan-script | no |
 | squad-model | SquadOrder, commands, Piece.squad and task, events, engine squads map, latency, TUNING | ISC-1504..1518 | none | no |
 | defend-planner | area, entrances, lanes, set cover, issue, re-plan triggers | ISC-1519..1530 | squad-model | no |
 | advance-planner | column, leapfrog, rear guard, contact hold, completion | ISC-1531..1540 | squad-model | no |
@@ -973,6 +841,8 @@ Harry, after playing v2.0.0-alpha.3: "It's not bad. We're going to have to make 
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-13 (stage 4 step 1, OBSERVE to VERIFY): the instrument first, per the handover. FirstPrinciples classed "clear the door in front of a stalled column" as an assumption (the march opens doors on contact, a column never stalls at one) and rebuilt the trigger as "a closed door on the leader's next step"; the SystemsThinking pass mapped four loops between a per-tick issuer and the stage 3 planners (the relay treadmill, defend-on-contact as Fixes That Fail, the clear churn, the flame pin freeze) and the issuer is stateful, one order per state change, with no contact reaction and the stall watchdog gated on quiet; the advisor before BUILD asked for the arrival defend on the target's section, a stall watchdog and stalled seeds reported apart from losses (the first two built, the third covered by the O column and the det check). The quiet traces then found four stage 3 planner faults, each fixed as a rule, none as a number: the corner-pocket column deadlock (one re-sort when the leader's waypoint is held by his own follower), the flamer demoted behind a one-wide corridor on a flame mission (he keeps the head while his job is pending), clear covers posted on the far side of a corridor loop (COVER_RADIUS 3), and an advance over a live defend inheriting the flamer's post as his march (a different squad order clears tasks; the same order is a re-plan). The threshold target and the hold-for-the-shot rule came from the same traces (the squad walked into the room it meant to burn). A kill-quota experiment (defend in place all game) also lost 60 of 60 and was not adopted; the reading names the one-post plan as the issuer's limit and the blockade as a mission order. Forge built scripts/scan.ts by hand: the codex CLI is not on PATH (flag to Harry). Delegation floor: one author for the issuer (coupled to squad.ts internals), Forge on the separable script; the second delegation waived. No release: engine-only, no user-facing change; deploy-latest carries the engine to /latest/ unchanged in play. The advisor before complete: tests for each planner fix (three dedicated, the deadlock covered by the quiet whole-game win; a task-clearing case added to squad.spec), the baseline re-scanned in the same run as the squads rows (stated in the plan), the raw output committed under docs/scans/, the seed lists labelled as seeds not intervals, and the reading softened: no detectable difference at sixty seeds, 0 of 60 against 3 of 60 not significant, the transit and one-post explanations labelled hypotheses with option 5 as the test, the ten-seed rows labelled liveness evidence.
 
 - 2026-09-13 (stage 3 verdict, E3 by the classifier, honoured with the ISC floor waived: a docs commit has ten probes): Harry's verdict on alpha.3 quoted verbatim in the plan, status.md, CLAUDE.md and PROJECTS.md; nothing tuned ("for now this is good"). FirstPrinciples on "easier for the marines": determinism hard; the mission numbers and the regen constants soft; the transit exposure (a squad off overwatch while walking to its posts) an assumption dressed as balance, really a rule question; the autopilot as the difficulty instrument an assumption (it issues individual orders only, so its 2 of 60 reads a weak policy as a hard game). Advisor: build the squad-order issuer first and re-scan before any number moves; put the transit rule to Harry as a design decision with four options; sweep per-mission levers before global ones with a target band per mission; the one mistake is cutting regen.marine to 2 on the bot's win rate (tried in stage 2, debug_1 trivial). All of it is the handover section, with a seven-step stage 4 build order.
 
@@ -1261,70 +1131,6 @@ The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/
 - ISC-1339: frontmatter phase complete, progress 1273/1273 with the two standing exceptions
 - ISC-1340: deploy-latest for the docs push: the latest run is the earlier green one (docs-only push not triggered, paths-ignore)
 
-### Stage 2: individual orders (2026-09-12)
-
-- ISC-1341..1346: scan.ts (scratchpad) rows: stage 1 autopilot base debug_1 W1 (seed 30) sh1 W0 sh2 W0; regen3 W0/W0/W3 (4,12,28); regen3_ow1 W0/W0/W3; regen3_cycle60 W0/W0/W1; regen2 W4/W7/W1; stage 2 issuer at the shipped values, 60 seeds: debug_1 W0, sh1 W2 (26,27), sh2 W2 (29,36); regen2 debug_1 W30 (55 ticks, 0 shots), sh1 W1, sh2 W1; lease judged in Decisions
-- ISC-1347, ISC-1348: grep CostTables.ts "regen: { marine: 3" and "stage 2 scan"
-- ISC-1349: grep "every 4 ticks" docs = 0; features.md "1 AP every three ticks", rules-reference.md "1 AP every 3 ticks"
-- ISC-1350: regen_flames.spec, clock.spec, overwatch_ticks.spec green in the full run
-- ISC-1351: Decisions (stage 2, tuning) entry
-- ISC-1352..1354: grep "seed=26" win.spec, "SeededRng(26)" marine_ai.spec and gamelog.spec; playthrough.spec seed 3 loss (e2e green); quota_victory.spec SeededRng(29)
-- ISC-1355: git diff at the tuning point touched CostTables.ts and the two regen specs only; the MarineAI.ts diff is the order branch and rule 8 guard
-- ISC-1356: git diff --stat -- packages/engine/src/missions = empty
-- ISC-1357..1360, 1386: grep Commands.ts "MarineOrder", "type: 'order'", "clearOrder"; Piece.ts "order: MarineOrder | null = null"; ai/orders.ts exports orderStep, orderLabel, orderIsValid, setOrder; index.ts exports them; PieceEvents.ts orderChanged
-- ISC-1361..1385, 1466..1468, 1470: orders.spec 25 tests green (slot, refusals, clearOrder, clear-on-any-command, lease, dead/deploy refusal, log payload, march, turn-then-move, door on the way, held target, unreachable, then overwatch with wait, facing, off overwatch, own square, flamer, zero dice, determinism 120 ticks, reactions, transit turn, door guard, openDoor both cases, orderLabel)
-- ISC-1387: engine tsc --noEmit exit 0
-- ISC-1388: engine_lint.spec retired list carries \bendMarinePhase\b|\brunStealerActions\b
-- ISC-1389, ISC-1390: engine suite 43 files, 433 tests, 98.4% lines (vitest run --coverage)
-- ISC-1391..1400, 1471, 1472: marine_ai.spec 18 green (issuer test: orders > 4, flame issued, no move/turn/shoot/melee; lease untouched; balance signal); flamer.spec "autopilot delivers the flamer ... unopposed" green; grep nextStep MarineAutopilot.ts = 0
-- ISC-1401..1420: fork report: shims deleted, helpers added, 14 specs ported (2 expectation changes with comments, hive dice counts unchanged), fog.spec on sulk.step; grep across packages/ = engine_lint line only
-- ISC-1421..1431, 1469: e2e orders.spec 3 green (command path with marker/word, real right-click plain/Shift/door edge/W clears, nothing-selected and HUD-strip cases); marker removal on death in removePieceSprite
-- ISC-1432, ISC-1433: keyboardHelp.ts SPECIAL_KEYS RMB rows, keyboardHelp.spec expected list; features.md controls rows
-- ISC-1434, ISC-1435: client tsc exit 0; client unit suite 11 files 92 tests green
-- ISC-1436..1440: e2e orders.spec and win.spec (space_hulk_1 seed 26: win, orders > 4, direct = 0)
-- ISC-1441: full e2e 119 passed (53.6 s)
-- ISC-1442: boot-check.mjs (ticks 9 to 33, HUD Cycle 1 8s/10s PAUSE, Esc freezes, 0 errors) and boot-check-orders.mjs (right-click at tick 5 sets moveTo (10,9) hold, marker kind moveTo then hold, word MOVE; at tick 23 the flamer stands on (10,9), order null, markers 0, word HOLD, 0 errors); screenshots test-results/boot-check-orders-{1,2}.png read: gold ring on (10,9), card MOVE, then HOLD
-- ISC-1443: grep LiveScene.ts for tryMove|useDoor|tryTurn|overwatchOn|flameAt|\.shoot( = 0 (only canFlame/canShootDoor readers)
-- ISC-1444: hotkeys.spec, roster.spec, hover.spec inside the green e2e run
-- ISC-1445, ISC-1452: em dash count over the diff's added lines = 0; banned-word grep over the docs diff = 0
-- ISC-1446..1451: grep features.md "Orders (2.x stage 2)", architecture.md "orderChanged", rules-reference.md "### Orders (2.x stage 2)", realtime-plan.md "## Stage 2 as built" and Status line "alpha.2", status.md "alpha.2", CLAUDE.md "Orders (2.x stage 2" and "Stage 2 as built"
-- ISC-1462: git checkout of tsconfig.tsbuildinfo after pnpm build; git status shows it clean
-- ISC-1463: advisor called twice (Decisions: plan boundary and before complete)
-- ISC-1464: Cato waived, codex not installed (which codex = empty); recorded in Decisions
-- ISC-1453: commit e043a43 on main with both trailer lines (git log), origin/main e043a43, tree clean
-- ISC-1454: deploy-latest run 34711150585 for the main push: success; the post-release re-dispatch 34711255658 success
-- ISC-1455: tag v2.0.0-alpha.2 on e043a43; "Deploy release to GitHub Pages" run 34711167084: verify-build-publish=success, deploy=success, redispatch-latest=success
-- ISC-1456: gh release view v2.0.0-alpha.2: isPrerelease true
-- ISC-1457: curl /2.0.0-alpha.2/manifest.json: version v2.0.0-alpha.2 (sha e043a43)
-- ISC-1458: curl root manifest.json: version v1.1.0, sha 8a83743; STABLE_VERSION v1.1.0
-- ISC-1459: curl versions.html: li "v2.0.0-alpha.2" with note "frozen prerelease (the 2.x real-time line...)"
-- ISC-1460: this block; frontmatter phase complete, progress 1405/1405 with the two standing exceptions
-- ISC-1461: PROJECTS.md Sulk entry: "STAGE 2 BUILT" and the stage 3 next step (grep)
-- ISC-1465: root manifest sha unchanged from the stage 1 record (8a83743), /1.1.0/ untouched by the prerelease path
-
-### Alpha.2 playtest: facing (2026-09-13)
-
-- ISC-1473: grep realtime-plan.md "## Playtest notes on alpha.2" = 1, the finding quoted verbatim
-- ISC-1474: Decisions (alpha.2 playtest, OBSERVE) and (facing, VERIFY) entries
-- ISC-1475: grep PROJECTS.md "ALPHA.2 PLAYTEST NOTE"
-- ISC-1476..1479, 1489: marine_ai.spec facing cases: stealer behind turned to (facing S), blip behind is nearestThreatInSight kind blip and turned to, stealer behind a closed door is undefined and the marine overwatches facing N, heavy flamer turns too
-- ISC-1480, 1481: overwatcher with a stealer behind: 'turn', overwatch false, facing S, then 'shoot' with the stealer in the lane; the existing "on overwatch: hold, even with a shootable stealer in view" test green
-- ISC-1482..1485: preferredFacing S for a rock-facing corridor marine, undefined after the turn, 'turn' then 'overwatch' then five nulls with the facing kept; the room middle row ties (undefined facing N), facing E returns N; existing rule 10 test green
-- ISC-1486, 1487: orders.spec: moveTo the corridor's dead end then overwatch arrives facing rock and turns N before overwatch; the ordered-facing test green
-- ISC-1488: runMarineAI lease test green; four hand-driven fixtures (clock x2, stealer_tick, beta2 download) now lease their marine, each with a comment saying why
-- ISC-1490: engine tsc exit 0; suite 43 files, 440 tests, 98.5% lines
-- ISC-1491: scan (60 seeds, shipped tuning): debug_1 W0, sh1 W2 (26, 27), sh2 W3 (29, 36, 58): the pinned seeds 26 and 29 hold, nothing re-pinned
-- ISC-1492: grep rules-reference.md "9b. nothing in sight", features.md "covers the most squares", CLAUDE.md "Facing (alpha.2 playtest"
-- ISC-1493: em dash count over the diff's added lines = 0; banned-word grep = 0
-- ISC-1494: commit 9398c7c on main with the trailers, pushed; deploy-latest run 34712690614 success; /latest/manifest.json sha 9398c7c
-- ISC-1495: the ship report names https://harryf.github.io/sulkweb/latest/ and that v2.0.0-alpha.3 carries the change to a frozen dir
-- ISC-1496: full e2e 119 passed
-- ISC-1497: marine_ai.spec veto case green (overwatcher holds, flamer holds facing N)
-
-### Final write-up (2026-09-13)
-
-- ISC-1498..1503: greps as named, git status clean after the push, no run triggered by the docs-only push
-
 ### Stage 3: squad orders and the chain of command (2026-09-13)
 
 - ISC-1504..1507: grep Commands.ts "export type SquadOrder", "squadOrder", "clearSquadOrder"; Piece.ts "task: MarineOrder | null", "squad: string | undefined"; PieceEvents.ts "level: 1 | 2", "squadOrderChanged"
@@ -1368,3 +1174,27 @@ The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/
 - ISC-1590: git diff --stat before the commit: ISA.md, CLAUDE.md, docs/realtime-plan.md, docs/status.md only
 - ISC-1591: em dashes and banned words in the added lines 0
 - ISC-1592: the commit below on main with the trailers, pushed, tree clean; no workflow run for a docs-only push (paths-ignore)
+
+### Stage 4 step 1: the instrument (2026-09-13)
+
+- ISC-1593, 1594: grep index.ts "runSquadTurn"; autoplay(engine, maxCycles, policy) with policy defaulting to 'orders'; win.spec, quota_victory, playthrough, gamelog, marine_ai green in the full suite; e2e 124 passed
+- ISC-1595..1602, 1605, 1606: squad_autopilot.spec cases (two-squad defend at the nearest-to-target squares (10,1) and (10,3); defend then clear (10,5) then advance (17,20) at tick 17; the contact tick restarts the quiet count; clears (10,5) and (10,9) before and on the way; two clears per door then the march opens it; sixty open-door ticks hold one defend and one advance; arrival defend (17,20) on the download board; two seed-2 games end on one tick with one hash)
+- ISC-1603: 120 ticks of live space_hulk_1 seed 1: zero order commands to StormBolterMarine pieces (spec)
+- ISC-1604: the target table spec over the nine missions (threshold (17,20) on space_hulk_1 in another section than (20,20); space_hulk_4 threshold outside the objective's section; space_hulk_2 the blockade post; exits for space_hulk_3, 5, beta_1, debug_1; beta_2 the download point; space_hulk_6 undefined)
+- ISC-1607: scan_stage4_nine.txt: nine rows, ten seeds, every game resolved (O 0), det yes on every row
+- ISC-1608: git status: no packages/client path (engine and docs only)
+- ISC-1609: tsc --noEmit exit 0 (no output)
+- ISC-1610: engine suite 46 files, 504 tests green (squad_autopilot.spec 17, wilson.spec 5, squad.spec 41)
+- ISC-1611: coverage 98.06% lines
+- ISC-1612..1614: bun packages/engine/scripts/scan.ts --help exit 0; rows carry N W L D O, rate [lo, hi] %, cycle, marines, det, winners; the det column replays the first seed
+- ISC-1615: grep CLAUDE.md "scripts/scan.ts --missions"
+- ISC-1616: the orders row for space_hulk_1 over seeds 1..60: W2 winners 26,27 (the pinned seed among them)
+- ISC-1617: grep realtime-plan.md "## Stage 4 step 1: the instrument (2026-09-13)" = 1, the table and "### The reading" present
+- ISC-1618: grep CLAUDE.md "SUPERSEDED 2026-09-13 by the stage 4 instrument"
+- ISC-1619: grep status.md "Its first\nstep is done (2026-09-13)"
+- ISC-1620: grep architecture.md "SquadAutopilot.ts"
+- ISC-1621, 1622: em dashes and banned words over the diff's added lines and the four new files: 0
+- ISC-1623, 1624: git diff core/CostTables.ts empty; "regen: { marine: 3"
+- ISC-1625: ISA.md 1174 lines, ISC-14xx criteria 0 in the root and 129 in docs/isa/realtime-2x.md; README row names stage 2 and the facing fix
+- ISC-1626: this block; frontmatter progress below
+- ISC-1627: grep PROJECTS.md "STAGE 4 OPENED 2026-09-13, STEP 1 DONE"

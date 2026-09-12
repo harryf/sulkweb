@@ -37,6 +37,7 @@ export type { PieceKind } from './pieces/Piece.js';
 export { Blip } from './pieces/Blip.js';
 export { stealerTick, spawnBlips, rankEntries, convertRevealedBlips, squareSeenByMarine, chargeOrientation } from './ai/StealerAI.js';
 export { runMarineTurn, autoplay } from './ai/MarineAutopilot.js';
+export { runSquadTurn, squadTarget, squadLeader, squadInContact, doorAhead, firingSquare, flamerApproach, sectionClearOfMarines, AUTOPILOT } from './ai/SquadAutopilot.js';
 export { runMarineAI, marineTick, nearestShootable, nearestSeen, nearestThreatInSight, preferredFacing, threatsOn } from './ai/MarineAI.js';
 export type { MarineAiAction } from './ai/MarineAI.js';
 export { DEPLOY_SECONDS_PER_SQUAD, deployFacing, deploySquadCount, deploySeconds, orderSquaresFrontToBack, autoDeployOrder } from './rules/deploy.js';

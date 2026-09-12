@@ -11,7 +11,7 @@ import { TUNING } from './core/CostTables.js';
 import type { MarineCommand } from './core/Commands.js';
 import { stealerTick, spawnBlips, rankEntries, convertRevealedBlips, chargeOrientation } from './ai/StealerAI.js';
 import { runMarineAI } from './ai/MarineAI.js';
-import { orderIsValid, setOrder } from './ai/orders.js';
+import { orderIsValid, setOrder, setTask } from './ai/orders.js';
 import { squadTick, newSquadState, squadOf, hasSergeant, squadMembers, completeSquadOrder, type SquadState } from './ai/squad.js';
 import type { SquadOrder } from './core/Commands.js';
 import { expireFlames } from './rules/flame.js';
@@ -713,8 +713,12 @@ export class GameEngine {
         const st = this.squads.get(squad) ?? newSquadState(squad)
         this.squads.set(squad, st)
         const members = squadMembers(this, squad)
-        // Relay: a living sergeant delivers next tick, else TUNING.relayTicks
-        // later and without coordination; fixed for the life of the order.
+        // A different order supersedes the live plan: the members' tasks go,
+        // so the new planner starts from where they stand (an advance that
+        // inherited the defend's flamer post read it as his march and never
+        // moved; the stage 4 instrument's finding). The same order again is
+        // a re-plan and keeps the posts.
+        if (!st.order || !sameSquadOrder(st.order, cmd.order)) for (const m of members) setTask(m, null)
         st.coordinated = hasSergeant(members)
         st.order = cmd.order
         st.issuedTick = this.tickCount
@@ -951,4 +955,9 @@ function squadOrderIsValid(board: Board, order: SquadOrder): boolean {
 
 function completeSquad(engine: GameEngine, st: SquadState): void {
   completeSquadOrder(engine, st, squadMembers(engine, st.squad))
+}
+
+/** Same kind, square and facing. */
+function sameSquadOrder(a: SquadOrder, b: SquadOrder): boolean {
+  return a.type === b.type && a.x === b.x && a.y === b.y && (a.type !== 'clear' || b.type !== 'clear' || a.facing === b.facing)
 }

@@ -71,6 +71,8 @@ export function newSquadState(squad: string): SquadState {
 }
 
 const key = (c: { c: number; r: number }) => `${c.c},${c.r}`;
+/** Walk distance from the near flank within which a clear's covers are posted. */
+const COVER_RADIUS = 3;
 const sqCoord = (sq: Square): Coord => ({ c: sq.x, r: sq.y });
 const DIRS: Dir[] = [0, 1, 2, 3] as Dir[];
 
@@ -110,7 +112,7 @@ export function battleOrder(members: Piece[]): Piece[] {
 
 /** Squares within `max` walk of `sources`, pieces transparent, never
  *  entering `avoid`. Keys to distances. */
-function walk(board: Board, sources: Coord[], max: number, avoid?: Set<string>): Map<string, number> {
+export function walk(board: Board, sources: Coord[], max: number, avoid?: Set<string>): Map<string, number> {
   const dist = new Map<string, number>();
   const queue: Coord[] = [];
   for (const s of sources) {
@@ -382,7 +384,7 @@ const STEPS: ReadonlyArray<{ dc: number; dr: number }> = [
 /** The neighbour that descends the field most, orthogonals before
  *  diagonals on ties (a column walks the corridor's line); undefined at a
  *  minimum. */
-function downhill(board: Board, field: Map<string, number>, c: Coord): Coord | undefined {
+export function downhill(board: Board, field: Map<string, number>, c: Coord): Coord | undefined {
   const here = field.get(key(c)) ?? Infinity;
   let best: Coord | undefined; let bestD = here;
   for (const { dc, dr } of STEPS) {
@@ -427,8 +429,26 @@ export function columnOrder(members: Piece[], field: Map<string, number>): Piece
     (field.get(key(a.pos)) ?? Infinity) - (field.get(key(b.pos)) ?? Infinity) || rank.get(a.id)! - rank.get(b.id)!);
 }
 
-/** The heavy flamer leads only while nobody can pass him. */
-function demoteFlamer(board: Board, col: Piece[], field: Map<string, number>): void {
+/** A flame mission with an uncleansed objective and a flamer who still has
+ *  ammo: the job the squad exists for is his, so the column keeps him at
+ *  its head (the stage 4 instrument's finding: demoted behind the column in
+ *  a one-wide corridor he can never reach the door he must burn through). */
+export function flameJobPending(engine: GameEngine, members: Piece[]): boolean {
+  const mission = engine.mission;
+  if (!members.some(m => m instanceof HeavyFlamerMarine && m.ammo >= 1)) return false;
+  if (mission.objective === 'flame-objective') return mission.objectivePoint !== undefined && engine.cleansed.size === 0;
+  if (mission.objective === 'flame-objectives') return (mission.objectivePoints ?? []).some(p => !engine.cleansed.has(`${p.x},${p.y}`));
+  return false;
+}
+
+/** The heavy flamer leads only while nobody can pass him, except on a flame
+ *  mission with his job still pending, where the column is his. */
+function demoteFlamer(engine: GameEngine, board: Board, col: Piece[], field: Map<string, number>): void {
+  if (col.length > 1 && flameJobPending(engine, col)) {
+    const i = col.findIndex(m => m instanceof HeavyFlamerMarine && m.ammo >= 1);
+    if (i > 0) { const [f] = col.splice(i, 1); col.unshift(f); }
+    return;
+  }
   if (col.length > 1 && col[0] instanceof HeavyFlamerMarine) {
     const way = downhill(board, field, col[0].pos);
     const canPass = way !== undefined && pathStep(board, col[1].pos, c => c.c === way.c && c.r === way.r) !== undefined;
@@ -447,10 +467,18 @@ function runAdvance(engine: GameEngine, st: SquadState, members: Piece[], order:
   const alive = new Set(members.map(m => m.id));
   let col = st.column.map(id => members.find(m => m.id === id)).filter((m): m is Piece => m !== undefined);
   if (col.length !== members.length || !st.column.every(id => alive.has(id))) col = columnOrder(members, field);
-  demoteFlamer(board, col, field);
+  const at = (m: Piece, c: Coord) => m.pos.c === c.c && m.pos.r === c.r;
+  // The one re-sort after the first plan: the leader's waypoint held by his
+  // own column (a corner pocket where the follower behind him waits for his
+  // square while he waits for the follower's) is a deadlock the stage 4
+  // instrument found; sorting by the field puts the member nearest the
+  // target in front, and his downhill square can never be a squad-mate's.
+  const head = col[0];
+  const wp0 = head?.task?.type === 'moveTo' ? { c: head.task.x, r: head.task.y } : undefined;
+  if (head && wp0 && !at(head, wp0) && members.some(m => m !== head && at(m, wp0))) col = columnOrder(members, field);
+  demoteFlamer(engine, board, col, field);
   st.column = col.map(m => m.id);
   const leader = col[0];
-  const at = (m: Piece, c: Coord) => m.pos.c === c.c && m.pos.r === c.r;
   const closed = col.every((m, i) => i === 0 || chebyshev(m.pos, col[i - 1].pos) <= 2);
   // The leader waits for the column to close up, unless the column cannot:
   // a follower with no path to his predecessor is walled off by the column
@@ -535,7 +563,11 @@ export function planClear(engine: GameEngine, members: Piece[], x: number, y: nu
     const [c, r] = k.split(',').map(Number);
     lane.set(k, board.get(c, r)!);
   }
-  const nearSide = walk(board, [near], TUNING.laneDepth, new Set([key(far)]));
+  // Cover posts stand close behind and beside the door: a lane that loops
+  // back to meet the near side (space_hulk_1's side passage) would otherwise
+  // post a cover a nine-square detour away, on the far side of the loop,
+  // and split the squad (the stage 4 instrument's finding).
+  const nearSide = walk(board, [near], COVER_RADIUS, new Set([key(far)]));
   const squares = [...nearSide.keys()].filter(k => k !== key(near))
     .map(k => { const [c, r] = k.split(',').map(Number); return { c, r }; })
     .filter(c => standable(board, c, members));

@@ -199,6 +199,23 @@ describe('squad orders: the command, the slot and the relay', () => {
     expect(engine.marines.some(m => m.task !== null)).toBe(true);
   });
 
+  it('a different squad order clears the members\' tasks at issue; the same order again keeps the posts (a re-plan)', () => {
+    const engine = engineOn(inRoom());
+    engine.command(engine.marines[0].id, { type: 'squadOrder', order: defend(10, 7) });
+    engine.runTicks(3);
+    const posts = engine.marines.map(taskOf);
+    expect(posts.every(t => t !== null)).toBe(true);
+    // The same order: nothing is cleared.
+    engine.command(engine.marines[0].id, { type: 'squadOrder', order: defend(10, 7) });
+    expect(engine.marines.map(taskOf)).toEqual(posts);
+    // A different one: the tasks go before its planner runs, so no member
+    // inherits a stale post as his march (stage 4 instrument finding).
+    engine.command(engine.marines[0].id, { type: 'squadOrder', order: advance(10, 13) });
+    expect(engine.marines.every(m => m.task === null)).toBe(true);
+    engine.tick();
+    expect(engine.squadState('Calvin')!.column.length).toBe(5);
+  });
+
   it('a wiped squad completes its order', () => {
     const engine = engineOn();
     engine.command(engine.marines[0].id, { type: 'squadOrder', order: defend(10, 7) });
@@ -372,8 +389,13 @@ describe('advance: the column, the leapfrog, the rear guard', () => {
     expect((seen[seen.length - 1] as { order: unknown }).order).toBeNull();
   });
 
+  // space_hulk_1 is a flame mission: with the flamer's job pending he leads
+  // the column (squad_autopilot.spec); a defend objective on the same board
+  // gives the plain column these two tests describe.
+  const plainColumn = (): GameEngine => { PieceEvents.all.clear(); return new GameEngine({ ...quiet(), objective: 'defend' }, [], new SeededRng(1)); };
+
   it('the rear guard stands on overwatch facing away from the target whenever he is not closing up', () => {
-    const engine = engineOn();
+    const engine = plainColumn();
     engine.command(engine.marines[0].id, { type: 'squadOrder', order: advance(10, 13) });
     let guarded = 0;
     for (let t = 0; t < 120; t++) {
@@ -391,10 +413,10 @@ describe('advance: the column, the leapfrog, the rear guard', () => {
     expect(guarded).toBeGreaterThan(10);
   });
 
-  it('the heavy flamer never leads once another marine can pass him', () => {
-    const engine = engineOn();
-    engine.command(engine.marines[0].id, { type: 'squadOrder', order: advance(10, 13) });
+  it('the heavy flamer never leads once another marine can pass him (no flame job pending)', () => {
+    const engine = plainColumn();
     const flamer = engine.marines.find(m => m instanceof HeavyFlamerMarine)!;
+    engine.command(engine.marines[0].id, { type: 'squadOrder', order: advance(10, 13) });
     engine.runTicks(20);
     const col = engine.squadState('Calvin')!.column;
     expect(col[0]).not.toBe(flamer.id);

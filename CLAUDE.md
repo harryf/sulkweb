@@ -12,7 +12,7 @@ ALL NINE missions registered (space_hulk 1–6, beta_1, beta_2, debug_1); the co
 | Missions, controls, roster, deployment phase | `docs/features.md` |
 | Gameplay log export schema (stealer-AI analysis corpus) | `docs/gamelog-format.md` |
 | Roadmap state and known gaps | `docs/status.md` |
-| **2.x real-time plan (APPROVED 2026-09-12; stage 1 shipped as v2.0.0-alpha.1 and played: "works, playable, really hard"; stage 2 shipped as v2.0.0-alpha.2 the same day; stage 3 (squad orders, the chain of command, the command pause) shipped as v2.0.0-alpha.3 on 2026-09-13 and played: "not bad, we're going to have to make it easier for the marines"; START THE NEXT SESSION at its last section, "Stage 3 verdict and stage 4 handover" (the levers ranked, the transit rule question, the stage 4 build order))** | `docs/realtime-plan.md` |
+| **2.x real-time plan (APPROVED 2026-09-12; stage 1 shipped as v2.0.0-alpha.1 and played: "works, playable, really hard"; stage 2 shipped as v2.0.0-alpha.2 the same day; stage 3 (squad orders, the chain of command, the command pause) shipped as v2.0.0-alpha.3 on 2026-09-13 and played: "not bad, we're going to have to make it easier for the marines"; stage 4 step 1 built 2026-09-13; START THE NEXT SESSION at its last section, "Stage 4 step 1: the instrument" (the scan numbers, the reading, the two questions for Harry: the transit rule and the win-rate band), then the "Stage 3 verdict and stage 4 handover" build order from step 2)** | `docs/realtime-plan.md` |
 | Original milestone specs (M0–M8) and roadmap | `docs/history/prompts/` |
 | Canonical game rules (AP costs, dice, blips, phases) | `docs/history/SULK Manual Combined.pdf`; distilled digest in ISA Decisions |
 | Original Pygame engine analysis | `docs/history/Analysis Sulk Pygame*.html` |
@@ -24,11 +24,12 @@ Resuming work = extend `ISA.md` (new ISCs, decisions, changelog); don't invent a
 ```bash
 pnpm install
 pnpm --filter ./packages/client dev      # play at localhost:5173
-pnpm --filter ./packages/engine test     # 480 unit tests + coverage (~98% lines)
+pnpm --filter ./packages/engine test     # 504 unit tests + coverage (~98% lines)
 pnpm --filter ./packages/client test     # HUD/minimap units (vitest, --dir src only)
 pnpm --filter ./packages/client e2e      # Playwright no-mock suite (real browser, no mocks)
 pnpm build                               # engine tsc -b + client vite build
 pnpm --filter ./packages/engine example  # CLI engine tour
+bun packages/engine/scripts/scan.ts --missions space_hulk_1,space_hulk_2 --seeds 60 --policy both   # the balance instrument (Wilson intervals; --tuning key:value, --cycles, --help)
 ```
 
 ## Shipping policy (2026-08-20, after the invisible-feature incident)
@@ -190,8 +191,12 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
    the autopilot's flamer-led column feeds the flamer to CC on turn 2 in 57/60;
    an autopilot artifact, NOT balance evidence; unopposed the autopilot wins turn 9,
    proving the kill chain (flamer.spec); debug_1: 40W/0L over 40.
-   STALE since 2026-09-12 (sight through stealer bodies converts blips earlier and
-   widens the hive's seen map): the next balance run re-scans and owns these numbers.
+   SUPERSEDED 2026-09-13 by the stage 4 instrument (scripts/scan.ts, 60 seeds, cycle cap
+   60, shipped tuning; raw output docs/scans/2026-09-13-stage4-step1.txt): space_hulk_1
+   orders 2W (seeds 26, 27), squads 2W (seeds 24, 31); space_hulk_2 orders 3W (seeds 29, 36,
+   58), squads 0W; all nine under squads (10 seeds, liveness only): space_hulk_6 10W,
+   space_hulk_4 1W, the rest 0W. No detectable difference between the policies at 60
+   seeds. Read the plan's "Stage 4 step 1: the instrument" before touching a number.
    CAUTION: playthrough.spec idles turn 1 before its DONE click, so it consumes dice
    differently from plain autoplay; scan loss seeds under THAT pattern. If a rules change
    alters dice-consumption order, re-scan and re-pin. Stage 2 pins (2026-09-12): the win
@@ -274,8 +279,17 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
   Client: Tab cycles squads (`Selection.selectSquad`, exclusive with the marine selection),
   Esc with a squad = hold, Space = command pause (`commandPaused`, overlay 'command-pause');
   markers 'squad-marker' and level 2 'order-marker' in the squad colour.
-  The pinned seeds and the autopilot scan do NOT cover squad orders (the autopilot issues
-  individual orders only): seed drift after a squad-planner change points elsewhere.
+  The pinned seeds do NOT cover squad orders (the default autopilot policy issues
+  individual orders only): seed drift after a squad-planner change points elsewhere; the
+  scan's `squads` policy (stage 4, `ai/SquadAutopilot.ts`) does cover them.
+- **Squad planner rules the instrument added (2.x stage 4 step 1, 2026-09-13):** a
+  different squad order clears the members' tasks (`sameSquadOrder` in GameEngine; the
+  same order again is a re-plan and keeps the posts); on a flame mission with the flamer's
+  job pending (`flameJobPending`) the advance column keeps him at its head; the fixed
+  column re-sorts once when the leader's waypoint is held by his own follower; a clear's
+  covers stand within `COVER_RADIUS` (3) walk squares of the near flank. The bot's own
+  constants are `AUTOPILOT` (quietTicks 16, stallTicks 48, clearsPerDoor 2, flamerReach 8),
+  never TUNING.
 - **Orders (2.x stage 2, 2026-09-12):** `Piece.order` holds one `MarineOrder` (moveTo then
   hold|overwatch, optional facing; openDoor); `ai/orders.ts` executes it inside `marineTick`
   AFTER the reactions (unjam, shoot, adjacent fight/turn, flamer last stand, plus the transit
@@ -371,7 +385,9 @@ pause) shipped as v2.0.0-alpha.3 and passed its playtest with one carried
 requirement, "easier for the marines"; stage 4 (the balance pass first: a
 squad-order autopilot issuer, the transit overwatch rule, then numbers;
 mission orders, the metered pause, all nine missions, 2.0.0) starts from the
-plan's "Stage 3 verdict and stage 4 handover" section. Still open: thunder hammer + captain/grenades + librarian psi (no
+plan's "Stage 3 verdict and stage 4 handover" section; step 1 (the instrument: the
+squads autopilot policy and scripts/scan.ts) is done 2026-09-13, see the plan's "Stage 4
+step 1: the instrument" for the numbers; steps 2 and 6 wait on Harry's answers. Still open: thunder hammer + captain/grenades + librarian psi (no
 registered mission uses them; sprites exist unused per docs/asset-index.md),
 off-board entry-limbo lurking, the first balance sweep of the real-time
 constants. Deferred verifications: FPS probe (ISC-71), live real-Chrome boot

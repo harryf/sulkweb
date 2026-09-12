@@ -70,7 +70,13 @@ records the deviations. Harry's verdict on alpha.3: "It's not bad. We're
 going to have to make it easier for the marines but for now this is good."
 Stage 4 (the balance pass first, then mission orders, the metered pause
 pool replacing command points, all nine missions, 2.0.0 on the root) starts
-at the plan's "Stage 3 verdict and stage 4 handover" section.
+at the plan's "Stage 3 verdict and stage 4 handover" section. Its first
+step is done (2026-09-13): the balance instrument, a squad-order issuer for
+the autopilot and `packages/engine/scripts/scan.ts` with Wilson intervals;
+the numbers and the reading are in the plan's "Stage 4 step 1: the
+instrument" (no detectable difference between the two policies at sixty
+seeds; the traces point at the transit; nothing tuned). The transit rule and the win-rate band wait on
+Harry before steps 2 and 6.
 
 ## Known gaps / residue
 

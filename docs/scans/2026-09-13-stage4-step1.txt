@@ -1,0 +1,24 @@
+# Stage 4 step 1 scan, 2026-09-13, both policies after the planner fixes (one run)
+
+$ bun packages/engine/scripts/scan.ts --missions space_hulk_1,space_hulk_2 --seeds 60 --policy both --cycles 60
+scan 2026-09-12  seeds 1-60 (60)  cycles 60  tuning (default)  cycleTicks 40  regen.marine 3
+mission        policy     N    W    L   D   O        rate [lo, hi] %   cycle  marines  det  winners
+space_hulk_1   orders    60    2   58   0   0        3.3 [0.9, 11.4]     2.0     2.83  yes  26,27
+space_hulk_1   squads    60    2   58   0   0        3.3 [0.9, 11.4]     2.1     2.17  yes  24,31
+space_hulk_2   orders    60    3   57   0   0        5.0 [1.7, 13.7]     5.2     0.23  yes  29,36,58
+space_hulk_2   squads    60    0   60   0   0         0.0 [0.0, 6.0]     4.2     0.00  yes  -
+delta space_hulk_1: squads 3.3 minus orders 3.3 = +0.0 points
+delta space_hulk_2: squads 0.0 minus orders 5.0 = -5.0 points
+
+$ bun packages/engine/scripts/scan.ts --missions space_hulk_1,space_hulk_2,space_hulk_3,space_hulk_4,space_hulk_5,space_hulk_6,beta_1,beta_2,debug_1 --seeds 10 --policy squads --cycles 60
+scan 2026-09-12  seeds 1-10 (10)  cycles 60  tuning (default)  cycleTicks 40  regen.marine 3
+mission        policy     N    W    L   D   O        rate [lo, hi] %   cycle  marines  det  winners
+space_hulk_1   squads    10    0   10   0   0        0.0 [0.0, 27.8]     2.2     1.70  yes  -
+space_hulk_2   squads    10    0   10   0   0        0.0 [0.0, 27.8]     4.2     0.00  yes  -
+space_hulk_3   squads    10    0   10   0   0        0.0 [0.0, 27.8]     4.2     3.00  yes  -
+space_hulk_4   squads    10    1    9   0   0       10.0 [1.8, 40.4]     4.4     3.20  yes  1
+space_hulk_5   squads    10    0   10   0   0        0.0 [0.0, 27.8]     3.7     4.00  yes  -
+space_hulk_6   squads    10   10    0   0   0    100.0 [72.2, 100.0]    16.0     6.20  yes  1,2,3,4,5,6,7,8,9,10
+beta_1         squads    10    0   10   0   0        0.0 [0.0, 27.8]     3.5     0.00  yes  -
+beta_2         squads    10    0   10   0   0        0.0 [0.0, 27.8]     5.0     3.00  yes  -
+debug_1        squads    10    0   10   0   0        0.0 [0.0, 27.8]     3.0     0.00  yes  -

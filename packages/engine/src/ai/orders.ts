@@ -129,7 +129,7 @@ function faceDir(m: Piece, dir: Dir): boolean {
  * corridor's line. Among the neighbours that lie on SOME shortest path the
  * square straight ahead wins, then the other orthogonals, then diagonals.
  */
-function chooseStep(board: Board, m: Piece, isGoal: (c: Coord) => boolean): Coord | undefined {
+export function chooseStep(board: Board, m: Piece, isGoal: (c: Coord) => boolean): Coord | undefined {
   const best = pathStep(board, m.pos, isGoal);
   if (!best) return undefined;
   const ahead = DIR_VEC[m.facing];

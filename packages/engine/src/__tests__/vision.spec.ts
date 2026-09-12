@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { Board } from '../board/Board.js';
 import { Door } from '../rules/Door.js';
 import { StormBolterMarine } from '../pieces/StormBolterMarine.js';
+import { Genestealer } from '../pieces/Genestealer.js';
+import { Blip } from '../pieces/Blip.js';
 import { Dir } from '../core/Direction.js';
 import { inVisionArc, inFireArc, canSee, canShoot, visibleSquares } from '../board/vision.js';
 
@@ -54,11 +56,21 @@ describe('canSee / canShoot integration', () => {
     expect(canSee(board, viewer, beyond)).toBe(true);
   });
 
-  it('an intervening piece blocks sight', () => {
+  it('an intervening MARINE blocks sight', () => {
     const { board, viewer } = at(4, 4, Dir.N);
     new StormBolterMarine(board, { c: 4, r: 2 }, Dir.N);
     expect(canSee(board, viewer, board.get(4, 0)!)).toBe(false);
     expect(canSee(board, viewer, board.get(4, 2)!)).toBe(true); // the blocker itself is visible
+  });
+
+  it('stealers and blips are transparent: the column behind them stays in sight (2026-09-12)', () => {
+    const { board, viewer } = at(4, 4, Dir.N);
+    new Genestealer(board, { c: 4, r: 3 }, Dir.S);
+    new Blip(board, { c: 4, r: 2 }, 1);
+    expect(canSee(board, viewer, board.get(4, 3)!)).toBe(true);
+    expect(canSee(board, viewer, board.get(4, 2)!)).toBe(true);  // behind the stealer
+    expect(canSee(board, viewer, board.get(4, 0)!)).toBe(true);  // behind both
+    expect(canShoot(board, viewer, board.get(4, 0)!)).toBe(true); // fire arc agrees with sight
   });
 
   it('canShoot enforces range', () => {

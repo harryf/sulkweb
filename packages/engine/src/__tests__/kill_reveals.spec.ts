@@ -23,27 +23,30 @@ const mission = (marineY: number) => ({
 } as unknown as CompiledMission);
 
 describe('deaths that open sight lines convert the revealed blips', () => {
-  it('a storm-bolter kill reveals the blip behind the target — instant convert', () => {
+  it('a stealer body hides nothing: the blip behind the target converts on the first sweep, the kill has nothing left to reveal (2026-09-12)', () => {
+    // Until 2026-09-12 a stealer body blocked LOS and this test proved the
+    // KILL revealed the blip behind it. Stealer-side bodies are transparent
+    // now (fog directive: see the whole column), so the first marine action
+    // reveals and converts the blip THROUGH the stealer; the kill sweep
+    // (still exercised by the close-combat and overwatch cases below, and
+    // by any marine body vacating a square) finds nothing left behind it.
     const engine = new GameEngine(mission(8));
     const board = engine.state.board;
     board.dice = new RollQueue([6, 1, 1, 1, 1, 1]);
 
     const stealer = new Genestealer(board, { c: 4, r: 6 }, Dir.S);
-    const blip = new Blip(board, { c: 4, r: 4 }, 2); // hidden behind the stealer
-    expect(blip.alive).toBe(true);
+    const blip = new Blip(board, { c: 4, r: 4 }, 2); // behind the stealer, in the marine's arc
+    expect(blip.alive).toBe(true); // no sweep has run yet
 
     const marine = engine.marines[0];
-    // Negative guard (advisor 2026-08-15): a marine action that does NOT open
-    // the sight line runs the sweep but must not over-convert the hidden blip.
-    expect(marine.tryTurn(-1)).toBe(true);
-    expect(marine.tryTurn(1)).toBe(true); // back to facing N — 2 AP spent
-    expect(blip.alive).toBe(true); // still hidden behind the stealer
+    expect(marine.tryTurn(-1)).toBe(true); // any marine action runs the sweep
+    expect(blip.alive).toBe(false); // seen straight through the stealer, converted
+    expect(board.pieces.filter(p => (p as any).kind === 'stealer')).toHaveLength(3); // value 2 + the original
 
-    expect(marine.shoot(stealer)).toBe(true); // 6 kills
+    expect(marine.tryTurn(1)).toBe(true);
+    expect(marine.shoot(stealer)).toBe(true); // 6 kills the front stealer
     expect(stealer.alive).toBe(false);
-
-    expect(blip.alive).toBe(false); // square vacated → seen → converted
-    expect(board.pieces.filter(p => (p as any).kind === 'stealer')).toHaveLength(2); // value 2
+    expect(board.pieces.filter(p => (p as any).kind === 'stealer')).toHaveLength(2); // nothing new revealed
   });
 
   it('a close-combat kill reveals the blip behind the loser — instant convert', () => {

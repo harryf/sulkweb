@@ -348,8 +348,12 @@ describe('hive straggler hunt', () => {
 describe('hive sacrifice blocker', () => {
   // A long watched corridor separates the western pocket from the rest of the
   // map; a transit row crosses it at r10. The blocker walks into the fire
-  // lane, soaks the reaction burst, and PARKS — its body blocks the sight
-  // line, and the corridor behind it goes dark for the mass to build up.
+  // lane, soaks the reaction burst, and PARKS. Until 2026-09-12 its body also
+  // blocked the sight line so the corridor behind it went dark; stealer
+  // bodies are transparent now (fog directive), so the lane STAYS hot behind
+  // the blocker and the followers keep waiting in the dark pocket. The
+  // blocker is a pure decoy today (one soaked burst, a jam chance); whether
+  // the hive should still spend a stealer on it is an open balance question.
   const crossing = () =>
     new Board(5, 13, [
       ...col(2, 0, 12),               // watched corridor
@@ -358,7 +362,7 @@ describe('hive sacrifice blocker', () => {
       { x: 3, y: 9 }, { x: 4, y: 9 }, { x: 3, y: 11 }, { x: 4, y: 11 }, // eastern rooms
     ] as any);
 
-  it('one stealer soaks the burst, parks in the lane, and shuts it for the rest', () => {
+  it('one stealer soaks the burst and parks in the lane; the lane behind it stays hot (2026-09-12)', () => {
     const board = crossing();
     board.dice = new RollQueue([1, 2]); // one overwatch reaction: miss, no double
     const marine = new StormBolterMarine(board, { c: 2, r: 0 }, Dir.S);
@@ -375,18 +379,18 @@ describe('hive sacrifice blocker', () => {
     expect(blocker.ap).toBeGreaterThan(0);  // …and parked with AP in hand
     const after = computeThreat(board);
     expect(after.kill.has(`2,${blocker.pos.r}`)).toBe(true); // the blocker square stays hot
-    expect(after.kill.has('2,11')).toBe(false); // but behind its body the lane is dark
-    expect(after.kill.has('2,12')).toBe(false);
-    // The followers advanced only through dark squares — the scripted queue
-    // held exactly the blocker's one reaction burst, and nothing more.
+    expect(after.kill.has('2,11')).toBe(true); // its body shields nothing: the lane behind stays hot
+    expect(after.kill.has('2,12')).toBe(true);
+    // The followers stayed on dark squares (no shield to advance behind); the
+    // scripted queue held exactly the blocker's one reaction burst, and nothing more.
     for (const f of [f1, f2]) {
       expect(after.kill.has(`${f.pos.c},${f.pos.r}`)).toBe(false);
       expect(after.seen.has(`${f.pos.c},${f.pos.r}`)).toBe(false);
     }
     expect((board.dice as RollQueue).remaining).toBe(0);
 
-    // Next activation: the blocker holds; the column keeps building behind the
-    // shield without drawing a single further reaction.
+    // Next activation: the blocker holds (parked, not charging); the followers
+    // still draw no reaction because they never enter the hot lane.
     for (const p of [blocker, f1, f2]) p.resetAP();
     runStealerActions(board);
     expect(blocker.pos).toEqual({ c: 2, r: 9 }); // parked — holding, not charging

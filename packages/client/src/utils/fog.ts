@@ -10,8 +10,12 @@
  *    squares of any marine (creeping up behind; you hear it in the
  *    bulkheads, walls deliberately do not block the creep sense).
  *  - Squares no marine sees get a dimming overlay.
- *  - Blips, marines, doors, flames, and the C.A.T. are never hidden;
- *    the minimap auspex stays the primary detection instrument.
+ *  - Blips render on the main board only while the pulse radar runs (a
+ *    sergeant alive; see radarLogic.radarActive). Radar down: blips are
+ *    invisible until they convert into stealers (directive, 2026-09-12).
+ *  - Marines, doors, flames, and the C.A.T. are never hidden.
+ *  - Stealer-side bodies never block a marine's sight line (engine rule,
+ *    2026-09-12): the whole column down a corridor is in the sight set.
  */
 import { visibleSquares, type Board, type Piece } from '@sulk/engine/index.js';
 
@@ -40,6 +44,26 @@ export function computeMarineSight(board: Board): Set<string> {
     for (const sq of visibleSquares(board, m)) sight.add(key(sq.x, sq.y));
   }
   return sight;
+}
+
+/** Sprite kinds the fog pass may hide. Marines and the C.A.T. never hide. */
+export type FoggedKind = 'stealer' | 'blip';
+
+/**
+ * Per-frame visibility verdict for one threat sprite: a stealer follows the
+ * sight-or-creep rule, a blip (real or decoy; both are kind 'blip') is a
+ * radar return and shows only while the radar runs.
+ */
+export function threatVisible(
+  kind: FoggedKind,
+  radarUp: boolean,
+  sight: Set<string>,
+  marines: ReadonlyArray<{ c: number; r: number }>,
+  c: number,
+  r: number,
+): boolean {
+  if (kind === 'blip') return radarUp;
+  return threatRevealed(sight, marines, c, r);
 }
 
 /**

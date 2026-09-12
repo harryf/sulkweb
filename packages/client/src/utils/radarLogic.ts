@@ -43,6 +43,13 @@ export function isSergeant(p: Pick<RadarPieceView, 'kind' | 'alive' | 'spriteKey
   return p.kind === 'marine' && p.alive && p.spriteKey.startsWith('terminator_sergeant');
 }
 
+/** The pulse radar runs while any sergeant lives (a captain would carry it
+ *  too, once the engine has one). Shared by the minimap scope and the main
+ *  board's blip visibility (fog directive, 2026-09-12). */
+export function radarActive(all: ReadonlyArray<Pick<RadarPieceView, 'kind' | 'alive' | 'spriteKey'>>): boolean {
+  return all.some(isSergeant);
+}
+
 /** How long one pulse ring takes to sweep the whole minimap. */
 export function ringDurationMs(intervalMs: number): number {
   return Math.min(Math.round(intervalMs * RADAR.ringFraction), RADAR.ringMaxMs);

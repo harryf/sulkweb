@@ -59,7 +59,13 @@ function pointOnSegment(
  * @returns `true` if a clear line of sight exists, `false` otherwise.
  */
 export interface LosOptions {
-  /** When true, an intermediate square occupied by any piece blocks LOS. */
+  /**
+   * When true, an intermediate square occupied by a MARINE blocks LOS.
+   * Stealer-side pieces (stealers, blips, ambush counters) are transparent
+   * (fog of war directive, 2026-09-12): a marine sees the whole column
+   * charging down a corridor, and a blip behind a stealer converts the
+   * moment the sight line reaches it.
+   */
   piecesBlock?: boolean;
 }
 
@@ -133,8 +139,9 @@ export function hasLineOfSight(board: Board, a: Square, b: Square, opts: LosOpti
         return false;
       }
     }
-    if (opts.piecesBlock && board.isOccupied({ c: x, r: y })) {
-      return false;
+    if (opts.piecesBlock) {
+      const occupant = board.pieceAt({ c: x, r: y }) as { kind?: string } | undefined;
+      if (occupant?.kind === 'marine') return false;
     }
     // Burning squares block sight through (original Flames blockslos).
     if (board.isFlaming({ c: x, r: y })) {

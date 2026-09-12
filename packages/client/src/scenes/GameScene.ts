@@ -11,7 +11,8 @@ import { showEndDialog } from '../ui/endDialog.js';
 import { HUD_WIDTH, MINI_MAP_MARGIN, UI_FONT, FACING_ARROWS } from '../config.js';
 import { MOTION, kindFromTexture, camPanStep, shimmerPhase, recoilVector, shortestRotationDelta } from '../utils/motionLogic.js';
 import { FOCUS, planReplayFocus, replayOffsets } from '../utils/replayFocus.js';
-import { FOG, computeMarineSight, threatRevealed } from '../utils/fog.js';
+import { FOG, computeMarineSight, threatRevealed, threatVisible, type FoggedKind } from '../utils/fog.js';
+import { radarActive } from '../utils/radarLogic.js';
 
 const TILE_SIZE = 40
 
@@ -96,6 +97,10 @@ export default class GameScene extends Phaser.Scene {
    *  strip a killed marine's creep reveal for the whole animation and his
    *  killer would strike invisibly (reviewer finding, 2026-08-21). */
   private fogMarineSnap: { c: number; r: number }[] | null = null;
+  /** Pre-phase radar state for the same reason: a sergeant killed this
+   *  phase is already spliced out before frame 1, but the replay has not
+   *  shown his death yet, so the blips stay on screen until it has. */
+  private fogRadarSnap: boolean | null = null;
   /** Last hover readout string — public for the e2e suite to assert against. */
   hoverInfo = '';
   /** All game audio (music ducking, SFX, motion tracker) — public for e2e. */
@@ -789,7 +794,7 @@ export default class GameScene extends Phaser.Scene {
       // update() services it only outside replays (frozen-set invariant).
       const fogDirty = () => { this.fogDirty = true; };
       PieceEvents.on('pieceMoved', fogDirty);
-      PieceEvents.on('pieceDied', fogDirty);   // pieces block LOS
+      PieceEvents.on('pieceDied', fogDirty);   // marine bodies block LOS
       PieceEvents.on('pieceAdded', fogDirty);
       PieceEvents.on('blipConverted', fogDirty);
       PieceEvents.on('doorToggled', fogDirty);
@@ -1053,9 +1058,13 @@ export default class GameScene extends Phaser.Scene {
     const piece = board.pieceAt({ c: x, r: y }) as Piece | undefined;
     // Fog side channel (advisor 2026-08-21): the readout must not name a
     // stealer the player cannot see, or hovering the dark scans the map.
-    const hoverHidden = this.fogGfx && piece?.kind === 'stealer'
-      && !this.deployMode && this.engine.phase !== 'Deploy'
-      && !threatRevealed(this.fogSight, this.fogMarines(), x, y);
+    // Blips are radar returns: with no sergeant alive the readout must not
+    // name one either, in Deploy included (the board is never told).
+    const hoverHidden = this.fogGfx && piece !== undefined && (
+      (piece.kind === 'blip' && !this.fogRadar())
+      || (piece.kind === 'stealer'
+        && !this.deployMode && this.engine.phase !== 'Deploy'
+        && !threatRevealed(this.fogSight, this.fogMarines(), x, y)));
     if (piece && !hoverHidden) {
       parts.push(piece instanceof HeavyFlamerMarine ? `marine (flamer, ammo ${piece.ammo})`
         : piece instanceof AssaultCannonMarine ? `marine (assault cannon, ammo ${piece.ammo})`
@@ -1177,9 +1186,10 @@ export default class GameScene extends Phaser.Scene {
       .setInteractive();
     (sprite as any).pieceId = pieceId;
     (sprite as any).pieceKind = kind;
-    // Under fog a fresh stealer must not flash its position for even one
-    // frame: spawn hidden; updateFog() shows it the moment it is revealed.
-    if (this.fogEnabled && kind === 'stealer') sprite.setVisible(false);
+    // Under fog a fresh threat must not flash its position for even one
+    // frame: spawn hidden; updateFog() shows it the moment it is revealed
+    // (stealer: sight or creep; blip: the radar is up).
+    if (this.fogEnabled && (kind === 'stealer' || kind === 'blip')) sprite.setVisible(false);
     this.pieceSprites[pieceId] = sprite;
   }
 
@@ -1436,7 +1446,10 @@ export default class GameScene extends Phaser.Scene {
     const anchors = this.engine.marines.map(m => ({ x: m.pos.c, y: m.pos.r }));
     // Same splice hazard as anchors: the creep reveal must ride the squad as
     // it stood when the phase began, dead men included.
-    if (this.fogEnabled) this.fogMarineSnap = anchors.map(a => ({ c: a.x, r: a.y }));
+    if (this.fogEnabled) {
+      this.fogMarineSnap = anchors.map(a => ({ c: a.x, r: a.y }));
+      this.fogRadarSnap = radarActive(this.engine.state.pieces as any);
+    }
     const stream = PieceEvents.capture(() => this.engine.endMarinePhase());
     Selection.clear();
     this.disarmAndRefresh();
@@ -1556,6 +1569,7 @@ export default class GameScene extends Phaser.Scene {
     this.animating = false;
     this.minimap.frozen = false;
     this.fogMarineSnap = null; // engine truth wins for the creep reveal too
+    this.fogRadarSnap = null;  // and for the radar gate on blips
     this.clearVignette();
     const live = new Set(this.engine.state.pieces.map(p => p.id));
     for (const p of this.engine.state.pieces) {
@@ -1796,9 +1810,11 @@ export default class GameScene extends Phaser.Scene {
     const gfx = this.fogGfx;
     if (!gfx) return; // fog off (?fog=0 or attract): zero behavior change
     // Deployment: the whole board must be readable while placing the squad.
+    // Blips still obey the radar gate (a no-sergeant mission never shows them).
     if (this.deployMode || this.engine.phase === 'Deploy') {
       gfx.clear();
       this.fogDirty = true; // recompute the moment the mission proper starts
+      this.applyThreatFog(true);
       return;
     }
     // Mission over (and the replay has shown it): lift the fog so the final
@@ -1806,7 +1822,8 @@ export default class GameScene extends Phaser.Scene {
     if (!this.animating && this.engine.state.result !== 'ongoing') {
       gfx.clear();
       for (const spr of Object.values(this.pieceSprites)) {
-        if ((spr as any).pieceKind === 'stealer' && spr.active) spr.setVisible(true);
+        const kind = (spr as any).pieceKind;
+        if ((kind === 'stealer' || kind === 'blip') && spr.active) spr.setVisible(true);
       }
       return;
     }
@@ -1821,12 +1838,31 @@ export default class GameScene extends Phaser.Scene {
       }
       this.fogDirty = false;
     }
+    this.applyThreatFog(false);
+  }
+
+  /** Per-frame show/hide of every threat sprite from its LIVE tile. During
+   *  Deploy only the radar gate applies (no sight set exists yet; stealers
+   *  cannot be on the board then anyway). */
+  private applyThreatFog(deploying: boolean): void {
     const marines = this.fogMarines();
+    const radarUp = this.fogRadar();
     for (const spr of Object.values(this.pieceSprites)) {
-      if ((spr as any).pieceKind !== 'stealer' || !spr.active) continue;
+      const kind = (spr as any).pieceKind as string;
+      if ((kind !== 'stealer' && kind !== 'blip') || !spr.active) continue;
+      if (deploying && kind === 'stealer') continue;
       const c = Math.floor(spr.x / TILE_SIZE), r = Math.floor(spr.y / TILE_SIZE);
-      spr.setVisible(threatRevealed(this.fogSight, marines, c, r));
+      spr.setVisible(threatVisible(kind as FoggedKind, radarUp, this.fogSight, marines, c, r));
     }
+  }
+
+  /** Radar state for the blip gate: the pre-phase snapshot while a replay
+   *  runs (the scope dies when the replay shows the sergeant die, not
+   *  before), engine truth after. The reserve counts: during Deploy the
+   *  sergeant is alive but not yet on the board, and his auspex is with him. */
+  private fogRadar(): boolean {
+    if (this.animating && this.fogRadarSnap !== null) return this.fogRadarSnap;
+    return radarActive([...this.engine.state.pieces, ...this.engine.reserve] as any);
   }
 
   /** Marine coordinates for the creep reveal: the pre-phase snapshot while a

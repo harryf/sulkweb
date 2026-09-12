@@ -1,6 +1,8 @@
 import { it, expect, describe } from 'vitest';
 import { GameEngine } from '../GameEngine.js';
 import { Blip } from '../pieces/Blip.js';
+import { Genestealer } from '../pieces/Genestealer.js';
+import { Dir } from '../core/Direction.js';
 import { StormBolterMarine } from '../pieces/StormBolterMarine.js';
 import { AssaultCannonMarine } from '../pieces/AssaultCannonMarine.js';
 import { RollQueue } from '../core/Dice.js';
@@ -32,6 +34,25 @@ describe('blips convert immediately when a marine action reveals them', () => {
     expect(blip.alive).toBe(false); // converted, no endMarinePhase involved
     expect(board.pieces.filter(p => (p as any).kind === 'blip')).toHaveLength(0);
     expect(board.pieces.filter(p => (p as any).kind === 'stealer')).toHaveLength(2); // value 2 → both spawn
+  });
+
+  it('a blip behind a stealer converts the moment the sight line reaches it (2026-09-12)', () => {
+    // Stealer bodies no longer block LOS: the marine sees past the front
+    // stealer, so the blip queued behind it is revealed and converts.
+    const mission = {
+      name: 'sight-through-stealer', width: 9, height: 9,
+      marineDeployment: [{ x: 4, y: 4, facing: 'up' }],
+      initialBlips: 0, entryPoints: [], objective: 'exterminate',
+    } as unknown as CompiledMission;
+    const engine = new GameEngine(mission);
+    const board = engine.state.board;
+    board.dice = new RollQueue([1, 1, 1, 1, 1, 1]);
+    new Genestealer(board, { c: 4, r: 6 }, Dir.N); // behind the marine, in front of the blip
+    const blip = new Blip(board, { c: 4, r: 7 }, 1);
+    expect(blip.alive).toBe(true); // both behind the north-facing marine
+    expect(engine.marines[0].tryTurn(2)).toBe(true); // about-face: stealer, then blip, straight ahead
+    expect(blip.alive).toBe(false); // converted through the stealer's body
+    expect(board.pieces.filter(p => (p as any).kind === 'stealer')).toHaveLength(2);
   });
 
   // Corridor fixture with a door edge (10,5)↑ and a marine at (10,4) facing it

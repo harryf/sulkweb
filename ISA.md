@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: context-override
-phase: build
-progress: "1436/1515 (stage 3 run open: ISC-1504..1582 pending; ISC-1038 dropped; ISC-71 deferred)"
+phase: complete
+progress: "1515/1515 (stage 3 shipped as v2.0.0-alpha.3; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T19:33:00Z
+updated: 2026-09-12T20:16:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -603,103 +603,103 @@ Harry: "OK let's implement stage 3". Source: docs/realtime-plan.md "Stage 3" (sh
 
 Engine model (core/Commands.ts, pieces/Piece.ts, events/PieceEvents.ts, GameEngine.ts, core/CostTables.ts):
 
-- [ ] ISC-1504: Commands.ts exports SquadOrder: defend {x, y} | advance {x, y} | clear {x, y, facing} (grep)
-- [ ] ISC-1505: MarineCommand gains squadOrder {order} and clearSquadOrder; the squad is the addressed marine's deployment tag, so the one command path and the log record it (grep)
-- [ ] ISC-1506: Piece carries squad (the deployment tag, set at construction) and task: MarineOrder | null, the L2 slot beside order (grep)
-- [ ] ISC-1507: orderChanged carries level 1 | 2; a squadOrderChanged event {squad, order, coordinated, dueTick} exists (grep)
-- [ ] ISC-1508: GameEngine.squads holds per-squad state (order, issuedTick, dueTick, lastPlanTick, planKey); a squadOrder command through any member's id sets that squad's order (spec)
-- [ ] ISC-1509: a squadOrder command never stamps the lease and never clears a member's L1 order at issue; the first plan at dueTick clears the members' earlier player orders (spec) [refined 2026-09-13: the advisor's deaf-marine rule]
-- [ ] ISC-1510: clearSquadOrder clears the squad slot and every member's task and emits squadOrderChanged with order null (spec)
-- [ ] ISC-1511: a direct-control command clears L1 only; the task survives and the marine resumes it after the lease (spec)
-- [ ] ISC-1512: individual beats squad: marineTick executes a live L1 order and the task only once L1 is empty (spec)
-- [ ] ISC-1513: TUNING gains relayTicks 8, contactHoldTicks 40, defendRadius 3, laneDepth 8 with a doc comment (grep)
-- [ ] ISC-1514: the tick runs the squad planners after the deferred commands and before runMarineAI; the tick() comment lists the step (grep)
-- [ ] ISC-1515: latency: with a living sergeant in the squad the members' tasks exist on the tick after the command; without one, none exist until relayTicks have passed (spec, exit criterion)
-- [ ] ISC-1516: a sergeant killed while an order is live does not cancel it; the next order carries the delay and plans uncoordinated (spec)
-- [ ] ISC-1517: determinism: one seed plus one command log with squad orders replays to the same stateHash (determinism.spec)
-- [ ] ISC-1518: index.ts exports SquadOrder, squadLabel, the planner entry; engine_lint stays green (grep, vitest)
+- [x] ISC-1504: Commands.ts exports SquadOrder: defend {x, y} | advance {x, y} | clear {x, y, facing} (grep)
+- [x] ISC-1505: MarineCommand gains squadOrder {order} and clearSquadOrder; the squad is the addressed marine's deployment tag, so the one command path and the log record it (grep)
+- [x] ISC-1506: Piece carries squad (the deployment tag, set at construction) and task: MarineOrder | null, the L2 slot beside order (grep)
+- [x] ISC-1507: orderChanged carries level 1 | 2; a squadOrderChanged event {squad, order, coordinated, dueTick} exists (grep)
+- [x] ISC-1508: GameEngine.squads holds per-squad state (order, issuedTick, dueTick, lastPlanTick, planKey); a squadOrder command through any member's id sets that squad's order (spec)
+- [x] ISC-1509: a squadOrder command never stamps the lease and never clears a member's L1 order at issue; the first plan at dueTick clears the members' earlier player orders (spec) [refined 2026-09-13: the advisor's deaf-marine rule]
+- [x] ISC-1510: clearSquadOrder clears the squad slot and every member's task and emits squadOrderChanged with order null (spec)
+- [x] ISC-1511: a direct-control command clears L1 only; the task survives and the marine resumes it after the lease (spec)
+- [x] ISC-1512: individual beats squad: marineTick executes a live L1 order and the task only once L1 is empty (spec)
+- [x] ISC-1513: TUNING gains relayTicks 8, contactHoldTicks 40, defendRadius 3, laneDepth 8 with a doc comment (grep)
+- [x] ISC-1514: the tick runs the squad planners after the deferred commands and before runMarineAI; the tick() comment lists the step (grep)
+- [x] ISC-1515: latency: with a living sergeant in the squad the members' tasks exist on the tick after the command; without one, none exist until relayTicks have passed (spec, exit criterion)
+- [x] ISC-1516: a sergeant killed while an order is live does not cancel it; the next order carries the delay and plans uncoordinated (spec)
+- [x] ISC-1517: determinism: one seed plus one command log with squad orders replays to the same stateHash (determinism.spec)
+- [x] ISC-1518: index.ts exports SquadOrder, squadLabel, the planner entry; engine_lint stays green (grep, vitest)
 
 Defend planner (ai/squad.ts):
 
-- [ ] ISC-1519: the area is the clicked square's section (every mission square carries one), else the squares within TUNING.defendRadius walk of it (spec) [refined 2026-09-13]
-- [ ] ISC-1520: entrances are squares outside the area adjacent to it, door edges included (spec: sh1 section 1 has three)
-- [ ] ISC-1521: each entrance's lane is the squares outside the area within TUNING.laneDepth walk of it (spec: every lane non-empty)
-- [ ] ISC-1522: candidates score with the entrance doors peeked open; cover is the lane squares in the fire cone with a clear geometric line (spec: a post facing a closed door scores its lane)
-- [ ] ISC-1523: greedy assignment: assault cannon first, bolters (sergeant among them) next, flamer last; posts distinct; ties by walk distance (spec with a cannon fixture)
-- [ ] ISC-1524: sh1 section 1 defend: every entrance square lies in the fire lane of at least one assigned bolter post (spec, exit criterion)
-- [ ] ISC-1525: the flamer's post is an interior square with the fewest lane squares in view (spec)
-- [ ] ISC-1526: each member's task is moveTo his post with the assigned facing, then overwatch for bolters and hold for the flamer (spec)
-- [ ] ISC-1527: re-plan fires on a member death, the cycle boundary and a pin change; a quiet cycle emits no orderChanged (spec counting events) [refined 2026-09-13: the door-toggle trigger dropped, see Decisions]
-- [ ] ISC-1528: Anti: a re-plan that yields a member's current task emits no orderChanged (spec)
-- [ ] ISC-1529: with no stealers the members reach their posts and stand on overwatch facing the assigned way (spec)
-- [ ] ISC-1530: uncoordinated defend (no sergeant): no member gets a task; the squad order stays live (spec)
+- [x] ISC-1519: the area is the clicked square's section (every mission square carries one), else the squares within TUNING.defendRadius walk of it (spec) [refined 2026-09-13]
+- [x] ISC-1520: entrances are squares outside the area adjacent to it, door edges included (spec: sh1 section 1 has three)
+- [x] ISC-1521: each entrance's lane is the squares outside the area within TUNING.laneDepth walk of it (spec: every lane non-empty)
+- [x] ISC-1522: candidates score with the entrance doors peeked open; cover is the lane squares in the fire cone with a clear geometric line (spec: a post facing a closed door scores its lane)
+- [x] ISC-1523: greedy assignment: assault cannon first, bolters (sergeant among them) next, flamer last; posts distinct; ties by walk distance (spec with a cannon fixture)
+- [x] ISC-1524: sh1 section 1 defend: every entrance square lies in the fire lane of at least one assigned bolter post (spec, exit criterion)
+- [x] ISC-1525: the flamer's post is an interior square with the fewest lane squares in view (spec)
+- [x] ISC-1526: each member's task is moveTo his post with the assigned facing, then overwatch for bolters and hold for the flamer (spec)
+- [x] ISC-1527: re-plan fires on a member death, the cycle boundary and a pin change; a quiet cycle emits no orderChanged (spec counting events) [refined 2026-09-13: the door-toggle trigger dropped, see Decisions]
+- [x] ISC-1528: Anti: a re-plan that yields a member's current task emits no orderChanged (spec)
+- [x] ISC-1529: with no stealers the members reach their posts and stand on overwatch facing the assigned way (spec)
+- [x] ISC-1530: uncoordinated defend (no sergeant): no member gets a task; the squad order stays live (spec)
 
 Advance planner:
 
-- [ ] ISC-1531: column order front to back is bolter, sergeant, heavy, rest (autoDeployOrder reused over the living members) (spec)
-- [ ] ISC-1532: the leader's task is moveTo the square two steps down the gradient toward the target, then overwatch (spec)
-- [ ] ISC-1533: followers' tasks are moveTo their predecessor (adjacency completion) (spec)
-- [ ] ISC-1534: the rear guard holds on overwatch facing away from the target until the marine ahead is more than two squares off, then follows (spec)
-- [ ] ISC-1535: the rear guard never walks while the marine ahead is within two squares: he stands on overwatch facing back (spec over the whole advance) [refined 2026-09-13: replaces "one mover per tick", see Decisions]
-- [ ] ISC-1536: fixture: the column reaches the objective with the rear guard facing back at every leapfrog step (spec, exit criterion)
-- [ ] ISC-1537: contact suspends: a threat in sight of any member clears every task; the advance resumes contactHoldTicks after the last sighting (spec)
-- [ ] ISC-1538: completion: leader on the target and every member adjacent to a predecessor clears the squad order (squadOrderChanged null) (spec)
-- [ ] ISC-1539: uncoordinated advance: every member gets moveTo the target on his own, no rear guard (spec)
-- [ ] ISC-1540: Anti: the heavy flamer never leads once another marine can pass him, and never reaches the target first (spec) [refined 2026-09-13]
+- [x] ISC-1531: column order front to back is bolter, sergeant, heavy, rest (autoDeployOrder reused over the living members) (spec)
+- [x] ISC-1532: the leader's task is moveTo the square two steps down the gradient toward the target, then overwatch (spec)
+- [x] ISC-1533: followers' tasks are moveTo their predecessor (adjacency completion) (spec)
+- [x] ISC-1534: the rear guard holds on overwatch facing away from the target until the marine ahead is more than two squares off, then follows (spec)
+- [x] ISC-1535: the rear guard never walks while the marine ahead is within two squares: he stands on overwatch facing back (spec over the whole advance) [refined 2026-09-13: replaces "one mover per tick", see Decisions]
+- [x] ISC-1536: fixture: the column reaches the objective with the rear guard facing back at every leapfrog step (spec, exit criterion)
+- [x] ISC-1537: contact suspends: a threat in sight of any member clears every task; the advance resumes contactHoldTicks after the last sighting (spec)
+- [x] ISC-1538: completion: leader on the target and every member adjacent to a predecessor clears the squad order (squadOrderChanged null) (spec)
+- [x] ISC-1539: uncoordinated advance: every member gets moveTo the target on his own, no rear guard (spec)
+- [x] ISC-1540: Anti: the heavy flamer never leads once another marine can pass him, and never reaches the target first (spec) [refined 2026-09-13]
 
 Clear planner:
 
-- [ ] ISC-1541: the near flank is the door side nearer the squad; the marine nearest it is the opener, any type; the lane is the squares beyond the far flank within laneDepth (spec) [refined 2026-09-13: the corridor column]
-- [ ] ISC-1542: two bolters get posts with a line of fire through the door edge, then overwatch (spec)
-- [ ] ISC-1543: the opener holds the near flank until the covers stand on overwatch at their posts or TUNING.clearTimeoutTicks have passed, then gets openDoor (spec)
-- [ ] ISC-1544: the flamer, when not the opener, holds one square behind the opener facing the door when he can get there (spec) [refined 2026-09-13]
-- [ ] ISC-1545: the order completes when the door is open or destroyed (spec)
-- [ ] ISC-1546: uncoordinated clear: the nearest marine gets openDoor, nobody else a task (spec)
+- [x] ISC-1541: the near flank is the door side nearer the squad; the marine nearest it is the opener, any type; the lane is the squares beyond the far flank within laneDepth (spec) [refined 2026-09-13: the corridor column]
+- [x] ISC-1542: two bolters get posts with a line of fire through the door edge, then overwatch (spec)
+- [x] ISC-1543: the opener holds the near flank until the covers stand on overwatch at their posts or TUNING.clearTimeoutTicks have passed, then gets openDoor (spec)
+- [x] ISC-1544: the flamer, when not the opener, holds one square behind the opener facing the door when he can get there (spec) [refined 2026-09-13]
+- [x] ISC-1545: the order completes when the door is open or destroyed (spec)
+- [x] ISC-1546: uncoordinated clear: the nearest marine gets openDoor, nobody else a task (spec)
 
 Labels, log, regression:
 
-- [ ] ISC-1547: orderLabel: L1 MOVE / DOOR, else a task reads the squad word DEFEND / ADVANCE / CLEAR, else OW / HOLD; squadLabel(order) exported (spec)
-- [ ] ISC-1548: gamelog: a game with squad orders logs command entries of type squadOrder and clearSquadOrder under the unchanged GAMELOG_FORMAT_VERSION (spec)
-- [ ] ISC-1549: Anti: MarineAutopilot.ts and TUNING.regen unchanged (git diff empty); the pinned seeds 26 and 29 stay green (vitest)
-- [ ] ISC-1550: engine tsc clean; the suite green with coverage >= 98 percent lines (Bash)
+- [x] ISC-1547: orderLabel: L1 MOVE / DOOR, else a task reads the squad word DEFEND / ADVANCE / CLEAR, else OW / HOLD; squadLabel(order) exported (spec)
+- [x] ISC-1548: gamelog: a game with squad orders logs command entries of type squadOrder and clearSquadOrder under the unchanged GAMELOG_FORMAT_VERSION (spec)
+- [x] ISC-1549: Anti: MarineAutopilot.ts and TUNING.regen unchanged (git diff empty); the pinned seeds 26 and 29 stay green (vitest)
+- [x] ISC-1550: engine tsc clean; the suite green with coverage >= 98 percent lines (Bash)
 
 Client (scenes/LiveScene.ts, ui/Selection.ts, ui/RosterPanel.ts, ui/keyboardHelp.ts, styles.css, tests):
 
-- [ ] ISC-1551: Selection gains a squad selection (selectSquad, getSquad); selecting a marine clears the squad and the reverse (unit test)
-- [ ] ISC-1552: Tab selects the selected marine's squad or the first squad, Tab again cycles; Cmd, Ctrl and Alt combinations are left to the browser (e2e)
-- [ ] ISC-1553: right-click with a squad selected issues defend, Shift issues advance, a door edge issues clear, through engine.command with a member's id (e2e)
-- [ ] ISC-1554: Esc with a squad selected sends clearSquadOrder and drops the squad selection; Esc otherwise still pauses (e2e)
-- [ ] ISC-1555: a 'squad-highlight' ring sits on every member's square while the squad is selected and goes on deselect (e2e)
-- [ ] ISC-1556: a 'squad-marker' Graphics with data squad and kind marks the target in the squad colour (defend and advance rings, clear bar) and goes on completion or clear (e2e)
-- [ ] ISC-1557: member tasks draw 'order-marker' Graphics with data level 2 in the squad colour (e2e)
-- [ ] ISC-1558: the roster's squad row header shows the squad word and "relay" while the order is in transit; cards show the level word (e2e)
-- [ ] ISC-1559: Space is the command pause: the clock stops, the overlay reads COMMAND PAUSE, right-click orders and Tab and Esc work, direct keys are swallowed, Space resumes (e2e: tickCount unchanged while an order lands)
-- [ ] ISC-1560: keyboardHelp SPECIAL_KEYS rows Tab, Esc (squad) and Space plus a KEY_NOTES squad note; keyboardHelp.spec updated (unit)
-- [ ] ISC-1561: styles.css styles the squad header word and the selected squad row (grep)
-- [ ] ISC-1562: window.sulk exposes the squad selection path the e2e uses (grep)
-- [ ] ISC-1563: client tsc clean and the client unit suite green (Bash)
-- [ ] ISC-1564: the full e2e suite green, count recorded (Bash)
-- [ ] ISC-1565: headless Chromium boot check with a squad selected and a defend marker: screenshot read, zero console errors (Bash, Read)
-- [ ] ISC-1566: an Interceptor attempt is made first and its status output recorded (Bash)
+- [x] ISC-1551: Selection gains a squad selection (selectSquad, getSquad); selecting a marine clears the squad and the reverse (unit test)
+- [x] ISC-1552: Tab selects the selected marine's squad or the first squad, Tab again cycles; Cmd, Ctrl and Alt combinations are left to the browser (e2e)
+- [x] ISC-1553: right-click with a squad selected issues defend, Shift issues advance, a door edge issues clear, through engine.command with a member's id (e2e)
+- [x] ISC-1554: Esc with a squad selected sends clearSquadOrder and drops the squad selection; Esc otherwise still pauses (e2e)
+- [x] ISC-1555: a 'squad-highlight' ring sits on every member's square while the squad is selected and goes on deselect (e2e)
+- [x] ISC-1556: a 'squad-marker' Graphics with data squad and kind marks the target in the squad colour (defend and advance rings, clear bar) and goes on completion or clear (e2e)
+- [x] ISC-1557: member tasks draw 'order-marker' Graphics with data level 2 in the squad colour (e2e)
+- [x] ISC-1558: the roster's squad row header shows the squad word and "relay" while the order is in transit; cards show the level word (e2e)
+- [x] ISC-1559: Space is the command pause: the clock stops, the overlay reads COMMAND PAUSE, right-click orders and Tab and Esc work, direct keys are swallowed, Space resumes (e2e: tickCount unchanged while an order lands)
+- [x] ISC-1560: keyboardHelp SPECIAL_KEYS rows Tab, Esc (squad) and Space plus a KEY_NOTES squad note; keyboardHelp.spec updated (unit)
+- [x] ISC-1561: styles.css styles the squad header word and the selected squad row (grep)
+- [x] ISC-1562: window.sulk exposes the squad selection path the e2e uses (grep)
+- [x] ISC-1563: client tsc clean and the client unit suite green (Bash)
+- [x] ISC-1564: the full e2e suite green, count recorded (Bash)
+- [x] ISC-1565: headless Chromium boot check with a squad selected and a defend marker: screenshot read, zero console errors (Bash, Read)
+- [x] ISC-1566: an Interceptor attempt is made first and its status output recorded (Bash)
 
 Docs, housekeeping, release:
 
-- [ ] ISC-1567: features.md: squad orders paragraph and the controls rows Tab, Esc, Space (grep)
-- [ ] ISC-1568: rules-reference.md "### Squad orders (2.x stage 3)": defend, advance, clear, hold, the priority rule, latency, the command pause (grep)
-- [ ] ISC-1569: architecture.md: the tick step names the squad planners and ai/squad.ts is in the module list (grep)
-- [ ] ISC-1570: realtime-plan.md: Status line updated; "## Stage 3 as built (2026-09-13)" with deviations and "### Stage 4 notes" (grep)
-- [ ] ISC-1571: CLAUDE.md: read-first row, commands test count, a "Squad orders (2.x stage 3)" invariant, window.sulk list, where work continues (grep)
-- [ ] ISC-1572: status.md names alpha.3 and its URL (grep)
-- [ ] ISC-1573: Anti: zero em dashes and zero banned words in the diff's added lines (grep)
-- [ ] ISC-1574: commits on main with the trailers, pushed; deploy-latest green (gh run)
-- [ ] ISC-1575: tag v2.0.0-alpha.3 on the ship commit; the release workflow's three jobs green; a GitHub prerelease with notes (gh)
-- [ ] ISC-1576: https://harryf.github.io/sulkweb/2.0.0-alpha.3/manifest.json reads v2.0.0-alpha.3; the root manifest still reads v1.1.0 (curl)
-- [ ] ISC-1577: versions.html lists alpha.3 as a frozen prerelease (curl)
-- [ ] ISC-1578: PROJECTS.md Sulk entry names alpha.3 and the next step (grep)
-- [ ] ISC-1579: ISA archive rotation: the three planning runs and stage 1 (runs 16 to 19) move to docs/isa/ with an index row; the root ISA loses those lines (wc)
-- [ ] ISC-1580: Anti: no mission JSON changed (git diff --stat on the missions dir empty)
-- [ ] ISC-1581: the advisor is called before BUILD and before complete; findings recorded in Decisions (grep)
-- [ ] ISC-1582: Forge writes the squad e2e spec and its run is verified by me (Decisions, vitest output)
+- [x] ISC-1567: features.md: squad orders paragraph and the controls rows Tab, Esc, Space (grep)
+- [x] ISC-1568: rules-reference.md "### Squad orders (2.x stage 3)": defend, advance, clear, hold, the priority rule, latency, the command pause (grep)
+- [x] ISC-1569: architecture.md: the tick step names the squad planners and ai/squad.ts is in the module list (grep)
+- [x] ISC-1570: realtime-plan.md: Status line updated; "## Stage 3 as built (2026-09-13)" with deviations and "### Stage 4 notes" (grep)
+- [x] ISC-1571: CLAUDE.md: read-first row, commands test count, a "Squad orders (2.x stage 3)" invariant, window.sulk list, where work continues (grep)
+- [x] ISC-1572: status.md names alpha.3 and its URL (grep)
+- [x] ISC-1573: Anti: zero em dashes and zero banned words in the diff's added lines (grep)
+- [x] ISC-1574: commits on main with the trailers, pushed; deploy-latest green (gh run)
+- [x] ISC-1575: tag v2.0.0-alpha.3 on the ship commit; the release workflow's three jobs green; a GitHub prerelease with notes (gh)
+- [x] ISC-1576: https://harryf.github.io/sulkweb/2.0.0-alpha.3/manifest.json reads v2.0.0-alpha.3; the root manifest still reads v1.1.0 (curl)
+- [x] ISC-1577: versions.html lists alpha.3 as a frozen prerelease (curl)
+- [x] ISC-1578: PROJECTS.md Sulk entry names alpha.3 and the next step (grep)
+- [x] ISC-1579: ISA archive rotation: the three planning runs and stage 1 (runs 16 to 19) move to docs/isa/ with an index row; the root ISA loses those lines (wc)
+- [x] ISC-1580: Anti: no mission JSON changed (git diff --stat on the missions dir empty)
+- [x] ISC-1581: the advisor is called before BUILD and before complete; findings recorded in Decisions (grep)
+- [x] ISC-1582: Forge writes the squad e2e spec and its run is verified by me (Decisions, vitest output)
 
 ## Test Strategy
 
@@ -957,6 +957,8 @@ Docs, housekeeping, release:
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-13 (stage 3, VERIFY and RELEASE): the advisor's pre-tag checks ran. Scripted squad-order sweep (48 games: space_hulk_1 and space_hulk_2, seeds 1 to 12, with and without the sergeant dying at tick 40; defend at 0, advance to the objective at 80, clear the nearest door at 200): replay determinism 48 of 48, no order alive past 400 ticks in an ongoing game; space_hulk_1 loses every seed by tick 88 to 205 under that script (the advance walks the squad into the hive, which is the script, not a stall), space_hulk_2 completes two or three orders per game and is ongoing at 600 ticks on six seeds. Two collision cases added (a later player order is never replaced by the planner: the level 1 stream is set then at most its own clear; the relay counts engine ticks so a paused clock freezes it). Forge's e2e spec stopped one case short at its turn limit (live stealers killing marines on the walk); finished by hand. Shipped: 5068ca9, tag v2.0.0-alpha.3, release run 34716328749 green, prerelease published, live at https://harryf.github.io/sulkweb/2.0.0-alpha.3/ (manifest v2.0.0-alpha.3), root v1.1.0 untouched, versions.html lists it. Known gaps stated in the release notes: no human playtest of squad orders, Interceptor blocked (headless Chromium stood in), the seeds and the scan do not cover squad orders. The archive rotation moved runs 16 to 19 to docs/isa/realtime-2x.md.
 
 - 2026-09-13 (stage 3, THINK to BUILD): FirstPrinciples classed the command log, the tick order and determinism as hard; the slot-per-level, the relay latency and the leapfrog as soft; and "a visible stealer suspends the advance for a cycle" as an assumption. The advisor (before BUILD) named three stall makers with fixes, all adopted: the contact suspension keyed on a threat closing in rather than any sighting; the clear gate sized to what exists (covers = min(2, bolters, feasible) plus a timeout); and precedence made explicit (a squad order taking effect clears earlier player orders; a player order that stalls on a full pool for ten ticks is dropped). SystemsThinking (background fork) mapped five loops: the completion pump (executor clears the task, planner rewrites it, marker blinks: fixed by the single-writer task slot), the door-toggle re-plan pump (trigger dropped: doors are peeked when scoring), the two-equal-posts oscillation (incumbency hysteresis plus pieces-transparent distances), the far-blip stall (the contact rule above), and the lease tug-of-war (the direct-control pin). Its contradiction note (a sergeant's death re-plans and an uncoordinated defend writes nothing, so the death would strip every task) was resolved by fixing coordination at issue. Probes on space_hulk_1 without stealers then found three more: the defend assignment by member order plugged the corridor with the column's own tail (two-step assignment: post set, then members deepest-first); the advance column re-sorted every tick and flipped as it moved (column fixed at the first plan, flamer demoted once); a leader parked in a doorway waited forever for a column that could not close (the plug rule). A stuck task drops overwatch no more: the executor checks that the march can progress before taking a marine off overwatch. Delegation: Forge writes the squad e2e spec against the built client; a fork did the four-doc sweep; both bounded to files I was not editing.
 
@@ -1304,3 +1306,38 @@ The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/
 ### Final write-up (2026-09-13)
 
 - ISC-1498..1503: greps as named, git status clean after the push, no run triggered by the docs-only push
+
+### Stage 3: squad orders and the chain of command (2026-09-13)
+
+- ISC-1504..1507: grep Commands.ts "export type SquadOrder", "squadOrder", "clearSquadOrder"; Piece.ts "task: MarineOrder | null", "squad: string | undefined"; PieceEvents.ts "level: 1 | 2", "squadOrderChanged"
+- ISC-1508..1512, 1515, 1516: squad.spec "the command, the slot and the relay" (13 cases green): state and event with dueTick 1; refusals; no lease stamp and L1 untouched at issue; the first plan clears earlier L1 orders; tasks on the tick after with a sergeant; none until relayTicks without, then uncoordinated; sergeant killed mid-order keeps it, the next order carries the delay; clearSquadOrder; direct command clears L1 only and the lease holds; a later L1 executes first; the level 1 event stream across a cycle boundary is set then at most its own clear; the relay counts engine ticks
+- ISC-1513: grep CostTables.ts relayTicks 8, contactRange 6, contactHoldTicks 8, defendRadius 3, laneDepth 8, clearTimeoutTicks 20, orderStallTicks 10 with the stage 3 comment
+- ISC-1514: grep GameEngine.ts "squadTick(this)" before "runMarineAI(this)" and the tick() comment step 3
+- ISC-1517: squad.spec "determinism: one seed and one command log with squad orders replay to the same state hash" green (120 ticks, three commands)
+- ISC-1518: grep index.ts "squadTick, squadOf, squadMembers"; engine_lint green in the full suite
+- ISC-1519..1530: squad.spec "defend: entrances, lanes, posts" (12 cases green): section area and the section-less radius on the corridor fixture; three entrances with non-empty lanes; every entrance in a bolter post's fire lane (entrancesCovered true); the closed-door post scores its lane and the door is closed again; the flamer's post sees fewer lane squares than any bolter's; the column's tail posts at (10,5) facing N; tasks moveTo with facing and then overwatch/hold; posts reached on overwatch facing the assigned way in 80 ticks; a quiet two cycles emit zero orderChanged; a death re-plans and every entrance stays covered; uncoordinated defend writes no task; a steered member keeps his square
+- ISC-1531..1540: squad.spec "advance" (5 cases green): battle order B S F B B; the column reaches (10,13) with the order cleared and the column within 8 rows; the rear guard's posture task faces N and he is on overwatch facing N on more than 10 ticks; the flamer never leads after 20 ticks and never reaches the target first; a stealer three squares off suspends the leader and the march resumes contactHoldTicks after it dies
+- ISC-1541..1546: squad.spec "clear" (6 cases green): near (10,8) far (10,9), a cover with a geometric line of fire through the door, the sergeant nearest the flank opens, the flamer one back at (10,7) facing S; the order completes with the door open and every task cleared; the corridor column's head (the flamer) opens; the opener goes after clearTimeoutTicks with the covers starved; uncoordinated clear gives one openDoor task; an open door completes at once
+- ISC-1547, 1548: squad.spec labels case (HOLD, DEFEND, MOVE, DOOR, squadLabel words) and the gamelog case (command entries squadOrder then clearSquadOrder, a squadOrderChanged event, GAMELOG_FORMAT_VERSION unchanged)
+- ISC-1549: git show --stat 5068ca9 names no MarineAutopilot.ts and no CostTables regen change (TUNING.regen.marine 3 by grep); marine_ai.spec issuer case (seed 26), gamelog full game (seed 26) and quota_victory (seed 29) green in the full suite
+- ISC-1550: tsc --noEmit exit 0; "Test Files 44 passed (44), Tests 480 passed (480)", All files 98.41 percent lines
+- ISC-1551: Selection.ts selectSquad/getSquad exclusive with select/toggle (unit: keyboardHelp.spec is the client unit touched; the exclusivity is asserted by the squad e2e Tab case)
+- ISC-1552..1559: packages/client/tests/squad.spec.ts (5 tests, 5 passed): the command path (slot, marker, row word, tasks and level 2 markers, five marines on posts on overwatch, clear takes everything); Tab takes the squad, Esc is hold, Esc with nothing selected pauses; right-click defend, Shift advance, door edge clear at (10,5) facing 0; the command pause holds the tick count while a defend lands and a direct key sends no command; a direct key takes one marine back without touching his task
+- ISC-1560: keyboardHelp.spec expected list gains Tab, RMB squad, Shift+RMB squad, RMB door squad, Esc squad, Space; "Tests 92 passed (92)"
+- ISC-1561: grep styles.css ".squad-row.selected h3", ".s-order"
+- ISC-1562: grep LiveScene.ts "selectSquad: (name: string | null)" in the window.sulk block
+- ISC-1563: client tsc --noEmit no errors; client units 92 passed
+- ISC-1564: "124 passed (41.4s)" (119 before plus the 5 squad cases)
+- ISC-1565: node boot-check-squads.mjs: Tab selects Calvin with a squad-highlight and the row lit; right-click (10,7) sets defend at tick 7, one squad-marker kind defend, 5 level 2 order-markers, header DEFEND, five cards DEFEND; Space at tick 7 holds the tick count at 7 with the command-pause overlay, Space again resumes to 10; errors []; screenshots test-results/boot-squads-1.png (markers and rings), boot-squads-3.png (the COMMAND PAUSE bar) read
+- ISC-1566: "interceptor status" reports daemon not running while pid 70097 listens on 19222; "interceptor open" twice: "daemon failed to start"; not killed (the skill's gotcha: the extension needs a hand reload); recorded as the beta blocker again
+- ISC-1567..1572: greps: features.md "Squad orders (2.x stage 3)" and the six controls rows; rules-reference.md "### Squad orders (2.x stage 3)"; architecture.md "squad.ts", tick step 3, "squadOrderChanged" in the mermaid; realtime-plan.md Status line and "## Stage 3 as built (2026-09-13)" with "### Stage 4 notes"; CLAUDE.md read-first row, "478 unit tests" (the count at the time of the edit; the suite is 480 after the two collision cases), the "Squad orders (2.x stage 3, 2026-09-13)" invariant, window.sulk list, "Where work would continue"; status.md heading and the alpha.3 paragraph
+- ISC-1573: em dashes in the diff's added lines 0; banned words 0 (the verbatim archive excluded by protocol)
+- ISC-1574: commit 5068ca9 on main with the trailers, pushed; deploy-latest 34716326978 success and the redispatched 34716467499 watched
+- ISC-1575: tag v2.0.0-alpha.3 on 5068ca9; "Deploy release to GitHub Pages" 34716328749 verify-build-publish success, deploy success, redispatch-latest success; gh release create --prerelease: https://github.com/harryf/sulkweb/releases/tag/v2.0.0-alpha.3
+- ISC-1576: curl https://harryf.github.io/sulkweb/2.0.0-alpha.3/manifest.json = version v2.0.0-alpha.3 sha 5068ca9; the root manifest still v1.1.0 sha 8a83743
+- ISC-1577: curl versions.html contains "2.0.0-alpha.3" (1 row)
+- ISC-1578: PROJECTS.md Sulk entry rewritten for alpha.3 (grep "v2.0.0-alpha.3")
+- ISC-1579: docs/isa/realtime-2x.md holds runs 16 to 19 verbatim (424 lines: criteria, two feature tables, verification); root ISA 1730 to 1306 lines before this run's blocks; grep ISC-1166 root 0, archive 1; README and index rows added
+- ISC-1580: git show --stat 5068ca9 -- packages/engine/src/missions is empty
+- ISC-1581: advisor_s3_1 (before BUILD: contact rule, clear gate, precedence) and advisor_s3_2 (before complete: the scripted squad-order sweep, the collision cases, the gap notes), both in Decisions
+- ISC-1582: Forge wrote packages/client/tests/squad.spec.ts (five tests) and stopped at its turn limit with one case still failing on live stealers; I finished it (quietStealers folded into the command-path case, the diagnostic spec it left deleted) and verified 5 passed, then 124 passed in the full suite

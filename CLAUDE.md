@@ -24,7 +24,7 @@ Resuming work = extend `ISA.md` (new ISCs, decisions, changelog); don't invent a
 ```bash
 pnpm install
 pnpm --filter ./packages/client dev      # play at localhost:5173
-pnpm --filter ./packages/engine test     # 478 unit tests + coverage (~98% lines)
+pnpm --filter ./packages/engine test     # 480 unit tests + coverage (~98% lines)
 pnpm --filter ./packages/client test     # HUD/minimap units (vitest, --dir src only)
 pnpm --filter ./packages/client e2e      # Playwright no-mock suite (real browser, no mocks)
 pnpm build                               # engine tsc -b + client vite build

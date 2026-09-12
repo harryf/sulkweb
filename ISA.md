@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: context-override
-phase: verify
-progress: "1396/1405 (stage 2 built and verified; release ISCs 1453..1461 pending; ISC-1038 dropped; ISC-71 deferred)"
+phase: complete
+progress: "1405/1405 (stage 2 shipped as v2.0.0-alpha.2; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-13T01:20:00Z
+updated: 2026-09-12T18:29:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -829,15 +829,15 @@ Docs, release, run close:
 - [x] ISC-1450: docs/status.md next-line paragraph names alpha.2 and its URL
 - [x] ISC-1451: CLAUDE.md invariants updated: shims gone, orders, window.sulk, test counts
 - [x] ISC-1452: banned writing-guide words = 0 in the changed docs
-- [ ] ISC-1453: commits on main carry the two trailer lines and are pushed (git log)
-- [ ] ISC-1454: deploy-latest is green after the game-code push (gh run list)
-- [ ] ISC-1455: tag v2.0.0-alpha.2 pushed; the release workflow's three jobs green
-- [ ] ISC-1456: the GitHub release is marked prerelease (gh release view)
-- [ ] ISC-1457: https://harryf.github.io/sulkweb/2.0.0-alpha.2/manifest.json reads version 2.0.0-alpha.2 (curl)
-- [ ] ISC-1458: the root manifest.json and STABLE_VERSION still read v1.1.0 (curl)
-- [ ] ISC-1459: versions.html lists 2.0.0-alpha.2 labelled as a prerelease (curl)
-- [ ] ISC-1460: this run closes with every criterion [x], Verification blocks, a Decisions trail and a Changelog entry
-- [ ] ISC-1461: PROJECTS.md Sulk entry updated with the stage 2 state and the stage 3 next step
+- [x] ISC-1453: commits on main carry the two trailer lines and are pushed (git log)
+- [x] ISC-1454: deploy-latest is green after the game-code push (gh run list)
+- [x] ISC-1455: tag v2.0.0-alpha.2 pushed; the release workflow's three jobs green
+- [x] ISC-1456: the GitHub release is marked prerelease (gh release view)
+- [x] ISC-1457: https://harryf.github.io/sulkweb/2.0.0-alpha.2/manifest.json reads version 2.0.0-alpha.2 (curl)
+- [x] ISC-1458: the root manifest.json and STABLE_VERSION still read v1.1.0 (curl)
+- [x] ISC-1459: versions.html lists 2.0.0-alpha.2 labelled as a prerelease (curl)
+- [x] ISC-1460: this run closes with every criterion [x], Verification blocks, a Decisions trail and a Changelog entry
+- [x] ISC-1461: PROJECTS.md Sulk entry updated with the stage 2 state and the stage 3 next step
 - [x] ISC-1462: packages/engine/tsconfig.tsbuildinfo is not committed (git status clean after pnpm build)
 - [x] ISC-1463: the advisor was called at the PLAN boundary and before complete, both recorded in Decisions
 - [x] ISC-1464: Cato ran, or is waived with the reason recorded (codex absent) in Decisions
@@ -1106,6 +1106,8 @@ Docs, release, run close:
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-13 (stage 2, RELEASED): tag v2.0.0-alpha.2 on e043a43; "Deploy release to GitHub Pages" run 34711167084 verify-build-publish=success, deploy=success, redispatch-latest=success; GitHub release published as a prerelease at https://github.com/harryf/sulkweb/releases/tag/v2.0.0-alpha.2; the live prerelease is https://harryf.github.io/sulkweb/2.0.0-alpha.2/ (manifest v2.0.0-alpha.2 (sha e043a43)); the root manifest and STABLE_VERSION still read v1.1.0 (sha 8a83743), so the shipping policy's callout is: the change lives ONLY at /2.0.0-alpha.2/ (and /latest/), never at the root, by design of the 2.x line. deploy-latest for the main push (34711150585) green. Stage 3 (squad orders, the chain of command) starts from the plan's "Stage 2 as built" section; the knob for Harry's next playtest is ?tuning=regen.marine:2 against the shipped 3.
 
 - 2026-09-12 (stage 2, VERIFY, advisor before complete): terse call answered in one pass. Its structural point (the --auto-state slug resolved to an unrelated MEMORY/WORK ISA) is a tool artefact: the project ISA is this file and was never the input; noted, no action. Adopted: (1) a spec that pins the debug_1 balance signal instead of letting it vanish with the fixture move (ISC-1472); (2) a direct assertion that autopilot-issued orders leave the lease untouched (ISC-1471); (3) the straggler grep is recorded (engine_lint line only) and the tag notes state that the gameplay log gains two command types (order, clearOrder) and drops nothing, so 1.x logs still parse. Its "don't push without Harry's say-so" is answered by the request itself: "implement stage 2" per the handover, whose step 8 is the prerelease tag with the root untouched. Interceptor: deferred again (stale daemon pattern; headless real Chromium used and screenshots read), made a beta blocker note in the plan's stage 3 notes.
 
@@ -1515,3 +1517,13 @@ The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/
 - ISC-1462: git checkout of tsconfig.tsbuildinfo after pnpm build; git status shows it clean
 - ISC-1463: advisor called twice (Decisions: plan boundary and before complete)
 - ISC-1464: Cato waived, codex not installed (which codex = empty); recorded in Decisions
+- ISC-1453: commit e043a43 on main with both trailer lines (git log), origin/main e043a43, tree clean
+- ISC-1454: deploy-latest run 34711150585 for the main push: success; the post-release re-dispatch 34711255658 success
+- ISC-1455: tag v2.0.0-alpha.2 on e043a43; "Deploy release to GitHub Pages" run 34711167084: verify-build-publish=success, deploy=success, redispatch-latest=success
+- ISC-1456: gh release view v2.0.0-alpha.2: isPrerelease true
+- ISC-1457: curl /2.0.0-alpha.2/manifest.json: version v2.0.0-alpha.2 (sha e043a43)
+- ISC-1458: curl root manifest.json: version v1.1.0, sha 8a83743; STABLE_VERSION v1.1.0
+- ISC-1459: curl versions.html: li "v2.0.0-alpha.2" with note "frozen prerelease (the 2.x real-time line...)"
+- ISC-1460: this block; frontmatter phase complete, progress 1405/1405 with the two standing exceptions
+- ISC-1461: PROJECTS.md Sulk entry: "STAGE 2 BUILT" and the stage 3 next step (grep)
+- ISC-1465: root manifest sha unchanged from the stage 1 record (8a83743), /1.1.0/ untouched by the prerelease path

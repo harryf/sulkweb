@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
-phase: learn
-progress: "1065/1066 (real-time plan run ISC-1095..1133; ISC-1131 awaits the commit; ISC-1038 dropped; ISC-71 deferred)"
+phase: complete
+progress: "1066/1066 (real-time plan run ISC-1095..1133 complete, plan pending user review; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T15:55:00Z
+updated: 2026-09-12T16:00:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -517,7 +517,7 @@ Deliverable is a reviewed plan document, docs/realtime-plan.md, plus this ISA's 
 - [x] ISC-1128: advisor called before the plan is final; adopted and rejected points recorded in Decisions (Read)
 - [x] ISC-1129: the plan is linked from CLAUDE.md's read-first table and from docs/status.md (grep)
 - [x] ISC-1130: PROJECTS.md Sulk entry records the plan as pending user review (grep)
-- [ ] ISC-1131: the plan and ISA changes are committed on main (git log)
+- [x] ISC-1131: the plan and ISA changes are committed on main (git log)
 - [x] ISC-1132: Antecedent: the plan reads in one sitting, at most 700 lines (wc -l)
 - [x] ISC-1133: Antecedent: the Summary states what stage 1 delivers within the first 40 lines (Read)
 
@@ -1081,3 +1081,4 @@ Latest-pipeline hardening run (2026-08-20 seventh run, ISC-969..975):
 - ISC-1130: grep -c realtime-plan PROJECTS.md = 1 ("PENDING HARRY REVIEW")
 - ISC-1132: wc -l docs/realtime-plan.md = 384
 - ISC-1133: grep: "Stage 1 delivers" at line 14
+- ISC-1131: git log: 6573491 "docs: real-time 2.x plan (proposal, reviewed, nothing implemented)" on main; closed by the following ISA commit

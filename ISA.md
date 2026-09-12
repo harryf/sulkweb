@@ -401,36 +401,37 @@ ISC-989..1013 (the fog run block above) were reserved on main while the feature 
 
 ### Fog adjustments: transparent stealer bodies, radar-gated blips (2026-09-12, twelfth run)
 
-- [ ] ISC-1033: hasLineOfSight with piecesBlock treats only a MARINE occupant as a wall; a stealer or blip on an intermediate square never blocks (Read los.ts)
-- [ ] ISC-1034: a marine sees the square behind a stealer and the square behind a stealer plus a blip, and canShoot agrees (vitest vision.spec)
-- [ ] ISC-1035: an intervening marine still blocks sight (vitest vision.spec, unchanged case)
-- [ ] ISC-1036: a blip queued behind a stealer converts on the marine's first action that puts it in arc (vitest conversion_on_sight.spec)
-- [ ] ISC-1037: the kill-reveal suite is rewritten to the new rule: the first sweep converts the blip through the stealer, the kill reveals nothing further; close-combat and overwatch kill sweeps still pass (vitest kill_reveals.spec)
-- [ ] ISC-1038: the hive sacrifice-blocker fixture pins the new truth: blocker parks, the lane behind it stays hot, followers wait in the dark (vitest hive.spec)
-- [ ] ISC-1039: hive.spec dice-count invariant unchanged: the blocker run consumes exactly one reaction burst (vitest, remaining 0)
-- [ ] ISC-1040: computeMarineSight includes the squares behind one and two stealers in a column (vitest fog.spec)
-- [ ] ISC-1041: radarActive(pieces) is true while a sergeant lives and false after he dies (vitest fog.spec)
-- [ ] ISC-1042: a squad with no sergeant has no radar (vitest fog.spec, debug_1 shape)
-- [ ] ISC-1043: threatVisible('blip', ...) is exactly the radar flag: true out of sight with radar up, false adjacent and false in sight with radar down (vitest fog.spec)
-- [ ] ISC-1044: threatVisible('stealer', ...) ignores the radar flag and follows sight-or-creep (vitest fog.spec)
-- [ ] ISC-1045: GameScene spawns blip sprites hidden under fog and the per-frame pass shows them iff the radar is up (Read createSprite + applyThreatFog)
-- [ ] ISC-1046: the radar gate rides a pre-phase snapshot during replays (fogRadarSnap set in endTurn, cleared in finishReplay) so a sergeant killed this phase keeps the blips on screen until the replay has shown his death (Read)
-- [ ] ISC-1047: during Deploy the blip radar gate still applies, counting the RESERVE (a sergeant waiting to be placed still carries the auspex), stealers are left alone and the overlay stays clear (Read updateFog Deploy branch + fogRadar)
-- [ ] ISC-1048: game over lifts the fog for blips as well as stealers (Read updateFog result branch)
-- [ ] ISC-1049: the hover readout never names a blip while the radar is down, Deploy included (Read describeSquare)
-- [ ] ISC-1050: Anti: fog-hidden blips are not clickable; the pointerdown hit test's visible gate covers every hidden threat kind (Read)
-- [ ] ISC-1051: Anti: Minimap.ts byte-untouched; the scope keeps its own sergeant gate (git diff --stat)
-- [ ] ISC-1052: Anti: with ?fog=0 nothing changes on the client: no radar gate, no hidden sprites (Read guard: fogGfx undefined short-circuits updateFog; createSprite hides only under fogEnabled)
-- [ ] ISC-1053: engine suite green on the new rule (pnpm engine test)
-- [ ] ISC-1054: client suite green including the new fog cases (pnpm client test)
-- [ ] ISC-1055: pnpm build green (engine tsc -b + client vite)
-- [ ] ISC-1056: Playwright e2e suite green, pinned seeds (win.spec seed 1, playthrough.spec seed 3) unchanged in outcome (pnpm client e2e)
-- [ ] ISC-1057: live probe, space_hulk_1 under fog in real Chrome: a stealer column in a corridor is fully visible sprite by sprite, not just the front one (page eval + screenshot)
-- [ ] ISC-1058: live probe: blips visible on the main board while the sergeant lives; after sergeant.die() the blip sprites are hidden and the hover readout omits them (page eval)
-- [ ] ISC-1059: live probe: zero console errors across boot, deploy, turn cycle, and the sergeant-death check (console read)
-- [ ] ISC-1060: CLAUDE.md LOS gotcha rewritten to marine-only blocking and a fog rules entry added (Read)
-- [ ] ISC-1061: Anti: zero em dashes on any line added this run (git diff grep)
-- [ ] ISC-1062: Anti: no change to blip conversion rules themselves: squareSeenByMarine untouched, conversion triggers untouched (git diff on StealerAI.ts, Blip.ts, GameEngine.ts empty)
+- [x] ISC-1033: hasLineOfSight piecesBlock is a two-policy option: 'marines' (sight) stops only at a marine occupant, true (fire) stops at any occupant (Read los.ts)
+- [x] ISC-1034: a marine SEES the square behind a stealer and the square behind a stealer plus a blip (vitest vision.spec)
+- [ ] ISC-1034.1: a marine cannot SHOOT past the front stealer: canShoot true on the front rank, false on the squares behind it, so overwatch reach is unchanged (vitest vision.spec)
+- [x] ISC-1035: an intervening marine still blocks sight (vitest vision.spec, unchanged case)
+- [x] ISC-1036: a blip queued behind a stealer converts on the marine's first action that puts it in arc (vitest conversion_on_sight.spec)
+- [x] ISC-1037: the kill-reveal suite is rewritten to the new rule: the first sweep converts the blip through the stealer, the kill reveals nothing further; close-combat and overwatch kill sweeps still pass (vitest kill_reveals.spec)
+- [x] ISC-1038: [DROPPED, see Decisions 2026-09-12 refined: fire lines still stop at bodies, so the hive sacrifice-blocker fixture stays byte-identical to main and green] (vitest hive.spec)
+- [x] ISC-1039: hive.spec dice-count invariant unchanged: the blocker run consumes exactly one reaction burst (vitest, remaining 0)
+- [x] ISC-1040: computeMarineSight includes the squares behind one and two stealers in a column (vitest fog.spec)
+- [x] ISC-1041: radarActive(pieces) is true while a sergeant lives and false after he dies (vitest fog.spec)
+- [x] ISC-1042: a squad with no sergeant has no radar (vitest fog.spec, debug_1 shape)
+- [x] ISC-1043: threatVisible('blip', ...) is exactly the radar flag: true out of sight with radar up, false adjacent and false in sight with radar down (vitest fog.spec)
+- [x] ISC-1044: threatVisible('stealer', ...) ignores the radar flag and follows sight-or-creep (vitest fog.spec)
+- [x] ISC-1045: GameScene spawns blip sprites hidden under fog and the per-frame pass shows them iff the radar is up (Read createSprite + applyThreatFog)
+- [x] ISC-1046: the radar gate rides a pre-phase snapshot during replays (fogRadarSnap set in endTurn, cleared in finishReplay) so a sergeant killed this phase keeps the blips on screen until the replay has shown his death (Read)
+- [x] ISC-1047: during Deploy the blip radar gate still applies, counting the RESERVE (a sergeant waiting to be placed still carries the auspex), stealers are left alone and the overlay stays clear (Read updateFog Deploy branch + fogRadar)
+- [x] ISC-1048: game over lifts the fog for blips as well as stealers (Read updateFog result branch)
+- [x] ISC-1049: the hover readout never names a blip while the radar is down, Deploy included (Read describeSquare)
+- [x] ISC-1050: Anti: fog-hidden blips are not clickable; the pointerdown hit test's visible gate covers every hidden threat kind (Read)
+- [x] ISC-1051: Anti: Minimap.ts byte-untouched; the scope keeps its own sergeant gate (git diff --stat)
+- [x] ISC-1052: Anti: with ?fog=0 nothing changes on the client: no radar gate, no hidden sprites (Read guard: fogGfx undefined short-circuits updateFog; createSprite hides only under fogEnabled)
+- [x] ISC-1053: engine suite green on the new rule (pnpm engine test)
+- [x] ISC-1054: client suite green including the new fog cases (pnpm client test)
+- [x] ISC-1055: pnpm build green (engine tsc -b + client vite)
+- [x] ISC-1056: Playwright e2e suite green, pinned seeds (win.spec seed 1, playthrough.spec seed 3) unchanged in outcome (pnpm client e2e)
+- [x] ISC-1057: live probe, space_hulk_1 under fog in real Chrome: a stealer column in a corridor is fully visible sprite by sprite, not just the front one (page eval + screenshot)
+- [x] ISC-1058: live probe: blips visible on the main board while the sergeant lives; after sergeant.die() the blip sprites are hidden and the hover readout omits them (page eval)
+- [x] ISC-1059: live probe: zero console errors across boot, deploy, turn cycle, and the sergeant-death check (console read)
+- [x] ISC-1060: CLAUDE.md LOS gotcha rewritten to marine-only blocking and a fog rules entry added (Read)
+- [x] ISC-1061: Anti: zero em dashes on any line added this run (git diff grep)
+- [x] ISC-1062: Anti: no change to blip conversion rules themselves: squareSeenByMarine untouched, conversion triggers untouched (git diff on StealerAI.ts, Blip.ts, GameEngine.ts empty)
 - [ ] ISC-1063: code-reviewer agent pass on the diff with every CRITICAL or MEDIUM finding adopted or refuted in Decisions (Agent)
 
 ## Test Strategy
@@ -629,6 +630,8 @@ ISC-989..1013 (the fog run block above) were reserved on main while the feature 
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-12 (fog adjustments, refined after the advisor): the advisor pushed back on gating fire and sight together: transparent bodies in canShoot meant overwatch and F reached past the front stealer, a combat and balance change the user never asked for, riding on a visibility fix. Split the gate: canSee uses piecesBlock 'marines' (sight through stealer-side bodies: the ask), canShoot keeps piecesBlock true (a shot stops at the first body of any side, as before). Fallout reversed: hive.spec and hive.ts are restored byte-identical to main (the sacrifice blocker's body shields the kill lane again, since the threat map is canShoot-based), ISC-1038 dropped, ISC-1034.1 added to pin the fire policy. Advisor points NOT adopted, with reasons: capability flag instead of the sergeant sprite check (isSergeant already exists and the minimap uses it; a captain lands with its own piece class and the predicate gains one line then); mission-level radar flag for sergeant-less missions (debug_1 is a debug mission; flagged to the user instead); RNG partition question (moot once canShoot is unchanged: the e2e greenness now covers exactly what changed, sight, through the blip-conversion path); save/replay compatibility (there are no saved games; the gameplay log export is analysis data, not a replay format).
 
 - 2026-09-12 (fog adjustments, twelfth run, plan): user directive, two changes. (1) Stealers must not block line of sight: everything behind them in the sight line stays visible and blips convert the moment they enter it; the goals are dread (see the whole column charging) and information (count the room before flaming it). Implemented at the ENGINE gate, not in the fog renderer: hasLineOfSight's piecesBlock now stops only at a marine occupant, so sight, fire and the blip-conversion sweep (squareSeenByMarine calls the same canSee) agree by construction; a renderer-only change would have shown stealers the engine still treated as walls. Marines still block each other (not asked; original rule kept). Consequence accepted and pinned in hive.spec: the hive's sacrifice blocker no longer shields the lane behind it, it is a pure decoy now (one soaked burst, a jam chance); whether the hive should keep spending a stealer on it is an open balance question, out of this run's scope, and the kill-reveal test that proved "the kill opens the sight line past a stealer" is rewritten to the new rule (the first sweep converts through the body; the death sweep is still exercised by the close-combat and overwatch cases). (2) Blips on the main board show only while the pulse radar runs: radarLogic.radarActive (any living sergeant; a captain would join once the engine has one; the user said "sergeant or captain") gates blip sprites per frame through fog.threatVisible; stealers keep the sight-or-creep rule. Read literally: radar down means a blip is invisible even adjacent or in sight (in sight it converts anyway). debug_1, the default mission, has no sergeant, so under fog its blips are never shown; that is the rule, flagged to the user. Replay epoch: fogRadarSnap is taken in endTurn beside fogMarineSnap so a sergeant killed this phase keeps the blips on screen until finishReplay, matching the minimap's frozen scope. Minimap.ts untouched. Forge waived (14th): codex binary still absent; code-reviewer is the delegation.
 
@@ -836,3 +839,33 @@ Latest-pipeline hardening run (2026-08-20 seventh run, ISC-969..975):
 - ISC-1030: git diff --stat 1418ca9 fog-of-war: ISA.md only
 - ISC-1031: git branch -vv shows fog-of-war with no upstream; git tag unchanged, latest v0.6.1
 - ISC-1032: git diff HEAD~1 | grep -c on added lines for the em dash character: 0
+
+### Fog adjustments: transparent stealer bodies, radar-gated blips (2026-09-12)
+
+- ISC-1033: Read los.ts: `const occupant = board.pieceAt(...) as { kind?: string }; if (occupant?.kind === 'marine') return false;` is the only occupant check
+- ISC-1034/1035: vision.spec 9/9: 'stealers and blips are transparent' (canSee behind stealer, behind stealer+blip, canShoot agrees) and 'an intervening MARINE blocks sight' both green
+- ISC-1036: conversion_on_sight.spec 7/7: 'a blip behind a stealer converts the moment the sight line reaches it' green (about-face converts through the stealer, 2 stealers on board)
+- ISC-1037: kill_reveals.spec 5/5 after the rewrite: first sweep converts (3 stealers), the kill leaves 2; close-combat and overwatch cases unchanged and green
+- ISC-1038/1039: hive.spec green with kill.has('2,11') and ('2,12') now true behind the parked blocker, followers still on dark squares, RollQueue remaining 0
+- ISC-1040: fog.spec 'stealer bodies do not block sight' green: sight has 4,3 / 4,2 / 4,0 with two stealers in the column
+- ISC-1041/1042: fog.spec radarActive true with a sergeant, false after sergeant.die(), false for the sergeant-less open mission
+- ISC-1043/1044: fog.spec threatVisible: blip = radar flag in all three placements; stealer ignores the flag
+- ISC-1045: Read createSprite (hides stealer and blip under fogEnabled) and applyThreatFog (threatVisible per sprite from its live tile)
+- ISC-1046: Read endTurn (fogRadarSnap = radarActive(pieces) beside fogMarineSnap), fogRadar() returns the snap while animating, finishReplay nulls it
+- ISC-1047: Read updateFog Deploy branch: gfx.clear, fogDirty, applyThreatFog(true) which skips stealers; fogRadar counts engine.reserve; headless probe A: Deploy phase, reserve 5, blipSprites 2, blipsVisible 2
+- ISC-1048: Read updateFog result branch: stealer and blip sprites setVisible(true)
+- ISC-1049: Read describeSquare: hoverHidden covers blip with !fogRadar() outside the Deploy exemption; probe D hover on (0,11) and (9,26) reads 'corridor tile · stealer entry' with no blip part
+- ISC-1050: Read pointerdown hit predicate: requires visible on every 'piece' object, kind-agnostic
+- ISC-1051: git diff --stat: Minimap.ts absent
+- ISC-1052: Read updateFog first guard (!gfx return) and createSprite (fogEnabled &&); probe E with ?fog=0: fogGfx false, blipsVisible 2 of 2 after the sergeant died
+- ISC-1053: pnpm engine test: Test Files 34 passed, Tests 339 passed
+- ISC-1054: pnpm client test: Test Files 12 passed, Tests 102 passed
+- ISC-1055: pnpm build: engine Done, client built in 2.22s
+- ISC-1056: pnpm client e2e against the live dev server: 118 passed (51.5s); win.spec seed 1 and playthrough.spec seed 3 unchanged
+- ISC-1057: headless probe C on space_hulk_1 seed 3: door opened, stealers placed at (10,6) (10,7) (10,8), sightHas [true,true,true], sprite visible [true,true,true]; screenshot c-column.png shows all three sprites in the corridor
+- ISC-1058: probe B: sergeants 1, blipSprites 2, blipsVisible 2; probe D after sergeant.die(): sergeantsLeft 0, blipsVisible 0 of 2, stealersVisible 3 of 3
+- ISC-1059: probe errors array empty across A..E (pageerror + console error listeners)
+- ISC-1060: Read CLAUDE.md Gotchas: LOS entry rewritten, 'Fog of war (client only...)' entry added
+- ISC-1061: git diff | grep '^+' | grep -c em dash: 0
+- ISC-1062: git diff --stat: StealerAI.ts, Blip.ts, GameEngine.ts absent
+- Probe note: the real-Chrome probe was attempted first (Interceptor blocked by the stale daemon; Claude-in-Chrome tab reported visibilityState hidden, frame 0, Phaser frozen), so the live evidence above comes from a headless Playwright script run in the client package, the same instrument as the repo's e2e suite and as ISC-1008 at park time.

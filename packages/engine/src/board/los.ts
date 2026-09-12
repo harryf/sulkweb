@@ -60,13 +60,16 @@ function pointOnSegment(
  */
 export interface LosOptions {
   /**
-   * When true, an intermediate square occupied by a MARINE blocks LOS.
-   * Stealer-side pieces (stealers, blips, ambush counters) are transparent
-   * (fog of war directive, 2026-09-12): a marine sees the whole column
-   * charging down a corridor, and a blip behind a stealer converts the
-   * moment the sight line reaches it.
+   * Which occupied intermediate squares block the line.
+   *  - true: any piece blocks (FIRE lines: a shot stops at the first body,
+   *    so overwatch and F never reach past the front stealer).
+   *  - 'marines': only a marine body blocks (SIGHT lines, fog directive
+   *    2026-09-12): stealer-side pieces are transparent, a marine sees the
+   *    whole column charging down a corridor, and a blip behind a stealer
+   *    converts the moment the sight line reaches it.
+   *  - false/undefined: pieces never block.
    */
-  piecesBlock?: boolean;
+  piecesBlock?: boolean | 'marines';
 }
 
 export function hasLineOfSight(board: Board, a: Square, b: Square, opts: LosOptions = {}): boolean {
@@ -141,7 +144,7 @@ export function hasLineOfSight(board: Board, a: Square, b: Square, opts: LosOpti
     }
     if (opts.piecesBlock) {
       const occupant = board.pieceAt({ c: x, r: y }) as { kind?: string } | undefined;
-      if (occupant?.kind === 'marine') return false;
+      if (occupant && (opts.piecesBlock === true || occupant.kind === 'marine')) return false;
     }
     // Burning squares block sight through (original Flames blockslos).
     if (board.isFlaming({ c: x, r: y })) {

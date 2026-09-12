@@ -14,8 +14,9 @@
  *    sergeant alive; see radarLogic.radarActive). Radar down: blips are
  *    invisible until they convert into stealers (directive, 2026-09-12).
  *  - Marines, doors, flames, and the C.A.T. are never hidden.
- *  - Stealer-side bodies never block a marine's sight line (engine rule,
+ *  - Stealer-side bodies never block a marine's SIGHT line (engine rule,
  *    2026-09-12): the whole column down a corridor is in the sight set.
+ *    Fire lines are unchanged: a shot still stops at the first body.
  */
 import { visibleSquares, type Board, type Piece } from '@sulk/engine/index.js';
 

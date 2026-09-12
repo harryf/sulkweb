@@ -12,10 +12,8 @@ import { chebyshev } from '../core/Direction.js';
  * for the whole side: a threat map of watched/killable squares, threat-weighted
  * pathing around them, staging (mass out of sight, then strike in waves timed
  * against the reinforcement rate), straggler hunts, sacrifice blockers that
- * park in a fire lane to soak the reaction burst for the mass behind (since
- * 2026-09-12 stealer bodies no longer block LOS, only marine bodies do; the
- * blocker still draws the first overwatch fire and jams), and door-shutting
- * to go dark while massing.
+ * park in a fire lane so their body shuts the corridor behind them (pieces
+ * block LOS), and door-shutting to go dark while massing.
  *
  * INVARIANT: the hive consumes NO dice. Unit tests script exact RollQueues;
  * any planning draw would re-baseline every scripted test. Tactic variety

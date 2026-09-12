@@ -27,15 +27,19 @@ export function inFireArc(viewer: Viewer, target: { x: number; y: number }): boo
   return rel.dr < 0 && Math.abs(rel.dc) <= Math.abs(rel.dr);
 }
 
-/** True when the viewer can see the target square: vision arc + clear LOS. */
+/** True when the viewer can see the target square: vision arc + clear LOS.
+ *  Sight passes through stealer-side bodies (only marines block), so the
+ *  whole column is seen and blips behind stealers convert (2026-09-12). */
 export function canSee(board: Board, viewer: Viewer, target: Square): boolean {
   if (!inVisionArc(viewer, target)) return false;
   const from = board.get(viewer.pos.c, viewer.pos.r);
   if (!from) return false;
-  return hasLineOfSight(board, from, target, { piecesBlock: true });
+  return hasLineOfSight(board, from, target, { piecesBlock: 'marines' });
 }
 
-/** True when the viewer could shoot the target square: fire arc + clear LOS + range. */
+/** True when the viewer could shoot the target square: fire arc + clear LOS + range.
+ *  A FIRE line stops at the first body of any side: you can see the column,
+ *  you cannot shoot through its front rank (overwatch included). */
 export function canShoot(board: Board, viewer: Viewer, target: Square, range = Infinity): boolean {
   if (!inFireArc(viewer, target)) return false;
   const from = board.get(viewer.pos.c, viewer.pos.r);

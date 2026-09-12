@@ -211,11 +211,13 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
 - **Container children need their own `scrollFactor(0)`**; rendering follows the parent
   container but Phaser's input hit-test uses the child's factor (the DONE button drifted
   with the camera until `HudPanel` set it per child).
-- **LOS:** missing squares are solid rock and block sight (fixed bug); MARINE bodies block LOS,
-  stealer-side bodies (stealers, blips, ambush counters) are transparent since 2026-09-12 (fog
-  directive: the marines see the whole column, a blip behind a stealer converts at once; the
-  `piecesBlock` option in `board/los.ts` is the single gate); vision arc is 180°, fire arc 90°
-  with 45° edges shootable (`board/vision.ts`).
+- **LOS is two policies since 2026-09-12 (`piecesBlock` in `board/los.ts`):** SIGHT (`canSee`,
+  `piecesBlock: 'marines'`) passes through stealer-side bodies (stealers, blips, ambush
+  counters), so the marines see the whole column and a blip behind a stealer converts at once;
+  FIRE (`canShoot`, `piecesBlock: true`) still stops at the first body of any side, so overwatch
+  and F never reach past the front rank and the hive's sacrifice blocker still shields the lane.
+  Missing squares are solid rock and block both; vision arc is 180°, fire arc 90° with 45° edges
+  shootable (`board/vision.ts`).
 - **Fog of war (client only, `utils/fog.ts` + GameScene.updateFog):** stealers hidden unless in a
   marine's sight set or within Chebyshev 2; BLIPS on the main board show only while the pulse
   radar runs (`radarLogic.radarActive`: a sergeant alive; debug_1 has no sergeant, so its blips

@@ -63,14 +63,21 @@ describe('canSee / canShoot integration', () => {
     expect(canSee(board, viewer, board.get(4, 2)!)).toBe(true); // the blocker itself is visible
   });
 
-  it('stealers and blips are transparent: the column behind them stays in sight (2026-09-12)', () => {
+  it('stealers and blips are transparent to SIGHT: the column behind them stays in view (2026-09-12)', () => {
     const { board, viewer } = at(4, 4, Dir.N);
     new Genestealer(board, { c: 4, r: 3 }, Dir.S);
     new Blip(board, { c: 4, r: 2 }, 1);
     expect(canSee(board, viewer, board.get(4, 3)!)).toBe(true);
     expect(canSee(board, viewer, board.get(4, 2)!)).toBe(true);  // behind the stealer
     expect(canSee(board, viewer, board.get(4, 0)!)).toBe(true);  // behind both
-    expect(canShoot(board, viewer, board.get(4, 0)!)).toBe(true); // fire arc agrees with sight
+  });
+
+  it('a FIRE line still stops at the first body: no shooting through the front stealer', () => {
+    const { board, viewer } = at(4, 4, Dir.N);
+    new Genestealer(board, { c: 4, r: 3 }, Dir.S);
+    expect(canShoot(board, viewer, board.get(4, 3)!)).toBe(true);  // the front rank is a target
+    expect(canShoot(board, viewer, board.get(4, 2)!)).toBe(false); // the one behind is not
+    expect(canShoot(board, viewer, board.get(4, 0)!)).toBe(false); // overwatch cannot reach past it either
   });
 
   it('canShoot enforces range', () => {

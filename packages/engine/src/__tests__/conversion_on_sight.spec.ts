@@ -2,7 +2,7 @@ import { it, expect, describe } from 'vitest';
 import { GameEngine } from '../GameEngine.js';
 import { Blip } from '../pieces/Blip.js';
 import { Genestealer } from '../pieces/Genestealer.js';
-import { Dir } from '../core/Direction.js';
+import { Dir, facingToward } from '../core/Direction.js';
 import { StormBolterMarine } from '../pieces/StormBolterMarine.js';
 import { AssaultCannonMarine } from '../pieces/AssaultCannonMarine.js';
 import { RollQueue } from '../core/Dice.js';
@@ -34,6 +34,30 @@ describe('blips convert immediately when a marine action reveals them', () => {
     expect(blip.alive).toBe(false); // converted, no endMarinePhase involved
     expect(board.pieces.filter(p => (p as any).kind === 'blip')).toHaveLength(0);
     expect(board.pieces.filter(p => (p as any).kind === 'stealer')).toHaveLength(2); // value 2 → both spawn
+  });
+
+  it('converted stealers emerge facing their nearest marine (2026-09-12)', () => {
+    // Marine at (4,4); a value-3 blip due west of him at (1,4). On conversion
+    // one stealer stands on the blip square and two on adjacent free squares,
+    // and every one faces its nearest marine (east-ish) instead of the old
+    // fixed south. The one on the blip square is unambiguous: due east.
+    const mission = {
+      name: 'convert-facing', width: 9, height: 9,
+      marineDeployment: [{ x: 4, y: 4, facing: 'up' }],
+      initialBlips: 0, entryPoints: [], objective: 'exterminate',
+    } as unknown as CompiledMission;
+    const engine = new GameEngine(mission);
+    const board = engine.state.board;
+    board.dice = new RollQueue([1, 1, 1, 1, 1, 1]);
+    const marine = engine.marines[0];
+    const blip = new Blip(board, { c: 1, r: 4 }, 3);
+    expect(marine.tryTurn(-1)).toBe(true); // face west: the sweep sees the blip, it converts on the spot
+    expect(blip.alive).toBe(false);
+    const stealers = board.pieces.filter(p => (p as any).kind === 'stealer') as Genestealer[];
+    expect(stealers).toHaveLength(3);
+    const onBlipSquare = stealers.find(s => s.pos.c === 1 && s.pos.r === 4)!;
+    expect(onBlipSquare.facing).toBe(Dir.E);
+    for (const s of stealers) expect(s.facing).toBe(facingToward(s.pos, marine.pos));
   });
 
   it('a blip behind a stealer converts the moment the sight line reaches it (2026-09-12)', () => {

@@ -1,6 +1,6 @@
 import { Piece, type Coord } from './Piece.js';
 import { Board } from '../board/Board.js';
-import { Dir, chebyshev } from '../core/Direction.js';
+import { Dir, chebyshev, facingToward } from '../core/Direction.js';
 import { Genestealer } from './Genestealer.js';
 import { PieceEvents } from '../events/PieceEvents.js';
 import { squareSeenByMarine } from '../board/vision.js';
@@ -89,9 +89,18 @@ export class Blip extends Piece {
         spots.push(coord);
       }
     }
+    // Each emerging stealer faces its nearest living marine (Chebyshev,
+    // board-order tie), the same orientation the hive's charge sweep would
+    // give it at phase end: a contact that just burst out of hiding is
+    // already turned toward its prey (2026-09-12). No marine on the board
+    // (engine tests, exotic missions): keep the historical south facing.
+    const prey = board.pieces
+      .filter((p): p is Piece => (p as Piece).kind === 'marine' && (p as Piece).alive)
+      .sort((a, b) => chebyshev(a.pos, origin) - chebyshev(b.pos, origin))[0];
     const stealers: Genestealer[] = [];
     for (let i = 0; i < this.value && i < spots.length; i++) {
-      stealers.push(new Genestealer(board, spots[i], Dir.S));
+      const facing = prey ? facingToward(spots[i], prey.pos) : Dir.S;
+      stealers.push(new Genestealer(board, spots[i], facing));
     }
     PieceEvents.emit('blipConverted', {
       blipId: this.id, x: origin.c, y: origin.r,

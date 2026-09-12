@@ -90,7 +90,7 @@ skips the phase for quick testing.
 | `L` (hold) | Show line of sight |
 | `Enter` / DONE | End marine phase |
 | `Esc` | Pause |
-| Arrows / drag | Pan camera |
+| Arrows / drag / mouse wheel | Pan camera (wheel down pans down, like the down arrow; sideways wheel pans sideways) |
 | Mini-map click | Jump the view to that point |
 | Mouse hover | Square coordinate + contents in the HUD (below the map legend) |
 

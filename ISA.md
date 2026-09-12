@@ -456,6 +456,20 @@ Review round (2026-09-12):
 - [x] ISC-1078: branch fog-of-war deleted locally after the fast-forward; it never existed on origin (git branch -d, git ls-remote)
 - [x] ISC-1079: Anti: no history rewrite: the merge was a fast-forward, every fog commit keeps its sha (git log)
 
+### Toward v1.1: converted stealers face their prey, wheel panning (2026-09-12, fourteenth run)
+
+- [x] ISC-1080: Blip.convert gives every emerging stealer the facing toward its nearest living marine (Chebyshev, board-order tie), falling back to south when no marine is on the board (Read Blip.ts)
+- [x] ISC-1081: a value-3 blip due west of a marine converts into three stealers all facing per facingToward, the one on the blip square due east (vitest conversion_on_sight.spec)
+- [x] ISC-1082: Anti: conversion consumes no dice and emits the same blipConverted payload as before (Read: no board.dice call added, payload untouched)
+- [x] ISC-1083: Anti: engine pinned fixtures unchanged in outcome: beta2_mission seed 1, hive.spec, kill_reveals (vitest, full engine suite green)
+- [x] ISC-1084: the mouse wheel over the map pans the camera: deltaY adds to scrollY, deltaX to scrollX, both divided by zoom; any glide or programmatic pan in flight is cancelled; expectedScroll updated so the inertia model does not fight it (Read GameScene wheel handler)
+- [x] ISC-1085: the wheel over the HUD strip does nothing (Read guard + Playwright wheel.spec)
+- [x] ISC-1086: Playwright wheel.spec: wheel down raises scrollY, wheel up lowers it again, HUD wheel leaves scroll untouched (2 tests green)
+- [x] ISC-1087: docs/features.md keymap row names the wheel alongside arrows and drag (Read)
+- [x] ISC-1088: full Playwright suite green with wheel.spec added, pinned seeds intact (pnpm client e2e)
+- [x] ISC-1089: Anti: zero em dashes on any added line (git diff grep)
+- [ ] ISC-1090: both changes pushed to main and live on /latest/ with the callout URL in the ship report; v1.1.0 is NOT cut in this run (user chooses when the minor closes) (git push, curl /latest/manifest.json)
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
@@ -652,6 +666,8 @@ Review round (2026-09-12):
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-12 (toward v1.1, plan): user asked for two small improvements for the next minor version. (1) Stealers emerging from a converted blip face their nearest marine, reusing the same rule the hive's phase-end charge sweep applies (facingToward + Chebyshev nearest, board-order tie) but at the moment of conversion, so a contact that bursts out of hiding is already turned toward its prey; the sweep still runs at phase end for everyone else. Placed in Blip.convert (the single conversion site, AmbushCounter routes through super.convert) rather than in the two callers. No dice consumed, so pinned engine fixtures hold. (2) Mouse wheel pans the camera like the arrow keys: wheel down pans down, horizontal wheel or trackpad swipe pans sideways; implemented as direct scroll writes (the drag precedent) that cancel inertia and any programmatic pan, ignored over the HUD strip. Shipped to main, which lands on /latest/ only; v1.1.0 not cut here since the user framed these as items FOR the next minor, and the minor may collect more.
 
 - 2026-09-12 (v1.0.0 release): user instruction: merge the fog branch into main, cut v1.0.0, release, delete the branch. Fast-forward merge (main was an ancestor), tag pushed, release run green before the GitHub release was published (order codified at ISC-984), stable root verified live at the tag sha, branch deleted locally (it was never pushed). Release title "v1.0.0: the dark between the bulkheads". The 1.x line now starts on main; there is no long-lived feature branch. Known and carried forward from the twelfth run: debug_1 has no sergeant so its blips stay hidden under fog; motion-tracker audio still pings for blips with the radar down; balance baselines stale.
 
@@ -919,3 +935,15 @@ Latest-pipeline hardening run (2026-08-20 seventh run, ISC-969..975):
 - ISC-1077: headless probe on https://harryf.github.io/sulkweb/?deploy=0&mission=space_hulk_1&seed=3: {"phase":"MarineAction","turn":1,"fog":true,"fogSight":5,"blipsVisible":"2/2","errors":[]}
 - ISC-1078: git branch -d printed "Deleted branch fog-of-war (was 46aadd3)"; git ls-remote --heads origin has no fog ref
 - ISC-1079: git log --oneline main shows 46aadd3, 1f56f77, 987fade, 4823544, b461208 unchanged
+
+### Toward v1.1 (2026-09-12)
+
+- ISC-1080: Read Blip.convert: prey = nearest living marine by chebyshev from the blip origin; facing = prey ? facingToward(spot, prey.pos) : Dir.S
+- ISC-1081: conversion_on_sight.spec 'converted stealers emerge facing their nearest marine' green: 3 stealers, the one on (1,4) faces Dir.E, all match facingToward
+- ISC-1082: Read: no dice draw added to convert; blipConverted payload unchanged (blipId, x, y, stealerIds, lost)
+- ISC-1083: pnpm engine test: Test Files 34 passed, Tests 341 passed (beta2_mission pinned seed 1, hive.spec, kill_reveals all green)
+- ISC-1084: Read GameScene wheel handler: panEffect.reset, camVel zeroed, scrollX += deltaX / zoom, scrollY += deltaY / zoom, expectedScroll set
+- ISC-1085/1086: playwright tests/wheel.spec.ts 2 passed: scrollY up by wheel(0,300) then down by wheel(0,-300), x unchanged; HUD wheel leaves {x,y} equal
+- ISC-1087: Read docs/features.md: "Arrows / drag / mouse wheel | Pan camera (wheel down pans down...)"
+- ISC-1088: pnpm client e2e: 124 passed (54.2s); client unit 105/105
+- ISC-1089: git diff HEAD | grep '^+' | grep -c em dash: 0

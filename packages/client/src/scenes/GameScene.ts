@@ -562,6 +562,21 @@ export default class GameScene extends Phaser.Scene {
       this.dragVel.x = 0.6 * (-dx / dt) + 0.4 * this.dragVel.x;
       this.dragVel.y = 0.6 * (-dy / dt) + 0.4 * this.dragVel.y;
     });
+    // Mouse wheel pans like the arrow keys: wheel down = camera down (the
+    // map scrolls up under the cursor, the way a page scrolls), horizontal
+    // wheel or trackpad swipe pans sideways. Direct scroll writes, same as
+    // a drag: no inertia to burn off, and the write kills any glide or
+    // programmatic pan in flight so the wheel always wins (2026-09-12).
+    this.input.on('wheel', (p: Phaser.Input.Pointer, _objs: unknown, deltaX: number, deltaY: number) => {
+      if (p.x > this.scale.width - HUD_WIDTH) return; // the HUD strip is not the map
+      const cam = this.cameras.main;
+      cam.panEffect.reset();
+      this.camVel.x = 0;
+      this.camVel.y = 0;
+      cam.scrollX += deltaX / cam.zoom;
+      cam.scrollY += deltaY / cam.zoom;
+      this.expectedScroll = { x: cam.scrollX, y: cam.scrollY };
+    });
     // Grab-to-stop: touching the map kills any glide AND takes the wheel from
     // any in-flight programmatic pan (the replay action camera force-pans;
     // without this a drag during the stealer phase is undone every frame).

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import PreloadScene from './scenes/PreloadScene';
-import GameScene from './scenes/GameScene';
+import LiveScene from './scenes/LiveScene';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -8,7 +8,7 @@ const config: Phaser.Types.Core.GameConfig = {
   height: 640,
   parent: 'app',
   pixelArt: true,
-  scene: [PreloadScene, GameScene],
+  scene: [PreloadScene, LiveScene],
 };
 
 export default config;

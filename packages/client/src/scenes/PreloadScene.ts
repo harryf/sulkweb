@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import WebFont from 'webfontloader';
 
 /**
- * PreloadScene - pre-loads assets and starts the GameScene.
+ * PreloadScene - pre-loads assets and starts the LiveScene.
  */
 export default class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -21,7 +21,7 @@ export default class PreloadScene extends Phaser.Scene {
       const startGame = () => {
         if (started) return;
         started = true;
-        this.scene.start('GameScene');
+        this.scene.start('LiveScene');
       };
       WebFont.load({
         google: { families: ['Kanit:900'] },
@@ -37,6 +37,6 @@ export default class PreloadScene extends Phaser.Scene {
    * Creates game objects.
    */
   create() {
-    // GameScene will be started after font is loaded in preload()
+    // LiveScene will be started after font is loaded in preload()
   }
 }

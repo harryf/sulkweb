@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { PieceEvents } from '@sulk/engine/index.js'
+import { PieceEvents, TUNING } from '@sulk/engine/index.js'
 import { HUD_WIDTH, HUD_BG, HUD_HEADER_COLOR, HUD_TEXT_COLOR, MINI_MAP_MARGIN, UI_FONT } from '../config.js'
 
 export class HudPanel extends Phaser.GameObjects.Container {
@@ -19,6 +19,7 @@ export class HudPanel extends Phaser.GameObjects.Container {
   private statusText!: Phaser.GameObjects.Text
   private flashText!: Phaser.GameObjects.Text
   private flashTimer?: Phaser.Time.TimerEvent
+  private doneLabel!: Phaser.GameObjects.Text
 
   /** Transient warning line (self-destruct confirm, etc.) — fades on its own. */
   flash(text: string, ms = 2000) {
@@ -52,10 +53,25 @@ export class HudPanel extends Phaser.GameObjects.Container {
     this.hoverText.setText(text || 'Hover a square for info')
   }
 
+  /** Deployment clock (wall seconds). */
   setTimer(seconds: number) {
     const m = Math.max(0, Math.floor(seconds / 60))
     const s = Math.max(0, seconds % 60)
     this.timerText.setText(`${m}:${String(s).padStart(2, '0')}`)
+  }
+
+  /** The live clock: the cycle in progress and the seconds into it
+   *  (TUNING.cycleTicks ticks of TUNING.tickMs). */
+  setClock(tick: number, cycle: number) {
+    const inCycle = tick % TUNING.cycleTicks
+    const seconds = Math.floor(inCycle * TUNING.tickMs / 1000)
+    this.phaseText.setText(`Cycle ${cycle}`)
+    this.timerText.setText(`${seconds}s / ${Math.round(TUNING.cycleTicks * TUNING.tickMs / 1000)}s`)
+  }
+
+  /** Relabel the one button (START while deploying, PAUSE once live). */
+  setPrimaryButton(label: string) {
+    this.doneLabel.setText(label)
   }
 
   /** Deploy-phase controls: an AUTO DEPLOY button that exists ONLY while the
@@ -114,33 +130,33 @@ export class HudPanel extends Phaser.GameObjects.Container {
     })
     this.add(headerText)
 
-    // Phase / turn / timer block
+    // Cycle / clock block: the cycle in progress and the seconds into it.
     const statusY = header.y + 62
-    this.phaseText = scene.add.text(header.x + 8, statusY, 'Turn 1: Marines', {
+    this.phaseText = scene.add.text(header.x + 8, statusY, 'Cycle 1', {
       fontFamily: UI_FONT, fontSize: '15px', color: HUD_TEXT_COLOR, fixedWidth: HUD_WIDTH - 16
     })
     this.add(this.phaseText)
-    this.timerText = scene.add.text(header.x + 8, statusY + 22, '2:00', {
+    this.timerText = scene.add.text(header.x + 8, statusY + 22, '0s / 10s', {
       fontFamily: UI_FONT, fontSize: '22px', color: '#e8c840', fixedWidth: HUD_WIDTH - 16
     })
     this.add(this.timerText)
 
-    // Done button
+    // The one button: PAUSE once the mission is live (START while deploying).
     const doneY = statusY + 62
     const doneBtn = scene.add.rectangle(8, doneY, HUD_WIDTH - 16, 34, 0x333333)
       .setOrigin(0)
       .setInteractive({ useHandCursor: true })
     doneBtn.on('pointerdown', () => onDone?.())
     this.add(doneBtn)
-    const doneLabel = scene.add.text(8, doneY + 6, 'DONE  ⏎', {
+    this.doneLabel = scene.add.text(8, doneY + 6, 'PAUSE  Esc', {
       fontFamily: UI_FONT, fontSize: '17px', color: '#ffffff', align: 'center', fixedWidth: HUD_WIDTH - 16
     })
-    this.add(doneLabel)
+    this.add(this.doneLabel)
 
     PieceEvents.on('phaseChanged', ({ phase, turn }) => {
-      this.phaseText.setText(phase === 'Deploy' ? 'DEPLOYMENT'
-        : `Turn ${turn}: ${phase === 'MarineAction' ? 'Marines' : 'Stealers'}`)
+      this.phaseText.setText(phase === 'Deploy' ? 'DEPLOYMENT' : `Cycle ${turn}`)
     })
+    PieceEvents.on('tick', ({ tick, cycle }) => this.setClock(tick, cycle))
 
     // Casualty counters
     this.casualtyText = scene.add.text(header.x + 8, header.y + 38, 'Kills: 0   Losses: 0', {

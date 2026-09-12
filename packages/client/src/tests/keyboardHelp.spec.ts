@@ -7,10 +7,11 @@ describe('keyboard help layout data', () => {
 
   it('covers every bound key exactly once, each with a label (ISC-392/642)', () => {
     const expected = [
-      // GameScene addKeys('W,A,S,D,Q,E,Z,C,O,F,X,B,H,U,P,T,R,G,M') …
+      // LiveScene addKeys('W,A,S,D,Q,E,Z,C,O,F,X,B,H,U,P,T,R,G,M') ...
       'W', 'A', 'S', 'D', 'Q', 'E', 'Z', 'C', 'O', 'F', 'X', 'B', 'H', 'U', 'P', 'T', 'R', 'G', 'M',
-      // … plus the dedicated keydown handlers
-      'L', 'K', '1-0', 'Enter', 'Esc',
+      // ... plus the dedicated keydown handlers (Enter only starts the
+      // mission during deployment and is described in the deploy note)
+      'L', 'K', '1-0', 'Esc',
     ]
     const keys = bound.map(c => c.key)
     expect([...keys].sort()).toEqual([...expected].sort())

@@ -32,6 +32,8 @@ export class AudioManager {
   private marineMirror = new Map<string, { x: number; y: number }>();
   private subs: [string, (p: never) => void][] = [];
   private over = false;
+  /** The bed level the last duck tween aimed at (contact or quiet). */
+  private duckLevel = -1;
   /** e2e probe surface. */
   readonly trackKey: string;
   /** Last one-shot actually played (key + final gain) — e2e probe surface. */
@@ -109,7 +111,14 @@ export class AudioManager {
     scene.input.on('pointerdown', resumeCtx);
     scene.input.keyboard?.on('keydown', resumeCtx);
 
-    this.on('phaseChanged', ({ phase }) => this.duckTo(duckTarget(phase)));
+    // Ducking follows contact, re-read once per tick: a fade only restarts
+    // when the target level actually changes.
+    this.on('tick', () => {
+      const target = duckTarget(this.threatDistance());
+      if (target === this.duckLevel) return;
+      this.duckLevel = target;
+      this.duckTo(target);
+    });
     this.on('shot', ({ shooterId }) => {
       const key = shotSfx(this.piece(shooterId)?.spriteKey);
       this.play(key === 'sfx_bolter' && !this.has('sfx_bolter') ? 'sfx_bolter_orig' : key);
@@ -268,13 +277,14 @@ export class AudioManager {
     }
   };
 
-  /** Rise from silence to the current phase's duck target. */
+  /** Rise from silence to the current duck target. */
   private fadeIn(): void {
     if (!this.music) return;
     this.scene.tweens.killTweensOf(this.music);
+    this.duckLevel = duckTarget(this.threatDistance());
     this.scene.tweens.add({
       targets: this.music,
-      volume: { from: 0, to: duckTarget(this.engine.phase) },
+      volume: { from: 0, to: this.duckLevel },
       duration: AUDIO_CONFIG.musicFadeInMs,
       ease: 'Sine.easeInOut',
     });

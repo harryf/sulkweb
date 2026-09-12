@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { GameEngine, loadMission, missions, SeededRng, PieceEvents } from '@sulk/engine/index.js'
 import {
-  AUDIO_CONFIG, duckTarget, shotSfx, deathSfx, combatSfx,
+  AUDIO_CONFIG, DUCK_CONTACT_DIST, duckTarget, shotSfx, deathSfx, combatSfx,
   trackerIntervalMs, trackerDetune, nearestThreatDistance, SfxThrottle,
   distanceGainFactor,
 } from '../audioLogic.js'
@@ -47,25 +47,26 @@ describe('alien segment classification (ISC-303/304)', () => {
   })
 })
 
-describe('phase ducking (ISC-312/314/327)', () => {
-  it('marine phase is the quiet bed; stealer phase is louder; both under the SFX gain', () => {
-    expect(duckTarget('MarineAction')).toBe(AUDIO_CONFIG.musicQuiet)
-    expect(duckTarget('StealerAction')).toBe(AUDIO_CONFIG.musicLoud)
+describe('contact ducking (ISC-312/314/327, 2.x)', () => {
+  it('no contact is the quiet bed; a threat within reach is louder; both under the SFX gain', () => {
+    expect(duckTarget(null)).toBe(AUDIO_CONFIG.musicQuiet)
+    expect(duckTarget(DUCK_CONTACT_DIST + 1)).toBe(AUDIO_CONFIG.musicQuiet)
+    expect(duckTarget(DUCK_CONTACT_DIST)).toBe(AUDIO_CONFIG.musicLoud)
+    expect(duckTarget(1)).toBe(AUDIO_CONFIG.musicLoud)
     expect(AUDIO_CONFIG.musicQuiet).toBeLessThan(AUDIO_CONFIG.musicLoud)
-    // Antecedent: music stays BACKGROUND — loud ceiling ≤ half the SFX gain.
+    // Antecedent: music stays BACKGROUND, loud ceiling at most half the SFX gain.
     expect(AUDIO_CONFIG.musicLoud).toBeLessThanOrEqual(AUDIO_CONFIG.sfxGain / 2)
     expect(AUDIO_CONFIG.fadeMs).toBeGreaterThanOrEqual(500)
   })
 
-  it('the captured stealer-phase stream carries the phase flips the ducking follows', () => {
+  it('a live game emits the tick events the ducking re-reads contact on', () => {
     const engine = new GameEngine(loadMission('beta_2'), [], new SeededRng(1))
-    const stream = PieceEvents.capture(() => engine.endMarinePhase())
-    const phases = stream.filter(e => e.type === 'phaseChanged')
-      .map(e => (e.payload as { phase: string }).phase)
-    expect(phases[0]).toBe('StealerAction')
-    expect(phases[phases.length - 1]).toBe('MarineAction')
-    expect(phases.map(duckTarget)[0]).toBe(AUDIO_CONFIG.musicLoud)
-    expect(phases.map(duckTarget)[phases.length - 1]).toBe(AUDIO_CONFIG.musicQuiet)
+    const ticks: number[] = []
+    const h = (p: { tick: number }) => ticks.push(p.tick)
+    PieceEvents.on('tick', h)
+    engine.runTicks(3)
+    PieceEvents.off('tick', h)
+    expect(ticks).toEqual([1, 2, 3])
   })
 })
 

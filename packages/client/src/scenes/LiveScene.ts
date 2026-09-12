@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { GameEngine, GameLogger, loadMission, missions, Square, Piece, StormBolterMarine, HeavyFlamerMarine, AssaultCannonMarine, ChainFistMarine, Genestealer, PieceEvents, visibleSquares, closeCombat, DIR_VEC, SeededRng, autoplay, runMarineTurn, flameFlood, Door, deploySeconds } from "@sulk/engine/index.js";
+import { GameEngine, GameLogger, loadMission, missions, Square, Piece, StormBolterMarine, SergeantMarine, HeavyFlamerMarine, AssaultCannonMarine, ChainFistMarine, Genestealer, PieceEvents, visibleSquares, DIR_VEC, SeededRng, autoplay, runMarineTurn, flameFlood, Door, deploySeconds, TUNING, applyTuning, parseTuning, type MarineCommand } from "@sulk/engine/index.js";
 import { Selection } from "../ui/Selection";
 import { Minimap } from '../ui/Minimap.js';
 import { HighlightSprite } from '../ui/HighlightSprite.js';
@@ -10,13 +10,12 @@ import { AudioManager } from '../audio/AudioManager.js';
 import { showEndDialog } from '../ui/endDialog.js';
 import { HUD_WIDTH, MINI_MAP_MARGIN, UI_FONT, FACING_ARROWS } from '../config.js';
 import { MOTION, kindFromTexture, camPanStep, shimmerPhase, recoilVector, shortestRotationDelta } from '../utils/motionLogic.js';
-import { FOCUS, planReplayFocus, replayOffsets } from '../utils/replayFocus.js';
 import { FOG, computeMarineSight, threatRevealed, threatVisible, type FoggedKind } from '../utils/fog.js';
 import { radarActive, type RadarPieceView } from '../utils/radarLogic.js';
 
 const TILE_SIZE = 40
 
-/** Pixel centre of board square (x, y) — spread into add.image/setPosition. */
+/** Pixel centre of board square (x, y): spread into add.image/setPosition. */
 const centerXY = (x: number, y: number): [number, number] =>
   [x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2]
 
@@ -24,11 +23,22 @@ const centerXY = (x: number, y: number): [number, number] =>
 const ammoOf = (p: Piece | undefined): number | undefined =>
   p instanceof HeavyFlamerMarine || p instanceof AssaultCannonMarine ? p.ammo : undefined
 
-export default class GameScene extends Phaser.Scene {
+/** At most this many engine ticks per rendered frame: a stalled frame catches
+ *  up a little, never in one burst that plays a whole cycle unseen. */
+const MAX_TICKS_PER_FRAME = 4
+
+/**
+ * The live game (2.x): the engine ticks on a fixed step inside update(),
+ * every key becomes an engine command, and every sprite follows engine
+ * events as they happen. There is no turn to end, no captured stealer phase
+ * to replay, no marine-phase clock: the HUD shows the cycle, DONE became
+ * PAUSE, and Esc stops the clock.
+ */
+export default class LiveScene extends Phaser.Scene {
   private hud!: import('../ui/HudPanel.js').HudPanel;
-  /** DOM roster card panel — public for the e2e suite. */
+  /** DOM roster card panel; public for the e2e suite. */
   roster!: RosterPanel;
-  /** Minimap radar — public for the e2e suite (pulse + probe surfaces). */
+  /** Minimap radar; public for the e2e suite (pulse + probe surfaces). */
   minimap!: Minimap;
 
   private readonly engine: GameEngine
@@ -48,16 +58,16 @@ export default class GameScene extends Phaser.Scene {
   private ductingSprites: { [coord: string]: Phaser.GameObjects.Image } = {};
   private catSprite?: Phaser.GameObjects.Image;
   private catMarker?: Phaser.GameObjects.Image;
-  /** Board coordinate under the mouse — the flamer's F-key target. */
+  /** Board coordinate under the mouse: the flamer's F-key target. */
   private hoverCoord: { x: number; y: number } | null = null;
   /** Two-press flamer targeting: first F arms, second F fires at the hovered
    *  square. Public for the e2e suite. */
   flamerAiming = false;
-  /** Squares the armed flamer would set alight at the current hover — drawn
+  /** Squares the armed flamer would set alight at the current hover, drawn
    *  as the blast preview and asserted by e2e. */
   flamePreview: { x: number; y: number }[] = [];
   private flamePreviewGfx!: Phaser.GameObjects.Graphics;
-  /** Reticle over whatever F would shoot right now — enemy or door. Public for
+  /** Reticle over whatever F would shoot right now (enemy or door). Public for
    *  e2e; cx/cy are the drawn pixel centre so tests pin the geometry too. */
   fireReticleFor:
     | { kind: 'door'; x: number; y: number; facing: number; cx: number; cy: number }
@@ -65,20 +75,20 @@ export default class GameScene extends Phaser.Scene {
     | null = null;
   private fireReticleGfx!: Phaser.GameObjects.Graphics;
   /** First B press arms self-destruct; the second within the window fires.
-   *  0 = disarmed. Armed state is bound to ONE flamer — switching selection
+   *  0 = disarmed. Armed state is bound to ONE flamer: switching selection
    *  must never carry the confirm to a different marine (Advisor 2026-08-16).
    *  (Fidelity: the original shows a "Really self-destruct?" dialog.) */
   private destructArmedAt = 0;
   private destructArmedFor = '';
   /** Phaser's keyboard queue can re-emit the SAME native event across frames
-   *  under load (headless e2e, stalled RAF) — every keydown handler dedupes
+   *  under load (headless e2e, stalled RAF): every keydown handler dedupes
    *  through this set or single-press actions double-fire. */
   private seenKeyEvents = new WeakSet<KeyboardEvent>();
-  private timerRemaining = 120;
-  private timerEvent?: Phaser.Time.TimerEvent;
+  /** The clock: milliseconds per engine tick (`?tick=<ms>`, default
+   *  TUNING.tickMs); 0 stops it and window.sulk.step(n) drives the engine. */
+  readonly tickMs: number;
+  private tickAcc = 0;
   private paused = false;
-  /** True while the captured stealer-phase event stream is being replayed. */
-  private animating = false;
   private pauseOverlay?: Phaser.GameObjects.Container;
   private losOverlay!: Phaser.GameObjects.Graphics;
   private losVisible = false;
@@ -89,34 +99,23 @@ export default class GameScene extends Phaser.Scene {
   private readonly fogEnabled: boolean;
   private fogGfx?: Phaser.GameObjects.Graphics;
   private fogSight = new Set<string>();
-  /** Sight recompute request, serviced by update() only OUTSIDE replays:
-   *  mid-replay the engine holds FINAL state (doors, deaths), and a fresh
-   *  set drawn from it would spoil the animation (payload-not-engine). */
+  /** Sight recompute request, serviced by update() at most once per frame. */
   private fogDirty = true;
-  /** Marine positions snapshotted as the replay starts: die() splices dead
-   *  marines out of engine state BEFORE frame 1, so the live list would
-   *  strip a killed marine's creep reveal for the whole animation and his
-   *  killer would strike invisibly (reviewer finding, 2026-08-21). */
-  private fogMarineSnap: { c: number; r: number }[] | null = null;
-  /** Pre-phase radar state for the same reason: a sergeant killed this
-   *  phase is already spliced out before frame 1, but the replay has not
-   *  shown his death yet, so the blips stay on screen until it has. */
-  private fogRadarSnap: boolean | null = null;
-  /** Last hover readout string — public for the e2e suite to assert against. */
+  /** Last hover readout string; public for the e2e suite to assert against. */
   hoverInfo = '';
-  /** All game audio (music ducking, SFX, motion tracker) — public for e2e. */
+  /** All game audio (music ducking, SFX, motion tracker); public for e2e. */
   audio!: AudioManager;
-  /** Mission REGISTRY key (space_hulk_1…) — the audio manifest keys on this,
+  /** Mission REGISTRY key (space_hulk_1...); the audio manifest keys on this,
    *  NOT on mission.name (a display title like "Suicide Mission"). */
   private readonly missionKey: string;
   /** Gameplay-event recorder for the end-of-mission log export; null in
    *  attract mode. Public via window.sulk for the e2e suite. */
   readonly gameLog: GameLogger | null;
   /** Deterministic motion probe: every motion decision (piece steps, door
-   *  slides, recoil, deaths) in arrival order, capped — the e2e suite asserts
+   *  slides, recoil, deaths) in arrival order, capped; the e2e suite asserts
    *  profiles from this instead of racing tweens mid-flight. */
   motionLog: { id: string; kind: string; durationMs: number; tweened: boolean }[] = [];
-  /** Camera inertia velocity (px/ms) — public for the e2e suite. */
+  /** Camera inertia velocity (px/ms); public for the e2e suite. */
   camVel = { x: 0, y: 0 };
   /** Tracked drag velocity for release momentum (px/ms). pointer.velocity is
    *  unreliable under headless test drivers, so we integrate our own. */
@@ -124,38 +123,41 @@ export default class GameScene extends Phaser.Scene {
   private lastDragAt = 0;
   /** Where the integrator left the scroll last frame. If anything else moved
    *  it since (bounds clamp at a map edge, panEffect, drag), the glide is
-   *  fighting another writer — park it. */
+   *  fighting another writer: park it. */
   private expectedScroll: { x: number; y: number } | null = null;
-  /** Replay action-camera probe: every pan the plan fired (board squares). */
-  focusLog: { x: number; y: number; attack: boolean }[] = [];
-  /** Last attack staging the effects fired for — e2e probe. */
-  lastAttackFx: { x: number; y: number } | null = null;
-  /** The claustrophobia spotlight over an in-progress kill. */
-  private vignette?: Phaser.GameObjects.Image;
   /** Homepage attract mode (no ?mission= param): the board is scenery under
-   *  the DOM landing overlay — input disabled, clock stopped, no audio. */
+   *  the DOM landing overlay; input disabled, clock stopped, no audio. */
   private readonly attract: boolean;
   /** `?deploy=0` skips the deployment phase (e2e suites, quick debugging). */
   private readonly deployRequested: boolean;
-  /** True while the pre-mission deployment phase runs — public for e2e. */
+  /** True while the pre-mission deployment phase runs; public for e2e. */
   deployMode = false;
-  /** Deployment clock (90s per squad), separate from the marine-phase clock. */
+  /** Deployment clock (90s per squad): wall time, since the engine clock
+   *  only runs once the mission is live. */
   private deployRemaining = 0;
+  private deployTimer?: Phaser.Time.TimerEvent;
   /** Reserve marine armed for placement by a roster click / pick-up. */
   private armedId: string | null = null;
-  /** X markers over free deploy squares — rebuilt on every placement change. */
+  /** X markers over free deploy squares, rebuilt on every placement change. */
   private deployMarkers: Phaser.GameObjects.Text[] = [];
 
   constructor() {
-    super('GameScene')
+    super('LiveScene')
     // The engine builds the board, deploys the squad, and seeds the first blips.
-    // `?seed=N` pins the WHOLE game (blip values + CP roll included) — used by
+    // `?seed=N` pins the WHOLE game (blip values + CP roll included): used by
     // the deterministic e2e suite and handy for bug reports.
-    // `?mission=<name>` selects any registered mission (unknown → debug_1).
+    // `?mission=<name>` selects any registered mission (unknown = debug_1).
     // NO mission param at all = the homepage: space_hulk_1 plays as a dimmed
     // attract backdrop under the DOM landing overlay (input, clock, and audio
-    // all off — see the `attract` guards in create()).
+    // all off; see the `attract` guards in create()).
+    // `?tick=<ms>` sets the clock (0 = manual stepping); `?tuning=k:v,...`
+    // overrides the real-time constants BEFORE the engine is built.
     const params = new URLSearchParams(window.location.search);
+    const tuning = params.get('tuning');
+    if (tuning) applyTuning(parseTuning(tuning));
+    const tickParam = params.get('tick');
+    this.tickMs = tickParam !== null && Number.isFinite(Number(tickParam)) && Number(tickParam) >= 0
+      ? Number(tickParam) : TUNING.tickMs;
     const seedParam = params.get('seed');
     // Parse ONCE so the dice and the logged meta.seed can never disagree
     // (?seed=abc used to build SeededRng(NaN) while the log said null; an
@@ -183,7 +185,14 @@ export default class GameScene extends Phaser.Scene {
       seed,
       version: __APP_VERSION__,
     });
-    (window as any).sulk = { engine: this.engine, Selection, scene: this, SeededRng, autoplay, runMarineTurn, PieceEvents, Genestealer, gameLog: this.gameLog }; // dev/debug + autoplay handle
+    (window as any).sulk = {
+      engine: this.engine, Selection, scene: this, SeededRng, autoplay, runMarineTurn, PieceEvents, Genestealer,
+      gameLog: this.gameLog, TUNING,
+      /** Advance the engine n ticks (the e2e stepping harness; `?tick=0` stops the clock). */
+      step: (n = 1) => this.engine.runTicks(n),
+      /** Issue a command as the player would. */
+      command: (id: string, cmd: MarineCommand) => this.engine.command(id, cmd),
+    }; // dev/debug + autoplay handle
   }
 
   preload() {
@@ -214,7 +223,7 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('terminator_sergeant_sword', 'assets/themes/default/terminator_sergeant_sword.png');
     this.load.image('ambush_counter', 'assets/themes/default/ambush_counter.png');
     // All audio (mission music + original PD wavs + fetched cuts) queues via
-    // the AudioManager — see src/audio/. Missing fetched files are tolerated.
+    // the AudioManager; see src/audio/. Missing fetched files are tolerated.
     // Attract mode never constructs the AudioManager, so skip the fetches too
     // (the homepage should not download the whole mission audio set).
     if (!this.attract) AudioManager.queueLoads(this, this.missionKey);
@@ -258,12 +267,12 @@ export default class GameScene extends Phaser.Scene {
       if (sprite) this.slideDoor(sprite, open);
       this.refreshFireReticle(); // open/closed flips shootability
     });
-    
+
     // Mission markers: stealer entry triangles + exit arrows (theme art, drawn
-    // one square OFF-board per the original EntryTriangle/ExitArrow — `facing`
+    // one square OFF-board per the original EntryTriangle/ExitArrow; `facing`
     // is efacing, the off-board direction; the graphic points back onto the
-    // board via rotate(-90°·efacing)), exit squares (green), marine deployment
-    // (blue outline). Drawn under pieces, over squares.
+    // board via rotate(-90 deg times efacing)), exit squares (green), marine
+    // deployment (blue outline). Drawn under pieces, over squares.
     const markers = this.add.graphics().setDepth(0.4);
     const mission = this.engine.mission;
     const T = TILE_SIZE;
@@ -308,7 +317,7 @@ export default class GameScene extends Phaser.Scene {
       const cat = this.engine.state.board.cat;
       this.catSprite = this.add.image(...centerXY(cat.pos.c, cat.pos.r), 'cat').setDepth(0.95);
     }
-    // The damage marker rides the cat's top-right corner (+12, −12 off centre).
+    // The damage marker rides the cat's top-right corner (+12, -12 off centre).
     const catMarkerXY = (x: number, y: number): [number, number] => {
       const [cx, cy] = centerXY(x, y);
       return [cx + 12, cy - 12];
@@ -364,9 +373,9 @@ export default class GameScene extends Phaser.Scene {
       }
       this.refreshFireReticle(); // the target may be gone
     });
-        PieceEvents.on('downloadChanged', ({ counter, active }) => {
+    PieceEvents.on('downloadChanged', ({ counter, active }) => {
       const total = this.engine.mission.downloadTurns ?? 4;
-      this.hud.setStatus(active ? `Downloading… ${counter}/${total}` : `Download reset (${total})`);
+      this.hud.setStatus(active ? `Downloading... ${counter}/${total}` : `Download reset (${total})`);
     });
     if (mission.objective === 'download' && mission.downloadPoint) {
       const dp = mission.downloadPoint;
@@ -374,14 +383,12 @@ export default class GameScene extends Phaser.Scene {
     }
 
     // Render-side combat reactions: engine events drive all sprite state.
-    // Handlers read the event PAYLOAD, never the engine — during stealer-phase
-    // replay the engine already holds the final state, so payload coords are
-    // the only truthful intermediate positions.
+    // Handlers read the event PAYLOAD: it is the truth at emission time.
     PieceEvents.on('pieceMoved', ({ pieceId, x, y, facing }) => {
       this.moveSprite(pieceId, x, y, facing);
     });
     PieceEvents.on('pieceDied', ({ pieceId }) => {
-      this.removePieceSprite(pieceId, this.animating ? 160 : 80);
+      this.removePieceSprite(pieceId, 160);
       this.clearSelectionOf(pieceId, true); // an armed flamer can die mid-aim
     });
     PieceEvents.on('shot', ({ shooterId }) => {
@@ -395,9 +402,9 @@ export default class GameScene extends Phaser.Scene {
       ).setDepth(2).setRotation(shooter.facing * Math.PI / 2);
       this.time.delayedCall(250, () => flash.destroy());
       // Subtle recoil: re-anchor on engine truth (a shooter never moves while
-      // shooting — marines stand still through the whole stealer replay), kick
-      // opposite the muzzle, spring back. Bursts re-anchor per shot, so rapid
-      // fire vibrates without ever drifting the sprite off its square.
+      // shooting), kick opposite the muzzle, spring back. Bursts re-anchor
+      // per shot, so rapid fire vibrates without ever drifting the sprite
+      // off its square.
       const sprite = this.pieceSprites[shooterId];
       if (sprite?.active && !this.reducedMotion) {
         const [cx, cy] = centerXY(shooter.pos.c, shooter.pos.r);
@@ -416,6 +423,7 @@ export default class GameScene extends Phaser.Scene {
       if (on) {
         const sprite = this.pieceSprites[pieceId];
         if (!sprite) return;
+        this.owMarkers[pieceId]?.destroy();
         this.owMarkers[pieceId] = this.add.image(sprite.x, sprite.y - 12, 'marker_overwatch').setDepth(2);
       } else {
         this.owMarkers[pieceId]?.destroy();
@@ -434,7 +442,7 @@ export default class GameScene extends Phaser.Scene {
         delete this.jamMarkers[pieceId];
       }
     });
-    // Flames: render every burning square; clear on end-phase dispersal.
+    // Flames: render every burning square; clear as each blast burns out.
     PieceEvents.on('sectionFlamed', ({ squares }) => {
       for (const s of squares) {
         const key = `${s.x},${s.y}`;
@@ -456,7 +464,7 @@ export default class GameScene extends Phaser.Scene {
       for (const s of squares) {
         const spr = this.flameSprites[`${s.x},${s.y}`];
         if (spr) {
-          this.tweens.killTweensOf(spr); // the shimmer loops forever — never orphan it
+          this.tweens.killTweensOf(spr); // the shimmer loops forever: never orphan it
           spr.destroy();
         }
         delete this.flameSprites[`${s.x},${s.y}`];
@@ -474,8 +482,16 @@ export default class GameScene extends Phaser.Scene {
       }
       delete this.pieceSprites[blipId];
     });
+    // The player's own commands: keep the highlight and reticle honest even
+    // when the action moved nothing (a turn in place, a shot).
+    PieceEvents.on('command', ({ pieceId, ok }) => {
+      if (!ok) return;
+      const piece = this.engine.findPiece(pieceId);
+      if (piece) this.refreshPieceSprite(piece);
+      this.updateHighlight();
+    });
     PieceEvents.on('gameOver', ({ result }) => {
-      this.timerEvent?.remove();
+      this.deployTimer?.remove();
       const cam = this.cameras.main;
       const msg = result === 'win' ? 'MISSION COMPLETE'
         : result === 'draw' ? 'MISSION DRAWN' : 'MISSION FAILED';
@@ -496,7 +512,7 @@ export default class GameScene extends Phaser.Scene {
       this.input.enabled = false;
       this.input.keyboard!.enabled = false;
       this.input.keyboard!.clearCaptures();
-      // DOM dialog on top of the banner: retry (reload — a pinned ?seed
+      // DOM dialog on top of the banner: retry (reload; a pinned ?seed
       // replays the identical game) or back to mission select, plus the
       // gameplay-log export (notes + download) when a logger is recording.
       showEndDialog(result, this.gameLog);
@@ -512,26 +528,26 @@ export default class GameScene extends Phaser.Scene {
     this.wasd = this.input.keyboard!.addKeys('W,A,S,D,Q,E,Z,C,O,F,X,B,H,U,P,T,R,G,M') as any
     // Both single-press handlers dedupe through seenKeyEvents like every
     // other key: under load Phaser replays the SAME native event across
-    // frames, and an un-deduped ESC double-toggles pause while a replayed
-    // ENTER slips through the momentarily-unpaused gap and ends the phase.
+    // frames, and an un-deduped ESC double-toggles pause.
     this.input.keyboard!.on('keydown-ENTER', (e: KeyboardEvent) => {
       if (this.seenKeyEvents.has(e)) return;
       this.seenKeyEvents.add(e);
-      this.endTurn();
+      // Enter ends nothing in the live game; during deployment it starts the mission.
+      if (this.deployMode && !this.paused) this.finishDeploy();
     });
     this.input.keyboard!.on('keydown-ESC', (e: KeyboardEvent) => {
       if (this.seenKeyEvents.has(e)) return;
       this.seenKeyEvents.add(e);
       this.togglePause();
     });
-    // Camera bounds — the SINGLE clamp for every scroll path (keys, drag,
+    // Camera bounds: the SINGLE clamp for every scroll path (keys, drag,
     // pan()): one-tile margin for off-board markers plus MARKER_OVERHANG for
-    // the wide entry/exit art (84px along one axis — up to 22px past its
+    // the wide entry/exit art (84px along one axis, up to 22px past its
     // cell), PLUS a HUD-width dead zone on the right. Phaser clamps scroll to
-    // bounds − FULL canvas width, but the right 200px of canvas is the opaque
-    // HUD strip — without the dead zone the rightmost markers can never pan
-    // out from under it (space_hulk_3's (28,22) entry triangle was the
-    // reported casualty). Assumes zoom stays 1 (this scene never zooms);
+    // bounds minus FULL canvas width, but the right 200px of canvas is the
+    // opaque HUD strip; without the dead zone the rightmost markers can
+    // never pan out from under it (space_hulk_3's (28,22) entry triangle was
+    // the reported casualty). Assumes zoom stays 1 (this scene never zooms);
     // markers.spec sweeps all missions against these exact clamps.
     const MARKER_OVERHANG = 24
     this.cameras.main.setBounds(
@@ -554,7 +570,7 @@ export default class GameScene extends Phaser.Scene {
       // Track drag velocity (px/ms, scroll direction) for release momentum.
       // performance.now(), NOT this.time.now: Phaser dispatches mouse moves
       // synchronously from the DOM listener, so a fast-polling mouse lands
-      // several per frame — the frame-quantized clock reads dt 0 for all but
+      // several per frame; the frame-quantized clock reads dt 0 for all but
       // the first and inflates the fling ~10x (reviewer finding).
       const now = performance.now();
       const dt = Math.max(1, now - this.lastDragAt);
@@ -578,8 +594,7 @@ export default class GameScene extends Phaser.Scene {
       this.expectedScroll = { x: cam.scrollX, y: cam.scrollY };
     });
     // Grab-to-stop: touching the map kills any glide AND takes the wheel from
-    // any in-flight programmatic pan (the replay action camera force-pans;
-    // without this a drag during the stealer phase is undone every frame).
+    // any in-flight programmatic pan.
     this.input.on('pointerdown', () => {
       this.camVel.x = 0;
       this.camVel.y = 0;
@@ -600,7 +615,7 @@ export default class GameScene extends Phaser.Scene {
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
       if (this.reducedMotion) return;
       if (p.x > this.scale.width - HUD_WIDTH) return;
-      // Only a recent, fast drag flings — a click or a parked hold does not.
+      // Only a recent, fast drag flings; a click or a parked hold does not.
       if (performance.now() - this.lastDragAt > MOTION.cam.flingWindowMs) return;
       const vx = Phaser.Math.Clamp(this.dragVel.x * MOTION.cam.flingCarry, -MOTION.cam.flingMax, MOTION.cam.flingMax);
       const vy = Phaser.Math.Clamp(this.dragVel.y * MOTION.cam.flingCarry, -MOTION.cam.flingMax, MOTION.cam.flingMax);
@@ -614,7 +629,7 @@ export default class GameScene extends Phaser.Scene {
     const minimap = new Minimap(this, this.engine, { tile: TILE_SIZE, width: HUD_WIDTH - 2 * MINI_MAP_MARGIN });
     minimap.setScrollFactor(0); // fixed to screen
     this.minimap = minimap;
-    // Click-to-focus: centre the camera on the clicked point — setBounds
+    // Click-to-focus: centre the camera on the clicked point; setBounds
     // clamps at the map edges, and updateCam moves the white box to match.
     // An in-flight selection pan must yield, or it stomps the click next frame.
     // The +HUD_WIDTH/2 shift centres the point in the VISIBLE play area: the
@@ -624,8 +639,9 @@ export default class GameScene extends Phaser.Scene {
       this.cameras.main.centerOn(wx + HUD_WIDTH / 2, wy);
     };
 
-    // Create HUD panel (right-hand strip) and re-parent minimap into it
-    this.hud = new HudPanel(this, minimap, () => this.endTurn());
+    // Create HUD panel (right-hand strip) and re-parent minimap into it. Its
+    // one button starts the mission during deployment and pauses afterwards.
+    this.hud = new HudPanel(this, minimap, () => this.primaryButton());
     this.hud.setPosition(this.scale.width - HUD_WIDTH, 0);
     this.hud.setDepth(10);
     this.add.existing(this.hud);
@@ -636,7 +652,7 @@ export default class GameScene extends Phaser.Scene {
     this.roster = new RosterPanel(
       rosterEntries,
       (id): PieceStats | undefined => {
-        // Reserve marines (deployment phase) are off the board but not dead —
+        // Reserve marines (deployment phase) are off the board but not dead;
         // without this fallback their cards would grey out as KIA.
         const p = (this.engine.findPiece(id)
           ?? this.engine.reserve.find(m => m.id === id)) as StormBolterMarine | undefined;
@@ -657,7 +673,7 @@ export default class GameScene extends Phaser.Scene {
     // Number keys 1-0 select marines by displayed roster position: 1-5 the
     // first squad row, 6-0 the second (mouseless play). The map is computed
     // ONCE from the scene-start roster, so numbers never reshuffle as marines
-    // die — a dead marine's key goes inert via selectFromRoster's alive guard.
+    // die; a dead marine's key goes inert via selectFromRoster's alive guard.
     const hotkeys = assignHotkeys(rosterEntries);
     const DIGIT_KEYS: Record<string, string> = {
       '1': 'ONE', '2': 'TWO', '3': 'THREE', '4': 'FOUR', '5': 'FIVE',
@@ -665,21 +681,21 @@ export default class GameScene extends Phaser.Scene {
     };
     for (const [id, label] of hotkeys) {
       this.input.keyboard!.on(`keydown-${DIGIT_KEYS[label]}`, (e: KeyboardEvent) => {
-        // Cmd/Ctrl+digit is the browser's tab switch — never steal it into a
+        // Cmd/Ctrl+digit is the browser's tab switch: never steal it into a
         // silent selection change the player returns to without explanation.
         if (e.metaKey || e.ctrlKey || e.altKey) return;
-        if (this.seenKeyEvents.has(e)) return; // Phaser replay — one select per press
+        if (this.seenKeyEvents.has(e)) return; // Phaser replay: one select per press
         this.seenKeyEvents.add(e);
         this.selectFromRoster(id);
       });
     }
 
-    // All game audio: per-mission ambient bed (ducked by phase), event SFX,
+    // All game audio: per-mission ambient bed (ducked by contact), event SFX,
     // and the motion tracker. K toggles mute (persisted; M is melee). NOT
-    // constructed in attract mode — a click on the landing overlay is a
+    // constructed in attract mode: a click on the landing overlay is a
     // browser autoplay unlock, and the homepage must stay silent.
     if (!this.attract) {
-      // The minimap radar sweeps on the motion-tracker ping — one clock for
+      // The minimap radar sweeps on the motion-tracker ping: one clock for
       // sight and sound, so the pulse speeds up as the threats close in. The
       // callback rides the constructor: with sound already unlocked the first
       // cycle fires synchronously inside it, before any later assignment.
@@ -687,14 +703,14 @@ export default class GameScene extends Phaser.Scene {
         (ms) => this.minimap.pulse(ms));
       (window as any).sulk.audio = this.audio;
       this.input.keyboard!.on('keydown-K', (e: KeyboardEvent) => {
-        if (this.seenKeyEvents.has(e)) return; // Phaser replay — one toggle per press
+        if (this.seenKeyEvents.has(e)) return; // Phaser replay: one toggle per press
         this.seenKeyEvents.add(e);
         this.audio.toggleMute();
       });
       this.events.once('shutdown', () => this.audio.destroy());
     }
     // The required Music of 40K credit lives in the roster panel's Credits
-    // section (RosterPanel buildCredits — see CREDITS.md).
+    // section (RosterPanel buildCredits; see CREDITS.md).
 
     const objectiveLabel: Record<string, string> = {
       'exterminate': 'Objective: kill every genestealer',
@@ -707,8 +723,8 @@ export default class GameScene extends Phaser.Scene {
       'escape-count': (this.engine.mission.escapeQuota ?? 1) > 1
         ? `ESCAPE ${this.engine.mission.escapeQuota} marines via the EXIT`
         : 'GET one marine out via the EXIT',
-      'defend': `DEFEND the ducting + control room\nuntil the end of turn ${this.engine.mission.turnLimit ?? 16}`,
-      'download': 'HOLD the Data Room with a sergeant\nfor 4 quiet end-phases',
+      'defend': `DEFEND the ducting + control room\nuntil the end of cycle ${this.engine.mission.turnLimit ?? 16}`,
+      'download': 'HOLD the Data Room with a sergeant\nfor 4 quiet cycles',
     };
     this.hud.setObjective(objectiveLabel[this.engine.mission.objective ?? 'exterminate-or-exit'] ?? '');
     this.hud.setKillQuota(this.engine.mission.objective === 'kill-quota'
@@ -719,7 +735,7 @@ export default class GameScene extends Phaser.Scene {
     } else if (obj === 'flame-objectives') {
       this.hud.setStatus(`Cleansed: 0/${(this.engine.mission.objectivePoints ?? []).length}`);
     } else if (obj === 'defend') {
-      this.hud.setStatus(`Hold until turn ${this.engine.mission.turnLimit ?? 16}`);
+      this.hud.setStatus(`Hold until cycle ${this.engine.mission.turnLimit ?? 16}`);
     } else if (obj === 'download') {
       this.hud.setStatus(`Download not started (${this.engine.mission.downloadTurns ?? 4})`);
     }
@@ -742,29 +758,18 @@ export default class GameScene extends Phaser.Scene {
     });
 
     PieceEvents.emit('cpChanged', { cp: this.engine.cp }); // HUD subscribed after the initial roll
+    this.hud.setClock(this.engine.tickCount, this.engine.cycle);
 
-    // Marine-phase turn timer (120s + 30s per living sergeant, per the
-    // original). Never started in attract mode — the homepage backdrop must
-    // not tick itself into the stealer phase behind the overlay.
-    this.timerRemaining = this.engine.marinePhaseSeconds;
-    this.hud.setTimer(this.timerRemaining);
-    if (!this.attract) {
-      this.timerEvent = this.time.addEvent({
-        delay: 1000, loop: true, callback: () => {
-          if (this.paused || this.animating || this.engine.state.result !== 'ongoing') return;
-          if (this.deployMode) {
-            this.deployRemaining -= 1;
-            this.hud.setTimer(this.deployRemaining);
-            if (this.deployRemaining <= 0) this.finishDeploy();
-            return;
-          }
-          if (this.engine.phase !== 'MarineAction') return;
-          this.timerRemaining -= 1;
-          this.hud.setTimer(this.timerRemaining);
-          if (this.timerRemaining <= 0) this.endTurn();
-        }
-      });
-    }
+    // A hidden tab freezes the render loop but not the wall clock: pause the
+    // game rather than let the accumulator burst through a cycle on return.
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden' && !this.paused && !this.attract
+          && this.engine.state.result === 'ongoing' && !this.deployMode) {
+        this.togglePause();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    this.events.once('shutdown', () => document.removeEventListener('visibilitychange', onVisibility));
 
     // Listen for camera updates for minimap
     this.events.on('update', () => minimap.updateCam(this.cameras.main));
@@ -777,11 +782,10 @@ export default class GameScene extends Phaser.Scene {
 
     // Input handler for piece selection
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
-      if (this.animating) return;
-      // Clicks on the HUD strip (minimap, DONE) are their own controls — they
+      // Clicks on the HUD strip (minimap, PAUSE) are their own controls; they
       // must never fall through and clear the selection (ISC-675).
       if (p.x > this.scale.width - HUD_WIDTH) return;
-      if (this.deployMode) return; // placement happens on pointerup — a drag here is a pan
+      if (this.deployMode) return; // placement happens on pointerup; a drag here is a pan
       // `visible` gate: fog-hidden stealers must not be clickable; selecting
       // one would force the highlight visible, leak AP to the HUD, and let L
       // paint its vision cone (reviewer finding, 2026-08-21).
@@ -807,7 +811,7 @@ export default class GameScene extends Phaser.Scene {
     if (this.fogEnabled) {
       this.fogGfx = this.add.graphics().setDepth(0.7);
       // Anything that can change what a marine sees requests a recompute;
-      // update() services it only outside replays (frozen-set invariant).
+      // update() services it at most once per frame.
       const fogDirty = () => { this.fogDirty = true; };
       PieceEvents.on('pieceMoved', fogDirty);
       PieceEvents.on('pieceDied', fogDirty);   // marine bodies block LOS
@@ -817,11 +821,11 @@ export default class GameScene extends Phaser.Scene {
       PieceEvents.on('doorDestroyed', fogDirty);
       PieceEvents.on('sectionFlamed', fogDirty);
       PieceEvents.on('flamesCleared', fogDirty);
-      PieceEvents.on('phaseChanged', fogDirty); // deploy end, turn boundaries
+      PieceEvents.on('phaseChanged', fogDirty); // deploy end, cycle boundaries
       PieceEvents.on('marineEscaped', fogDirty); // an exit vacates a sight cone
     }
 
-    // LOS debug overlay — hold L with a piece selected
+    // LOS debug overlay: hold L with a piece selected
     this.losOverlay = this.add.graphics().setDepth(0.8);
     this.input.keyboard!.on('keydown-L', () => {
       this.losVisible = true;
@@ -832,14 +836,14 @@ export default class GameScene extends Phaser.Scene {
       this.losOverlay.clear();
     });
 
-    // Keyboard handler for piece movement
+    // Keyboard handler for piece actions: every key becomes an engine command.
     this.input.keyboard!.on('keydown', (_event: KeyboardEvent) => {
       if (this.seenKeyEvents.has(_event)) return; // Phaser replay of a handled press
       this.seenKeyEvents.add(_event);
-      if (this.paused || this.animating || this.engine.state.result !== 'ongoing') return;
+      if (this.paused || this.engine.state.result !== 'ongoing') return;
       if (this.deployMode) {
         // Deployment controls: A/D rotate the selected deployed marine, free.
-        // Everything else is swallowed — the board is locked anyway, but the
+        // Everything else is swallowed; the board is locked anyway, but the
         // keys must not leak side effects (aiming, self-destruct arming).
         const selId = Selection.get();
         if (selId) {
@@ -854,7 +858,7 @@ export default class GameScene extends Phaser.Scene {
       if (!selectedId) return;
 
       const piece = this.engine.findPiece(selectedId);
-      if (!piece) return;
+      if (!piece || piece.kind !== 'marine') return;
 
       // Any piece ACTION while the flamer is armed cancels targeting mode.
       // (Arrow-key camera panning, L overlay, and K mute keep the aim.)
@@ -864,49 +868,16 @@ export default class GameScene extends Phaser.Scene {
       // Likewise, anything that isn't the B confirm disarms self-destruct.
       if (this.destructArmedAt && _event.key.toLowerCase() !== 'b') this.destructArmedAt = 0;
 
-      let acted = false;
-      if (Phaser.Input.Keyboard.JustDown(this.wasd.W))      acted = piece.moveForward();
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).X)) acted = piece.moveBackward();
-      else if (Phaser.Input.Keyboard.JustDown(this.wasd.A)) acted = piece.tryTurn(-1);
-      else if (Phaser.Input.Keyboard.JustDown(this.wasd.D)) acted = piece.tryTurn(1);
-      // Diagonal moves (original numpad 7/9/1/3) — QWE/AD/ZXC form a
-      // directional circle: Q fwd-left, E fwd-right, Z back-LEFT, C back-RIGHT.
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).Q)) acted = piece.moveForwardLeft();
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).E)) acted = piece.moveForwardRight();
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).Z)) acted = piece.moveBackLeft();
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).C)) acted = piece.moveBackRight();
-      // S is the primary door key (centre of the movement circle); H stays
-      // bound as the legacy alias.
-      else if (Phaser.Input.Keyboard.JustDown(this.wasd.S)) acted = piece.useDoor();
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).H)) acted = piece.useDoor();
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).F)) acted = this.handleFire(piece);
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).M)) acted = this.meleeAhead(piece);
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).O)) {
-        const marine = piece as StormBolterMarine;
-        if (marine.overwatch) { marine.overwatchOff(); acted = true; }
-        else acted = marine.overwatchOn?.() ?? false;
-      }
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).U)) acted = (piece as StormBolterMarine).unjam?.() ?? false;
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).B)) acted = this.handleSelfDestruct(piece);
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).T)) acted = piece instanceof AssaultCannonMarine && piece.autofire();
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).R)) acted = piece instanceof AssaultCannonMarine && piece.reload();
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).G)) acted = piece instanceof ChainFistMarine && piece.cutDoor();
-      else if (Phaser.Input.Keyboard.JustDown((this.wasd as any).P)) acted = this.engine.spendCP(piece);
-
-      if (acted) this.engine.checkVictory(); // e.g. marine stepped onto the exit
+      const cmd = this.commandForKey(piece);
+      if (cmd) this.engine.command(piece.id, cmd);
       if (this.losVisible) this.drawLosOverlay(); // keep overlay in sync while held
-
-      if (acted) {
-        this.refreshPieceSprite(piece);
-        this.updateHighlight();
-        PieceEvents.emit('apChanged', { pieceId: piece.id, apRemaining: piece.apRemaining, apInitial: piece.apInitial });
-      }
+      this.updateHighlight();
     });
 
     // Pre-mission deployment phase: the squad lifts into reserve and the
     // player lays out his own battle order. Skipped in attract mode, by
     // ?deploy=0 (e2e suites), and for missions without a real deployment
-    // (debug_1's single square) — beginDeployment itself refuses those.
+    // (debug_1's single square); beginDeployment itself refuses those.
     if (!this.attract && this.deployRequested && this.engine.beginDeployment()) {
       this.enterDeployMode();
     }
@@ -920,14 +891,53 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
+  /** The command a just-pressed action key means for the selected marine, or
+   *  null (arming presses, unknown keys). The keys keep their 1.x meanings. */
+  private commandForKey(piece: Piece): MarineCommand | null {
+    const K = Phaser.Input.Keyboard.JustDown;
+    const keys = this.wasd as any;
+    if (K(this.wasd.W)) return { type: 'move', dir: 'forward' };
+    if (K(keys.X)) return { type: 'move', dir: 'backward' };
+    if (K(this.wasd.A)) return { type: 'turn', delta: -1 };
+    if (K(this.wasd.D)) return { type: 'turn', delta: 1 };
+    // Diagonal moves (original numpad 7/9/1/3): QWE/AD/ZXC form a
+    // directional circle: Q fwd-left, E fwd-right, Z back-LEFT, C back-RIGHT.
+    if (K(keys.Q)) return { type: 'move', dir: 'forwardLeft' };
+    if (K(keys.E)) return { type: 'move', dir: 'forwardRight' };
+    if (K(keys.Z)) return { type: 'move', dir: 'backLeft' };
+    if (K(keys.C)) return { type: 'move', dir: 'backRight' };
+    // S is the primary door key (centre of the movement circle); H stays
+    // bound as the legacy alias.
+    if (K(this.wasd.S) || K(keys.H)) return { type: 'door' };
+    if (K(keys.F)) return this.fireCommand(piece);
+    if (K(keys.M)) return { type: 'melee' };
+    if (K(keys.O)) return { type: 'overwatch', on: !((piece as StormBolterMarine).overwatch ?? false) };
+    if (K(keys.U)) return { type: 'unjam' };
+    if (K(keys.B)) return this.selfDestructCommand(piece);
+    if (K(keys.T)) return { type: 'autofire' };
+    if (K(keys.R)) return { type: 'reload' };
+    if (K(keys.G)) return { type: 'cutDoor' };
+    if (K(keys.P)) return { type: 'cp' };
+    return null;
+  }
+
+  /** The HUD's one button: START during deployment, PAUSE afterwards. */
+  private primaryButton(): void {
+    if (this.deployMode) {
+      if (!this.paused) this.finishDeploy();
+      return;
+    }
+    this.togglePause();
+  }
+
   /** Roster card click: select the marine, sync map highlight + HUD, pan to him. */
   private selectFromRoster(id: string): void {
     // Attract guard: roster cards are DOM buttons, reachable by Tab+Enter
-    // straight through the landing overlay — the homepage stays inert.
+    // straight through the landing overlay; the homepage stays inert.
     if (this.attract) return;
-    if (this.paused || this.animating || this.engine.state.result !== 'ongoing') return;
+    if (this.paused || this.engine.state.result !== 'ongoing') return;
     if (this.deployMode) {
-      // Reserve card: arm the marine — the next deploy-square click places HIM.
+      // Reserve card: arm the marine; the next deploy-square click places HIM.
       if (this.engine.reserve.some(m => m.id === id)) {
         this.armedId = id;
         Selection.clear();
@@ -945,7 +955,7 @@ export default class GameScene extends Phaser.Scene {
       return;
     }
     const piece = this.engine.findPiece(id);
-    // Death AND escape both set alive=false — one guard makes a fallen or
+    // Death AND escape both set alive=false: one guard makes a fallen or
     // escaped marine's hotkey (and card) inert.
     if (!piece || !piece.alive) return;
     Selection.select(id);
@@ -953,7 +963,7 @@ export default class GameScene extends Phaser.Scene {
     this.emitSelected(piece);
     const sprite = this.pieceSprites[id];
     if (sprite) {
-      // A DOM roster click never reaches Phaser's pointerdown — park any glide
+      // A DOM roster click never reaches Phaser's pointerdown: park any glide
       // here or the inertia fights the pan effect frame by frame.
       this.camVel.x = 0;
       this.camVel.y = 0;
@@ -968,17 +978,27 @@ export default class GameScene extends Phaser.Scene {
    *  The camera parks on the deployment area so the phase starts on-subject. */
   private enterDeployMode(): void {
     this.deployMode = true;
-    // The engine lifted the squad into reserve — their sprites go with them.
+    // The engine lifted the squad into reserve; their sprites go with them.
     for (const m of this.engine.reserve) this.removePieceSprite(m.id, 0, 'fade');
     Selection.clear();
     this.updateHighlight();
     for (const m of this.engine.reserve) this.roster.setDeployed(m.id, false);
     this.deployRemaining = deploySeconds(this.engine.mission);
     this.hud.setTimer(this.deployRemaining);
+    this.hud.setPrimaryButton('START  ⏎');
     this.hud.setDeployMode(true, () => {
       if (this.paused || !this.deployMode) return;
       this.engine.autoDeploy();
       this.syncDeployState();
+    });
+    // The deployment clock is wall time (the engine clock starts with the mission).
+    this.deployTimer = this.time.addEvent({
+      delay: 1000, loop: true, callback: () => {
+        if (this.paused || !this.deployMode) return;
+        this.deployRemaining -= 1;
+        this.hud.setTimer(this.deployRemaining);
+        if (this.deployRemaining <= 0) this.finishDeploy();
+      }
     });
     this.refreshDeployMarkers();
     const squares = this.engine.mission.marineDeployment ?? [];
@@ -1018,7 +1038,7 @@ export default class GameScene extends Phaser.Scene {
     if (occupant) {
       if (this.engine.undeployMarine(occupant.id)) {
         this.removePieceSprite(occupant.id, 0, 'fade');
-        this.armedId = occupant.id; // picked up — the next square click re-places him
+        this.armedId = occupant.id; // picked up: the next square click re-places him
         Selection.clear();
         this.updateHighlight();
         this.roster.setDeployed(occupant.id, false);
@@ -1044,29 +1064,32 @@ export default class GameScene extends Phaser.Scene {
     this.refreshDeployMarkers();
   }
 
-  /** Done / Enter / clock expiry: auto-deploy the rest and start the mission.
+  /** START / Enter / clock expiry: auto-deploy the rest and start the mission.
    *  Every deploy-only control (X markers, AUTO button, reserve tags) goes. */
   private finishDeploy(): void {
     if (!this.deployMode) return;
     this.deployMode = false;
+    this.deployTimer?.remove();
+    this.deployTimer = undefined;
     this.engine.finishDeployment(); // remaining reserves land via pieceAdded
     this.armedId = null;
     Selection.clear();
     this.updateHighlight();
     PieceEvents.emit('selected', { pieceId: null });
-    this.refreshDeployMarkers(); // deployMode off → all markers destroyed
+    this.refreshDeployMarkers(); // deployMode off: all markers destroyed
     this.hud.setDeployMode(false);
+    this.hud.setPrimaryButton('PAUSE  Esc');
+    this.hud.setClock(this.engine.tickCount, this.engine.cycle);
     this.roster.clearDeploy();
     this.roster.refreshAll();
-    this.timerRemaining = this.engine.marinePhaseSeconds;
-    this.hud.setTimer(this.timerRemaining);
+    this.tickAcc = 0;
   }
 
-  /** Human-readable contents of a board square — powers the HUD hover readout. */
+  /** Human-readable contents of a board square; powers the HUD hover readout. */
   describeSquare(x: number, y: number): string {
     const board = this.engine.state.board;
     const sq = board.get(x, y);
-    if (!sq) return `(${x},${y}) — rock`;
+    if (!sq) return `(${x},${y}) · rock`;
     const parts = [`(${x},${y}) ${sq.kind} tile`];
     for (const door of board.doorsAt({ c: x, r: y })) {
       parts.push(`door ${FACING_ARROWS[door.facing]} ${door.isOpen ? 'open' : 'closed'}`);
@@ -1085,7 +1108,7 @@ export default class GameScene extends Phaser.Scene {
       parts.push(piece instanceof HeavyFlamerMarine ? `marine (flamer, ammo ${piece.ammo})`
         : piece instanceof AssaultCannonMarine ? `marine (assault cannon, ammo ${piece.ammo})`
         : piece instanceof ChainFistMarine ? 'marine (chain fist)'
-        : piece.timerBonus > 0 ? 'marine (sergeant)'
+        : piece instanceof SergeantMarine ? 'marine (sergeant)'
         : piece.kind);
     }
     const dl = this.engine.mission.downloadPoint;
@@ -1116,8 +1139,29 @@ export default class GameScene extends Phaser.Scene {
     return quota !== undefined ? `Escaped: ${escaped}/${quota}` : `Escaped: ${escaped}`;
   }
 
+  /** The clock is running: live mission, not paused, not deploying, not the
+   *  homepage backdrop, and a positive tick interval. */
+  private get clockRunning(): boolean {
+    return this.tickMs > 0 && !this.paused && !this.deployMode && !this.attract
+      && this.engine.state.result === 'ongoing';
+  }
+
   update(_time: number, delta: number) {
     const cam = this.cameras.main;
+
+    // The fixed-step clock. The accumulator is capped at a few ticks so a
+    // stalled frame (a hidden tab, a debugger) catches up a little and drops
+    // the rest instead of playing a whole cycle in one frame.
+    if (this.clockRunning) {
+      this.tickAcc = Math.min(this.tickAcc + delta, this.tickMs * MAX_TICKS_PER_FRAME);
+      let ticks = 0;
+      while (this.tickAcc >= this.tickMs && ticks < MAX_TICKS_PER_FRAME && this.engine.state.result === 'ongoing') {
+        this.engine.tick();
+        this.tickAcc -= this.tickMs;
+        ticks += 1;
+      }
+      if (ticks > 0) this.hud.setClock(this.engine.tickCount, this.engine.cycle);
+    }
 
     if (this.reducedMotion) {
       // Fixed-speed panning, exactly the pre-inertia behavior.
@@ -1135,7 +1179,7 @@ export default class GameScene extends Phaser.Scene {
       const dirY = ((this.cursors.down.isDown ? 1 : 0) - (this.cursors.up.isDown ? 1 : 0)) as -1 | 0 | 1;
       // Someone else moved the scroll since our last write (the bounds clamp
       // at a map edge, a pan effect, a drag): park that axis instead of
-      // integrating into a wall — otherwise reversing off an edge lags while
+      // integrating into a wall, otherwise reversing off an edge lags while
       // stored velocity burns off (Advisor 2026-08-19). Tolerance 1px: the
       // camera rounds scroll to whole pixels every frame, and that sub-pixel
       // correction must never read as a foreign writer.
@@ -1153,9 +1197,8 @@ export default class GameScene extends Phaser.Scene {
       this.expectedScroll = { x: cam.scrollX, y: cam.scrollY };
     }
 
-    // Markers and the selection highlight ride their sprites every frame —
-    // the single sync point for every tween (steps, recoil, squash), which
-    // also lets jam markers follow replay motion (they never did before).
+    // Markers and the selection highlight ride their sprites every frame:
+    // the single sync point for every tween (steps, recoil, squash).
     for (const id of Object.keys(this.owMarkers)) {
       const s = this.pieceSprites[id];
       if (s?.active) this.owMarkers[id].setPosition(s.x, s.y - 12);
@@ -1172,7 +1215,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.updateFog();
 
-    // Camera panning moves the world under a stationary pointer — while the
+    // Camera panning moves the world under a stationary pointer; while the
     // flamer is armed, keep the hover target and preview honest.
     if (this.flamerAiming) {
       const p = this.input.activePointer;
@@ -1184,7 +1227,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     // No manual clamp here: the camera bounds set in create() are the single
-    // source of truth — Phaser clamps every scroll path against them.
+    // source of truth; Phaser clamps every scroll path against them.
   }
 
   private createSprite(pieceId: string, kind: string, x: number, y: number, facing: number) {
@@ -1213,17 +1256,17 @@ export default class GameScene extends Phaser.Scene {
     this.createSprite(piece.id, piece.kind, piece.pos.c, piece.pos.r, piece.facing);
   }
 
-  /** Cached prefers-reduced-motion — refreshed by a change listener so the
+  /** Cached prefers-reduced-motion, refreshed by a change listener so the
    *  OS toggle applies mid-game WITHOUT allocating a MediaQueryList per
-   *  frame (update() reads this every tick). */
+   *  frame (update() reads this every frame). */
   private reduceMotionOn = false;
   private get reducedMotion(): boolean {
     return this.reduceMotionOn;
   }
 
   /** Wire the reduced-motion media query: seed the cache and, on a mid-game
-   *  switch to reduce, kill the only motion that never self-terminates —
-   *  the looping flame shimmer — and reset the sprites it was riding. */
+   *  switch to reduce, kill the only motion that never self-terminates
+   *  (the looping flame shimmer) and reset the sprites it was riding. */
   private watchReducedMotion(): void {
     const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
     if (!mq) return;
@@ -1246,17 +1289,16 @@ export default class GameScene extends Phaser.Scene {
 
   /**
    * Position/rotate a sprite from event-payload data. Every step tweens with
-   * its kind's profile (heavy marines, darting stealers, sliding blips) — the
-   * kind comes from the sprite's TEXTURE, the only payload-truthful source
-   * during replay (a converted blip's id is gone from final engine state).
-   * snap=true is the reconcile path (finishReplay/reduced-motion) and must
-   * land on engine truth exactly, clearing any scale/alpha residue.
+   * its kind's profile (heavy marines, darting stealers, sliding blips); the
+   * kind comes from the sprite's TEXTURE (a converted blip's id is gone from
+   * engine state by the time its last event renders). snap=true lands on
+   * engine truth exactly, clearing any scale/alpha residue.
    */
   private moveSprite(pieceId: string, x: number, y: number, facing: number, snap = false) {
     const sprite = this.pieceSprites[pieceId];
     if (!sprite || !sprite.active) return;
     const [tx, ty] = centerXY(x, y);
-    // Phaser's rotation setter WRAPS to (-pi, pi] — compare against the value
+    // Phaser's rotation setter WRAPS to (-pi, pi]: compare against the value
     // the sprite will actually store, or south/west facings never match and
     // every no-op refresh kills live tweens (reviewer finding, 3.90 source).
     const targetRot = Phaser.Math.Angle.Wrap(facing * Math.PI / 2);
@@ -1332,7 +1374,7 @@ export default class GameScene extends Phaser.Scene {
       return;
     }
     const { slideMs, partedScale } = MOTION.door;
-    // Interrupted slides continue from wherever the halves are — duration
+    // Interrupted slides continue from wherever the halves are; duration
     // scales with the remaining travel so a short finish never crawls.
     const travel = (fromScale: number, toScale: number) =>
       Math.max(40, Math.round(slideMs * Math.abs(fromScale - toScale) / (1 - partedScale)));
@@ -1368,7 +1410,7 @@ export default class GameScene extends Phaser.Scene {
     const sprite = this.pieceSprites[pieceId];
     if (sprite) {
       this.tweens.killTweensOf(sprite);
-      // The art lingers; the PIECE is gone — never hit-testable, never a
+      // The art lingers; the PIECE is gone: never hit-testable, never a
       // selection target, while the flourish plays out.
       sprite.disableInteractive().setName('');
       if (this.reducedMotion) {
@@ -1416,9 +1458,10 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
-  /** ESC: pause stops the timer and ignores all game input until resumed. */
+  /** Esc / PAUSE: the free pause. The clock stops, the board stays readable,
+   *  and no key or click reaches the engine until resumed. */
   private togglePause(): void {
-    if (this.engine.state.result !== 'ongoing' || this.animating) return;
+    if (this.engine.state.result !== 'ongoing') return;
     this.paused = !this.paused;
     if (this.paused) {
       const cam = this.cameras.main;
@@ -1430,211 +1473,22 @@ export default class GameScene extends Phaser.Scene {
     } else {
       this.pauseOverlay?.destroy();
       this.pauseOverlay = undefined;
+      this.tickAcc = 0; // resume from now, not from the time spent paused
     }
   }
 
-  /** Per-event replay pacing (ms added AFTER the event fires). */
-  private static readonly REPLAY_DELAY: Record<string, number> = {
-    pieceMoved: 110, doorToggled: 200, shot: 230, closeCombat: 260,
-    pieceDied: 200, blipConverted: 170, pieceAdded: 90,
-    sectionFlamed: 300, flamesCleared: 150, jammed: 120,
-    catMoved: 110, catDropped: 170, catDamaged: 220,
-    ductingDestroyed: 220, marineEscaped: 180, objectiveCleansed: 150,
-    doorDestroyed: 220, malfunction: 320, downloadChanged: 120,
-  };
+  /** True while the game is paused; public for the e2e suite. */
+  get isPaused(): boolean { return this.paused; }
 
   /**
-   * Done button / Enter / timer expiry: hand the turn to the stealers.
-   * The engine resolves the whole phase synchronously; we capture its event
-   * stream and re-emit it on a timeline so the player SEES the stealers act.
-   */
-  private endTurn(): void {
-    if (this.engine.state.result !== 'ongoing' || this.paused || this.animating) return;
-    // During deployment, Done / Enter closes the phase instead of the turn.
-    if (this.deployMode) {
-      this.finishDeploy();
-      return;
-    }
-    // Marine anchors MUST be snapshotted BEFORE the phase resolves: die()
-    // splices the piece out of board.pieces, so a marine killed this phase
-    // would vanish from the anchor set — and he anchors the very fight that
-    // killed him (reviewer finding, 2026-08-19).
-    const anchors = this.engine.marines.map(m => ({ x: m.pos.c, y: m.pos.r }));
-    // Same splice hazard as anchors: the creep reveal must ride the squad as
-    // it stood when the phase began, dead men included.
-    if (this.fogEnabled) {
-      this.fogMarineSnap = anchors.map(a => ({ c: a.x, r: a.y }));
-      this.fogRadarSnap = radarActive(this.radarPieces());
-    }
-    const stream = PieceEvents.capture(() => this.engine.endMarinePhase());
-    Selection.clear();
-    this.disarmAndRefresh();
-    this.emitSelected(undefined);
-    this.focusLog = []; // both paths: a stale log from a prior replay must not linger
-    // Accessibility: with prefers-reduced-motion, skip the timeline entirely
-    if (this.reducedMotion) {
-      for (const ev of stream) PieceEvents.replay(ev);
-      this.finishReplay();
-      return;
-    }
-    this.animating = true;
-    // Freeze the radar: mid-replay the engine holds FINAL state, and dots or
-    // echoes drawn from it would spoil deaths and conversions the animation
-    // has not shown yet (same payload-not-engine invariant the sprites obey).
-    this.minimap.frozen = true;
-    // Action camera: plan focus points from the stream itself. Seed positions
-    // are the SPRITES' pre-phase squares (view truth); anchors were taken
-    // before the phase resolved (marines never move during it).
-    const seed: Record<string, { x: number; y: number }> = {};
-    for (const [id, spr] of Object.entries(this.pieceSprites)) {
-      seed[id] = { x: Math.floor(spr.x / TILE_SIZE), y: Math.floor(spr.y / TILE_SIZE) };
-    }
-    // Fog: the camera must not trace a hidden piece's path. Kinds come from
-    // the pre-phase sprites plus this stream's own pieceAdded payloads; the
-    // sight set and radar flag are the frozen pre-phase ones (same epoch as
-    // the sprites the player will actually see moving).
-    const kindOf: Record<string, string> = {};
-    for (const [id, spr] of Object.entries(this.pieceSprites)) kindOf[id] = (spr as any).pieceKind;
-    for (const ev of stream) {
-      if (ev.type === 'pieceAdded') kindOf[(ev.payload as any).pieceId] = (ev.payload as any).kind;
-    }
-    const hiddenAt = (id: string, sq: { x: number; y: number }): boolean => {
-      if (!this.fogEnabled) return false;
-      const kind = kindOf[id];
-      if (kind === 'blip') return !this.fogRadar();
-      if (kind === 'stealer') return !threatRevealed(this.fogSight, this.fogMarines(), sq.x, sq.y);
-      return false;
-    };
-    const plan = planReplayFocus(stream as any, seed, anchors, FOCUS, hiddenAt);
-    // Pure scheduling arithmetic: facing-only spins (charge orientation, path
-    // turns) pace fast — they are drama, not travel.
-    const offsets = replayOffsets(stream.map(e => e.type as string), plan, GameScene.REPLAY_DELAY);
-    stream.forEach((ev, i) => {
-      this.time.delayedCall(offsets[i], () => PieceEvents.replay(ev));
-      const ann = plan[i];
-      if (ann?.attack) {
-        const attack = ann.attack;
-        this.time.delayedCall(offsets[i], () => this.attackFx(attack));
-      } else if (ann?.focus) {
-        const focus = ann.focus;
-        this.time.delayedCall(offsets[i], () => this.replayPan(focus.x, focus.y, false));
-      }
-    });
-    this.time.delayedCall(offsets[stream.length] + 150, () => this.finishReplay());
-  }
-
-  /** Camera pan to a board square, centred in the visible play area. */
-  private replayPan(bx: number, by: number, attack: boolean): void {
-    this.focusLog.push({ x: bx, y: by, attack });
-    if (this.focusLog.length > 100) this.focusLog.shift();
-    const [px, py] = centerXY(bx, by);
-    // force=true: a fresh action always outranks the pan already in flight.
-    this.cameras.main.pan(px + HUD_WIDTH / 2, py, FOCUS.panMs, 'Sine.easeInOut', true);
-  }
-
-  /** Close combat lands: hard focus, a kick of shake, the spotlight vignette,
-   *  and the attacker's lunge. The zoom the design substitutes for. */
-  private attackFx(a: { x: number; y: number; ax: number; ay: number; attackerId: string; defenderId: string }): void {
-    this.replayPan(a.x, a.y, true);
-    this.lastAttackFx = { x: a.x, y: a.y };
-    this.cameras.main.shake(FOCUS.shake.durationMs, FOCUS.shake.intensity);
-    const [dx, dy] = centerXY(a.x, a.y);
-    this.showVignette(dx, dy);
-    const spr = this.pieceSprites[a.attackerId];
-    if (spr?.active) {
-      const [ax, ay] = centerXY(a.ax, a.ay);
-      this.tweens.killTweensOf(spr);
-      spr.setScale(1).setPosition(ax, ay);
-      (spr as any).moveTarget = { tx: ax, ty: ay, rot: spr.rotation };
-      const vx = Math.sign(a.x - a.ax), vy = Math.sign(a.y - a.ay);
-      this.tweens.add({
-        targets: spr, x: ax + vx * FOCUS.lunge.px, y: ay + vy * FOCUS.lunge.px,
-        duration: FOCUS.lunge.durationMs, yoyo: true, ease: 'Quad.easeIn',
-        onComplete: () => spr.setPosition(ax, ay),
-      });
-      this.logMotion(a.attackerId, 'lunge', FOCUS.lunge.durationMs, true);
-    }
-  }
-
-  /** Darkening spotlight centred on the fight — claustrophobia without the
-   *  camera zoom a single-scene HUD cannot survive. */
-  private showVignette(px: number, py: number): void {
-    if (!this.textures.exists('fx_vignette')) {
-      const size = 512;
-      const canvas = this.textures.createCanvas('fx_vignette', size, size)!;
-      const ctx = canvas.getContext();
-      const g = ctx.createRadialGradient(size / 2, size / 2, size * 0.12, size / 2, size / 2, size / 2);
-      g.addColorStop(0, 'rgba(0,0,0,0)');
-      g.addColorStop(0.55, 'rgba(0,0,0,0.35)');
-      g.addColorStop(1, 'rgba(0,0,0,1)');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, size, size);
-      canvas.refresh();
-    }
-    this.clearVignette();
-    const cfg = FOCUS.vignette;
-    const img = this.add.image(px, py, 'fx_vignette').setDepth(3)
-      .setScale((this.scale.width * cfg.scale) / 512).setAlpha(0).setName('fx_vignette');
-    this.vignette = img;
-    this.tweens.add({
-      targets: img, alpha: cfg.alpha, duration: cfg.inMs,
-      onComplete: () => this.tweens.add({
-        targets: img, alpha: 0, delay: cfg.holdMs, duration: cfg.outMs,
-        onComplete: () => {
-          img.destroy();
-          if (this.vignette === img) this.vignette = undefined;
-        },
-      }),
-    });
-  }
-
-  /** Kill + drop the spotlight (fresh attack, or replay over). */
-  private clearVignette(): void {
-    if (!this.vignette) return;
-    this.tweens.killTweensOf(this.vignette);
-    this.vignette.destroy();
-    this.vignette = undefined;
-  }
-
-  /** Replay done: engine truth wins. Reconcile every sprite, restart the clock. */
-  private finishReplay(): void {
-    this.animating = false;
-    this.minimap.frozen = false;
-    this.fogMarineSnap = null; // engine truth wins for the creep reveal too
-    this.fogRadarSnap = null;  // and for the radar gate on blips
-    this.clearVignette();
-    const live = new Set(this.engine.state.pieces.map(p => p.id));
-    for (const p of this.engine.state.pieces) {
-      if (!this.pieceSprites[p.id]) this.createPieceSprite(p as Piece);
-      else this.refreshPieceSprite(p as Piece, true); // reconcile SNAPS to engine truth
-    }
-    for (const id of Object.keys(this.pieceSprites)) {
-      if (!live.has(id)) {
-        this.tweens.killTweensOf(this.pieceSprites[id]);
-        this.pieceSprites[id].destroy();
-        delete this.pieceSprites[id];
-        this.owMarkers[id]?.destroy();
-        delete this.owMarkers[id];
-        // Symmetry with removePieceSprite: a piece that vanished without its
-        // death event replayed must not leave an orphaned JAM marker behind.
-        this.jamMarkers[id]?.destroy();
-        delete this.jamMarkers[id];
-      }
-    }
-    this.timerRemaining = this.engine.marinePhaseSeconds;
-    this.hud.setTimer(this.timerRemaining);
-    this.updateHighlight();
-    this.roster.refreshAll(); // post-replay engine truth (fresh AP, deaths)
-  }
-
-  /**
-   * F key. Flamer: two-press targeting — the first F arms (no AP), the second
-   * fires at the hovered square; an invalid second press just disarms.
+   * F key. Flamer: two-press targeting; the first F arms (no AP), the second
+   * fires at the hovered square; an invalid second press keeps the aim.
    * Bolter/cannon: a shootable closed door under the cursor takes priority,
-   * otherwise auto-target the nearest enemy in fire arc + LOS.
+   * otherwise the nearest enemy in fire arc + LOS, else the nearest
+   * shootable door. Returns the command to issue, or null.
    */
-  private handleFire(piece: Piece): boolean {
-    // Replay protection lives in the keydown handler's seenKeyEvents dedupe —
+  private fireCommand(piece: Piece): MarineCommand | null {
+    // Replay protection lives in the keydown handler's seenKeyEvents dedupe;
     // no time-based debounce here: under load two LEGITIMATE presses can land
     // in one stalled frame batch with identical time.now (2026-08-16).
     const board = this.engine.state.board;
@@ -1642,29 +1496,26 @@ export default class GameScene extends Phaser.Scene {
       if (!this.flamerAiming) {
         // Arming is free (AP is spent by the shot) but pointless dry or broke.
         if (piece.ammo >= 1 && piece.ap >= HeavyFlamerMarine.SHOT_COST) this.setFlamerAiming(true);
-        return false;
+        return null;
       }
       const hovered = this.hoverCoord ? board.get(this.hoverCoord.x, this.hoverCoord.y) : undefined;
-      // Invalid aim: stay armed — the not-allowed cursor is the feedback, and a
+      // Invalid aim: stay armed; the not-allowed cursor is the feedback, and a
       // mis-click must not force re-arming (Advisor 2026-08-16).
-      if (!piece.canFlame(hovered)) return false;
+      if (!piece.canFlame(hovered)) return null;
       this.setFlamerAiming(false);
-      return piece.flameAt(hovered) !== undefined;
+      return { type: 'flame', x: hovered.x, y: hovered.y };
     }
-    if (!(piece instanceof StormBolterMarine)) return false;
+    if (!(piece instanceof StormBolterMarine)) return null;
     const door = this.hoveredDoorFor(piece);
-    if (door) { piece.shootDoor(door); this.refreshFireReticle(); return true; } // AP spent even on a miss
-    if (this.shootNearest(piece)) { this.refreshFireReticle(); return true; }
-    // No enemy in sight: fall back to the nearest shootable closed door.
-    // The reticle (refreshFireReticle) shows this target BEFORE the press, so
-    // the shot is never a surprise — that visibility replaces the hover gate
-    // an earlier review round added (user feedback 2026-08-18: the gate made
-    // the fallback near-unreachable, since any mouse move sets hoverCoord).
+    if (door) return { type: 'shootDoor', x: door.square.x, y: door.square.y, facing: door.facing };
+    const enemy = this.nearestEnemyTarget(piece);
+    if (enemy) return { type: 'shoot', targetId: enemy.id };
+    // No enemy in sight: fall back to the nearest shootable closed door. The
+    // reticle (refreshFireReticle) shows this target BEFORE the press, so the
+    // shot is never a surprise.
     const fallback = this.nearestShootableDoor(piece);
-    if (!fallback) return false;
-    piece.shootDoor(fallback);
-    this.refreshFireReticle();
-    return true; // AP spent even on a miss
+    if (!fallback) return null;
+    return { type: 'shootDoor', x: fallback.square.x, y: fallback.square.y, facing: fallback.facing };
   }
 
   /** The nearest closed door this marine can shoot (fire arc + LOS). */
@@ -1682,8 +1533,8 @@ export default class GameScene extends Phaser.Scene {
       })[0];
   }
 
-  /** What F would hit RIGHT NOW for the selected marine — the same priority
-   *  handleFire executes (hovered door, else nearest enemy, else nearest
+  /** What F would hit RIGHT NOW for the selected marine: the same priority
+   *  fireCommand executes (hovered door, else nearest enemy, else nearest
    *  shootable door), from the same helpers, so the reticle can never lie. */
   private fireTarget():
     | { kind: 'door'; door: Door }
@@ -1702,11 +1553,12 @@ export default class GameScene extends Phaser.Scene {
     return door ? { kind: 'door', door } : undefined;
   }
 
-  /** Reticle over whatever F would shoot — enemy or door — so the player sees
+  /** Reticle over whatever F would shoot (enemy or door) so the player sees
    *  the target before pressing (discoverability + no surprise). Refresh rests
-   *  entirely on the acted→updateHighlight funnel (plus pointermove/doorToggled/
-   *  doorDestroyed/finishReplay): anything that ever kills or moves pieces
-   *  OUTSIDE a marine action must add its own refresh or the crosshair stales. */
+   *  on the command/updateHighlight funnel plus pointermove, doorToggled and
+   *  doorDestroyed; anything that kills or moves pieces OUTSIDE a player
+   *  action (the clock) refreshes through updateHighlight on the next command
+   *  or selection, and the hover readout on the next pointer move. */
   refreshFireReticle(): void {
     const target = this.fireTarget();
     this.fireReticleGfx.clear();
@@ -1745,7 +1597,7 @@ export default class GameScene extends Phaser.Scene {
       .find(d => piece.canShootDoor(d));
   }
 
-  /** Arm/disarm the flamer targeting mode — single owner of cursor + preview. */
+  /** Arm/disarm the flamer targeting mode: single owner of cursor + preview. */
   private setFlamerAiming(on: boolean): void {
     if (!this.flamerAiming && !on) return;
     this.flamerAiming = on;
@@ -1753,7 +1605,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /** Cursor + blast-preview overlay for the armed flamer. The preview IS the
-   *  engine's flameFlood — never a client-side approximation. */
+   *  engine's flameFlood, never a client-side approximation. */
   private refreshAimUI(): void {
     this.flamePreviewGfx.clear();
     this.flamePreview = [];
@@ -1777,7 +1629,7 @@ export default class GameScene extends Phaser.Scene {
       this.flamePreviewGfx.fillStyle(0xff6600, target ? 0.65 : 0.4)
         .fillRect(s.x * T, s.y * T, T, T)
         .lineStyle(2, 0xffaa00, 0.9).strokeRect(s.x * T + 1, s.y * T + 1, T - 2, T - 2);
-      // A battle-brother in the blast gets a red warning wash — the flood
+      // A battle-brother in the blast gets a red warning wash: the flood
       // rolls to kill marines exactly like stealers (Advisor 2026-08-16).
       const p = board.pieceAt({ c: s.x, r: s.y }) as Piece | undefined;
       if (p?.alive && p.kind === 'marine') {
@@ -1787,7 +1639,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /** The nearest enemy this marine could shoot (fire arc + LOS, no range cap).
-   *  canShootPiece is the engine's legality mirror of shoot() — it keeps an
+   *  canShootPiece is the engine's legality mirror of shoot(): it keeps an
    *  empty cannon drum from putting a reticle on a target F couldn't fire at. */
   private nearestEnemyTarget(piece: StormBolterMarine): Piece | undefined {
     return this.engine.state.board.pieces
@@ -1798,46 +1650,26 @@ export default class GameScene extends Phaser.Scene {
         Math.hypot(b.pos.c - piece.pos.c, b.pos.r - piece.pos.r))[0];
   }
 
-  /** Auto-target: shoot the nearest enemy in fire arc + LOS. */
-  private shootNearest(piece: StormBolterMarine): boolean {
-    const target = this.nearestEnemyTarget(piece);
-    if (!target) return false;
-    piece.shoot(target);
-    return true; // AP was spent even on a miss
-  }
-
-  /** B key, twice: self-destruct with confirmation — the original games this
+  /** B key, twice: self-destruct with confirmation; the original games this
    *  ports asked "Really self-destruct?"; a single stray press must never
    *  torch the squad (the old X binding sat between action keys). */
-  private handleSelfDestruct(piece: Piece): boolean {
-    if (!(piece instanceof HeavyFlamerMarine)) return false;
+  private selfDestructCommand(piece: Piece): MarineCommand | null {
+    if (!(piece instanceof HeavyFlamerMarine)) return null;
     if (this.destructArmedAt && this.destructArmedFor === piece.id
         && this.time.now - this.destructArmedAt < 2500) {
-      this.destructArmedAt = 0; // disarm BEFORE firing — no re-entrant repeat
-      return piece.selfDestruct();
+      this.destructArmedAt = 0; // disarm BEFORE firing: no re-entrant repeat
+      return { type: 'selfDestruct' };
     }
     this.destructArmedAt = this.time.now;
     this.destructArmedFor = piece.id;
     this.hud.flash('Press B again to SELF-DESTRUCT');
-    return false;
-  }
-
-  /** M key: close combat against the piece directly ahead. */
-  private meleeAhead(piece: Piece): boolean {
-    const v = DIR_VEC[piece.facing];
-    const ahead = { c: piece.pos.c + v.dc, r: piece.pos.r + v.dr };
-    const defender = this.engine.state.board.pieceAt(ahead) as Piece | undefined;
-    if (!defender) return false;
-    return closeCombat(piece, defender) !== undefined;
+    return null;
   }
 
   /** Fog of war, per frame: dim what no marine sees; hide stealers standing
    *  there and every blip while the radar is down. The sight set recomputes
-   *  only OUTSIDE replays (mid-replay the engine board is a spoiler, same
-   *  invariant as minimap.frozen), while the per-frame pass tests each
-   *  threat SPRITE's live tile against the frozen set, so replays flash
-   *  stealers across lit corridors and swallow them again. Marines never
-   *  move during the stealer phase, so the snapshots stay truthful. */
+   *  at most once per frame, on the dirty flag the engine events raise;
+   *  every threat SPRITE is then tested against its live tile. */
   private updateFog(): void {
     const gfx = this.fogGfx;
     if (!gfx) return; // fog off (?fog=0 or attract): zero behavior change
@@ -1849,9 +1681,9 @@ export default class GameScene extends Phaser.Scene {
       this.applyThreatFog(true);
       return;
     }
-    // Mission over (and the replay has shown it): lift the fog so the final
-    // board reads as a post-mortem instead of a black screen.
-    if (!this.animating && this.engine.state.result !== 'ongoing') {
+    // Mission over: lift the fog so the final board reads as a post-mortem
+    // instead of a black screen.
+    if (this.engine.state.result !== 'ongoing') {
       gfx.clear();
       for (const spr of Object.values(this.pieceSprites)) {
         const kind = (spr as any).pieceKind;
@@ -1859,7 +1691,7 @@ export default class GameScene extends Phaser.Scene {
       }
       return;
     }
-    if (this.fogDirty && !this.animating) {
+    if (this.fogDirty) {
       this.fogSight = computeMarineSight(this.engine.state.board);
       gfx.clear();
       gfx.fillStyle(FOG.overlayColor, FOG.overlayAlpha);
@@ -1888,12 +1720,10 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Radar state for the blip gate: the pre-phase snapshot while a replay
-   *  runs (the scope dies when the replay shows the sergeant die, not
-   *  before), engine truth after. The reserve counts: during Deploy the
-   *  sergeant is alive but not yet on the board, and his auspex is with him. */
+  /** Radar state for the blip gate: engine truth. The reserve counts: during
+   *  Deploy the sergeant is alive but not yet on the board, and his auspex
+   *  is with him. */
   private fogRadar(): boolean {
-    if (this.animating && this.fogRadarSnap !== null) return this.fogRadarSnap;
     return radarActive(this.radarPieces());
   }
 
@@ -1903,10 +1733,8 @@ export default class GameScene extends Phaser.Scene {
     return [...this.engine.state.pieces, ...this.engine.reserve] as unknown as RadarPieceView[];
   }
 
-  /** Marine coordinates for the creep reveal: the pre-phase snapshot while a
-   *  replay runs (dead men keep revealing their killers), engine truth after. */
+  /** Marine coordinates for the creep reveal: engine truth. */
   private fogMarines(): { c: number; r: number }[] {
-    if (this.animating && this.fogMarineSnap) return this.fogMarineSnap;
     return this.engine.marines.map(m => ({ c: m.pos.c, r: m.pos.r }));
   }
 

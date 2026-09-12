@@ -5,7 +5,7 @@ import { showHomeOverlay } from './ui/HomeOverlay';
 import { mountAbortButton } from './ui/abortButton';
 
 // `/` with no ?mission= is the homepage: the landing overlay above an
-// attract-mode space_hulk_1 backdrop (GameScene reads the same param and
+// attract-mode space_hulk_1 backdrop (LiveScene reads the same param and
 // disables input/clock/audio). With ?mission= we are playing: mount the
 // abort control instead.
 const params = new URLSearchParams(window.location.search);

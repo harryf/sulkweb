@@ -190,8 +190,8 @@ function buildKeyboardHelp(deployedTypes: Set<string>): HTMLElement {
   details.open = true;
   const summary = document.createElement('summary');
   summary.textContent = 'Keyboard controls';
-  // A focused <summary> re-toggles on Enter/Space — which are gameplay keys
-  // (Enter ends the turn). Drop focus once toggled so play continues cleanly.
+  // A focused <summary> re-toggles on Enter/Space, which are gameplay keys
+  // (Enter starts the mission during deployment). Drop focus once toggled.
   details.addEventListener('toggle', () => summary.blur());
   details.appendChild(summary);
 

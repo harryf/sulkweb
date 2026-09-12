@@ -68,8 +68,34 @@ describe('HudPanel (Mission Status)', () => {
     expect((hud as any).casualtyText.text).toBe('Kills: 3/30   Losses: 0')
   })
 
-  it('phase line follows phaseChanged with colon separator', () => {
-    PieceEvents.emit('phaseChanged', { phase: 'StealerAction', turn: 2 })
-    expect((hud as any).phaseText.text).toBe('Turn 2: Stealers')
+})
+
+describe('HudPanel (the live clock, 2.x)', () => {
+  let hud: HudPanel
+
+  beforeEach(() => {
+    PieceEvents.all.clear()
+    hud = new HudPanel(makeSceneStub(), makeMiniMapStub())
+  })
+
+  it('the cycle line follows phaseChanged and deployment', () => {
+    PieceEvents.emit('phaseChanged', { phase: 'Live', turn: 2 })
+    expect((hud as any).phaseText.text).toBe('Cycle 2')
+    PieceEvents.emit('phaseChanged', { phase: 'Deploy', turn: 1 })
+    expect((hud as any).phaseText.text).toBe('DEPLOYMENT')
+  })
+
+  it('the clock line shows the cycle and the seconds into it from tick events', () => {
+    PieceEvents.emit('tick', { tick: 52, cycle: 2 })
+    expect((hud as any).phaseText.text).toBe('Cycle 2')
+    expect((hud as any).timerText.text).toBe('3s / 10s') // 12 ticks of 250 ms into a 40-tick cycle
+    hud.setClock(0, 1)
+    expect((hud as any).timerText.text).toBe('0s / 10s')
+  })
+
+  it('the one button reads PAUSE and can be relabelled START for deployment', () => {
+    expect((hud as any).doneLabel.text).toBe('PAUSE  Esc')
+    hud.setPrimaryButton('START  ⏎')
+    expect((hud as any).doneLabel.text).toBe('START  ⏎')
   })
 })

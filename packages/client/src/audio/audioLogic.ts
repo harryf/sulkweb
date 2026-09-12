@@ -44,9 +44,14 @@ export const AUDIO_CONFIG = {
   },
 };
 
-/** Marine phase = quiet bed; stealer phase = the hulk wakes up. */
-export function duckTarget(phase: string): number {
-  return phase === 'StealerAction' ? AUDIO_CONFIG.musicLoud : AUDIO_CONFIG.musicQuiet;
+/** Contact = the hulk wakes up; nothing close = the quiet bed. In 2.x there
+ *  is no stealer phase to duck against: the bed rises while any threat
+ *  stands within DUCK_CONTACT_DIST (Chebyshev) of a marine, the same
+ *  distance metric the tracker pings on. */
+export const DUCK_CONTACT_DIST = 8;
+
+export function duckTarget(threatDist: number | null): number {
+  return threatDist !== null && threatDist <= DUCK_CONTACT_DIST ? AUDIO_CONFIG.musicLoud : AUDIO_CONFIG.musicQuiet;
 }
 
 /** Storm bolters (incl. sergeants + chain fist) fire the Aliens pulse-rifle

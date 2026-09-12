@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: context-override
-phase: execute
-progress: "1257/1273 (stage 1 closed with the verdict; handover run ISC-1325..1340 open; ISC-1038 dropped; ISC-71 deferred)"
+phase: complete
+progress: "1273/1273 (stage 1 shipped and played; handover written; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T22:05:00Z
+updated: 2026-09-12T22:15:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -675,22 +675,22 @@ Build stage 1 of docs/realtime-plan.md from its "Stage 1 kickoff" section: the e
 
 Harry played v2.0.0-alpha.1 and said: "OK it works and it's playable. It's _really_ hard to play now but we can tune that later." This run records the verdict and writes the notes stage 2 starts from, before compaction.
 
-- [ ] ISC-1325: ISC-1323 and ISC-1324 carry Harry's words verbatim and are no longer deferred (grep)
-- [ ] ISC-1326: Decisions entry records the verdict, the reading of it (go for stage 2, tune first), and what "really hard" points at (Read)
-- [ ] ISC-1327: docs/realtime-plan.md gains a "Stage 1 verdict and stage 2 handover" section (grep)
-- [ ] ISC-1328: the handover names the tuning knobs to try first, in order, each with the ?tuning= key and the evidence behind it (Read)
-- [ ] ISC-1329: the handover names the stage 2 build order with the files it touches (Read)
-- [ ] ISC-1330: the handover names the two shims to delete in stage 2 and the specs that ride them (Read)
-- [ ] ISC-1331: the handover carries the session gotchas that bit this run (Interceptor daemon, hidden tab, HMR reloads during e2e, tsbuildinfo) (Read)
-- [ ] ISC-1332: docs/status.md next-line paragraph records the verdict (grep)
-- [ ] ISC-1333: CLAUDE.md read-first row points at the handover section (grep)
-- [ ] ISC-1334: PROJECTS.md Sulk entry says stage 1 verdict in, NEXT = tuning pass then stage 2 from the handover (grep)
-- [ ] ISC-1335: Anti: no game code changed (git diff --stat -- packages/ empty)
-- [ ] ISC-1336: Anti: zero em dashes in the new text (grep)
-- [ ] ISC-1337: Anti: zero banned writing-guide words in the new text (grep)
-- [ ] ISC-1338: committed on main and pushed, tree clean (git status, origin/main)
-- [ ] ISC-1339: the ISA frontmatter reads phase complete with every stage 1 criterion closed (Read)
-- [ ] ISC-1340: deploy-latest stays green or is not triggered by the docs-only push (gh run list)
+- [x] ISC-1325: ISC-1323 and ISC-1324 carry Harry's words verbatim and are no longer deferred (grep)
+- [x] ISC-1326: Decisions entry records the verdict, the reading of it (go for stage 2, tune first), and what "really hard" points at (Read)
+- [x] ISC-1327: docs/realtime-plan.md gains a "Stage 1 verdict and stage 2 handover" section (grep)
+- [x] ISC-1328: the handover names the tuning knobs to try first, in order, each with the ?tuning= key and the evidence behind it (Read)
+- [x] ISC-1329: the handover names the stage 2 build order with the files it touches (Read)
+- [x] ISC-1330: the handover names the two shims to delete in stage 2 and the specs that ride them (Read)
+- [x] ISC-1331: the handover carries the session gotchas that bit this run (Interceptor daemon, hidden tab, HMR reloads during e2e, tsbuildinfo) (Read)
+- [x] ISC-1332: docs/status.md next-line paragraph records the verdict (grep)
+- [x] ISC-1333: CLAUDE.md read-first row points at the handover section (grep)
+- [x] ISC-1334: PROJECTS.md Sulk entry says stage 1 verdict in, NEXT = tuning pass then stage 2 from the handover (grep)
+- [x] ISC-1335: Anti: no game code changed (git diff --stat -- packages/ empty)
+- [x] ISC-1336: Anti: zero em dashes in the new text (grep)
+- [x] ISC-1337: Anti: zero banned writing-guide words in the new text (grep)
+- [x] ISC-1338: committed on main and pushed, tree clean (git status, origin/main)
+- [x] ISC-1339: the ISA frontmatter reads phase complete with every stage 1 criterion closed (Read)
+- [x] ISC-1340: deploy-latest stays green or is not triggered by the docs-only push (gh run list)
 
 ## Test Strategy
 
@@ -1287,3 +1287,17 @@ The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/
 - ISC-1311..1317: gh run view 34699089071 conclusion success, jobs verify-build-publish/deploy/redispatch-latest all success; gh release view: isPrerelease true; curl /2.0.0-alpha.1/manifest.json = {"version":"v2.0.0-alpha.1","sha":"14365c1..."} and /2.0.0-alpha.1/ = 200; root manifest.json version v1.1.0 and STABLE_VERSION v1.1.0; deploy-latest 34699075087 success; versions.html lists 2.0.0-alpha.1; the ship report names the URL
 - ISC-1322: PROJECTS.md Sulk entry rewritten: stage 1 built, prerelease URL, the two verdicts as NEXT, balance evidence, gotchas
 - ISC-1323, ISC-1324: DEFERRED-VERIFY, follow-up: Harry's playtest of /2.0.0-alpha.1/ (recorded in Decisions 2026-09-12 20:55)
+
+### Stage 1 verdict and handover (2026-09-12)
+
+- ISC-1325: grep: ISC-1323 and ISC-1324 lines carry the quoted words, no DEFERRED-VERIFY marker left on them
+- ISC-1326: Read: Decisions "stage 1 verdict" entry: verdict, reading (go, tune first), what "really hard" points at
+- ISC-1327..1331: grep "## Stage 1 verdict and stage 2 handover" = 1; Read: tuning pass items 1 to 5 with keys and evidence, build order 1 to 8 with files, the two shims and the specs that ride them, six gotchas
+- ISC-1332: grep status.md "Playtest verdict (2026-09-12)"
+- ISC-1333: grep CLAUDE.md "START THE NEXT SESSION at its last section"
+- ISC-1334: grep PROJECTS.md "VERDICT IN (Harry, 2026-09-12)"
+- ISC-1335: git diff --stat -- packages/ = 0 lines
+- ISC-1336, ISC-1337: em dash and banned-word greps on the new section = 0 and 0
+- ISC-1338: commit 99c5579 on main, pushed, git status clean
+- ISC-1339: frontmatter phase complete, progress 1273/1273 with the two standing exceptions
+- ISC-1340: deploy-latest for the docs push: the latest run is the earlier green one (docs-only push not triggered, paths-ignore)

@@ -115,8 +115,11 @@ function marines(board: Board): Piece[] {
 
 /** Recompute what the marines watch and what they can kill RIGHT NOW.
  *  Recomputed per piece activation: a parked blocker or a died watcher
- *  changes the map mid-phase (pieces block LOS — that is the whole point
- *  of the sacrifice blocker). */
+ *  changes the map mid-phase. Bodies block FIRE lines (that is the whole
+ *  point of the sacrifice blocker: the kill map goes dark behind it) but
+ *  since 2026-09-12 stealer bodies no longer block SIGHT, so the seen map
+ *  reaches past the blocker; staging behind a blocker is pathing-penalised
+ *  (seen), not forbidden. */
 export function computeThreat(board: Board): ThreatMap {
   const seen = new Set<string>();
   const kill = new Set<string>();

@@ -4,10 +4,10 @@ task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: "965/965 (fog of war RESUMED on branch fog-of-war 2026-09-12: ISC-1019..1032; ISC-71 deferred)"
+progress: "1004/1004 (fog adjustments shipped on branch fog-of-war: ISC-1033..1071, ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T00:00:00Z
+updated: 2026-09-12T12:00:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -403,11 +403,11 @@ ISC-989..1013 (the fog run block above) were reserved on main while the feature 
 
 - [x] ISC-1033: hasLineOfSight piecesBlock is a two-policy option: 'marines' (sight) stops only at a marine occupant, true (fire) stops at any occupant (Read los.ts)
 - [x] ISC-1034: a marine SEES the square behind a stealer and the square behind a stealer plus a blip (vitest vision.spec)
-- [ ] ISC-1034.1: a marine cannot SHOOT past the front stealer: canShoot true on the front rank, false on the squares behind it, so overwatch reach is unchanged (vitest vision.spec)
+- [x] ISC-1034.1: a marine cannot SHOOT past the front stealer: canShoot true on the front rank, false on the squares behind it, so overwatch reach is unchanged (vitest vision.spec)
 - [x] ISC-1035: an intervening marine still blocks sight (vitest vision.spec, unchanged case)
 - [x] ISC-1036: a blip queued behind a stealer converts on the marine's first action that puts it in arc (vitest conversion_on_sight.spec)
 - [x] ISC-1037: the kill-reveal suite is rewritten to the new rule: the first sweep converts the blip through the stealer, the kill reveals nothing further; close-combat and overwatch kill sweeps still pass (vitest kill_reveals.spec)
-- [x] ISC-1038: [DROPPED, see Decisions 2026-09-12 refined: fire lines still stop at bodies, so the hive sacrifice-blocker fixture stays byte-identical to main and green] (vitest hive.spec)
+- [ ] ISC-1038: [DROPPED, see Decisions 2026-09-12 refined: fire lines still stop at bodies, so the hive sacrifice-blocker fixture stays byte-identical to main and green]
 - [x] ISC-1039: hive.spec dice-count invariant unchanged: the blocker run consumes exactly one reaction burst (vitest, remaining 0)
 - [x] ISC-1040: computeMarineSight includes the squares behind one and two stealers in a column (vitest fog.spec)
 - [x] ISC-1041: radarActive(pieces) is true while a sergeant lives and false after he dies (vitest fog.spec)
@@ -432,7 +432,18 @@ ISC-989..1013 (the fog run block above) were reserved on main while the feature 
 - [x] ISC-1060: CLAUDE.md LOS gotcha rewritten to marine-only blocking and a fog rules entry added (Read)
 - [x] ISC-1061: Anti: zero em dashes on any line added this run (git diff grep)
 - [x] ISC-1062: Anti: no change to blip conversion rules themselves: squareSeenByMarine untouched, conversion triggers untouched (git diff on StealerAI.ts, Blip.ts, GameEngine.ts empty)
-- [ ] ISC-1063: code-reviewer agent pass on the diff with every CRITICAL or MEDIUM finding adopted or refuted in Decisions (Agent)
+- [x] ISC-1063: code-reviewer agent pass on the diff with every CRITICAL or MEDIUM finding adopted or refuted in Decisions (Agent)
+
+Review round (2026-09-12):
+
+- [x] ISC-1064: the replay action camera never pans onto a move or death the fog hides: planReplayFocus takes a hidden(pieceId, square) predicate and GameScene feeds it the frozen sight set, marine snapshot and radar snapshot by piece kind (vitest replayFocus.spec + Read)
+- [x] ISC-1065: a real-browser fog spec exists in packages/client/tests: debug_1 blips exist but are not drawn, space_hulk_1 blips vanish on sergeant death while a three-stealer column stays visible, hover omits hidden blips, ?fog=0 draws everything (Playwright)
+- [x] ISC-1066: the field manual's sight section states the sight/fire split and the Blips section states the radar gate, in the writing guide's voice (Read content.ts)
+- [x] ISC-1067: docs/rules-reference.md LOS, seeing/shooting and threat-map lines describe the two policies (Read)
+- [x] ISC-1068: hive.ts computeThreat comment states that bodies block fire lines and, since 2026-09-12, not sight lines (Read)
+- [x] ISC-1069: CLAUDE.md marks the 2026-08-15 balance baselines stale pending a re-scan (Read)
+- [x] ISC-1070: the ISA verification block matches HEAD after the sight/fire split (Read of the corrected ISC-1033/1034/1038 lines)
+- [x] ISC-1071: Anti: the full Playwright suite stays green with the new fog spec added, pinned seeds intact (pnpm client e2e)
 
 ## Test Strategy
 
@@ -630,6 +641,8 @@ ISC-989..1013 (the fog run block above) were reserved on main while the feature 
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-12 (fog adjustments, code review round): code-reviewer (working against HEAD after the split) reported two CRITICAL, five IMPORTANT, four nits. ADOPTED: (1) CRITICAL replay-camera leak: planReplayFocus annotated every near-marine pieceMoved with a focus point regardless of kind, so on a sergeant-less mission the camera walked the player down an empty corridor one invisible blip step at a time; fixed with a hidden(pieceId, square) predicate on the planner (pure, unit-tested) fed by GameScene from the frozen sight set, marine snapshot and radar snapshot; conversions and close combat keep panning since they always show something. (2) CRITICAL stale ISA verification after the split: ISC-1033/1034/1038 lines rewritten against HEAD, ISC-1034.1 ticked. (3) hive seen-map widening stated honestly: the kill map (canShoot) is unchanged and the blocker still shields it, the seen map (canSee) now reaches past the blocker so staging behind it is penalised, not forbidden; comment fixed, no hive code change, balance impact deferred to the next balance run. (4) Manual and rules-reference text rewritten for the split and the radar gate. (5) Real-browser fog spec added (four tests). (6) Balance baselines in CLAUDE.md marked stale. Nits adopted: GameScene fog doc comments, one radarPieces() helper for both radar call sites with the RadarPieceView type restored, explicit 'marines' branch in los.ts. NOT ADOPTED, with reasons: motion-tracker audio still tracks blips with the radar down: the tracker is the squad's own motion sensor, a different instrument from the sergeant's auspex, and silencing the game's main tension channel on debug_1 is a design call for the user, recorded here as a known, deliberate asymmetry; blips selectable while visible: pre-existing, the radar gate narrows it, and selecting a blip is harmless (no marine action applies). Cross-vendor Forge/Cato: still no codex binary.
 
 - 2026-09-12 (fog adjustments, refined after the advisor): the advisor pushed back on gating fire and sight together: transparent bodies in canShoot meant overwatch and F reached past the front stealer, a combat and balance change the user never asked for, riding on a visibility fix. Split the gate: canSee uses piecesBlock 'marines' (sight through stealer-side bodies: the ask), canShoot keeps piecesBlock true (a shot stops at the first body of any side, as before). Fallout reversed: hive.spec and hive.ts are restored byte-identical to main (the sacrifice blocker's body shields the kill lane again, since the threat map is canShoot-based), ISC-1038 dropped, ISC-1034.1 added to pin the fire policy. Advisor points NOT adopted, with reasons: capability flag instead of the sergeant sprite check (isSergeant already exists and the minimap uses it; a captain lands with its own piece class and the predicate gains one line then); mission-level radar flag for sergeant-less missions (debug_1 is a debug mission; flagged to the user instead); RNG partition question (moot once canShoot is unchanged: the e2e greenness now covers exactly what changed, sight, through the blip-conversion path); save/replay compatibility (there are no saved games; the gameplay log export is analysis data, not a replay format).
 
@@ -842,11 +855,11 @@ Latest-pipeline hardening run (2026-08-20 seventh run, ISC-969..975):
 
 ### Fog adjustments: transparent stealer bodies, radar-gated blips (2026-09-12)
 
-- ISC-1033: Read los.ts: `const occupant = board.pieceAt(...) as { kind?: string }; if (occupant?.kind === 'marine') return false;` is the only occupant check
-- ISC-1034/1035: vision.spec 9/9: 'stealers and blips are transparent' (canSee behind stealer, behind stealer+blip, canShoot agrees) and 'an intervening MARINE blocks sight' both green
+- ISC-1033: Read los.ts after the split: `const blocks = opts.piecesBlock === 'marines' ? occupant?.kind === 'marine' : occupant !== undefined;` is the only occupant check; canSee passes 'marines', canShoot passes true (Read vision.ts)
+- ISC-1034/1034.1/1035: vision.spec 10/10: 'stealers and blips are transparent to SIGHT' (canSee behind stealer and behind stealer+blip), 'a FIRE line still stops at the first body' (canShoot true on the front rank, false behind it), and 'an intervening MARINE blocks sight' all green
 - ISC-1036: conversion_on_sight.spec 7/7: 'a blip behind a stealer converts the moment the sight line reaches it' green (about-face converts through the stealer, 2 stealers on board)
 - ISC-1037: kill_reveals.spec 5/5 after the rewrite: first sweep converts (3 stealers), the kill leaves 2; close-combat and overwatch cases unchanged and green
-- ISC-1038/1039: hive.spec green with kill.has('2,11') and ('2,12') now true behind the parked blocker, followers still on dark squares, RollQueue remaining 0
+- ISC-1038 dropped; ISC-1039: hive.spec byte-identical to main (git diff 4823544..HEAD empty for hive.spec.ts) and green: the blocker's body still darkens the kill lane (kill.has('2,11') false), RollQueue remaining 0
 - ISC-1040: fog.spec 'stealer bodies do not block sight' green: sight has 4,3 / 4,2 / 4,0 with two stealers in the column
 - ISC-1041/1042: fog.spec radarActive true with a sergeant, false after sergeant.die(), false for the sergeant-less open mission
 - ISC-1043/1044: fog.spec threatVisible: blip = radar flag in all three placements; stealer ignores the flag
@@ -869,3 +882,16 @@ Latest-pipeline hardening run (2026-08-20 seventh run, ISC-969..975):
 - ISC-1061: git diff | grep '^+' | grep -c em dash: 0
 - ISC-1062: git diff --stat: StealerAI.ts, Blip.ts, GameEngine.ts absent
 - Probe note: the real-Chrome probe was attempted first (Interceptor blocked by the stale daemon; Claude-in-Chrome tab reported visibilityState hidden, frame 0, Phaser frozen), so the live evidence above comes from a headless Playwright script run in the client package, the same instrument as the repo's e2e suite and as ISC-1008 at park time.
+
+### Fog adjustments review round (2026-09-12)
+
+- ISC-1063: code-reviewer agent ran against HEAD 1f56f77 (2 CRITICAL, 5 IMPORTANT, 4 nits); disposition of every finding in Decisions 2026-09-12 (code review round)
+- ISC-1064: replayFocus.spec 3 new cases green (visible mover pans, hidden mover and its death get null, predicate receives the destination square; throttled events never ask); Read GameScene endTurn: kindOf map from sprites + stream pieceAdded, hiddenAt uses fogRadar()/fogSight/fogMarines(), passed as the fifth planReplayFocus argument
+- ISC-1065: packages/client/tests/fog.spec.ts 4 passed (8.2s): debug_1 seed 5 blips exist and blipsVisible 0; space_hulk_1 seed 3 blips 2 visible then 0 after sergeant.die() with the three-stealer column [true,true,true]; hover 'blip' present with radar up, absent with radar down; ?fog=0 blipsVisible === blips
+- ISC-1066: Read content.ts sight section (marines block sight, stealers and blips do not, a shot stops at the first body) and Blips section (radar returns, vanish without a sergeant); banned-word grep on content.ts empty
+- ISC-1067: Read docs/rules-reference.md: LOS bullet names the marine-only sight policy, seeing/shooting bullet names both policies plus a fog bullet, threat-map paragraph names fire vs sight LOS
+- ISC-1068: Read hive.ts computeThreat comment: bodies block FIRE lines, since 2026-09-12 not SIGHT lines
+- ISC-1069: Read CLAUDE.md testing policy item 3: 'STALE since 2026-09-12' note appended to the baselines
+- ISC-1070: Read of the corrected ISC-1033/1034/1038 verification lines above against los.ts, vision.spec and hive.spec at HEAD
+- Suites at this point: engine 340/340, client 105/105 (3 replay-focus cases added), fog e2e 4/4; full e2e run recorded under ISC-1071
+- ISC-1071: pnpm client e2e: 122 passed (fog.spec 4 + the prior 118), win.spec seed 1 and playthrough.spec seed 3 unchanged

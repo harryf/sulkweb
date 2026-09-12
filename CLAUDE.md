@@ -189,6 +189,8 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
    the autopilot's flamer-led column feeds the flamer to CC on turn 2 in 57/60;
    an autopilot artifact, NOT balance evidence; unopposed the autopilot wins turn 9,
    proving the kill chain (flamer.spec); debug_1: 40W/0L over 40.
+   STALE since 2026-09-12 (sight through stealer bodies converts blips earlier and
+   widens the hive's seen map): the next balance run re-scans and owns these numbers.
    CAUTION: playthrough.spec idles turn 1 before its DONE click, so it consumes dice
    differently from plain autoplay; scan loss seeds under THAT pattern (endMarinePhase
    first, then autoplay). If a rules change alters dice-consumption order, re-scan and re-pin.

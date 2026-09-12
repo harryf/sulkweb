@@ -71,8 +71,9 @@ Additional movement rules:
 
 - **Vision arc**: the front 180°, everything strictly ahead of the line through the piece perpendicular to its facing, plus that line itself (the piece's own square excluded).
 - **Fire arc**: the front 90° cone. Targets exactly on the 45° edges count as inside.
-- **Line of sight** is traced center to center. It is blocked by: any intermediate square that is missing or marked as blocking, any intermediate square occupied by a piece (pieces block sight), any intermediate square that is burning (you can see into flames, not through them), and any closed door edge the line crosses, including sight into the square directly behind the door, and including a diagonal line that grazes the door edge's corner (the doorway frame is solid, matching the diagonal-movement corner rule).
-- **Seeing** a square = vision arc + clear LOS. **Shooting** a square = fire arc + clear LOS + weapon range (range measured as the larger of the x and y distance).
+- **Line of sight** is traced center to center. It is blocked by: any intermediate square that is missing or marked as blocking, any intermediate square occupied by a MARINE (since 2026-09-12 stealer-side bodies are transparent to sight: a marine sees the whole column, a blip behind a stealer converts), any intermediate square that is burning (you can see into flames, not through them), and any closed door edge the line crosses, including sight into the square directly behind the door, and including a diagonal line that grazes the door edge's corner (the doorway frame is solid, matching the diagonal-movement corner rule).
+- **Seeing** a square = vision arc + clear LOS (sight policy: only marine bodies block). **Shooting** a square = fire arc + clear LOS + weapon range (fire policy: ANY body blocks, a shot stops at the first piece in its path; range measured as the larger of the x and y distance).
+- **Fog of war (client)**: stealers render only when seen or within 2 squares of a marine; blips render only while a sergeant lives (the pulse radar). `?fog=0` disables.
 
 ## Shooting
 
@@ -205,7 +206,7 @@ One Data Room square. A sergeant (either type) standing on it at the end phase *
 
 The stealer side plays as a **hive**: before any piece moves, a side-level plan (`ai/hive.ts`) reads the board and assigns each piece a role for the turn.
 
-**The threat map.** The hive marks every square an un-jammed overwatching marine could shoot (fire arc + line of sight + range 12: the *kill zones*) and every square any marine sees. Pathing pays a heavy toll to enter a kill zone and a small one to be seen, so the horde routes around watched corridors and approaches through the dark. The map is recomputed as pieces act: a death, a door, or a body in a corridor changes it mid-phase.
+**The threat map.** The hive marks every square an un-jammed overwatching marine could shoot (fire arc + fire line of sight, which stops at any body + range 12: the *kill zones*) and every square any marine sees (sight line of sight, which passes stealer bodies). Pathing pays a heavy toll to enter a kill zone and a small one to be seen, so the horde routes around watched corridors and approaches through the dark. The map is recomputed as pieces act: a death, a door, or a body in a corridor changes it mid-phase.
 
 **Roles.**
 

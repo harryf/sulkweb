@@ -141,8 +141,11 @@ move through or out of them.</p>`,
     html: `
 <p>A piece <strong>sees</strong> its front 180°. It can <strong>shoot</strong> into its
 front 90° cone (targets exactly on the 45° edge count). Line of sight runs centre to
-centre and is blocked by missing squares, by other pieces, by burning squares (you can
-see the flames, not through them), and by any closed door the line crosses.</p>
+centre and is blocked by missing squares, by burning squares (you can see the flames,
+not through them), and by any closed door the line crosses. Marines block sight as well;
+genestealers and blips do not, so a marine sees the whole column charging down a
+corridor. A <em>shot</em> still stops at the first body in its path: you can count the
+pack, but only the front rank is in your sights.</p>
 <p>Weapon range is the larger of the horizontal and vertical distance. Hold
 <strong>L</strong> with a marine selected to see exactly what he sees.</p>`,
   },
@@ -248,7 +251,11 @@ two per blip on average).</p>
 <p>Blips slide any direction for 1 AP but may never voluntarily enter a square a marine
 sees, or any square adjacent to a marine. The moment a marine <em>does</em> see one, it
 converts: the hidden stealers spill onto the board immediately, mid-phase, mid-move,
-whenever the sight line opens. Stealers that do not fit on free squares are lost.</p>
+whenever the sight line opens, even when another stealer stands between. Stealers that
+do not fit on free squares are lost.</p>
+<p>Blips are radar returns. They show on the board only while a <strong>sergeant</strong>
+lives to run the scanner; lose the sergeants and the blips vanish from the map until
+they convert into stealers you can see.</p>
 <p>A blip killed while still a blip (flamed, or raked by autofire) counts its full
 hidden value toward kill quotas. Letting one convert first means killing them one at a
 time instead.</p>`,

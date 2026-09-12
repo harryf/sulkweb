@@ -68,11 +68,20 @@ export function replayOffsets(
   return out
 }
 
+/**
+ * `hidden(pieceId, square)` answers whether the player could see that piece
+ * standing on that square at replay time. A move or death the fog hides
+ * gets NO focus point: panning the camera onto an empty-looking corridor
+ * step by step would trace the hidden path for the player (reviewer
+ * finding, 2026-09-12). Conversions and close combat always show something
+ * (the spilled stealers, the attacker on the marine), so they keep panning.
+ */
 export function planReplayFocus(
   stream: readonly StreamEvent[],
   seedPositions: Record<string, Square>,
   marineSquares: readonly Square[],
   cfg: typeof FOCUS = FOCUS,
+  hidden: (pieceId: string, square: Square) => boolean = () => false,
 ): (FocusAnnotation | null)[] {
   const pos: Record<string, Square> = { ...seedPositions }
   let lastFocus: Square | null = null
@@ -92,7 +101,7 @@ export function planReplayFocus(
         pos[p.pieceId] = here
         const facingOnly = prev !== undefined && prev.x === here.x && prev.y === here.y
         if (facingOnly) return { facingOnly: true }
-        if (!nearMarine(here) || throttled(here)) return null
+        if (!nearMarine(here) || throttled(here) || hidden(p.pieceId, here)) return null
         lastFocus = here
         return { focus: here }
       }
@@ -102,6 +111,7 @@ export function planReplayFocus(
         const here: Square | undefined =
           ev.type === 'doorToggled' ? { x: p.x, y: p.y } : pos[p.pieceId ?? p.blipId]
         if (!here || !nearMarine(here) || throttled(here)) return null
+        if (ev.type === 'pieceDied' && hidden(p.pieceId, here)) return null
         lastFocus = here
         return { focus: here }
       }

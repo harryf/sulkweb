@@ -12,7 +12,7 @@ import { HUD_WIDTH, MINI_MAP_MARGIN, UI_FONT, FACING_ARROWS } from '../config.js
 import { MOTION, kindFromTexture, camPanStep, shimmerPhase, recoilVector, shortestRotationDelta } from '../utils/motionLogic.js';
 import { FOCUS, planReplayFocus, replayOffsets } from '../utils/replayFocus.js';
 import { FOG, computeMarineSight, threatRevealed, threatVisible, type FoggedKind } from '../utils/fog.js';
-import { radarActive } from '../utils/radarLogic.js';
+import { radarActive, type RadarPieceView } from '../utils/radarLogic.js';
 
 const TILE_SIZE = 40
 
@@ -84,7 +84,8 @@ export default class GameScene extends Phaser.Scene {
   private losVisible = false;
   /** Fog of war (`?fog=0` disables; off in attract): squares no marine sees
    *  are dimmed, stealers standing there are hidden unless they creep within
-   *  FOG.creepRadius; the minimap auspex is the detection instrument. */
+   *  FOG.creepRadius, and blips show only while the pulse radar runs (a
+   *  sergeant alive); the minimap auspex follows the same sergeant gate. */
   private readonly fogEnabled: boolean;
   private fogGfx?: Phaser.GameObjects.Graphics;
   private fogSight = new Set<string>();
@@ -1448,7 +1449,7 @@ export default class GameScene extends Phaser.Scene {
     // it stood when the phase began, dead men included.
     if (this.fogEnabled) {
       this.fogMarineSnap = anchors.map(a => ({ c: a.x, r: a.y }));
-      this.fogRadarSnap = radarActive(this.engine.state.pieces as any);
+      this.fogRadarSnap = radarActive(this.radarPieces());
     }
     const stream = PieceEvents.capture(() => this.engine.endMarinePhase());
     Selection.clear();
@@ -1473,7 +1474,23 @@ export default class GameScene extends Phaser.Scene {
     for (const [id, spr] of Object.entries(this.pieceSprites)) {
       seed[id] = { x: Math.floor(spr.x / TILE_SIZE), y: Math.floor(spr.y / TILE_SIZE) };
     }
-    const plan = planReplayFocus(stream as any, seed, anchors);
+    // Fog: the camera must not trace a hidden piece's path. Kinds come from
+    // the pre-phase sprites plus this stream's own pieceAdded payloads; the
+    // sight set and radar flag are the frozen pre-phase ones (same epoch as
+    // the sprites the player will actually see moving).
+    const kindOf: Record<string, string> = {};
+    for (const [id, spr] of Object.entries(this.pieceSprites)) kindOf[id] = (spr as any).pieceKind;
+    for (const ev of stream) {
+      if (ev.type === 'pieceAdded') kindOf[(ev.payload as any).pieceId] = (ev.payload as any).kind;
+    }
+    const hiddenAt = (id: string, sq: { x: number; y: number }): boolean => {
+      if (!this.fogEnabled) return false;
+      const kind = kindOf[id];
+      if (kind === 'blip') return !this.fogRadar();
+      if (kind === 'stealer') return !threatRevealed(this.fogSight, this.fogMarines(), sq.x, sq.y);
+      return false;
+    };
+    const plan = planReplayFocus(stream as any, seed, anchors, FOCUS, hiddenAt);
     // Pure scheduling arithmetic: facing-only spins (charge orientation, path
     // turns) pace fast — they are drama, not travel.
     const offsets = replayOffsets(stream.map(e => e.type as string), plan, GameScene.REPLAY_DELAY);
@@ -1800,12 +1817,12 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /** Fog of war, per frame: dim what no marine sees; hide stealers standing
-   *  there. The sight set recomputes only OUTSIDE replays (mid-replay the
-   *  engine board is a spoiler, same invariant as minimap.frozen), while
-   *  the per-frame pass tests each stealer SPRITE's live tile against the
-   *  frozen set, so replays flash them across lit corridors and swallow
-   *  them again. Marines never move during the stealer phase, so engine
-   *  positions stay truthful for the creep-reveal even while frozen. */
+   *  there and every blip while the radar is down. The sight set recomputes
+   *  only OUTSIDE replays (mid-replay the engine board is a spoiler, same
+   *  invariant as minimap.frozen), while the per-frame pass tests each
+   *  threat SPRITE's live tile against the frozen set, so replays flash
+   *  stealers across lit corridors and swallow them again. Marines never
+   *  move during the stealer phase, so the snapshots stay truthful. */
   private updateFog(): void {
     const gfx = this.fogGfx;
     if (!gfx) return; // fog off (?fog=0 or attract): zero behavior change
@@ -1862,7 +1879,13 @@ export default class GameScene extends Phaser.Scene {
    *  sergeant is alive but not yet on the board, and his auspex is with him. */
   private fogRadar(): boolean {
     if (this.animating && this.fogRadarSnap !== null) return this.fogRadarSnap;
-    return radarActive([...this.engine.state.pieces, ...this.engine.reserve] as any);
+    return radarActive(this.radarPieces());
+  }
+
+  /** Every marine who could carry the auspex: on the board, plus the reserve
+   *  (during Deploy the sergeant is alive but not yet placed). */
+  private radarPieces(): RadarPieceView[] {
+    return [...this.engine.state.pieces, ...this.engine.reserve] as unknown as RadarPieceView[];
   }
 
   /** Marine coordinates for the creep reveal: the pre-phase snapshot while a

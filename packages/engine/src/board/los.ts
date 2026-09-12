@@ -144,7 +144,8 @@ export function hasLineOfSight(board: Board, a: Square, b: Square, opts: LosOpti
     }
     if (opts.piecesBlock) {
       const occupant = board.pieceAt({ c: x, r: y }) as { kind?: string } | undefined;
-      if (occupant && (opts.piecesBlock === true || occupant.kind === 'marine')) return false;
+      const blocks = opts.piecesBlock === 'marines' ? occupant?.kind === 'marine' : occupant !== undefined;
+      if (blocks) return false;
     }
     // Burning squares block sight through (original Flames blockslos).
     if (board.isFlaming({ c: x, r: y })) {

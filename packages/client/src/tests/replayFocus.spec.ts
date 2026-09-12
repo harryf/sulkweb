@@ -110,3 +110,31 @@ describe('replay focus planner (ISC-772..778)', () => {
     expect(plan[2]?.focus).toEqual({ x: 9, y: 9 }) // conversion near the squad focuses
   })
 })
+
+describe('fog: hidden movers get no camera focus (2026-09-12)', () => {
+  const marines = [{ x: 4, y: 4 }]
+  const stream: StreamEvent[] = [
+    { type: 'pieceMoved', payload: { pieceId: 'b1', x: 4, y: 8, facing: 0 } },
+    { type: 'pieceMoved', payload: { pieceId: 'b1', x: 4, y: 7, facing: 0 } },
+    { type: 'pieceDied', payload: { pieceId: 'b1', kind: 'blip', x: 4, y: 7 } },
+  ]
+  const seed = { b1: { x: 4, y: 9 } }
+
+  it('pans onto a visible mover as before', () => {
+    const plan = planReplayFocus(stream, seed, marines)
+    expect(plan[0]).toEqual({ focus: { x: 4, y: 8 } })
+  })
+
+  it('never pans onto a mover the fog hides, nor onto its death', () => {
+    const plan = planReplayFocus(stream, seed, marines, FOCUS, () => true)
+    expect(plan).toEqual([null, null, null])
+  })
+
+  it('the predicate gets the square the piece is moving INTO (throttled events never ask)', () => {
+    const asked: string[] = []
+    planReplayFocus(stream, seed, marines, FOCUS, (id, sq) => { asked.push(`${id}@${sq.x},${sq.y}`); return false })
+    // (4,7) is within retargetDist of the (4,8) focus, so the second move and
+    // the death are throttled before the fog question is even asked.
+    expect(asked).toEqual(['b1@4,8'])
+  })
+})

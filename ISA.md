@@ -4,10 +4,10 @@ task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: "1004/1004 (fog adjustments shipped on branch fog-of-war: ISC-1033..1071, ISC-1038 dropped; ISC-71 deferred)"
+progress: "1012/1012 (v1.0.0 released: ISC-1072..1079; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T12:00:00Z
+updated: 2026-09-12T13:20:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -445,6 +445,17 @@ Review round (2026-09-12):
 - [x] ISC-1070: the ISA verification block matches HEAD after the sight/fire split (Read of the corrected ISC-1033/1034/1038 lines)
 - [x] ISC-1071: Anti: the full Playwright suite stays green with the new fog spec added, pinned seeds intact (pnpm client e2e)
 
+### v1.0.0 released: fog of war lands on main, branch retired (2026-09-12, thirteenth run)
+
+- [x] ISC-1072: main fast-forwarded to the fog-of-war tip 46aadd3 and pushed; origin/main is 46aadd3 (git log, git push)
+- [x] ISC-1073: v1.0.0 released through the codified order: main pushed, tag pushed, run 34689952039 green (verify-build-publish, deploy, redispatch-latest) FIRST, then the release published at https://github.com/harryf/sulkweb/releases/tag/v1.0.0 (gh run view + gh release create)
+- [x] ISC-1074: the main-push deploy-latest run 34689950858 completed green (gh run watch)
+- [x] ISC-1075: live root and frozen /1.0.0/ manifests both read v1.0.0 at sha 46aadd3; /latest/ re-stamped latest-46aadd3 (curl)
+- [x] ISC-1076: Anti: /0.6.1/manifest.json still reads v0.6.1 at 05220d1 (curl)
+- [x] ISC-1077: live root boots space_hulk_1 with fog on, sight set 5, blips 2/2 visible with the sergeant alive, zero page and console errors (headless Playwright probe)
+- [x] ISC-1078: branch fog-of-war deleted locally after the fast-forward; it never existed on origin (git branch -d, git ls-remote)
+- [x] ISC-1079: Anti: no history rewrite: the merge was a fast-forward, every fog commit keeps its sha (git log)
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
@@ -641,6 +652,8 @@ Review round (2026-09-12):
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-12 (v1.0.0 release): user instruction: merge the fog branch into main, cut v1.0.0, release, delete the branch. Fast-forward merge (main was an ancestor), tag pushed, release run green before the GitHub release was published (order codified at ISC-984), stable root verified live at the tag sha, branch deleted locally (it was never pushed). Release title "v1.0.0: the dark between the bulkheads". The 1.x line now starts on main; there is no long-lived feature branch. Known and carried forward from the twelfth run: debug_1 has no sergeant so its blips stay hidden under fog; motion-tracker audio still pings for blips with the radar down; balance baselines stale.
 
 - 2026-09-12 (fog adjustments, code review round): code-reviewer (working against HEAD after the split) reported two CRITICAL, five IMPORTANT, four nits. ADOPTED: (1) CRITICAL replay-camera leak: planReplayFocus annotated every near-marine pieceMoved with a focus point regardless of kind, so on a sergeant-less mission the camera walked the player down an empty corridor one invisible blip step at a time; fixed with a hidden(pieceId, square) predicate on the planner (pure, unit-tested) fed by GameScene from the frozen sight set, marine snapshot and radar snapshot; conversions and close combat keep panning since they always show something. (2) CRITICAL stale ISA verification after the split: ISC-1033/1034/1038 lines rewritten against HEAD, ISC-1034.1 ticked. (3) hive seen-map widening stated honestly: the kill map (canShoot) is unchanged and the blocker still shields it, the seen map (canSee) now reaches past the blocker so staging behind it is penalised, not forbidden; comment fixed, no hive code change, balance impact deferred to the next balance run. (4) Manual and rules-reference text rewritten for the split and the radar gate. (5) Real-browser fog spec added (four tests). (6) Balance baselines in CLAUDE.md marked stale. Nits adopted: GameScene fog doc comments, one radarPieces() helper for both radar call sites with the RadarPieceView type restored, explicit 'marines' branch in los.ts. NOT ADOPTED, with reasons: motion-tracker audio still tracks blips with the radar down: the tracker is the squad's own motion sensor, a different instrument from the sergeant's auspex, and silencing the game's main tension channel on debug_1 is a design call for the user, recorded here as a known, deliberate asymmetry; blips selectable while visible: pre-existing, the radar gate narrows it, and selecting a blip is harmless (no marine action applies). Cross-vendor Forge/Cato: still no codex binary.
 
@@ -895,3 +908,14 @@ Latest-pipeline hardening run (2026-08-20 seventh run, ISC-969..975):
 - ISC-1070: Read of the corrected ISC-1033/1034/1038 verification lines above against los.ts, vision.spec and hive.spec at HEAD
 - Suites at this point: engine 340/340, client 105/105 (3 replay-focus cases added), fog e2e 4/4; full e2e run recorded under ISC-1071
 - ISC-1071: pnpm client e2e: 122 passed (fog.spec 4 + the prior 118), win.spec seed 1 and playthrough.spec seed 3 unchanged
+
+### v1.0.0 release (2026-09-12)
+
+- ISC-1072: git push output 4fa53ee..46aadd3 main -> main after `git merge --ff-only fog-of-war`
+- ISC-1073: gh run view 34689952039: success | verify-build-publish:success, deploy:success, redispatch-latest:success; then gh release create printed https://github.com/harryf/sulkweb/releases/tag/v1.0.0
+- ISC-1074: gh run watch 34689950858: completed with 'success'
+- ISC-1075: curl root {"version":"v1.0.0","sha":"46aadd30...","built":"2026-09-12T11:02:54Z"}; /1.0.0/ identical; /latest/ {"version":"latest-46aadd3"}
+- ISC-1076: curl /0.6.1/manifest.json {"version":"v0.6.1","sha":"05220d1c..."}
+- ISC-1077: headless probe on https://harryf.github.io/sulkweb/?deploy=0&mission=space_hulk_1&seed=3: {"phase":"MarineAction","turn":1,"fog":true,"fogSight":5,"blipsVisible":"2/2","errors":[]}
+- ISC-1078: git branch -d printed "Deleted branch fog-of-war (was 46aadd3)"; git ls-remote --heads origin has no fog ref
+- ISC-1079: git log --oneline main shows 46aadd3, 1f56f77, 987fade, 4823544, b461208 unchanged

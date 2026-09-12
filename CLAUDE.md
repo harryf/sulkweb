@@ -12,7 +12,7 @@ ALL NINE missions registered (space_hulk 1–6, beta_1, beta_2, debug_1); the co
 | Missions, controls, roster, deployment phase | `docs/features.md` |
 | Gameplay log export schema (stealer-AI analysis corpus) | `docs/gamelog-format.md` |
 | Roadmap state and known gaps | `docs/status.md` |
-| **2.x real-time plan (APPROVED 2026-09-12; stage 1 BUILT and shipped as v2.0.0-alpha.1; its "Stage 1 as built" subsection records what changed from the kickoff; stage 2 starts from the Stage 2 section)** | `docs/realtime-plan.md` |
+| **2.x real-time plan (APPROVED 2026-09-12; stage 1 shipped as v2.0.0-alpha.1 and played: "works, playable, really hard"; START THE NEXT SESSION at its last section, "Stage 1 verdict and stage 2 handover": tuning pass first, then the stage 2 build order and the shims to delete)** | `docs/realtime-plan.md` |
 | Original milestone specs (M0–M8) and roadmap | `docs/history/prompts/` |
 | Canonical game rules (AP costs, dice, blips, phases) | `docs/history/SULK Manual Combined.pdf`; distilled digest in ISA Decisions |
 | Original Pygame engine analysis | `docs/history/Analysis Sulk Pygame*.html` |

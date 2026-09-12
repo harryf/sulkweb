@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: context-override
-phase: complete
-progress: "1255/1257 (stage 1 shipped as v2.0.0-alpha.1; ISC-1323/1324 human verdicts deferred; ISC-1038 dropped; ISC-71 deferred)"
+phase: execute
+progress: "1257/1273 (stage 1 closed with the verdict; handover run ISC-1325..1340 open; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T20:55:00Z
+updated: 2026-09-12T22:05:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -668,13 +668,35 @@ Build stage 1 of docs/realtime-plan.md from its "Stage 1 kickoff" section: the e
 - [x] ISC-1320: refined 2026-09-12: three commits, one per group of steps that interlock (engine 1 to 7, client 8 and 9, tests, docs and release plumbing 10 to 12), suites green at each, pushed to main, tree clean at the end (git log)
 - [x] ISC-1321: ISA archive protocol applied: the two oldest kept runs moved to docs/isa (Read)
 - [x] ISC-1322: PROJECTS.md records stage 1 shipped and the two open verdicts (grep)
-- [DEFERRED-VERIFY] ISC-1323: human verdict 1 recorded in Decisions: does square-per-AP direct movement feel like moving or stuttering (follow-up: Harry playtest of /2.0.0-alpha.1/)
-- [DEFERRED-VERIFY] ISC-1324: human verdict 2 recorded in Decisions: is real time more fun than the timed phase (follow-up: same playtest)
+- [x] ISC-1323: human verdict 1 recorded in Decisions: does square-per-AP direct movement feel like moving or stuttering (Harry, 2026-09-12: "it works and it's playable"; no stutter complaint, movement passes by his silence on it, flagged as inferred)
+- [x] ISC-1324: human verdict 2 recorded in Decisions: is real time more fun than the timed phase (Harry, 2026-09-12: playable, "really hard to play now but we can tune that later": stage 2 goes ahead with a tuning pass first)
+
+### Stage 1 verdict and stage 2 handover notes (2026-09-12, twentieth run)
+
+Harry played v2.0.0-alpha.1 and said: "OK it works and it's playable. It's _really_ hard to play now but we can tune that later." This run records the verdict and writes the notes stage 2 starts from, before compaction.
+
+- [ ] ISC-1325: ISC-1323 and ISC-1324 carry Harry's words verbatim and are no longer deferred (grep)
+- [ ] ISC-1326: Decisions entry records the verdict, the reading of it (go for stage 2, tune first), and what "really hard" points at (Read)
+- [ ] ISC-1327: docs/realtime-plan.md gains a "Stage 1 verdict and stage 2 handover" section (grep)
+- [ ] ISC-1328: the handover names the tuning knobs to try first, in order, each with the ?tuning= key and the evidence behind it (Read)
+- [ ] ISC-1329: the handover names the stage 2 build order with the files it touches (Read)
+- [ ] ISC-1330: the handover names the two shims to delete in stage 2 and the specs that ride them (Read)
+- [ ] ISC-1331: the handover carries the session gotchas that bit this run (Interceptor daemon, hidden tab, HMR reloads during e2e, tsbuildinfo) (Read)
+- [ ] ISC-1332: docs/status.md next-line paragraph records the verdict (grep)
+- [ ] ISC-1333: CLAUDE.md read-first row points at the handover section (grep)
+- [ ] ISC-1334: PROJECTS.md Sulk entry says stage 1 verdict in, NEXT = tuning pass then stage 2 from the handover (grep)
+- [ ] ISC-1335: Anti: no game code changed (git diff --stat -- packages/ empty)
+- [ ] ISC-1336: Anti: zero em dashes in the new text (grep)
+- [ ] ISC-1337: Anti: zero banned writing-guide words in the new text (grep)
+- [ ] ISC-1338: committed on main and pushed, tree clean (git status, origin/main)
+- [ ] ISC-1339: the ISA frontmatter reads phase complete with every stage 1 criterion closed (Read)
+- [ ] ISC-1340: deploy-latest stays green or is not triggered by the docs-only push (gh run list)
 
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
+| ISC-1325..1340 | docs/repo | grep and Read of ISA, plan, status, CLAUDE.md, PROJECTS.md; git and gh probes | present as stated; 0 / 0; green or not triggered | Bash, Read |
 | ISC-1166..1187, 1188..1197 | engine | vitest specs under packages/engine/src/__tests__ (clock.spec, regen.spec, flames_ticks.spec) plus Read of tick() | green; order as stated | vitest, Read |
 | ISC-1198..1208 | engine | command.spec, determinism.spec, gamelog.spec; grep of packages/client/src | green; grep 0 | vitest, Bash |
 | ISC-1209..1221 | engine/ai | stealer_tick.spec with spies on planHive and computeThreat; ported hive/charge specs | green; spy counts | vitest |
@@ -916,6 +938,8 @@ Build stage 1 of docs/realtime-plan.md from its "Stage 1 kickoff" section: the e
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-12 22:05 (stage 1 verdict): Harry played the prerelease: "OK it works and it's playable. It's _really_ hard to play now but we can tune that later." Reading: the go/no-go for stage 2 is a GO (playable, no stutter complaint, no "less fun than the timed phase"); "really hard" is the balance evidence the build already produced (autopilot 1 win in 30 on debug_1; the 1:2 regeneration ratio the advisor cautioned about; the marine default list shoots and overwatches but never advances, so a squad under one keyboard moves at one marine's pace while the swarm regenerates twice as fast). Decision: stage 2 opens with a short tuning pass BEFORE orders, driven by ?tuning= on the live build and by the autopilot seed scan, in this order: marine regeneration 1 per 3 ticks (4 of 30 wins against 1 of 30), then overwatch cooldown, then the reinforcement cadence (blips per cycle is the mission's blipsPerTurn; a cycle of 60 ticks is the cheap lever), then the lease length; the default AI stays as it is until a knob has been tried. Movement feel is recorded as passing by inference (he did not name stuttering); if it comes up in the tuning pass the fix is tickMs and regen first, per the plan. Notes written into docs/realtime-plan.md "Stage 1 verdict and stage 2 handover" so the next session starts there after compaction.
 
 - 2026-09-12 20:55 (stage 1, RELEASED): tag v2.0.0-alpha.1 on 14365c1; "Deploy release to GitHub Pages" run 34699089071 succeeded in all three jobs (verify-build-publish, deploy, redispatch-latest); GitHub release published as a prerelease at https://github.com/harryf/sulkweb/releases/tag/v2.0.0-alpha.1; the live prerelease is https://harryf.github.io/sulkweb/2.0.0-alpha.1/ (manifest v2.0.0-alpha.1, sha 14365c1); the root manifest and STABLE_VERSION still read v1.1.0 (sha 8a83743), so the shipping policy's callout is: the change lives ONLY at /2.0.0-alpha.1/ (and /latest/), never at the root, by design of the 2.x line. deploy-latest for the main push (34699075087) and the post-release re-dispatch both green. Human verdicts ISC-1323 and ISC-1324 are DEFERRED-VERIFY: Harry plays /2.0.0-alpha.1/?mission=debug_1 and space_hulk_1 and answers (a) does square-per-AP direct movement feel like moving or stuttering (if stuttering, the fix is the tick and regeneration constants first, tried through ?tuning= before any AI work) and (b) is real time more fun than the timed phase; both gate stage 2. Interceptor real-Chrome boot check stays deferred (ISC-619's condition unchanged); the headless real-Chromium boot check stands in. Closing advisor call (terse retry after the first returned empty): verdict "code complete, pending playtest sign-off", ADOPTED as the framing: the build is verified, the stage exit gate is the two verdicts, written with pass/fail: (a) PASS = "moving" (a step reads as a heavy stride, not a stutter), FAIL = "stuttering" (then ?tuning= on tickMs/regen before any AI work); (b) PASS = "more fun than the timed phase", FAIL = stage 2 does not start and the identity question (plan Q13) reopens. Its multi-client/Colyseus/soak points do not apply (single-player, no server; the advisor read the March memory note); rejected with that reason. Its self-verification question: the 159 criteria were written at OBSERVE before any code, and two were refined afterwards with ID-stable notes (ISC-1253, ISC-1320).
 

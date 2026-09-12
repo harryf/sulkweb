@@ -493,3 +493,43 @@ What the build changed from the kickoff, each with its reason, so stage 2 starts
 - Music ducks on contact (a threat within 8 squares of a marine) instead of on the phase; the HUD's one button is START during deployment and PAUSE afterwards; a hidden tab pauses.
 
 Balance evidence from the build (the first sweep the plan asked for, autopilot-driven, not a human verdict): under marine 1 AP per 4 ticks the scripted autopilot wins debug_1 on 1 seed in 30 (seed 30, the pinned fixture) and loses space_hulk_1 on every seed inside the first cycle (the flamer leads the column into the first contact, an autopilot artefact known from 1.x); under marine 1 per 3 ticks debug_1 wins 4 in 30. space_hulk_2 wipes the squad inside 8 cycles on 24 of 30 seeds. The 1:2 regeneration ratio is the advisor's caution made visible; Harry's playtest, not the autopilot, decides it.
+
+## Stage 1 verdict and stage 2 handover (2026-09-12)
+
+Read this section first when starting the next session. Stage 1 is on the site as v2.0.0-alpha.1 (https://harryf.github.io/sulkweb/2.0.0-alpha.1/); the root stays v1.1.0.
+
+### The verdict
+
+Harry, after playing the prerelease: "OK it works and it's playable. It's _really_ hard to play now but we can tune that later." Reading: a go for stage 2; no complaint about movement feel (the stutter question passes by his silence and is flagged as inferred in the ISA); the difficulty is the balance evidence the build produced, not a surprise. The stage 2 session opens with a tuning pass before any order code.
+
+### Tuning pass, in this order
+
+Every knob is data in `packages/engine/src/core/CostTables.ts` (`TUNING`) and can be tried on the live build without a rebuild: `?tuning=key:value,key.sub:value` (for example `/2.0.0-alpha.1/?mission=space_hulk_1&tuning=regen.marine:3,overwatchCooldown:1`). The autopilot seed scan is the cheap second opinion (a bun script that imports the engine source, applies `applyTuning`, runs `autoplay(engine, 60)` over seeds 1 to 30 and counts results; the stage 1 session's scripts lived in the scratchpad and are five lines to rewrite).
+
+1. `regen.marine` 4 to 3: the advisor's caution and the only knob with evidence (debug_1 autopilot wins 4 of 30 at 3 against 1 of 30 at 4). Try first.
+2. `overwatchCooldown` 2 to 1: more reaction fire per stealer action; the second brake (jam on doubles) stays.
+3. Reinforcement cadence: the per-cycle count is the mission's `blipsPerTurn` (mission JSON, not tuning); the lever without a mission edit is `cycleTicks` 40 to 60, which also slows the CP roll and every offset event. If the trickle is the problem, edit the mission numbers and note the deviation.
+4. `leaseTicks` 8: shorter if the default AI feels absent after a key press, longer if it fights the player.
+5. Only then the default AI itself (`ai/MarineAI.ts`): the likely candidate is rule 10 (overwatch with 2 AP), which parks every unsteered marine; a marine that follows the steered one is stage 2's order system, not a default.
+
+Record the chosen values in `TUNING` (they are labelled unvalidated there) and re-pin the three seeds once, after the last change: debug_1 win (win.spec, marine_ai.spec, gamelog.spec), space_hulk_1 loss (playthrough.spec), space_hulk_2 survivors (quota_victory.spec).
+
+### Stage 2 build order (individual orders, v2.0.0-alpha.2)
+
+1. `ai/orders.ts`: the L1 slot on `Piece` (`order: MarineOrder | null`), `moveTo` with `then: 'hold' | 'overwatch'`, `openDoor`; completion clears the slot; a direct command clears it (the plan's "the player took the wheel").
+2. `ai/MarineAI.ts`: tick step 3 reads the slot before the default list: path one step with `hive.pathStep` (marines as blockers, doors opened on contact), the default list's reactions (unjam, adjacent fight, shoot what is shootable) still win over a step.
+3. `GameEngine.command`: new command types `order` and `clearOrder`, logged like every command.
+4. `LiveScene`: right-click a square with a marine selected = move there then hold; Shift right-click = then overwatch; right-click a door edge = go and open it; order marker on the target square; the roster card shows HOLD, OW, MOVE.
+5. `MarineAutopilot` becomes the scripted order issuer (one order per marine, re-issued on completion); its cover-and-hold branch from stage 1 stays.
+6. Delete the two shims: `GameEngine.endMarinePhase()` and `StealerAI.runStealerActions()`. Specs that ride them and need rewriting to ticks: gameflow, quota_victory, beta2_mission, deploy, exotic_victory, kill_reveals, flamer, ai_pathing, debug1_mission, blips_ai, charge, hive (nineteen `runStealerActions` calls: express each as a locked-board engine plus `runTicks`, or keep `stealerTick` with `board.tick` stepped by hand).
+7. Specs: orders.spec (slot, completion, replacement, direct-key clear, arrival then overwatch facing), the e2e fixture that plays space_hulk_1 to the objective by orders alone with the default AI defending.
+8. Tag v2.0.0-alpha.2 the same way (prerelease tag, frozen dir, root untouched; deploy.yml already accepts `-alpha.N`).
+
+### Session gotchas (this run)
+
+- Interceptor's CLI was blocked again by a stale daemon on port 19222 (`interceptor status` says not running, `lsof -iTCP:19222` shows the old process); the extension needs a manual reload. The Claude-in-Chrome tab reports `document.hidden` unless Chrome is the foreground window, and Phaser then never finishes `create()`. The working real-browser check is headless Playwright from packages/client: `node boot-check.mjs` (committed) screenshots the live scene, reads the tick count and pauses with Esc.
+- Vite HMR reloads the page mid-e2e when a source file is edited while the suite runs; two spurious failures came from that. Do not edit client src while Playwright runs.
+- `packages/engine/tsconfig.tsbuildinfo` gets dirtied by `pnpm build`; `git checkout --` it before committing.
+- Chained `sleep` is blocked; `until ...; do sleep 10; done` loops in a background command work for run watching and Pages propagation.
+- The advisor answers a terse question with `--timeout 400000`; a long one, or one that invites tool use, comes back empty.
+- The hive's behaviour fixtures (hive.spec) drive `runStealerActions`; they are the one place the old whole-activation driver is still load-bearing. Port them before deleting it.

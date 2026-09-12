@@ -45,8 +45,10 @@ https://harryf.github.io/sulkweb/2.0.0-alpha.1/ : the engine ticks, marines
 regenerate AP and defend themselves, the stealer side acts one action per
 piece per tick, overwatch persists with a cooldown, every key is an engine
 command, and the turn-based client is gone. The stable root stays on v1.1.0
-(the faithful turn-based port, frozen at /1.1.0/) until 2.0.0. Stage 2
-(individual orders) waits on the two playtest verdicts recorded in the plan.
+(the faithful turn-based port, frozen at /1.1.0/) until 2.0.0. Playtest
+verdict (2026-09-12): it works and is playable, and it is really hard right
+now; stage 2 (individual orders) opens with a tuning pass, per the plan's
+"Stage 1 verdict and stage 2 handover" section.
 
 ## Known gaps / residue
 

@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E3
 effort_source: classifier
-phase: complete
-progress: "1086/1086 (real-time plan rounds 1 and 2 complete, open questions 15..22 pending Harry; ISC-1038 dropped; ISC-71 deferred)"
+phase: verify
+progress: "1097/1098 (plan approved, stage 1 kickoff notes ISC-1154..1165; ISC-1165 awaits the commit; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T17:50:00Z
+updated: 2026-09-12T18:20:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -546,10 +546,30 @@ Harry answered open questions 1..14 in the plan and added a "CP Replacement Idea
 - [x] ISC-1152: plan and ISA committed on main (git log)
 - [x] ISC-1153: PROJECTS.md records the second round as pending Harry's answers (grep)
 
+### Real-time plan approved, stage 1 kickoff notes (2026-09-12, eighteenth run, PLANNING ONLY)
+
+Harry answered questions 15..22 (all agreed). This run commits the answers, marks the plan approved, and leaves the notes stage 1 starts from after compaction. ISC count 12 against the E3 soft floor of 32; show-your-math: bookkeeping plus one handover section, each with its own probe.
+
+- [x] ISC-1154: every open question 1..22 carries a Decision cell (grep: 21 "Agreed with recommendation" plus "250 ms"; row 19 filled from Harry's "all agreement" in chat, noted in the cell)
+- [x] ISC-1155: the plan's Status line reads APPROVED and points to the kickoff section (Read line 3)
+- [x] ISC-1156: a "Stage 1 kickoff" section closes the plan with settled constants, build order, exit gate, and session gotchas (grep)
+- [x] ISC-1157: the kickoff's constants table agrees with the body (tick 250 ms, cycle 40, AP caps and regeneration, overwatch cooldown 2, CP kept in stage 1, Esc free pause, LiveScene by ?rules=live) (Read)
+- [x] ISC-1158: the build order has twelve steps ending in the alpha tag and a root check (Read)
+- [x] ISC-1159: CLAUDE.md read-first row calls the plan APPROVED and names the kickoff section (grep)
+- [x] ISC-1160: PROJECTS.md says PLAN APPROVED, NEXT SESSION: begin STAGE 1 from the kickoff section (grep)
+- [x] ISC-1161: Anti: no game code changed (git diff --stat main -- packages/ empty)
+- [x] ISC-1162: Anti: zero em dashes in the plan and this run's ISA text (grep)
+- [x] ISC-1163: Anti: the kickoff section stays under 80 lines (a handover, not a second plan) (wc on the section)
+- [x] ISC-1164: Decisions entry records the approval and the row 19 fill (Read)
+- [ ] ISC-1165: plan, ISA, CLAUDE.md committed on main and pushed (git log, origin/main)
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
+| ISC-1154..1160,1164 | plan-doc/repo | grep and Read of the plan, CLAUDE.md, PROJECTS.md, ISA Decisions | present as stated | Bash grep, Read |
+| ISC-1161..1163 | anti | git diff scope, em dash grep, section line count | 0 / 0 / < 80 | Bash |
+| ISC-1165 | repo | git log; git rev-parse origin/main | commit on main, pushed | Bash |
 | ISC-1134..1146,1150..1151 | plan-doc | Read the named section of docs/realtime-plan.md or ISA Decisions | present as stated | Read |
 | ISC-1143,1144 | diff/grep | git diff on the open-questions table; grep "Proposed default" | Decision column intact; 0 hits | Bash |
 | ISC-1147..1149 | anti | git diff scope, em dash grep, banned-word grep | 0 / 0 / 0 | Bash |
@@ -759,6 +779,8 @@ Harry answered open questions 1..14 in the plan and added a "CP Replacement Idea
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-12 18:20 (real-time plan approved, kickoff): Harry answered questions 15..22 "all agreement"; row 19's Decision cell was blank in the file, filled as agreed with a note naming the chat as the source. Plan status set to APPROVED. Stage 1 starts next session from the "Stage 1 kickoff" section appended to docs/realtime-plan.md: settled constants (tick 250 ms, cycle 40 with per-entity offsets, AP caps 4/6/6 with marine 1 per 4 ticks and stealer 1 per 2, overwatch cooldown 2 ticks plus jam, CP kept through stage 3, Esc free pause, 1.x frozen, LiveScene beside GameScene), a twelve-step build order that keeps the suites green at every step (engine clock and shim, accumulators and flame expiry, command queue, stealerTick with caches, overwatch persistence, MarineAI default, engine tests and the Date lint, LiveScene, live fog, e2e stepping harness, docs, alpha tag), the exit gate (the two human verdict questions), and the session gotchas (Interceptor daemon, hidden-tab Phaser freeze, headless Playwright from packages/client, tsbuildinfo dirt, blocked sleep chains, terse advisor calls, no em dashes, ISA archive protocol). PROJECTS.md and CLAUDE.md point at it. Version for stage 1: v2.0.0-alpha.1 with its own frozen directory, root stays v1.1.0.
 
 - 2026-09-12 17:40 (real-time plan round 2, assessment of the command pause): Harry's idea: freeze the game for a budget of seconds that recharges with ticks and scales with living sergeants and captains, issue many orders at once, no manual control while paused, framed as a CP replacement for a later stage. Assessment: it is the tactical-pause pattern (Door Kickers, Frozen Synapse) and it answers the attention problem the systems pass named (one keyboard marine, four spectators, Shifting the Burden): command capacity becomes a resource with a visible meter, which is what command points always were in spirit, and the sergeant's worth becomes "you get to think longer". Made precise in the plan: pool in seconds as ENGINE state (cap and recharge per tick, proposed 10 s plus 10 s per sergeant or captain, recharge 1 s per cycle plus 1 s per cycle per sergeant or captain), paused orders enter the command queue at the resume tick WITH their normal relay latency (thinking time, never reaction time), wall-clock seconds spent paused reach the engine only as a logged pauseSpent command so replays reproduce the pool. Advisor (terse call, answered in time): ADOPTED (a) the latency rule against pause-scumming; (b) replace CP outright when the pause lands, two currencies for one resource teach nothing (Harry had said keep CP on Q4 "but see idea": resolved as keep CP through stage 3, replace at stage 4, open question 15 asks him to confirm); (c) stack pool scaling with relay latency, both floored so a sergeant-less squad is degraded not bricked (open question 19); (d) stage 4 metered, stage 3 unmetered prototype to feel it before pricing it (Harry said "later stage"; open question 20); (e) accessibility free pause as a run-level setting chosen before the mission, never a mid-run button (open question 18). NOT ADOPTED as a rule, kept as a question: the contact lockout against reflex-save (open question 17, default no lockout, the budget prices the panic). Doc changes: Status line, Summary, tick table now "decided", Command points paragraph, new "Command pause" section, Sergeant loss stacking paragraph, Marine AI decided note for Harry's Q5 and Q9 remarks, Input summary (Esc free pause, Space command pause, P until stage 4, DONE becomes pause with the meter), Determinism bullet, Stage 3 and 4 ships and exit criteria, three Risks rows, open questions 15..22 (also captains, which have no piece class yet, and direct control during the pause). Harry's Decision column for 1..14 preserved verbatim (13 "Agreed with recommendation" cells plus "250 ms").
 
@@ -1143,3 +1165,17 @@ Latest-pipeline hardening run (2026-08-20 seventh run, ISC-969..975):
 - ISC-1151: Read: the same Decisions entry lists every doc change
 - ISC-1153: grep -c "open questions 15..22" PROJECTS.md = 1
 - ISC-1152: git log: 7a5780e "docs: real-time plan round 2, command pause assessed, questions 15..22" on main; closed by the following ISA commit
+
+### Real-time plan approved, kickoff (2026-09-12)
+
+- ISC-1154: grep -c "Agreed with recommendation" docs/realtime-plan.md = 21; row 1 "| 250 ms |"; row 19 filled with the chat note
+- ISC-1155: Read line 3: "Status: APPROVED 2026-09-12; nothing built yet ... Implementation starts with stage 1 from the \"Stage 1 kickoff\" section"
+- ISC-1156: grep "## Stage 1 kickoff" = 1; subsections "Settled constants and decisions", "Build order", "Exit gate", "Session gotchas"
+- ISC-1157: Read: kickoff table values match the tick table, AP table, Overwatch, Command points, Input summary and Scene rows above
+- ISC-1158: Read: build order numbered 1..12, step 12 tags v2.0.0-alpha.1 and checks the root still reads v1.1.0
+- ISC-1159: grep "APPROVED 2026-09-12" CLAUDE.md = 1
+- ISC-1160: grep "Stage 1 kickoff" PROJECTS.md = 1
+- ISC-1161: git diff --stat main -- packages/ printed 0 lines
+- ISC-1162: grep '—' docs/realtime-plan.md = 0; this run's ISA text = 0
+- ISC-1163: kickoff section line count under 80 (sed from the header to end of file, wc -l)
+- ISC-1164: Read: Decisions "real-time plan approved, kickoff" entry present

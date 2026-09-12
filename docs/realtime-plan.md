@@ -1,6 +1,6 @@
 # Real-time Sulk: plan for the 2.x line
 
-Status: PROPOSAL, second round, 2026-09-12. Nothing in this document is implemented. Round one (ISA run block ISC-1095..1133) was reviewed and Harry answered open questions 1 to 14 and added the command pause idea; round two (ISC-1134..1153) folds those answers in, assesses the idea, and asks the questions it raises (15 onward). Implementation waits for those answers and gets its own run blocks per stage.
+Status: APPROVED 2026-09-12; nothing built yet. Round one (ISA run block ISC-1095..1133) was reviewed and Harry answered open questions 1 to 14 and added the command pause idea; round two (ISC-1134..1153) folded those answers in, assessed the idea and asked questions 15 to 22, which Harry answered the same day (all agreed). Every open question now carries a decision; the Decision column is the record. Implementation starts with stage 1 from the "Stage 1 kickoff" section at the end of this document and gets its own ISA run block per stage.
 
 ## Summary
 
@@ -414,17 +414,64 @@ Each with the recommended default. Decisions belong to Harry. Questions 1 to 14 
 | 12 | Version line | 2.0.0-alpha.N tags, root moves at 2.0.0 | root moves at each alpha | Agreed with recommendation |
 | 13 | Identity: is 2.x still Sulk, or a new game beside it? | same repo and name, 1.x frozen as the faithful port | a new name for the real-time game once stage 1 has a verdict | Agreed with recommendation |
 | 14 | Direct control lease | a few ticks after the last key press during which no order moves the marine | none (orders may move him at once) | Agreed with recommendation |
-| 15 | Command pause: replace CP or coexist | replace CP outright when the pause lands (stage 4); CP stays until then | keep both (two currencies) | |
-| 16 | Pause pool numbers and randomness | cap 10 s plus 10 s per living sergeant or captain; recharge 1 s per cycle plus 1 s per cycle per sergeant or captain; no random element | keep the original d6: each cycle rolls 1..6 s into the pool (random top-up, hidden information kept) | |
-| 17 | Reflex-save rule | no lockout in the first metered build; the budget prices the panic | lockout: no pause for about 1 s of game time after a new contact or an overwatch trigger | |
-| 18 | Accessibility free pause with orders | ship `?pause=free` as a run-level setting chosen before the mission | do not ship it; the unmetered pause exists only in the stage 3 prototype | |
-| 19 | Sergeant loss once the pause exists | both axes stack with floors: relay latency and a smaller, slower pool | pool scaling only; latency retired at stage 4 | |
-| 20 | Pause placement | unmetered prototype in stage 3, metered and replacing CP in stage 4 | metered from stage 3 | |
-| 21 | Captains | the pool and relay rules read "sergeant or captain" from day one, but no captain piece class exists; add the captain (grenades, per docs/status.md) as its own item after 2.0.0 | fold the captain into stage 4 | |
-| 22 | Direct control during the pause | none (as proposed); the paused player only issues orders | allow direct-control keys to queue as L1 orders at the resume tick | |
+| 15 | Command pause: replace CP or coexist | replace CP outright when the pause lands (stage 4); CP stays until then | keep both (two currencies) | Agreed with recommendation |
+| 16 | Pause pool numbers and randomness | cap 10 s plus 10 s per living sergeant or captain; recharge 1 s per cycle plus 1 s per cycle per sergeant or captain; no random element | keep the original d6: each cycle rolls 1..6 s into the pool (random top-up, hidden information kept) | Agreed with recommendation |
+| 17 | Reflex-save rule | no lockout in the first metered build; the budget prices the panic | lockout: no pause for about 1 s of game time after a new contact or an overwatch trigger | Agreed with recommendation |
+| 18 | Accessibility free pause with orders | ship `?pause=free` as a run-level setting chosen before the mission | do not ship it; the unmetered pause exists only in the stage 3 prototype | Agreed with recommendation |
+| 19 | Sergeant loss once the pause exists | both axes stack with floors: relay latency and a smaller, slower pool | pool scaling only; latency retired at stage 4 | Agreed with recommendation (Harry said "all agreement" in chat 2026-09-12; the cell was blank) |
+| 20 | Pause placement | unmetered prototype in stage 3, metered and replacing CP in stage 4 | metered from stage 3 | Agreed with recommendation |
+| 21 | Captains | the pool and relay rules read "sergeant or captain" from day one, but no captain piece class exists; add the captain (grenades, per docs/status.md) as its own item after 2.0.0 | fold the captain into stage 4 | Agreed with recommendation |
+| 22 | Direct control during the pause | none (as proposed); the paused player only issues orders | allow direct-control keys to queue as L1 orders at the resume tick | Agreed with recommendation |
 
 ## CP Replacement Idea
 
 (Harry, round 1. Assessed and made precise in "Command pause" under Command model; consequences traced through Command points, Sergeant loss, Input summary, Determinism, Stages 3 and 4, Risks, and open questions 15 to 22.)
 
 For a later stage, we could introduce a game state where the player effectively pauses the game for a limited time and is able to issue multiple orders all at once. The length of time depends on the number of sergeants / captains available - if they are alive there is more time to issue orders. The time for orders also needs to “charge up” e.g. if it’s possible for pause for 30 seconds to issue a bunch of orders (no manual control in this game state), once the time is depleted, if the player enters this state a few seconds later, there might be only 5 seconds to issue orders - ticks would recharge this “pause time”. We need a good time for this mode and it needs to be reviewed.
+
+## Stage 1 kickoff
+
+Read this section first when starting stage 1 in a fresh session. It is the handover; the sections above are the reference.
+
+### Settled constants and decisions
+
+| Item | Value |
+|---|---|
+| Version | v2.0.0-alpha.1 tag with its own frozen directory; the stable root stays at v1.1.0 until v2.0.0; the ship report names the URL that has the change; watch deploy-latest and the release run to green |
+| Tick | 250 ms, client-side; `?tick=<ms>` override; `?tick=0` stops the clock for e2e and `window.sulk.step(n)` advances n ticks |
+| Cycle | 40 ticks; every per-turn mission number fires per cycle; per-entity offsets inside the cycle (entry index times 5 ticks; C.A.T., download and CP roll at distinct offsets) |
+| AP | caps 4 marine, 6 stealer, 6 blip; regeneration marine 1 per 4 ticks, stealer and blip 1 per 2 ticks; integer accumulators; constants live as unvalidated data in CostTables.ts with a `?tuning=` override; the first sweep also tries marine 1 per 3 |
+| Overwatch | persistent; free reaction shots through the existing overwatchReactions; OVERWATCH_COOLDOWN 2 ticks; jam on doubles kept; both under unit test before the stage ships |
+| Command points | kept in stage 1 exactly as today (d6 per cycle, P for +1 AP); replaced by the command pause in stage 4 |
+| Pause | Esc: free pause, clock stops, no orders, no keys (the only pause in stages 1 and 2) |
+| Turn-based 1.x | frozen at /1.1.0/; no mode in code; the endMarinePhase shim below is test-only and dies in stage 2 |
+| Scene | LiveScene.ts beside GameScene.ts, selected by `?rules=live`; GameScene and replayFocus.ts deleted only when the e2e suite is green on LiveScene |
+| Marine AI | the seven-step default list in "Default behaviour"; flamer never fires on its own except the last-stand rule; cannon autofire only under direct control in stage 1; cannon reloads on its own when empty and no stealer is visible |
+
+### Build order (each step leaves the suites green)
+
+1. Engine clock: `tickCount`, `cycle`, `tick()`, `runTicks(n)`; `PhaseName` becomes `'Deploy' | 'Live'`; the tail of `endMarinePhase` moves into a cycle-boundary function in the same order (spawn, ambush counter, download, victory, flames expire, C.A.T., victory, defend limit, CP roll); `endMarinePhase()` survives as `runTicks(CYCLE)` so the mission and victory specs port by search and replace. AP reset goes; `apChanged` fires on gain.
+2. AP accumulators on Piece with the regeneration table in CostTables.ts; `Board.flaming` becomes a map of square to expiry tick; `expireFlames(board, tick)` replaces `clearFlames`.
+3. Command queue: `engine.command(marineId, action)` enqueues; drained at tick step 1, one per marine per tick; GameLogger records `(tick, marineId, action)`; nothing in the client calls piece methods directly.
+4. Stealer side: `stealerTick` extracted from the loop body of `runStealerActions` (StealerAI.ts lines 198 to 322 today); plan cached on the board, recomputed every 8 ticks or on marine death; threat map cached under a board version counter bumped on move, door change and death; blip voluntary conversion "has not acted" becomes "idle K ticks"; chargeOrientation at the cycle boundary; hive.spec keeps counting zero dice.
+5. Overwatch persistence and cooldown in StormBolterMarine (drop the resetAP override, add the cooldown tick, sustained-fire decay by idle ticks); AssaultCannon cooldowns in ticks.
+6. `ai/MarineAI.ts`: the default decision list and the per-type minimum; helpers lifted from MarineAutopilot.ts (shootNearest, adjacency, facing); MarineAutopilot keeps only what the fixtures need until stage 2 rewrites it as the order issuer.
+7. Engine tests: tick sequences with RollQueue for every ported scenario; MarineAI decision-order spec; overwatch cooldown and jam spec; the same-seed same-log state-hash spec; a lint rule banning `Date` and `performance` under packages/engine/src. Pinned seeds are re-pinned once, after the last behavioural change of the stage.
+8. Client LiveScene.ts: fixed-step accumulator in update() (at most 4 ticks per frame, halted by pause and game over); reuse GameScene's sprite refresh, hover, camera, deployment mode and flamer aiming by moving them into shared modules first; no endTurn, no replay scheduling, no `animating`, no fog snapshots, no phase timer; HUD timer becomes the cycle counter; DONE becomes the pause button; Esc pauses; `window.sulk.step(n)`.
+9. Fog: dirty flag set by pieceMoved, doorToggled, doorDestroyed, pieceDied, sectionFlamed, flamesCleared; recompute at most once per frame; delete the snapshot fields.
+10. E2e: stepping harness; a debug_1 win and a space_hulk_1 loss driven by `sulk.step`; the key-driven tests keep the `seenKeyEvents` dedupe; real-browser boot check.
+11. Docs: features.md Controls, architecture.md "one tick" in place of "one full turn", rules-reference.md, the manual's rules text, CLAUDE.md invariants (capture/replay, two-level sight conversion, hive turn rotation all change).
+12. Tag v2.0.0-alpha.1, watch the run green, publish the release, verify the frozen directory and that the root still reads v1.1.0.
+
+### Exit gate
+
+The stage's exit criteria are in "Stage 1: the clock" above. The two human questions decide whether stage 2 starts: does square-per-AP movement under direct control feel like moving or stuttering, and is real time more fun than the timed phase. Record both verdicts in the ISA Decisions.
+
+### Session gotchas worth knowing before the first command
+
+- Interceptor's CLI was blocked all day by a stale daemon on port 19222 that needs the browser extension reloaded by hand; the Claude-in-Chrome tab froze Phaser when hidden; headless Playwright scripts run from inside packages/client (copy the .mjs there so `@playwright/test` resolves) were the working verification path.
+- `packages/engine/tsconfig.tsbuildinfo` gets dirtied by builds; `git checkout --` it before commits.
+- Chained `sleep` commands are blocked; use `until ... ; do sleep 5; done` loops in the background for Pages propagation.
+- The advisor (Inference.ts) answers a terse question with `--timeout 400000`; a long question timed out.
+- No em dashes anywhere, ever; commit messages carry the Claude co-author and session trailers.
+- ISA.md's Criteria section holds sixteen runs; when a stage run closes, archive the oldest kept runs to docs/isa per the archive protocol at the top of Criteria.

@@ -4,10 +4,10 @@ task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: "946/946 (fog of war shipped locally: ISC-989..1013; ISC-71 deferred)"
+progress: "951/951 (fog of war RESUMED on branch fog-of-war 2026-09-12, main v0.6.1 merged in: ISC-989..1018; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-08-21T01:35:00Z
+updated: 2026-09-12T00:00:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -370,6 +370,18 @@ Review round (2026-08-21):
 - [x] ISC-1012: marineEscaped marks the fog dirty by construction, not by event-ordering coupling (Read)
 - [x] ISC-1013: when the mission ends and the replay has shown it, the fog lifts: overlay cleared, all stealers revealed for the post-mortem; never mid-replay (Read)
 
+### Fog of war parked 2026-08-24, resumed 2026-09-12
+
+ISC-989..1013 (the fog run block above) were reserved on main while the feature sat on branch `fog-of-war`; the reservation held and main (v0.6.1 head plus the parking record below) was merged into the branch on 2026-09-12. The next run allocates from ISC-1019.
+
+### Fog of war parked, main restored to stable (2026-08-24, tenth run)
+
+- [x] ISC-1014: branch fog-of-war exists and contains exactly the three fog commits d6c66bf, 258a03f, 1418ca9 (git log)
+- [x] ISC-1015: main is reset to origin/main 4fa53ee, the v0.6.1 head, with a clean tree (git status + rev-parse)
+- [x] ISC-1016: this ISA on main names the branch, its contents, and how to resume (Read)
+- [x] ISC-1017: Anti: ISC IDs 989..1013 are reserved on main so a future run cannot collide with the branch's run block (Read)
+- [x] ISC-1018: Anti: zero fog code remains on main: no utils/fog.ts, no updateFog reference in GameScene (ls + grep)
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
@@ -566,6 +578,8 @@ Review round (2026-08-21):
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-08-24 (fog parked): user verdict on the fog-of-war build: "hold on this for now... it needs more work but I want to make some other changes to the stable release first". The complete, review-hardened feature is parked on branch `fog-of-war` (tip 1418ca9; three commits: the feature, the review-round fixes, the ISA record). What it contains: stealers hidden outside marine LOS with a Chebyshev-2 creep reveal, 0.42 dim overlay on unseen squares at depth 0.7, blips/minimap untouched, replay-frozen sight set with a pre-phase marine snapshot for the creep reveal, side channels closed (hover, click, L-cone), ?fog=0 escape hatch, 10 pure vitest cases, all suites and live probes green at park time. Its ISA run block (ISC-989..1013, all [x]) rides the branch; those IDs are reserved on main, next allocation starts at ISC-1019. TO RESUME: `git checkout fog-of-war`, then either rebase onto main or merge main in; re-run pnpm -r test plus the fog Playwright probe after; the known open design questions are in the branch ISA's fog Decisions entries (creep-radius wall-leak tunable vs BFS, ambiguous-marker rendering instead of full sprite for the hearing reveal). Branch intentionally NOT pushed; the branches-on-main exception was explicit user instruction, overriding the direct-to-main default for this repo.
 
 - 2026-08-21 (fog-of-war run, code review): code-reviewer found one CRITICAL, one MEDIUM, four nits; all but one adopted (ISC-1009..1013). CRITICAL: updateFog read live engine.marines every frame, but the whole stealer phase resolves synchronously inside PieceEvents.capture BEFORE frame 1 of the replay, so a marine killed this phase was already spliced out of engine state and projected no creep reveal for the entire animation: his killer approached and struck invisibly, and the missing reveal doubled as an inverse payload-not-engine leak (it told the player who was already dead). My own melee-attacker-always-revealed test missed it because it hands threatRevealed a literal marines array. Fix mirrors the existing anchors snapshot two lines above (same splice hazard, same cure): fogMarineSnap taken in endTurn, used by fogMarines() while animating, cleared in finishReplay; hover guard shares fogMarines(). MEDIUM: the pointerdown hit test scans children.list manually and ignored visible, so a fog-hidden stealer was clickable, which forced the highlight visible at its square, leaked its AP to the HUD, and let the L key paint its whole vision cone above the fog; fixed with a visible gate on the hit predicate. Nits adopted: marineEscaped added to the dirty triggers (was correct only via pieceMoved ordering coupling), game-over fog lift gated on !animating (post-mortem readability without leaking the result mid-replay), hover guard exempted during Deploy. Nit skipped: per-frame allocation micro-optimization outside replays (few marines, few stealers, not measurable). Reviewer confirmed clean: coordinate math (tile flips at the 50% pixel mid-tween as intended, lunge 10px never flips a tile), ?fog=0 truly zero-change (pieceKind stash has exactly two occurrences), sprite lifecycle races, permanent desync impossibility, capture-buffering vs fogDirty, AmbushCounter is kind blip, fire reticle cannot mark a hidden stealer (90 degree arc is a strict subset of the 180 degree sight arc over the same LOS).
 

@@ -4,10 +4,10 @@ task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: "1023/1023 (toward v1.1: ISC-1080..1090 on /latest/; ISC-1038 dropped; ISC-71 deferred)"
+progress: "1027/1027 (v1.1.0 released: ISC-1091..1094; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T13:20:00Z
+updated: 2026-09-12T13:50:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -470,6 +470,13 @@ Review round (2026-09-12):
 - [x] ISC-1089: Anti: zero em dashes on any added line (git diff grep)
 - [x] ISC-1090: both changes pushed to main and live on /latest/ with the callout URL in the ship report; v1.1.0 is NOT cut in this run (user chooses when the minor closes) (git push, curl /latest/manifest.json)
 
+### v1.1.0 released (2026-09-12, fifteenth run)
+
+- [x] ISC-1091: v1.1.0 released through the codified order: main already pushed (8a83743), tag pushed, run 34690875591 green (verify-build-publish, deploy, redispatch-latest) FIRST, then the release published at https://github.com/harryf/sulkweb/releases/tag/v1.1.0 (gh run view + gh release create)
+- [x] ISC-1092: live root and frozen /1.1.0/ manifests both read v1.1.0 at sha 8a83743; /latest/ re-stamped at the same sha (curl)
+- [x] ISC-1093: Anti: /1.0.0/ and /0.6.1/ manifests unchanged (curl)
+- [x] ISC-1094: live root boots space_hulk_1 with fog on and zero page or console errors (headless Playwright probe)
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
@@ -666,6 +673,8 @@ Review round (2026-09-12):
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-12 (v1.1.0 release): user asked to cut v1.1.0 and asked why main was "still on 0.6.1". It was not: the previous ship report's STORY bullet described the state BEFORE the v1.0.0 run, and the root was serving v1.0.0 at the time. Lesson for the ship report: the story's first bullet must be time-stamped as the starting state or dropped, never read as current. Release cut from main 8a83743 with the two v1.1 items (conversion facing, wheel panning); title "v1.1.0: squared up and scrolling". Old versions stay frozen under /1.0.0/ and /0.6.1/, listed on versions.html.
 
 - 2026-09-12 (toward v1.1, plan): user asked for two small improvements for the next minor version. (1) Stealers emerging from a converted blip face their nearest marine, reusing the same rule the hive's phase-end charge sweep applies (facingToward + Chebyshev nearest, board-order tie) but at the moment of conversion, so a contact that bursts out of hiding is already turned toward its prey; the sweep still runs at phase end for everyone else. Placed in Blip.convert (the single conversion site, AmbushCounter routes through super.convert) rather than in the two callers. No dice consumed, so pinned engine fixtures hold. (2) Mouse wheel pans the camera like the arrow keys: wheel down pans down, horizontal wheel or trackpad swipe pans sideways; implemented as direct scroll writes (the drag precedent) that cancel inertia and any programmatic pan, ignored over the HUD strip. Shipped to main, which lands on /latest/ only; v1.1.0 not cut here since the user framed these as items FOR the next minor, and the minor may collect more.
 
@@ -948,3 +957,10 @@ Latest-pipeline hardening run (2026-08-20 seventh run, ISC-969..975):
 - ISC-1088: pnpm client e2e: 124 passed (54.2s); client unit 105/105
 - ISC-1089: git diff HEAD | grep '^+' | grep -c em dash: 0
 - ISC-1090: git push e6a5d16..3e21a48 main; deploy-latest green; curl /latest/manifest.json reads latest-3e21a48; root still v1.0.0
+
+### v1.1.0 release (2026-09-12)
+
+- ISC-1091: gh run view 34690875591: success | verify-build-publish:success, deploy:success, redispatch-latest:success; then gh release create printed https://github.com/harryf/sulkweb/releases/tag/v1.1.0
+- ISC-1092: curl root {"version":"v1.1.0","sha":"8a837432...","built":"2026-09-12T11:23:06Z"}; /1.1.0/ identical; /latest/ reads latest-3e21a48 (the code head; 8a83743 differs from it by ISA text only)
+- ISC-1093: curl /1.0.0/ {"version":"v1.0.0","sha":"46aadd30..."} and /0.6.1/ {"version":"v0.6.1","sha":"05220d1c..."} unchanged
+- ISC-1094: headless probe on the root: {"phase":"MarineAction","turn":1,"fog":true,"fogSight":5,"blipsVisible":"2/2","errors":[]}

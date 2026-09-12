@@ -9,9 +9,10 @@ import { squareSeenByMarine } from '../board/vision.js';
 import { looseCatPos, intactDucting, stealerExoticInteractions } from '../rules/exotic.js';
 import { DIR_VEC, ORTHO_VECS, chebyshev, facingToward, turnToward } from '../core/Direction.js';
 import { openDoorWithEvent, closeDoorWithEvent } from '../rules/Door.js';
+import { TUNING } from '../core/CostTables.js';
 import {
   computeThreat, planHive, pathStep, threatPenalty, marineDistanceField, distanceField,
-  type HiveContext, type HivePlan, type ThreatMap, type PathOpts,
+  type HiveContext, type HivePlan, type HiveRole, type ThreatMap, type PathOpts,
 } from './hive.js';
 
 export { squareSeenByMarine };
@@ -61,11 +62,12 @@ function stepAlong(board: Board, piece: Piece, isGoal: (c: Coord) => boolean, op
   if (door && !door.isOpen) {
     if (piece.ap < 1) return 'wait';
     // A blip may not open a door that would expose it to marine sight
-    // (original Blip.can_use_door "pretend it's open" check).
+    // (original Blip.can_use_door "pretend it's open" check). Silent peek:
+    // the probe must not register as a board change.
     if (piece.kind === 'blip') {
-      door.open();
+      door.open(true);
       const exposed = squareSeenByMarine(board, piece.pos);
-      door.close();
+      door.close(true);
       if (exposed) return 'wait';
     }
     openDoorWithEvent(door, piece);
@@ -146,12 +148,12 @@ function tryCloseUsefulDoor(board: Board, piece: Piece): boolean {
       const beforePiece = seenNow(piece.pos);
       const beforeFlanks = flanks.map(seenNow);
       if (!beforePiece && !beforeFlanks.some(Boolean)) continue; // nothing peers through
-      door.close(); // silent peek, like the blip door-exposure probe
+      door.close(true); // silent peek, like the blip door-exposure probe
       const afterPiece = seenNow(piece.pos);
       // The marine-side flank never goes dark — what matters is that OUR side
       // of the doorway flips out of sight and we ourselves end hidden.
       const flipped = flanks.some((f, i) => beforeFlanks[i] && !seenNow(f));
-      door.open();
+      door.open(true);
       if (afterPiece || !flipped) continue; // closing would not take us dark
       closeDoorWithEvent(door, piece);
       return true;
@@ -161,173 +163,237 @@ function tryCloseUsefulDoor(board: Board, piece: Piece): boolean {
 }
 
 /**
- * AI1 — the whole stealer side takes its actions as a hive (see ai/hive.ts):
- * - a per-turn plan assigns each piece assault / stage / block / hold
- * - assault pieces charge (threat-weighted) and fight adjacent marines
- * - stage pieces mass on hidden squares near the squad and shut doors
- * - the blocker walks into the fire lane and parks — its body blocks LOS
- * - blips convert when they end in marine sight; every action triggers
- *   overwatch reactions and a sight re-check (unchanged AI0 invariants)
+ * One activation step of a stealer-side piece under the hive plan: the
+ * loop body every driver shares. Returns 'acted' when the piece took an
+ * action and could take another, 'stop' when it holds (in position, queued,
+ * boxed in, converted, dead, or the squad is gone). A stealer's free 90°
+ * turn before a step is part of that step, not an action of its own.
  */
-export function runStealerActions(board: Board, ctx: HiveContext = {}): void {
-  if (marines(board).length === 0) return;
-  const plan: HivePlan = planHive(board, computeThreat(board), ctx);
+function stealerAct(board: Board, p: Piece, plan: HivePlan, threat: ThreatMap, role: HiveRole, hunt: Coord | undefined): 'acted' | 'stop' {
+  const squad = marines(board);
+  if (squad.length === 0) return 'stop';
+  // Attack any adjacent marine (orthogonal first — that's the CC lineup),
+  // not just the array-order "nearest" one. Among adjacent marines, an
+  // un-jammed OVERWATCHER dies first: he is the wave-breaker, and every
+  // burst he doesn't fire is stealers arriving unshot.
+  const watcherFirst = (list: Piece[]) =>
+    list.find(m => m instanceof StormBolterMarine && m.overwatch && !m.jammed) ?? list[0];
+  const adjOrtho = squad.filter(m => Math.abs(m.pos.c - p.pos.c) + Math.abs(m.pos.r - p.pos.r) === 1);
+  const adjAny = squad.filter(m => chebyshev(m.pos, p.pos) === 1);
+  const marine = (adjOrtho.length ? watcherFirst(adjOrtho) : undefined)
+    ?? (adjAny.length ? watcherFirst(adjAny) : undefined)
+    ?? nearestMarine(board, p.pos)!;
 
-  // Activation order: board order (test-stable), except a wave striking into
-  // live fire lanes goes nearest-first so the column unwinds front-to-back.
-  let order = [...board.pieces];
-  if (plan.launched && computeThreat(board).kill.size > 0) {
+  // Exotic objectives: an adjacent loose C.A.T. or intact ducting square
+  // is stepped ONTO (they don't occupy) — skewering the cat / tearing the
+  // duct out (mission 3 / mission 6).
+  if (p.kind === 'stealer') {
+    const exoticSpots = [looseCatPos(board), ...intactDucting(board)]
+      .filter((t): t is Coord => t !== undefined);
+    const spot = exoticSpots.find(t =>
+      chebyshev(p.pos, t) === 1 && board.isPassable(t) && !board.isOccupied(t));
+    if (spot) {
+      turnToward(p, facingToward(p.pos, spot));
+      if (p.tryMove(spot.c - p.pos.c, spot.r - p.pos.r)) {
+        stealerExoticInteractions(board, p);
+        overwatchReactions(board, p);
+        convertRevealedBlips(board);
+        return p.alive ? 'acted' : 'stop';
+      }
+    }
+  }
+
+  if (p.kind === 'stealer' && chebyshev(p.pos, marine.pos) === 1) {
+    // Face the marine, then rend
+    turnToward(p, facingToward(p.pos, marine.pos));
+    // Diagonal adjacency: CC needs the marine straight ahead — step around instead
+    const v = DIR_VEC[p.facing];
+    const ahead = { c: p.pos.c + v.dc, r: p.pos.r + v.dr };
+    if (ahead.c === marine.pos.c && ahead.r === marine.pos.r) {
+      const survived = closeCombat(p, marine);
+      // A CC death vacates a square — sight lines may open onto a blip. The
+      // sight re-check lives HERE, not on an event handler, so every driver
+      // (ticks, tests, the old captured phase) behaves alike.
+      convertRevealedBlips(board);
+      if (!survived) return 'stop';
+      overwatchReactions(board, p);
+      convertRevealedBlips(board);
+      return p.alive ? 'acted' : 'stop';
+    }
+  }
+
+  // ---- role movement ----
+  let step: 'acted' | 'wait' | 'none';
+  if (role === 'stage') {
+    const target = plan.stagingTarget.get(p.id) ?? p.pos;
+    if (target.c === p.pos.c && target.r === p.pos.r) {
+      // In position: shut a useful door if one is at hand, then hold.
+      tryCloseUsefulDoor(board, p);
+      return 'stop';
+    }
+    const avoid = p.kind === 'blip'
+      ? new Set([...threat.kill, ...threat.seen])
+      : threat.kill;
+    step = stepAlong(board, p, c => c.c === target.c && c.r === target.r,
+      { avoid, penalty: threatPenalty(threat) });
+    if (step === 'none') {
+      // The safe route vanished (a door, a death) — hold hidden rather than
+      // blunder into the open; the next plan re-evaluates.
+      tryCloseUsefulDoor(board, p);
+      return 'stop';
+    }
+  } else if (role === 'block') {
+    // Raw shortest path into the fire lane — the sacrifice takes the
+    // reaction bursts (each one a jam roll) and parks on the first watched
+    // square it survives, shutting the corridor behind its body.
+    const goals: Coord[] = marines(board).map(m => m.pos);
+    step = stepToward(board, p, goals);
+  } else {
+    const goals: Coord[] = hunt ? [hunt] : marines(board).map(m => m.pos);
+    if (p.kind === 'stealer' && !hunt) {
+      const cat = looseCatPos(board);
+      if (cat) goals.push(cat);
+      goals.push(...intactDucting(board));
+    }
+    step = stepToward(board, p, goals, threat);
+  }
+
+  if (p.kind === 'blip' && step !== 'acted') {
+    // The blip cannot advance (marine sight / adjacency bars it, or it is
+    // boxed in). Original play: convert voluntarily — legal while the blip
+    // has never acted, or in real time once it has idled long enough — once
+    // marines are near (within 6 squares), so the stealers inside can charge
+    // from cover. A FRUSTRATED blip (idle for cycles) converts even with the
+    // marines far: stealers have no exposure caution, so they unjam the
+    // queue and go hunting — the fix for a blip parked forever at a door it
+    // refuses to open.
+    const blip = p as Blip;
+    const near = marines(board).some(m => chebyshev(m.pos, p.pos) <= 6);
+    if ((near || plan.frustrated.has(p.id)) && blip.canConvert()) {
+      blip.convert();
+      convertRevealedBlips(board);
+    }
+    return 'stop';
+  }
+  if (step === 'wait') return 'stop'; // queued behind a friend — hold, don't burn AP or flap doors
+  if (step === 'none') {
+    // No path at all — last-resort safety net: open any adjacent door.
+    if (!openAdjacentDoor(board, p)) return 'stop';
+    convertRevealedBlips(board); // the opened door may expose a blip
+    return 'acted'; // door opened; the next step tries the path again
+  }
+  overwatchReactions(board, p);
+  // A path step can land on the cat / a ducting square in passing.
+  stealerExoticInteractions(board, p);
+  // The step (and any door it opened, and any overwatch death) changed
+  // sight lines — convert every blip a marine now sees, including p itself
+  // if it just stepped into view. Idempotent; converted pieces go !alive.
+  convertRevealedBlips(board);
+  if (!p.alive) return 'stop';
+  // The blocker parks on the first fire-lane square it survives: from here
+  // its body blocks the sight line and the mass builds up behind it.
+  if (role === 'block' && threat.kill.has(`${p.pos.c},${p.pos.r}`)) return 'stop';
+  return 'acted';
+}
+
+/** Activation order: board order (test-stable), except a wave striking into
+ *  live fire lanes goes nearest-first so the column unwinds front-to-back. */
+function activationOrder(board: Board, plan: HivePlan, threat: ThreatMap): Piece[] {
+  let order = [...board.pieces] as Piece[];
+  if (plan.launched && threat.kill.size > 0) {
     const near = (p: Piece) => {
       const m = nearestMarine(board, p.pos);
       return m ? chebyshev(m.pos, p.pos) : 999;
     };
-    order = order.slice().sort((a, b) => near(a as Piece) - near(b as Piece));
+    order = order.slice().sort((a, b) => near(a) - near(b));
   }
+  return order;
+}
 
-  for (const piece of order) {
-    const p = piece as Piece;
+/** Per-board tick memory: the cached plan and the version-keyed threat map. */
+interface TickState {
+  plan: HivePlan;
+  planTick: number;
+  marineCount: number;
+  threat: ThreatMap;
+  threatVersion: number;
+}
+const tickStates = new WeakMap<Board, TickState>();
+
+/**
+ * Real-time driver (2.x): one tick of the stealer side. The hive plan is
+ * recomputed every TUNING.hivePlanTicks ticks or as soon as a marine has
+ * died; the threat map is recomputed at most once per tick and only when the
+ * board changed since it was last computed (board.version), so a quiet tick
+ * costs nothing. Each stealer-side piece with AP takes at most ONE action,
+ * followed by the same reaction chain as ever (overwatch fire, exotic
+ * interactions, blip sight conversion). Charge orientation is the cycle
+ * boundary's job (GameEngine), not this tick's.
+ */
+export function stealerTick(board: Board, ctx: HiveContext = {}): void {
+  const marineCount = marines(board).length;
+  if (marineCount === 0) return;
+  let st = tickStates.get(board);
+  if (st && st.threatVersion !== board.version) {
+    st.threat = computeThreat(board);
+    st.threatVersion = board.version;
+  }
+  const planDue = !st
+    || board.tick - st.planTick >= TUNING.hivePlanTicks
+    || marineCount < st.marineCount;
+  if (planDue) {
+    const threat = st?.threat ?? computeThreat(board);
+    st = {
+      plan: planHive(board, threat, ctx),
+      planTick: board.tick,
+      marineCount,
+      threat,
+      threatVersion: board.version,
+    };
+    tickStates.set(board, st);
+  }
+  const state = st!;
+  for (const p of activationOrder(board, state.plan, state.threat)) {
+    if (p.kind === 'marine' || !p.alive || p.ap <= 0) continue;
+    const role = state.plan.roles.get(p.id) ?? 'assault';
+    if (role === 'hold') continue; // the parked blocker keeps blocking — no action, no reaction fire
+    stealerAct(board, p, state.plan, state.threat, role, state.plan.huntTarget.get(p.id));
+    if (marines(board).length === 0) return;
+  }
+}
+
+/**
+ * Whole-activation driver: every stealer-side piece drains its AP in one
+ * call under a fresh plan, then the charge sweep runs. This was the stealer
+ * PHASE of the 1.x turn game; in 2.x it is a TEST HELPER for the hive's
+ * behaviour fixtures (hive.spec, ai_pathing.spec, blips_ai.spec), which
+ * stage a board and ask "what does the horde do with a full activation".
+ * The engine never calls it; stealerTick is the live driver.
+ */
+export function runStealerActions(board: Board, ctx: HiveContext = {}): void {
+  if (marines(board).length === 0) return;
+  const plan: HivePlan = planHive(board, computeThreat(board), ctx);
+  for (const p of activationOrder(board, plan, computeThreat(board))) {
     if (p.kind === 'marine' || !p.alive) continue;
     const role = plan.roles.get(p.id) ?? 'assault';
-    if (role === 'hold') continue; // the parked blocker keeps blocking — no action, no reaction fire
+    if (role === 'hold') continue;
     // Fresh threat per activation: parked blockers, opened/closed doors and
     // dead watchers all change the map mid-phase.
     const threat = computeThreat(board);
     const hunt = plan.huntTarget.get(p.id);
-
     let guard = 0;
     while (p.alive && p.ap > 0 && guard++ < 20) {
-      const squad = marines(board);
-      if (squad.length === 0) return;
-      // Attack any adjacent marine (orthogonal first — that's the CC lineup),
-      // not just the array-order "nearest" one. Among adjacent marines, an
-      // un-jammed OVERWATCHER dies first: he is the wave-breaker, and every
-      // burst he doesn't fire is stealers arriving unshot.
-      const watcherFirst = (list: Piece[]) =>
-        list.find(m => m instanceof StormBolterMarine && m.overwatch && !m.jammed) ?? list[0];
-      const adjOrtho = squad.filter(m => Math.abs(m.pos.c - p.pos.c) + Math.abs(m.pos.r - p.pos.r) === 1);
-      const adjAny = squad.filter(m => chebyshev(m.pos, p.pos) === 1);
-      const marine = (adjOrtho.length ? watcherFirst(adjOrtho) : undefined)
-        ?? (adjAny.length ? watcherFirst(adjAny) : undefined)
-        ?? nearestMarine(board, p.pos)!;
-
-      // Exotic objectives: an adjacent loose C.A.T. or intact ducting square
-      // is stepped ONTO (they don't occupy) — skewering the cat / tearing the
-      // duct out (mission 3 / mission 6).
-      if (p.kind === 'stealer') {
-        const exoticSpots = [looseCatPos(board), ...intactDucting(board)]
-          .filter((t): t is Coord => t !== undefined);
-        const spot = exoticSpots.find(t =>
-          chebyshev(p.pos, t) === 1 && board.isPassable(t) && !board.isOccupied(t));
-        if (spot) {
-          turnToward(p, facingToward(p.pos, spot));
-          if (p.tryMove(spot.c - p.pos.c, spot.r - p.pos.r)) {
-            stealerExoticInteractions(board, p);
-            overwatchReactions(board, p);
-            convertRevealedBlips(board);
-            if (!p.alive) break;
-            continue;
-          }
-        }
-      }
-
-      if (p.kind === 'stealer' && chebyshev(p.pos, marine.pos) === 1) {
-        // Face the marine, then rend
-        turnToward(p, facingToward(p.pos, marine.pos));
-        // Diagonal adjacency: CC needs the marine straight ahead — step around instead
-        const v = DIR_VEC[p.facing];
-        const ahead = { c: p.pos.c + v.dc, r: p.pos.r + v.dr };
-        if (ahead.c === marine.pos.c && ahead.r === marine.pos.r) {
-          const survived = closeCombat(p, marine);
-          // A CC death vacates a square — sight lines may open onto a blip.
-          // This runs inside capture() during the animated phase, where event
-          // handlers are suppressed, so the sight re-check must live HERE.
-          convertRevealedBlips(board);
-          if (!survived) break;
-          overwatchReactions(board, p);
-          convertRevealedBlips(board);
-          continue;
-        }
-      }
-
-      // ---- role movement ----
-      let step: 'acted' | 'wait' | 'none';
-      if (role === 'stage') {
-        const target = plan.stagingTarget.get(p.id) ?? p.pos;
-        if (target.c === p.pos.c && target.r === p.pos.r) {
-          // In position: shut a useful door if one is at hand, then hold.
-          tryCloseUsefulDoor(board, p);
-          break;
-        }
-        const avoid = p.kind === 'blip'
-          ? new Set([...threat.kill, ...threat.seen])
-          : threat.kill;
-        step = stepAlong(board, p, c => c.c === target.c && c.r === target.r,
-          { avoid, penalty: threatPenalty(threat) });
-        if (step === 'none') {
-          // The safe route vanished mid-phase (a door, a death) — hold hidden
-          // rather than blunder into the open; the plan re-evaluates next turn.
-          tryCloseUsefulDoor(board, p);
-          break;
-        }
-      } else if (role === 'block') {
-        // Raw shortest path into the fire lane — the sacrifice takes the
-        // reaction bursts (each one a jam roll) and parks on the first watched
-        // square it survives, shutting the corridor behind its body.
-        const goals: Coord[] = marines(board).map(m => m.pos);
-        step = stepToward(board, p, goals);
-      } else {
-        const goals: Coord[] = hunt ? [hunt] : marines(board).map(m => m.pos);
-        if (p.kind === 'stealer' && !hunt) {
-          const cat = looseCatPos(board);
-          if (cat) goals.push(cat);
-          goals.push(...intactDucting(board));
-        }
-        step = stepToward(board, p, goals, threat);
-      }
-
-      if (p.kind === 'blip' && step !== 'acted') {
-        // The blip cannot advance (marine sight / adjacency bars it, or it is
-        // boxed in). Original play: convert voluntarily — legal only while the
-        // blip has taken no action — once marines are near (within 6 squares),
-        // so the stealers inside can charge from cover next turn. A FRUSTRATED
-        // blip (idle for turns) converts even with the marines far: stealers
-        // have no exposure caution, so they unjam the queue and go hunting —
-        // the fix for a blip parked forever at a door it refuses to open.
-        const blip = p as Blip;
-        const near = marines(board).some(m => chebyshev(m.pos, p.pos) <= 6);
-        if ((near || plan.frustrated.has(p.id)) && blip.canConvert()) {
-          blip.convert();
-          convertRevealedBlips(board);
-        }
-        break;
-      }
-      if (step === 'wait') break; // queued behind a friend — hold, don't burn AP or flap doors
-      if (step === 'none') {
-        // No path at all — last-resort safety net: open any adjacent door.
-        if (!openAdjacentDoor(board, p)) break;
-        convertRevealedBlips(board); // the opened door may expose a blip
-        continue; // door opened; try stepping again next iteration
-      }
-      overwatchReactions(board, p);
-      // A path step can land on the cat / a ducting square in passing.
-      stealerExoticInteractions(board, p);
-      // The step (and any door it opened, and any overwatch death) changed
-      // sight lines — convert every blip a marine now sees, including p itself
-      // if it just stepped into view. Idempotent; converted pieces go !alive.
-      convertRevealedBlips(board);
-      if (!p.alive) break;
-      // The blocker parks on the first fire-lane square it survives: from here
-      // its body blocks the sight line and the mass builds up behind it.
-      if (role === 'block' && threat.kill.has(`${p.pos.c},${p.pos.r}`)) break;
+      if (stealerAct(board, p, plan, threat, role, hunt) === 'stop') break;
     }
+    if (marines(board).length === 0) return;
   }
   chargeOrientation(board);
 }
 
 /**
- * Phase epilogue: every living stealer within CHARGE_DIST of a living marine
- * ends the phase facing its nearest prey. A FREE direct set (the combat
- * faceToward precedent) that runs AFTER all activations, so mid-phase move
+ * Charge sweep: every living stealer within CHARGE_DIST of a living marine
+ * ends the cycle facing its nearest prey. A FREE direct set (the combat
+ * faceToward precedent) that runs at the cycle boundary, so mid-cycle move
  * and turn economics are byte-identical to the un-charged hive; it emits a
  * facing-only pieceMoved ONLY when the facing actually changes. Rules note:
  * a human stealer player ends activations facing threats anyway, and the
@@ -342,29 +408,25 @@ export function chargeOrientation(board: Board): void {
     const f = facingToward(p.pos, prey.pos);
     if (f === p.facing) continue;
     p.facing = f;
+    board.touch();
     PieceEvents.emit('pieceMoved', { pieceId: p.id, x: p.pos.c, y: p.pos.r, facing: f });
   }
 }
 
-/** Place reinforcement blips on free entry squares. Returns the blips created.
- *
- *  Entry strategy (all deterministic, no dice):
+/**
+ * Entry order for a wave (all deterministic, no dice):
  *  - Entries a marine currently sees go LAST — a blip born in sight converts
  *    on the spot.
  *  - Unseen entries are RANKED by strategic value: distance to the marines'
  *    destination when known (the entry that feeds the fight fastest), else
  *    distance to the marines themselves. The bulk arrives through the top
- *    three, rotated by turn number so successive waves fan out.
- *  - Every third turn the first blip instead takes the unseen entry NEAREST
+ *    three, rotated by cycle number so successive waves fan out.
+ *  - Every third cycle the first blip instead takes the unseen entry NEAREST
  *    THE MARINES — a cheap feint that keeps a standing threat on their flank
  *    and forces them to keep covering that approach.
  */
-export function spawnBlips(
-  board: Board, entryPoints: Coord[], count: number,
-  turnNumber = 0, objectives: Coord[] = [],
-): Blip[] {
-  const blips: Blip[] = [];
-  if (entryPoints.length === 0) return blips;
+export function rankEntries(board: Board, entryPoints: Coord[], turnNumber = 0, objectives: Coord[] = []): Coord[] {
+  if (entryPoints.length === 0) return [];
   const marineFld = marineDistanceField(board);
   const objFld = objectives.length > 0 ? distanceField(board, objectives) : undefined;
   const strategic = objFld ?? marineFld;
@@ -375,18 +437,30 @@ export function spawnBlips(
   const ranked = [...unseen].sort((a, b) => val(strategic, a) - val(strategic, b));
   const top = ranked.slice(0, Math.min(3, ranked.length));
   const rotatedTop = top.map((_, n) => top[(turnNumber + n) % top.length]);
-  // Feint cadence keys on turn + casualties so a human can't count a fixed
-  // 3-turn clock — still a pure function of board state (seed-deterministic).
+  // Feint cadence keys on cycle + casualties so a human can't count a fixed
+  // 3-cycle clock — still a pure function of board state (seed-deterministic).
   const feint = marineFld.size > 0 && (turnNumber + board.stealerCasualties) % 3 === 1 && ranked.length > 1
     ? [...ranked].sort((a, b) => val(marineFld, a) - val(marineFld, b))[0]
     : undefined;
-  const ordered = [
+  return [
     ...(feint ? [feint] : []),
     ...rotatedTop.filter(e => e !== feint),
     ...ranked.filter(e => !top.includes(e) && e !== feint),
     ...watched,
   ];
+}
 
+/** Place `count` reinforcement blips at once on free entry squares in
+ *  rankEntries order, round-robin, skipping occupied entries. Returns the
+ *  blips created. The construction spawn and the test helpers use this; the
+ *  live engine schedules each blip at its entry's offset inside the cycle. */
+export function spawnBlips(
+  board: Board, entryPoints: Coord[], count: number,
+  turnNumber = 0, objectives: Coord[] = [],
+): Blip[] {
+  const blips: Blip[] = [];
+  const ordered = rankEntries(board, entryPoints, turnNumber, objectives);
+  if (ordered.length === 0) return blips;
   let i = 0;
   for (let n = 0; n < count; n++) {
     // round-robin over entry points, skipping occupied ones

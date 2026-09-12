@@ -120,7 +120,6 @@ describe('Mission 2 fidelity vs original Sulk BOARD', () => {
     expect(engine.marines.filter(p => p instanceof SergeantMarine)).toHaveLength(1);
     expect(engine.marines.filter(p => p instanceof HeavyFlamerMarine)).toHaveLength(1);
     expect(engine.marines.filter(p => p instanceof StormBolterMarine && !(p instanceof SergeantMarine))).toHaveLength(3);
-    expect(engine.marinePhaseSeconds).toBe(150); // sergeant +30s
   });
 
   it('every deployment square is an original M square, one marine per room (ISC-164/165)', () => {

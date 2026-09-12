@@ -39,9 +39,13 @@ export function flameFlood(board: Board, target: Square): Square[] {
  * true (self-destruct), every piece dies outright with no roll.
  */
 import { looseCatPos, destroyCat } from './exotic.js';
+import { TUNING } from '../core/CostTables.js';
 
 export function igniteSquares(board: Board, shooterId: string, squares: Square[], silent = false): string[] {
   const kills: string[] = [];
+  // Every square of one blast burns until the same tick: the original's
+  // end-phase dispersal becomes a per-flame lifetime on the board clock.
+  const expiry = board.tick + TUNING.flameTicks;
   for (const sq of squares) {
     const piece = board.pieceAt({ c: sq.x, r: sq.y }) as Piece | undefined;
     if (piece?.alive) {
@@ -50,8 +54,9 @@ export function igniteSquares(board: Board, shooterId: string, squares: Square[]
         piece.die();
       }
     }
-    board.flaming.add(`${sq.x},${sq.y}`);
+    board.flaming.set(`${sq.x},${sq.y}`, expiry);
   }
+  board.touch();
   // A loose C.A.T. caught in the blast dies outright (original update()).
   const catPos = looseCatPos(board);
   if (catPos && board.isFlaming(catPos)) destroyCat(board);
@@ -63,13 +68,29 @@ export function igniteSquares(board: Board, shooterId: string, squares: Square[]
   return kills;
 }
 
-/** End-phase flame dispersal (original Flames `persist = False`). */
-export function clearFlames(board: Board): void {
-  if (board.flaming.size === 0) return;
-  const squares = [...board.flaming].map(k => {
+/** Put out the given flame keys and announce them. */
+function douse(board: Board, keys: string[]): void {
+  if (keys.length === 0) return;
+  const squares = keys.map(k => {
     const [x, y] = k.split(',').map(Number);
     return { x, y };
   });
-  board.flaming.clear();
+  for (const k of keys) board.flaming.delete(k);
+  board.touch();
   PieceEvents.emit('flamesCleared', { squares });
+}
+
+/** Sweep out every flame whose expiry tick has arrived (engine tick step 5).
+ *  Returns how many squares went out. */
+export function expireFlames(board: Board): number {
+  if (board.flaming.size === 0) return 0;
+  const due = [...board.flaming].filter(([, expiry]) => expiry <= board.tick).map(([k]) => k);
+  douse(board, due);
+  return due.length;
+}
+
+/** Put every flame out at once (the original end-phase dispersal; kept for
+ *  tests and any mission rule that clears the board). */
+export function clearFlames(board: Board): void {
+  douse(board, [...board.flaming.keys()]);
 }

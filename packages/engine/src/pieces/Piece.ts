@@ -1,6 +1,6 @@
 import { Board } from '../board/Board.js';
 import { Dir, DIR_VEC, ORTHO_VECS, turn, toRelative } from '../core/Direction.js';
-import { MOVE_COST, TURN_COST, AP_PER_TURN } from '../core/CostTables.js';
+import { MOVE_COST, TURN_COST, TUNING } from '../core/CostTables.js';
 import { PieceEvents } from '../events/PieceEvents.js';
 import { dropCat } from '../rules/exotic.js';
 
@@ -21,28 +21,58 @@ export abstract class Piece {
   facing: Dir;
   ap: number;
 
-  protected constructor(kind: PieceKind, board: Board, start: Coord, facing: Dir, apPerTurn: number = AP_PER_TURN) {
+  protected constructor(kind: PieceKind, board: Board, start: Coord, facing: Dir, apCap?: number) {
     this.kind = kind;
     this.id = `p_${Piece.nextId++}`;
     this.board = board;
     this.pos = start;
     this.facing = facing;
-    this.apInitial = apPerTurn;
-    this.ap = apPerTurn;
+    this.apInitial = apCap ?? TUNING.apCap[kind];
+    this.ap = this.apInitial;
     board.addPiece(this);
   }
 
-  /** Full AP pool at the start of each turn. */
+  /** AP pool cap (2.x): regeneration stops here. Also the full pool a piece
+   *  starts with. The name predates the clock; UI consumers read it. */
   readonly apInitial: number;
+
+  /** Ticks accumulated toward the next regenerated AP (2.x). */
+  private regenCounter = 0;
+
+  /** Tick of the last direct player command: the default AI leaves a marine
+   *  alone for TUNING.leaseTicks after it (the direct-control lease). */
+  lastCommandTick = -Infinity;
+
+  /**
+   * One tick of AP regeneration (engine tick step 1): +1 AP every
+   * TUNING.regen[kind] ticks up to the cap. A full piece banks nothing: the
+   * counter holds at zero, so a spend always restarts a whole interval.
+   * Returns true when an AP was gained.
+   */
+  regenerate(): boolean {
+    if (!this.alive) return false;
+    if (this.ap >= this.apInitial) { this.regenCounter = 0; return false; }
+    this.regenCounter += 1;
+    if (this.regenCounter < TUNING.regen[this.kind]) return false;
+    this.regenCounter = 0;
+    this.ap += 1;
+    if (this.ap >= this.apInitial) this.onRefilled();
+    return true;
+  }
+
+  /** The pool just reached its cap (regeneration or a test refill): a fresh
+   *  activation in 1.x terms. Blips clear their "has acted" flag here. */
+  protected onRefilled(): void {}
+
+  /** Per-tick bookkeeping hook (engine tick step 5): subclasses age their
+   *  timers here (sustained fire, blip idleness). Absolute tick passed in. */
+  onTick(_tick: number): void {}
 
   /** Power-sword parry (beta_2 sword sergeant): may force one reroll of the
    *  opponent's best close-combat die when losing or tied. */
   readonly parry: boolean = false;
   /** Flat bonus added to every close-combat die (sergeant +1, etc). */
   readonly ccBonus: number = 0;
-
-  /** Extra marine-phase seconds this piece grants while alive (sergeant +30). */
-  readonly timerBonus: number = 0;
 
   /** Client texture key — subclasses override via their static SPRITE_KEY. */
   get spriteKey(): string {
@@ -82,6 +112,7 @@ export abstract class Piece {
 
     this.pos = dest;
     this.ap -= cost;
+    this.board.touch();
     this.onActed('move');
     PieceEvents.emit('pieceMoved', { pieceId: this.id, x: this.pos.c, y: this.pos.r, facing: this.facing });
     return true;
@@ -140,6 +171,7 @@ export abstract class Piece {
     if (cost > this.ap) return false;
     this.facing = turn(this.facing, delta);
     this.ap -= cost;
+    this.board.touch();
     this.onActed('turn');
     PieceEvents.emit('pieceMoved', { pieceId: this.id, x: this.pos.c, y: this.pos.r, facing: this.facing });
     return true;
@@ -189,7 +221,10 @@ export abstract class Piece {
   moveBackLeft()     { return this.moveDiag(-1, -1); }
   moveBackRight()    { return this.moveDiag(1, -1); }
 
-  resetAP() { this.ap = this.apInitial; }
+  /** Refill the pool. No longer called by the engine (2.x regenerates per
+   *  tick); kept for direct-driven unit tests that stage a piece's next
+   *  activation. */
+  resetAP() { this.ap = this.apInitial; this.onRefilled(); }
 
   /** Movement cost for a facing-relative delta — subclasses override (e.g. blips). */
   protected moveCost(rel: { dc: number; dr: number }): number | undefined {

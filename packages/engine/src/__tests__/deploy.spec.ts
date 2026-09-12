@@ -77,7 +77,7 @@ describe('GameEngine deployment phase (ISC-798..811)', () => {
     // not the phase guard (asserted explicitly to keep it that way).
     const live = new GameEngine(loadMission('space_hulk_1'), [], new SeededRng(1));
     live.endMarinePhase();
-    expect(live.phase).toBe('MarineAction');
+    expect(live.phase).toBe('Live');
     expect(live.turnNumber).toBe(2);
     expect(live.beginDeployment()).toBe(false);
     const debug = new GameEngine(loadMission('debug_1')); // one deploy square
@@ -167,7 +167,7 @@ describe('GameEngine deployment phase (ISC-798..811)', () => {
     new Genestealer(e.state.board, { c: 1, r: 1 }, 0);
     e.beginDeployment();
     e.finishDeployment();
-    expect(e.phase).toBe('MarineAction');
+    expect(e.phase).toBe('Live');
     expect(e.reserve).toHaveLength(0); // nobody left in limbo
     expect(e.marines).toHaveLength(6); // all six landed somewhere
     // The displaced marine took the nearest free passable square instead.
@@ -235,7 +235,7 @@ describe('GameEngine deployment phase (ISC-798..811)', () => {
     const e = new GameEngine(loadMission('space_hulk_1'));
     e.beginDeployment();
     e.finishDeployment();
-    expect(e.phase).toBe('MarineAction');
+    expect(e.phase).toBe('Live');
     expect(e.state.board.locked).toBe(false);
     expect(e.marines).toHaveLength(5);
     expect(e.reserve).toHaveLength(0);

@@ -97,6 +97,11 @@ interface HiveState {
   /** Where each piece stood at the previous plan, and how long it has idled. */
   lastPos: Map<string, Coord>;
   idle: Map<string, number>;
+  /** Cycle of the previous plan (2.x): patience, massing and idle counters
+   *  advance once per CYCLE, not once per plan, so planning every few ticks
+   *  keeps the original turn-denominated thresholds. Undefined turnNumber
+   *  (direct test calls) advances every plan, as before. */
+  lastCycle?: number;
 }
 const hiveStates = new WeakMap<Board, HiveState>();
 
@@ -313,6 +318,19 @@ export function planHive(board: Board, threat: ThreatMap, ctx: HiveContext = {})
 
   const distField = marineDistanceField(board);
   const noThreat = threat.kill.size === 0;
+  // Counter cadence. 1.x planned once per turn and every counter meant
+  // "turns"; 2.x plans every few ticks, so the counters advance once per
+  // CYCLE instead: at the first plan of each cycle after the first, before
+  // the launch check, so every plan inside cycle N sees the same value a
+  // 1.x plan saw on turn N. A direct call without a cycle (the behaviour
+  // fixtures) keeps the 1.x cadence: check, then count the plan.
+  const perPlan = ctx.turnNumber === undefined;
+  const newCycle = !perPlan && state.lastCycle !== undefined && ctx.turnNumber !== state.lastCycle;
+  state.lastCycle = ctx.turnNumber;
+  if (newCycle) {
+    state.stagingTurns += 1;
+    state.massingTurns += 1;
+  }
 
   // Idle bookkeeping: hunger is the default — a piece that has sat still for
   // IDLE_CAP plans stops being clever and attacks (a frustrated blip may also
@@ -321,7 +339,8 @@ export function planHive(board: Board, threat: ThreatMap, ctx: HiveContext = {})
   for (const p of pieces) {
     const last = state.lastPos.get(p.id);
     const idled = last !== undefined && last.c === p.pos.c && last.r === p.pos.r;
-    const n = idled ? (state.idle.get(p.id) ?? 0) + 1 : 0;
+    const prev = state.idle.get(p.id) ?? 0;
+    const n = !idled ? 0 : (perPlan || newCycle) ? prev + 1 : prev;
     state.idle.set(p.id, n);
     if (n >= IDLE_CAP) frustrated.add(p.id);
   }
@@ -385,8 +404,13 @@ export function planHive(board: Board, threat: ThreatMap, ctx: HiveContext = {})
     state.stagingTurns >= PATIENCE ||
     state.massingTurns >= HARD_PATIENCE ||
     (budgetDry && readyForce >= squad.length);
-  state.stagingTurns = launched ? 0 : state.stagingTurns + 1;
-  state.massingTurns = launched ? 0 : state.massingTurns + 1;
+  if (launched) {
+    state.stagingTurns = 0;
+    state.massingTurns = 0;
+  } else if (perPlan) {
+    state.stagingTurns += 1;
+    state.massingTurns += 1;
+  }
 
   // Straggler hunts fire regardless of wave state: ≥2 pieces in graph range
   // gang up on an isolated marine (his squad-mates cannot cover him).

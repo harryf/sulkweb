@@ -30,6 +30,14 @@ export class HeavyFlamerMarine extends Piece {
    *  (translation of "flamers cannot shoot squares with closed doors on"). */
   canFlame(target: Square | undefined): target is Square {
     if (!target || this.board.locked || this.ammo < 1 || this.ap < HeavyFlamerMarine.SHOT_COST) return false;
+    return this.inFlameReach(target);
+  }
+
+  /** The geometry half of canFlame (arc, line of fire, range, not the own
+   *  section, no closed door edge on the target): true means the shot is
+   *  legal once AP and ammo allow, so an issuer can hold position for it. */
+  inFlameReach(target: Square | undefined): target is Square {
+    if (!target) return false;
     const own = this.board.get(this.pos.c, this.pos.r);
     if (own && own.sectionId === target.sectionId) return false;
     if (this.board.doorsAt({ c: target.x, r: target.y }).some(d => !d.isOpen)) return false;

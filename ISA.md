@@ -1,13 +1,13 @@
 ---
 project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
-effort: E3
-effort_source: classifier
-phase: complete
-progress: "1098/1098 (real-time plan APPROVED; stage 1 not started, kickoff notes in docs/realtime-plan.md; ISC-1038 dropped; ISC-71 deferred)"
+effort: E4
+effort_source: context-override
+phase: build
+progress: "1098/1257 (stage 1 run ISC-1166..1324 open; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T18:30:00Z
+updated: 2026-09-12T19:25:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -563,10 +563,224 @@ Harry answered questions 15..22 (all agreed). This run commits the answers, mark
 - [x] ISC-1164: Decisions entry records the approval and the row 19 fill (Read)
 - [x] ISC-1165: plan, ISA, CLAUDE.md committed on main and pushed (git log, origin/main)
 
+### Stage 1: the clock (v2.0.0-alpha.1) (2026-09-12, nineteenth run)
+
+Build stage 1 of docs/realtime-plan.md from its "Stage 1 kickoff" section: the engine tick and cycle, AP regeneration, stealerTick with cached hive plans, persistent overwatch with a cooldown, flames with burn duration, the marine default AI, all input through an engine command path, LiveScene with a fixed-step clock, live fog, the e2e stepping harness, docs, and the v2.0.0-alpha.1 prerelease. ISC-1166..1324 (159 criteria).
+
+#### Step 1: the engine clock
+
+- [ ] ISC-1166: CostTables.ts exports a mutable TUNING object (cycleTicks 40, regen marine 4 / stealer 2 / blip 2, apCap 4/6/6, overwatchCooldown 2, flameTicks 40, hivePlanTicks 8, blipIdleTicks 8, sustainedDecayTicks 40, leaseTicks 8, cycle offsets) labelled unvalidated (Read)
+- [ ] ISC-1167: applyTuning(partial) deep-merges overrides into TUNING at runtime and rejects unknown keys (vitest)
+- [ ] ISC-1168: PhaseName is exactly 'Deploy' | 'Live'; grep MarineAction|StealerAction in packages/engine/src = 0
+- [ ] ISC-1169: GameEngine.tickCount starts at 0 and cycle at 1; tick() increments tickCount by one (vitest)
+- [ ] ISC-1170: tick() is a no-op during Deploy and after game over (vitest)
+- [ ] ISC-1171: runTicks(n) runs n ticks and stops early at game over (vitest)
+- [ ] ISC-1172: a `tick` event { tick, cycle } is emitted once per tick (vitest counts)
+- [ ] ISC-1173: the cycle boundary fires every TUNING.cycleTicks ticks: cycle += 1, CP roll, spawn scheduling, charge orientation, defend limit, boundary victory check, in that order (Read plus vitest for cycle and CP)
+- [ ] ISC-1174: reinforcements per cycle = min(blipsPerTurn, budget left), each blip scheduled at its entry's offset (entry index times TUNING.spawnOffsetTicks inside the cycle); two entries land at ticks 40 and 45 (vitest)
+- [ ] ISC-1175: a scheduled blip whose entry is blocked at its tick falls to the next ranked entry, else is dropped without charging the budget (vitest)
+- [ ] ISC-1176: initial blips still spawn at construction and consume dice there (gameflow.spec)
+- [ ] ISC-1177: endMarinePhase() survives as a test-only shim equal to runTicks(TUNING.cycleTicks), JSDoc says so (Read plus vitest: turnNumber advances by one)
+- [ ] ISC-1178: turnNumber is a getter aliasing cycle (vitest)
+- [ ] ISC-1179: defend: the marine win fires when the cycle reaches turnLimit at a boundary (exotic_victory ported)
+- [ ] ISC-1180: download counter begins/decrements/resets at the download offset once per cycle (beta2_mission ported)
+- [ ] ISC-1181: ambush counter deploys at the ambush offset once per cycle (beta2_mission ported)
+- [ ] ISC-1182: the loose C.A.T. wanders at the cat offset once per cycle (exotic_victory ported)
+- [ ] ISC-1183: Anti: no AP reset at the boundary; a marine at 2 AP holds 2 plus regeneration only (vitest)
+- [ ] ISC-1184: apChanged fires on every AP gain (vitest)
+- [ ] ISC-1185: kill-quota: blockade evaluated only at the boundary; the instant quota check on pieceDied is kept (quota_victory ported)
+- [ ] ISC-1186: exterminate-family win requires no stealer-side piece on the board and no spawn pending in the cycle (vitest)
+- [ ] ISC-1187: marinePhaseSeconds, MARINE_PHASE_SECONDS and timerBonus are gone from the engine; the client detects sergeants by class (grep = 0 in engine and client)
+
+#### Step 2: AP accumulators and flames
+
+- [ ] ISC-1188: Piece.apCap equals the constructor pool; a regeneration counter adds 1 AP every TUNING.regen[kind] ticks (vitest: marine +1 at tick 4, stealer +1 at tick 2)
+- [ ] ISC-1189: no regeneration past apCap; the counter holds at zero while full so a spend restarts a full interval (vitest)
+- [ ] ISC-1190: regeneration runs after marine AI and before stealer actions inside tick() (Read of tick order)
+- [ ] ISC-1191: Board.tick is set by the engine at the start of every tick (vitest)
+- [ ] ISC-1192: Board.flaming is a Map of square key to expiry tick; isFlaming reads it (vitest)
+- [ ] ISC-1193: igniteSquares stamps expiry board.tick + TUNING.flameTicks on every square (vitest)
+- [ ] ISC-1194: expireFlames(board) clears only expired squares, emits flamesCleared with exactly those, and re-checks blip sight (vitest)
+- [ ] ISC-1195: clearFlames stays exported as the expire-all helper (grep index.ts)
+- [ ] ISC-1196: flame-objective still wins on the spot when the objective burns (flamer.spec)
+- [ ] ISC-1197: Anti: a flame lit at tick 5 still burns at tick 44 and is out at tick 45 (vitest)
+
+#### Step 3: the command path
+
+- [ ] ISC-1198: MarineCommand union type exported from the engine index (Read)
+- [ ] ISC-1199: engine.command(marineId, cmd) applies the command at once between ticks and returns whether it acted (vitest)
+- [ ] ISC-1200: command refuses dead, unknown and non-marine ids, Deploy, game over and a locked board (vitest)
+- [ ] ISC-1201: every command type reaches its piece method: move forward/back and four diagonals, turn, door, shoot, shootDoor, flame, melee, overwatch on and off, unjam, selfDestruct, autofire, reload, cutDoor, cp (vitest table)
+- [ ] ISC-1202: a successful command emits apChanged and a `command` event { tick, pieceId, command, ok } (vitest)
+- [ ] ISC-1203: a command stamps the marine's lastCommandTick (the direct-control lease) (vitest)
+- [ ] ISC-1204: GameLogger records command events and carries tick in every event envelope (gamelog.spec)
+- [ ] ISC-1205: checkVictory runs after a successful command: a marine stepping onto the exit wins on the move (vitest)
+- [ ] ISC-1206: Anti: packages/client/src calls no piece action method directly (grep moveForward|moveBackward|tryTurn|useDoor|\.shoot\(|shootDoor|flameAt|overwatchOn|overwatchOff|unjam\(|selfDestruct|autofire\(|reload\(|cutDoor|closeCombat\(|spendCP = 0 outside type imports)
+- [ ] ISC-1207: stateHash(engine) exported: a stable string over tick, cycle, cp, result, pieces (id, kind, pos, facing, ap, overwatch, jammed, ammo), doors, flames (Read)
+- [ ] ISC-1208: same seed plus same command log twice gives identical stateHash at every tick over 200 ticks (vitest)
+
+#### Step 4: the stealer side per tick
+
+- [ ] ISC-1209: stealerTick(board, ctx) exported; each stealer-side piece takes at most one action per tick (vitest: a stealer six squares out closes one square per tick)
+- [ ] ISC-1210: the hive plan is cached on the board and recomputed every TUNING.hivePlanTicks ticks or when the marine count drops (vitest with a spy on planHive)
+- [ ] ISC-1211: the threat map is cached under board.version; version bumps on move, turn, door toggle/destroy, death, add, overwatch and jam change, flame ignite/expire (vitest)
+- [ ] ISC-1212: Anti: computeThreat is not called on a quiet tick (spy: 0 calls over 10 ticks with nothing moving)
+- [ ] ISC-1213: hive patience, massing and idle counters advance once per cycle, not per plan (vitest: no wave launch inside one cycle from patience alone)
+- [ ] ISC-1214: blip voluntary conversion requires idleTicks >= TUNING.blipIdleTicks (vitest)
+- [ ] ISC-1215: chargeOrientation runs at the cycle boundary (charge.spec ported)
+- [ ] ISC-1216: the hive still consumes zero dice under stealerTick (hive.spec RollQueue counts hold)
+- [ ] ISC-1217: runStealerActions stays as a test-only whole-activation driver sharing the loop body with stealerTick, JSDoc says so (Read)
+- [ ] ISC-1218: the reaction chain after every stealer action is unchanged: overwatch reactions, exotic interactions, convertRevealedBlips (Read)
+- [ ] ISC-1219: activation order goes nearest-first when the wave is launched into live fire lanes (Read)
+- [ ] ISC-1220: a marine death forces a replan on the next tick (vitest)
+- [ ] ISC-1221: spawn ranking (rankEntries) is shared by scheduled spawns and the construction spawn (Read)
+
+#### Step 5: persistent overwatch
+
+- [ ] ISC-1222: overwatch persists across cycle boundaries (vitest: on after 80 ticks with no action)
+- [ ] ISC-1223: StormBolterMarine no longer overrides resetAP (grep)
+- [ ] ISC-1224: a reaction shot sets owReadyTick = board.tick + TUNING.overwatchCooldown; a second trigger inside the window fires nothing (vitest)
+- [ ] ISC-1225: once the cooldown expires the next trigger fires (vitest)
+- [ ] ISC-1226: jam on doubles still ends overwatch (vitest)
+- [ ] ISC-1227: the sustained-fire bonus decays after TUNING.sustainedDecayTicks idle ticks (vitest)
+- [ ] ISC-1228: a direct command cancels overwatch first at zero AP cost, as today (vitest)
+- [ ] ISC-1229: a stealer arriving directly ahead of an overwatcher eats one reaction shot, then close combat follows on its next action tick (vitest over ticks)
+- [ ] ISC-1230: Piece.onTick(tick) runs for every living piece each tick (vitest)
+
+#### Step 6: marine default AI
+
+- [ ] ISC-1231: ai/MarineAI.ts exports marineTick(engine, marine) and runMarineAI(engine) (Read)
+- [ ] ISC-1232: jammed: unjam first (vitest)
+- [ ] ISC-1233: a stealer in the fire arc with line of fire: shoot (bolter, cannon aimed fire, chain fist bolter) (vitest)
+- [ ] ISC-1234: adjacent stealer straight ahead and no shot possible: close combat (vitest)
+- [ ] ISC-1235: adjacent stealer elsewhere: turn toward it (vitest)
+- [ ] ISC-1236: visible but not shootable stealer: turn toward the nearest one (vitest)
+- [ ] ISC-1237: not on overwatch, AP >= 2, weapon can overwatch: overwatch on (vitest)
+- [ ] ISC-1238: otherwise hold: no state change (vitest)
+- [ ] ISC-1239: first match wins: a shootable adjacent stealer is shot, not fought (vitest)
+- [ ] ISC-1240: door rule: an open door directly ahead is closed when a stealer is seen through it and no friendly marine stands beyond (vitest)
+- [ ] ISC-1241: Anti: the default never opens a door (vitest)
+- [ ] ISC-1242: heavy flamer: never overwatch, never fires on its own outside the last-stand rule (vitest)
+- [ ] ISC-1243: flamer last stand: a stealer within 2 squares, ammo > 0, target section holds no marine and no objective square: flame it (vitest)
+- [ ] ISC-1244: assault cannon: reloads on its own only when empty and no stealer is visible (vitest)
+- [ ] ISC-1245: Anti: the AI never autofires the cannon (vitest)
+- [ ] ISC-1246: Anti: the AI never cuts a door with the chain fist (vitest)
+- [ ] ISC-1247: lease: a marine commanded within TUNING.leaseTicks is skipped by the AI; reaction fire is unaffected (vitest)
+- [ ] ISC-1248: an overwatching marine spends nothing on its own except to shoot or fight an adjacent stealer (vitest)
+- [ ] ISC-1249: runMarineAI runs at tick step 2 for every living marine with AP, one action each per tick (vitest)
+- [ ] ISC-1250: MarineAutopilot issues its actions through engine.command and autoplay(engine, maxTicks) alternates issuing and ticking (vitest: a debug_1 game reaches a result)
+
+#### Step 7: engine tests and the lint
+
+- [ ] ISC-1251: engine suite green with at least 341 tests (bash)
+- [ ] ISC-1252: ported specs green: gameflow, quota_victory, beta2_mission, deploy, exotic_victory, kill_reveals, gamelog, hive, charge, conversion_on_sight, flamer, ai_pathing, debug1_mission, blips_ai (bash)
+- [ ] ISC-1253: kernel specs untouched: git diff on board, los, vision, dice, doors, door_corner, door_shooting, diagonal_moves, movement, relativeCost, shooting, combat, beta2_weapons, the three fidelity specs, mission_meta, pieceAdded, index = 0 lines
+- [ ] ISC-1254: marine_ai.spec.ts covers the decision order (file exists, green)
+- [ ] ISC-1255: overwatch_ticks.spec.ts covers cooldown, jam and persistence (file exists, green)
+- [ ] ISC-1256: determinism.spec.ts covers same-seed same-log hash equality (file exists, green)
+- [ ] ISC-1257: engine_lint.spec.ts fails on Date or performance under packages/engine/src outside log/GameLogger.ts (file exists, green)
+- [ ] ISC-1258: engine line coverage >= 90% (vitest coverage summary)
+- [ ] ISC-1259: hive.spec zero-dice assertions unchanged (grep remaining counts)
+
+#### Step 8: LiveScene
+
+- [ ] ISC-1260: scenes/LiveScene.ts exists, scenes/GameScene.ts does not, gameConfig registers LiveScene (ls, Read)
+- [ ] ISC-1261: update() runs a fixed-step accumulator: at most 4 ticks per frame (Read)
+- [ ] ISC-1262: `?tick=<ms>` sets the interval, default 250 (Read plus e2e)
+- [ ] ISC-1263: `?tick=0` stops the clock; window.sulk.step(n) runs n ticks (e2e)
+- [ ] ISC-1264: the clock halts while paused, during deployment, after game over and in attract mode (e2e: attract tickCount stays 0)
+- [ ] ISC-1265: Anti: no endTurn, replay, animating, fogMarineSnap, fogRadarSnap, timerRemaining, capture( or replay( in packages/client/src (grep = 0)
+- [ ] ISC-1266: utils/replayFocus.ts and tests/replayFocus.spec.ts deleted (ls)
+- [ ] ISC-1267: HUD shows the cycle line "Cycle N" and seconds into the cycle from the tick event (client unit spec)
+- [ ] ISC-1268: HUD button reads PAUSE with Esc after deployment and START during deployment; clicking it pauses or starts (client unit spec plus e2e)
+- [ ] ISC-1269: Esc toggles the PAUSED overlay and the clock stops (e2e)
+- [ ] ISC-1270: every action key routes through engine.command (grep LiveScene) and W moves the selected marine at once (e2e)
+- [ ] ISC-1271: Enter finishes deployment during deploy and does nothing afterwards (e2e)
+- [ ] ISC-1272: flamer two-press targeting unchanged; the second F issues a flame command (flamer-targeting e2e)
+- [ ] ISC-1273: window.sulk exposes engine, Selection, scene, SeededRng, autoplay, runMarineTurn, PieceEvents, Genestealer, gameLog, step, command, TUNING (e2e)
+- [ ] ISC-1274: `?tuning=` (comma separated key:value, dotted keys) applies before engine construction (e2e: regen.marine:3 read back)
+- [ ] ISC-1275: music ducking keys on threat proximity instead of phase (audioLogic unit spec)
+- [ ] ISC-1276: Minimap.frozen removed (grep)
+- [ ] ISC-1277: AI actions render through events: an unselected bolter shows the overwatch marker within one cycle (e2e)
+- [ ] ISC-1278: deployment phase unchanged: deploy clock, AUTO, placement, start (deploy e2e)
+- [ ] ISC-1279: attract homepage inert: no ticks, no input (home e2e)
+- [ ] ISC-1280: client typecheck clean: tsc --noEmit (bash)
+- [ ] ISC-1281: client unit suite green (bash)
+- [ ] ISC-1282: Antecedent: each direct-control step tweens with MOTION.step.marine so a move reads as motion, never a teleport (Read)
+
+#### Step 9: live fog
+
+- [ ] ISC-1283: fog dirty flag set by pieceMoved, pieceDied, pieceAdded, blipConverted, doorToggled, doorDestroyed, sectionFlamed, flamesCleared, phaseChanged, marineEscaped (Read)
+- [ ] ISC-1284: the sight set recomputes at most once per frame (Read: dirty consumed in updateFog)
+- [ ] ISC-1285: threat sprites show or hide from their live tile every frame (fog e2e)
+- [ ] ISC-1286: Anti: no snapshot fields or animating gates remain in the fog code (grep)
+- [ ] ISC-1287: client fog unit spec keeps its rule cases without snapshot cases (bash green)
+- [ ] ISC-1288: fog e2e green (bash)
+
+#### Step 10: e2e
+
+- [ ] ISC-1289: tests/harness.ts provides waitForGame and step helpers used by the ported specs (file)
+- [ ] ISC-1290: win.spec: a debug_1 win driven by autoplay over ticks at a re-pinned seed reaches MISSION COMPLETE (e2e)
+- [ ] ISC-1291: playthrough.spec: a space_hulk_1 loss driven by step at a re-pinned seed (e2e)
+- [ ] ISC-1292: animation.spec and focus.spec replay cases removed; remaining motion cases green (e2e)
+- [ ] ISC-1293: key-driven specs keep the seenKeyEvents dedupe (grep LiveScene keydown handlers)
+- [ ] ISC-1294: full e2e suite green (bash count)
+- [ ] ISC-1295: real-browser boot check of the live scene: screenshot with pieces moving under the clock (Interceptor or headless Playwright screenshot file)
+- [ ] ISC-1296: seeds re-pinned once, after the last behavioural change, noted in Decisions (Read)
+- [ ] ISC-1297: gamelog e2e: exported log events carry tick (e2e)
+
+#### Step 11: docs
+
+- [ ] ISC-1298: features.md Controls: Enter/DONE row gone, Esc pause and PAUSE button rows, a paragraph on ticks, cycles and regeneration (grep)
+- [ ] ISC-1299: architecture.md: "Sequence of one tick" replaces "Sequence of one full turn" (grep)
+- [ ] ISC-1300: rules-reference.md Turn structure rewritten as The clock: ticks, cycles, AP regeneration, overwatch cooldown, flames burn one cycle (grep)
+- [ ] ISC-1301: manual content.ts: "How a turn works" rewritten for the clock; CP and timer text updated (grep)
+- [ ] ISC-1302: CLAUDE.md invariants updated: capture/replay gone, tick order, command path, hive cycle rotation, LiveScene, shim note (grep)
+- [ ] ISC-1303: docs/status.md next-line section says stage 1 shipped as v2.0.0-alpha.1 with the URL (grep)
+- [ ] ISC-1304: realtime-plan.md Status line records stage 1 shipped (grep)
+- [ ] ISC-1305: Anti: zero em dashes in every changed doc, source file and commit message (grep)
+- [ ] ISC-1306: Anti: zero banned writing-guide words in changed docs (word-bounded grep)
+
+#### Step 12: release
+
+- [ ] ISC-1307: deploy.yml accepts vX.Y.Z-alpha.N: a prerelease tag writes only its frozen dir, never the root, STABLE_VERSION or manifest.json (Read)
+- [ ] ISC-1308: the root-refresh preserve regex keeps prerelease dirs (Read)
+- [ ] ISC-1309: genVersionsPage.sh lists prerelease dirs labelled prerelease (Read)
+- [ ] ISC-1310: versionsHref treats a prerelease dir as a version dir (client unit spec)
+- [ ] ISC-1311: tag v2.0.0-alpha.1 pushed and its deploy run concluded success (gh run)
+- [ ] ISC-1312: GitHub release v2.0.0-alpha.1 published as a prerelease (gh release view)
+- [ ] ISC-1313: https://harryf.github.io/sulkweb/2.0.0-alpha.1/ returns 200 and its manifest names v2.0.0-alpha.1 (curl)
+- [ ] ISC-1314: Anti: the root manifest still names v1.1.0 after the release (curl)
+- [ ] ISC-1315: deploy-latest run green after the main push (gh run)
+- [ ] ISC-1316: versions.html lists 2.0.0-alpha.1 (curl)
+- [ ] ISC-1317: the ship report names the exact URL that has the change (this run's summary)
+
+#### Closing
+
+- [ ] ISC-1318: Anti: engine imports zero Phaser or DOM symbols after the change (grep phaser|window|document in packages/engine/src = 0)
+- [ ] ISC-1319: Anti: no `as any` added to the engine public API (git diff grep)
+- [ ] ISC-1320: one commit per build step with suites green at each, pushed to main, tree clean at the end (git log)
+- [ ] ISC-1321: ISA archive protocol applied: the two oldest kept runs moved to docs/isa (Read)
+- [ ] ISC-1322: PROJECTS.md records stage 1 shipped and the two open verdicts (grep)
+- [ ] ISC-1323: [DEFERRED-VERIFY] human verdict 1 recorded in Decisions: does square-per-AP direct movement feel like moving or stuttering (follow-up: Harry playtest of /2.0.0-alpha.1/)
+- [ ] ISC-1324: [DEFERRED-VERIFY] human verdict 2 recorded in Decisions: is real time more fun than the timed phase (follow-up: same playtest)
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
+| ISC-1166..1187, 1188..1197 | engine | vitest specs under packages/engine/src/__tests__ (clock.spec, regen.spec, flames_ticks.spec) plus Read of tick() | green; order as stated | vitest, Read |
+| ISC-1198..1208 | engine | command.spec, determinism.spec, gamelog.spec; grep of packages/client/src | green; grep 0 | vitest, Bash |
+| ISC-1209..1221 | engine/ai | stealer_tick.spec with spies on planHive and computeThreat; ported hive/charge specs | green; spy counts | vitest |
+| ISC-1222..1230 | engine | overwatch_ticks.spec | green | vitest |
+| ISC-1231..1250 | engine/ai | marine_ai.spec, autopilot port | green | vitest |
+| ISC-1251..1259 | tests | suite run, git diff on kernel specs, file existence, coverage summary | >= 341, 0 lines, files exist, >= 90% | Bash |
+| ISC-1260..1282 | client | Read of LiveScene, client unit specs, Playwright e2e | present; green | Read, vitest, Playwright |
+| ISC-1283..1288 | client/fog | Read, fog unit spec, fog e2e | present; green | Read, vitest, Playwright |
+| ISC-1289..1297 | e2e | Playwright suite, screenshot file | green; file exists | Playwright, Bash |
+| ISC-1298..1306 | docs | grep of the named files | hits as stated; em dash 0; banned 0 | Bash |
+| ISC-1307..1317 | release | Read deploy.yml and scripts; gh run/release; curl | green; 200; versions as stated | Bash, gh, curl |
+| ISC-1318..1324 | closing | grep, git log, Read ISA and PROJECTS.md; two deferred human verdicts | as stated | Bash, Read |
 | ISC-1154..1160,1164 | plan-doc/repo | grep and Read of the plan, CLAUDE.md, PROJECTS.md, ISA Decisions | present as stated | Bash grep, Read |
 | ISC-1161..1163 | anti | git diff scope, em dash grep, section line count | 0 / 0 / < 80 | Bash |
 | ISC-1165 | repo | git log; git rev-parse origin/main | commit on main, pushed | Bash |
@@ -689,6 +903,23 @@ Harry answered questions 15..22 (all agreed). This run commits the answers, mark
 
 ## Features
 
+### Stage 1: the clock (2026-09-12)
+
+| Feature | Description | Satisfies | Depends on | Parallel |
+|---|---|---|---|---|
+| engine-clock | tickCount, cycle, tick(), runTicks, boundary function, scheduled spawns, shim | ISC-1166..1187 | none | no |
+| regen-flames | AP accumulators, Board.tick, flame expiry map | ISC-1188..1197 | engine-clock | no |
+| command-path | MarineCommand, engine.command, lease stamp, logger tick, stateHash | ISC-1198..1208 | engine-clock | no |
+| stealer-tick | loop body extraction, plan and threat caches, board.version, blip idle, cycle counters | ISC-1209..1221 | regen-flames | no |
+| overwatch-ticks | cooldown, persistence, sustained decay, onTick | ISC-1222..1230 | regen-flames | yes (with stealer-tick) |
+| marine-ai | default decision list, per-type minimum, lease, autopilot as issuer | ISC-1231..1250 | command-path, overwatch-ticks | no |
+| engine-tests | ported specs, new specs, lint, coverage | ISC-1251..1259 | marine-ai | no |
+| live-scene | LiveScene.ts, accumulator, HUD cycle and pause, command routing, tuning, audio duck | ISC-1260..1282 | engine-tests | no |
+| live-fog | dirty flag only, snapshots removed | ISC-1283..1288 | live-scene | no |
+| e2e-port | harness, seeds, replay cases removed, boot check | ISC-1289..1297 | live-fog | yes (with docs) |
+| docs | features, architecture, rules-reference, manual, CLAUDE.md, status, plan | ISC-1298..1306 | live-scene | yes (with e2e-port) |
+| release | deploy.yml prerelease path, versions page, tag, verify | ISC-1307..1317 | e2e-port, docs | no |
+
 ### Real-time plan run (2026-09-12, planning only)
 
 | name | description | satisfies | depends_on | parallelizable |
@@ -779,6 +1010,8 @@ Harry answered questions 15..22 (all agreed). This run commits the answers, mark
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-12 19:05 (stage 1, OBSERVE): classifier returned E3 ("approves multi-step implementation plan"); escalated to E4 by conversation context: the approved kickoff is a twelve-step engine and client rewrite plus a release-pipeline change, cross-cutting by the plan's own impact tables. Forge waived (sixteenth time): codex binary absent (which codex = not found); show-your-math: the work is one sequential dependency chain through a single engine file and a single scene, so a second writer would collide on the same files; the Plan agent's independent assessment already reviewed the design, the advisor is the second opinion at the commitment boundary, and a fork will port e2e specs in parallel with docs once LiveScene lands. Cato waived on the same absence. 159 criteria against the E4 floor of 128.
 
 - 2026-09-12 18:20 (real-time plan approved, kickoff): Harry answered questions 15..22 "all agreement"; row 19's Decision cell was blank in the file, filled as agreed with a note naming the chat as the source. Plan status set to APPROVED. Stage 1 starts next session from the "Stage 1 kickoff" section appended to docs/realtime-plan.md: settled constants (tick 250 ms, cycle 40 with per-entity offsets, AP caps 4/6/6 with marine 1 per 4 ticks and stealer 1 per 2, overwatch cooldown 2 ticks plus jam, CP kept through stage 3, Esc free pause, 1.x frozen, LiveScene beside GameScene), a twelve-step build order that keeps the suites green at every step (engine clock and shim, accumulators and flame expiry, command queue, stealerTick with caches, overwatch persistence, MarineAI default, engine tests and the Date lint, LiveScene, live fog, e2e stepping harness, docs, alpha tag), the exit gate (the two human verdict questions), and the session gotchas (Interceptor daemon, hidden-tab Phaser freeze, headless Playwright from packages/client, tsbuildinfo dirt, blocked sleep chains, terse advisor calls, no em dashes, ISA archive protocol). PROJECTS.md and CLAUDE.md point at it. Version for stage 1: v2.0.0-alpha.1 with its own frozen directory, root stays v1.1.0.
 
@@ -1180,3 +1413,11 @@ Latest-pipeline hardening run (2026-08-20 seventh run, ISC-969..975):
 - ISC-1163: kickoff section line count under 80 (sed from the header to end of file, wc -l)
 - ISC-1164: Read: Decisions "real-time plan approved, kickoff" entry present
 - ISC-1165: git log: b97bd8d "docs: real-time plan approved (questions 15..22 answered), stage 1 kickoff notes" on main, pushed with the closing ISA commit
+
+### Stage 1 risks (2026-09-12)
+
+- Per-tick vision cost: threat map cached under board.version, fog under a dirty flag; probe ISC-1212, and the boot check.
+- Hive fixtures under per-tick activation: shared loop body, counters per cycle; probe hive.spec plus stealer_tick.spec.
+- Seed re-pin for the two e2e fixtures: engine-side scan first, one pin at the end of the stage.
+- Mission specs and the shim: staggered spawns may need two shim calls before a "spawned" assert.
+- Prerelease deploy path: a branch in deploy.yml that never writes the root; curl the root manifest after the run.

@@ -139,6 +139,6 @@ describe('sergeant close combat (ISC-142)', () => {
     expect(result.outcome).toBe('attacker');
     expect(stealer.alive).toBe(false);
     expect(sgt.spriteKey).toBe('terminator_sergeant');
-    expect(sgt.timerBonus).toBe(30);
+    expect(sgt.ccBonus).toBe(1);
   });
 });

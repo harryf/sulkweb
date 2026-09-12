@@ -118,7 +118,6 @@ describe('beta_2 fidelity (ISC-261/262)', () => {
     expect(engine.marines.filter(p => p instanceof SwordSergeantMarine)).toHaveLength(1);
     expect(engine.marines.filter(p => p instanceof HeavyFlamerMarine)).toHaveLength(1);
     expect(engine.marines.filter(p => p instanceof SergeantMarine)).toHaveLength(2); // sword included
-    expect(engine.marinePhaseSeconds).toBe(180); // two sergeants: 120 + 2×30
   });
 
   // Explicit timeouts: these two drive full hive turns on the 176-square map —

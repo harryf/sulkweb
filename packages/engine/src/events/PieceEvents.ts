@@ -1,6 +1,13 @@
+import type { MarineCommand } from '../core/Commands.js'
+
 export type ApInfo = { apRemaining: number; apInitial: number }
 
 export type PieceEventsType = {
+  /** One engine tick completed (2.x). Emitted last in GameEngine.tick(). */
+  tick: { tick: number; cycle: number }
+  /** A player command was applied (2.x): the replay unit. `tick` is the tick
+   *  it followed; `ok` says whether the piece acted. */
+  command: { tick: number; pieceId: string; command: MarineCommand; ok: boolean }
   /** Selection changed. `ap` is present when a piece is selected; `ammo` when it carries a limited-ammo weapon. */
   selected: { pieceId: string | null; ap?: ApInfo; ammo?: number }
   apChanged: { pieceId: string } & ApInfo

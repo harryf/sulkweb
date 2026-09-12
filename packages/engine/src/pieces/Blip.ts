@@ -4,6 +4,7 @@ import { Dir, chebyshev, facingToward } from '../core/Direction.js';
 import { Genestealer } from './Genestealer.js';
 import { PieceEvents } from '../events/PieceEvents.js';
 import { squareSeenByMarine } from '../board/vision.js';
+import { TUNING } from '../core/CostTables.js';
 
 /**
  * The original blip bag (`BLIP_SET_BASIC = {1:8, 2:4, 3:9}`): draw with
@@ -33,10 +34,25 @@ export class Blip extends Piece {
   /** Hidden stealer count (1-3), secret from the marine player. */
   readonly value: number;
 
+  /** Ticks since the blip last moved (2.x); never acted = still fresh. */
+  private idleTicks = 0;
+  private acted = false;
+
   constructor(board: Board, start: Coord, value?: number) {
-    super('blip', board, start, Dir.S, 6);
+    super('blip', board, start, Dir.S);
     this.value = value ?? drawBlipValue(board);
   }
+
+  override onTick(): void { this.idleTicks += 1; }
+
+  protected override onActed(): void {
+    this.acted = true;
+    this.idleTicks = 0;
+  }
+
+  /** A full pool is a fresh activation: the original "taken no action" rule
+   *  reads as "spent nothing since the pool was last full". */
+  protected override onRefilled(): void { this.acted = false; }
 
   /** A killed blip credits its full hidden VALUE (original pieces.py kill()). */
   protected override get casualtyWorth(): number { return this.value; }
@@ -56,9 +72,12 @@ export class Blip extends Piece {
     return super.tryMove(dc, dr);
   }
 
-  /** Voluntary conversion is only legal while the blip has taken no action. */
+  /** Voluntary conversion is legal while the blip has spent nothing since
+   *  its pool was last full (the original "taken no action" rule) or, in
+   *  real time, once it has sat idle for TUNING.blipIdleTicks ticks (a blip
+   *  parked at a door it will not open must still break the deadlock). */
   canConvert(): boolean {
-    return this.ap === this.apInitial;
+    return !this.acted || this.idleTicks >= TUNING.blipIdleTicks;
   }
 
   /**

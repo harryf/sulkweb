@@ -48,10 +48,12 @@ describe('debug_1 mission (MISH_debug_1)', () => {
     expect(engine.state.board.allDoors()).toHaveLength(7);
   });
 
-  it('first reinforcement arrives at end of turn 1 (ISC-122)', () => {
+  it('first reinforcement arrives in cycle 2, at its entry\'s slot (ISC-122)', () => {
     const engine = new GameEngine(debug);
-    engine.endMarinePhase();
-    expect(engine.stealerSide.length).toBe(1); // the (0,1) trickle
+    engine.endMarinePhase(); // cycle 1: nothing spawns; the boundary books one blip
+    engine.endMarinePhase(); // cycle 2: its entry slot came round
+    expect(engine.stealerSide.length).toBeGreaterThanOrEqual(1); // the (0,1) trickle
+    expect(engine.stealerSide.length).toBeLessThanOrEqual(2);
   });
 
   it('registry manifest: every registered mission compiles, boots, and is no draft (ISC-120/200)', () => {

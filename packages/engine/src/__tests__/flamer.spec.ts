@@ -188,13 +188,4 @@ describe('flame-objective victory (ISC-145)', () => {
     expect(engine.turnNumber).toBeLessThanOrEqual(15);
   });
 
-  it('marine-phase timer is 120s + 30s while the sergeant lives (ISC-143)', () => {
-    const engine = new GameEngine({ ...loadMission('space_hulk_1'), initialBlips: 0 });
-    expect(engine.marinePhaseSeconds).toBe(150);
-    const sgt = engine.marines.find(m => m.timerBonus === 30)!;
-    sgt.die();
-    // flamer still alive → mission continues, but the bonus is gone
-    expect(engine.state.result).toBe('ongoing');
-    expect(engine.marinePhaseSeconds).toBe(120);
-  });
 });

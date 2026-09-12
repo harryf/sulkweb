@@ -15,13 +15,16 @@ import { PieceEvents, type PieceEventsType, type CapturedEvent, type Tap } from 
 export const GAMELOG_FORMAT_VERSION = 1;
 
 /** UI-only chatter excluded from the log: selection changes carry no game
- *  state, and per-AP-spend ticks are derivable from the logged actions. */
-const SKIP_EVENTS: ReadonlySet<keyof PieceEventsType> = new Set(['selected', 'apChanged'] as const);
+ *  state, per-AP-spend ticks are derivable from the logged actions, and the
+ *  per-tick heartbeat would be four events a second saying nothing (every
+ *  recorded event carries its tick in the envelope). */
+const SKIP_EVENTS: ReadonlySet<keyof PieceEventsType> = new Set(['selected', 'apChanged', 'tick'] as const);
 
 /** The slice of GameEngine the logger reads. Structural, so unit tests can
  *  drive a stub without building a full engine. */
 export interface LoggerEngine {
   turnNumber: number;
+  tickCount: number;
   phase: string;
   mission: { name: string };
   state: {
@@ -32,8 +35,9 @@ export interface LoggerEngine {
 export interface LoggedEvent {
   /** Monotonic per-game sequence number: chronological order, no gaps. */
   seq: number;
-  /** Engine turn and phase AT emission time. */
+  /** Engine cycle (turn), tick and phase AT emission time. */
   turn: number;
+  tick: number;
   phase: string;
   type: string;
   [key: string]: unknown;
@@ -107,6 +111,7 @@ export class GameLogger {
       // named seq or type).
       seq: this.seq++,
       turn: this.engine.turnNumber,
+      tick: this.engine.tickCount,
       phase: this.engine.phase,
       type: ev.type as string,
     });

@@ -17,13 +17,16 @@ export class Door extends Feature {
   destroyed = false
   /** Which neighbor of the anchor square the door edge borders. */
   readonly facing: Dir
+  /** Set by the owning Board: a real state change bumps the board version
+   *  (the hive's threat cache key). Silent peeks never call it. */
+  onChange?: () => void
 
   constructor(square: Square, facing: Dir = Dir.N) { super(square); this.facing = facing }
 
   get isOpen(): boolean { return this.destroyed || !this.closed }
 
   /** Remove the door from play (original door.kill()). */
-  destroy(): void { this.destroyed = true; this.closed = false }
+  destroy(): void { this.destroyed = true; this.closed = false; this.onChange?.() }
 
   /** The square on the far side of the edge from the anchor. */
   otherSide(): { c: number; r: number } {
@@ -31,10 +34,12 @@ export class Door extends Feature {
     return { c: this.square.x + v.dc, r: this.square.y + v.dr }
   }
 
-  open(): void  { this.closed = false }
-  close(): void { if (!this.destroyed) this.closed = true }
+  /** `silent` = a probe (open, look, close again) that must not register as
+   *  a change: the AI's door-exposure peeks use it. */
+  open(silent = false): void  { this.closed = false; if (!silent) this.onChange?.() }
+  close(silent = false): void { if (!this.destroyed) { this.closed = true; if (!silent) this.onChange?.() } }
 
-  toggle(): void { if (!this.destroyed) this.closed = !this.closed }
+  toggle(): void { if (!this.destroyed) { this.closed = !this.closed; this.onChange?.() } }
 
   // The edge blocks; the anchor square itself never does.
   blocksMove() { return false }

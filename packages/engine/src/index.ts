@@ -13,9 +13,11 @@ export { StormBolterMarine, SergeantMarine, SwordSergeantMarine } from './pieces
 export { HeavyFlamerMarine } from './pieces/HeavyFlamerMarine.js';
 export { AssaultCannonMarine, ChainFistMarine } from './pieces/AssaultCannonMarine.js';
 export { AmbushCounter, deployAmbushCounter, drawAmbushValue } from './pieces/AmbushCounter.js';
-export { flameFlood, igniteSquares, sectionSquares, clearFlames } from './rules/flame.js';
+export { flameFlood, igniteSquares, sectionSquares, clearFlames, expireFlames } from './rules/flame.js';
 export { Dir } from './core/Direction.js';
-export { AP_PER_TURN, MOVE_COST, TURN_COST } from './core/CostTables.js';
+export { AP_PER_TURN, MOVE_COST, TURN_COST, TUNING, applyTuning, parseTuning } from './core/CostTables.js';
+export type { Tuning, TuningPatch } from './core/CostTables.js';
+export type { MarineCommand, MoveDir } from './core/Commands.js';
 
 export { Door } from './rules/Door.js';
 export * from './events/PieceEvents.js';
@@ -30,8 +32,10 @@ export { closeCombat, isFacing } from './rules/combat.js';
 export type { CombatResult } from './rules/combat.js';
 export type { PieceKind } from './pieces/Piece.js';
 export { Blip } from './pieces/Blip.js';
-export { runStealerActions, spawnBlips, convertRevealedBlips, squareSeenByMarine } from './ai/StealerAI.js';
+export { runStealerActions, stealerTick, spawnBlips, rankEntries, convertRevealedBlips, squareSeenByMarine, chargeOrientation } from './ai/StealerAI.js';
 export { runMarineTurn, autoplay } from './ai/MarineAutopilot.js';
+export { runMarineAI, marineTick, nearestShootable, nearestSeen, threatsOn } from './ai/MarineAI.js';
+export type { MarineAiAction } from './ai/MarineAI.js';
 export { DEPLOY_SECONDS_PER_SQUAD, deployFacing, deploySquadCount, deploySeconds, orderSquaresFrontToBack, autoDeployOrder } from './rules/deploy.js';
 export { GameLogger, GAMELOG_FORMAT_VERSION } from './log/GameLogger.js';
 export type { GameLog, GameLogMeta, LoggedEvent, LoggerEngine } from './log/GameLogger.js';

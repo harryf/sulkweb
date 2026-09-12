@@ -67,13 +67,13 @@ describe('deaths that open sight lines convert the revealed blips', () => {
     expect(blip.alive).toBe(false);
   });
 
-  it('an overwatch kill INSIDE the captured stealer phase converts the revealed blip', () => {
+  it('an overwatch kill INSIDE the captured stealer tick converts the revealed blip', () => {
     // capture() suppresses event handlers, so this path relies on the
-    // engine-internal sight re-check in runStealerActions, not on pieceDied.
+    // engine-internal sight re-check in the stealer tick, not on pieceDied.
     const engine = new GameEngine(mission(8));
     const board = engine.state.board;
-    // overwatch shot [6,1] (no double → no jam), then end-of-turn CP roll
-    board.dice = new RollQueue([6, 1, 3, 1, 1, 1, 1, 1]);
+    // overwatch shot [6,1] (no double, no jam); everything after is ones
+    board.dice = new RollQueue([6, 1, ...new Array(200).fill(1)]);
 
     const stealer = new Genestealer(board, { c: 4, r: 4 }, Dir.S);
     const blip = new Blip(board, { c: 4, r: 2 }, 1); // hidden behind the stealer
@@ -85,7 +85,7 @@ describe('deaths that open sight lines convert the revealed blips', () => {
     expect(stealer.alive).toBe(false); // overwatch killed it on its first step
     expect(blip.alive).toBe(false);    // reveal converted it despite capture
     expect(events.some(e => e.type === 'blipConverted')).toBe(true);
-    expect(board.pieces.some(p => (p as any).kind === 'stealer')).toBe(true); // spawned
+    expect(events.some(e => e.type === 'pieceAdded' && (e.payload as any).kind === 'stealer')).toBe(true); // the blip's stealer emerged
   });
 
   it('INVARIANT: no blip is ever inside marine sight at a marine-phase boundary (seeds 1-10)', () => {
@@ -98,7 +98,7 @@ describe('deaths that open sight lines convert the revealed blips', () => {
     for (let seed = 1; seed <= 10; seed++) {
       const engine = new GameEngine(loadMission('space_hulk_1'), [], new SeededRng(seed));
       const check = ({ phase, turn }: { phase: string; turn: number }) => {
-        if (phase !== 'MarineAction') return;
+        if (phase !== 'Live') return;
         for (const p of engine.state.board.pieces) {
           if ((p as any).kind === 'blip' && squareSeenByMarine(engine.state.board, p.pos)) {
             violations.push(`seed ${seed} turn ${turn}: visible blip at (${p.pos.c},${p.pos.r})`);

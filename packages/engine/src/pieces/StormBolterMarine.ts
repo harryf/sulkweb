@@ -4,6 +4,7 @@ import { Dir, DIR_VEC } from '../core/Direction.js';
 import { canShoot } from '../board/vision.js';
 import { PieceEvents } from '../events/PieceEvents.js';
 import { demolishDoor, type Door } from '../rules/Door.js';
+import { TUNING } from '../core/CostTables.js';
 
 export class StormBolterMarine extends Piece {
 
@@ -20,6 +21,12 @@ export class StormBolterMarine extends Piece {
 
   protected sustainedTargetId: string | null = null;
   protected sustainedBonus = 0;
+  /** Ticks since the last aimed shot: the bonus is forgotten after
+   *  TUNING.sustainedDecayTicks (2.x replacement for the turn-end refresh). */
+  private sustainedIdle = 0;
+  /** First tick at which the next overwatch reaction shot may fire (2.x
+   *  fire-rate gate: TUNING.overwatchCooldown ticks between reaction shots). */
+  owReadyTick = 0;
   /** Sustained-fire cap per the original `_max_fire_bonus`. */
   protected static readonly MAX_SUSTAINED = 4;
 
@@ -70,15 +77,27 @@ export class StormBolterMarine extends Piece {
     this.clearOverwatch();
     const bonus = !free && this.sustainedTargetId === target.id ? this.sustainedBonus : 0;
     this.sustainedTargetId = target.id;
+    this.sustainedIdle = 0;
     return { free, bonus };
   }
 
-  /** Overwatch reaction fire: free, range-limited, no sustained bonus, jams on any double. */
+  /** Overwatch reaction fire: free, range-limited, no sustained bonus, jams on
+   *  any double. Gated by the cooldown: one reaction shot per
+   *  TUNING.overwatchCooldown ticks (absolute tick stamp on the board clock). */
   overwatchShot(target: Piece): boolean {
     if (!this.overwatch || this.jammed || !target.alive) return false;
+    if (this.board.tick < this.owReadyTick) return false;
     const targetSquare = this.board.get(target.pos.c, target.pos.r);
     if (!targetSquare || !canShoot(this.board, this, targetSquare, StormBolterMarine.OVERWATCH_RANGE)) return false;
+    this.owReadyTick = this.board.tick + TUNING.overwatchCooldown;
     return this.resolveBolterDice(target, 0, true, false);
+  }
+
+  /** Sustained fire decays with idleness instead of the old turn-end refresh. */
+  override onTick(): void {
+    if (this.sustainedTargetId === null) return;
+    this.sustainedIdle += 1;
+    if (this.sustainedIdle >= TUNING.sustainedDecayTicks) this.clearSustained();
   }
 
   /** Enter overwatch for 2 AP. No other action until cancelled or lost. */
@@ -87,6 +106,7 @@ export class StormBolterMarine extends Piece {
     this.ap -= 2;
     this.overwatch = true;
     this.freeShot = false;
+    this.board.touch();
     PieceEvents.emit('overwatchChanged', { pieceId: this.id, on: true });
     return true;
   }
@@ -150,6 +170,7 @@ export class StormBolterMarine extends Piece {
     const key = StormBolterMarine.doorKey(door);
     const bonus = !free && this.sustainedTargetId === key ? this.sustainedBonus : 0;
     this.sustainedTargetId = key;
+    this.sustainedIdle = 0;
     return { free, key, bonus };
   }
 
@@ -177,6 +198,7 @@ export class StormBolterMarine extends Piece {
     if (this.board.locked || !this.jammed || this.ap < 1) return false;
     this.ap -= 1;
     this.jammed = false;
+    this.board.touch();
     PieceEvents.emit('jammed', { pieceId: this.id, jammed: false });
     return true;
   }
@@ -188,16 +210,10 @@ export class StormBolterMarine extends Piece {
     this.freeShot = action === 'move';
   }
 
-  override resetAP(): void {
-    super.resetAP();
-    this.freeShot = false;
-    // Original refresh(): fire bonus and target memory do not survive the turn.
-    this.clearSustained();
-  }
-
   protected clearOverwatch(): void {
     if (!this.overwatch) return;
     this.overwatch = false;
+    this.board.touch();
     PieceEvents.emit('overwatchChanged', { pieceId: this.id, on: false });
   }
 
@@ -210,6 +226,7 @@ export class StormBolterMarine extends Piece {
   /** The bolter fouls: announce it and drop overwatch. */
   protected jam(): void {
     this.jammed = true;
+    this.board.touch();
     PieceEvents.emit('jammed', { pieceId: this.id, jammed: true });
     this.clearOverwatch();
   }
@@ -233,12 +250,12 @@ export class StormBolterMarine extends Piece {
   }
 }
 
-/** Sergeant: a storm-bolter terminator with +1 on every close-combat die and
- *  a +30s marine-phase timer bonus while alive (original `timer_bonus`). */
+/** Sergeant: a storm-bolter terminator with +1 on every close-combat die.
+ *  (The original's +30 s marine-phase timer bonus went with the phase clock
+ *  in 2.x; the sergeant's command worth returns as relay speed in stage 3.) */
 export class SergeantMarine extends StormBolterMarine {
   static override readonly SPRITE_KEY: string = 'terminator_sergeant';
   override readonly ccBonus = 1;
-  override readonly timerBonus = 30;
 }
 
 /** Sergeant with power sword (beta_2): everything the sergeant has, plus the

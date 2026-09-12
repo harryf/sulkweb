@@ -143,7 +143,7 @@ describe('flame-objectives (mission 4 systems)', () => {
   it('a flaming objective square is cleansed PERMANENTLY (ISC-219)', () => {
     const engine = new GameEngine(twoObjectives(), [], new SeededRng(1));
     const board = engine.state.board;
-    board.flaming.add('1,0');
+    board.flaming.set('1,0', 40);
     engine.checkVictory();
     expect(engine.cleansed.has('1,0')).toBe(true);
     expect(engine.state.result).toBe('ongoing');
@@ -154,9 +154,9 @@ describe('flame-objectives (mission 4 systems)', () => {
 
   it('both cleansed → win (ISC-220)', () => {
     const engine = new GameEngine(twoObjectives(), [], new SeededRng(1));
-    engine.state.board.flaming.add('1,0');
+    engine.state.board.flaming.set('1,0', 40);
     engine.checkVictory();
-    engine.state.board.flaming.add('1,11');
+    engine.state.board.flaming.set('1,11', 40);
     engine.checkVictory();
     expect(engine.state.result).toBe('win');
   });
@@ -201,7 +201,7 @@ describe('defend (mission 6 systems)', () => {
 
   it('the control room catching fire loses (ISC-230)', () => {
     const engine = new GameEngine(defend(), [], new SeededRng(1));
-    engine.state.board.flaming.add('1,1');
+    engine.state.board.flaming.set('1,1', 40);
     engine.checkVictory();
     expect(engine.state.result).toBe('loss');
   });

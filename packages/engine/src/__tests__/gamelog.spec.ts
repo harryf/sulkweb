@@ -196,12 +196,12 @@ describe('GameLogger', () => {
   });
 
   it('a full seeded autoplay game produces a coherent, duplicate-free log', () => {
-    // space_hulk_1, not debug_1: the autopilot's post-move checkVictory reads
-    // debug_1's empty turn-1 board as exterminated (instant win, 3 events),
-    // a pre-existing autopilot quirk this logger surfaced. The real mission
-    // gives a full game: ~200+ events with actual combat and deaths.
-    const engine = new GameEngine(loadMission('space_hulk_1'), [], new SeededRng(1));
-    const log = new GameLogger(engine, { mission: 'space_hulk_1', seed: 1 });
+    // debug_1 seed 30 (2026-09-12 real-time pin): a full lone-marine game that
+    // ends in a win with kills, shots and moves along the way. (The 1.x note
+    // about an instant exterminate win on the empty opening board is history:
+    // extermination now needs the reinforcement budget spent, see GameEngine.)
+    const engine = new GameEngine(loadMission('debug_1'), [], new SeededRng(30));
+    const log = new GameLogger(engine, { mission: 'debug_1', seed: 30 });
     try {
       autoplay(engine, 60);
     } finally {
@@ -221,7 +221,7 @@ describe('GameLogger', () => {
     expect(parsed.events.length).toBe(log.events.length);
     // Envelope phase integrity: every event between phaseChanged markers
     // carries the phase that marker announced (the corpus's core dimension).
-    let announced = 'MarineAction';
+    let announced = 'Live';
     for (const e of log.events) {
       if (e.type === 'phaseChanged') announced = e.phase as string;
       expect(e.phase, `seq ${e.seq} (${e.type})`).toBe(announced);

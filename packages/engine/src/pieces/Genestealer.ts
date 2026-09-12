@@ -12,7 +12,6 @@ import { PieceEvents } from '../events/PieceEvents.js';
 export class Genestealer extends Piece {
 
   static readonly SPRITE_KEY = 'stealer';
-  static readonly AP = 6;
 
   /** A stealer this close (Chebyshev) to a living marine charges: the hive's
    *  PHASE-END sweep (StealerAI.chargeOrientation) spins it to face its
@@ -30,7 +29,7 @@ export class Genestealer extends Piece {
   private lastFreeTurn: -1 | 1 | null = null;
 
   constructor(board: Board, start: Coord, facing: Dir = Dir.S) {
-    super('stealer', board, start, facing, Genestealer.AP);
+    super('stealer', board, start, facing);
   }
 
   protected override moveCost(rel: { dc: number; dr: number }): number | undefined {
@@ -50,6 +49,7 @@ export class Genestealer extends Piece {
     if (cost > this.ap) return false;
     this.facing = turn(this.facing, delta);
     this.ap -= cost;
+    this.board.touch();
     this.lastFreeTurn = delta !== 2 && cost === 0 ? delta : null;
     PieceEvents.emit('pieceMoved', { pieceId: this.id, x: this.pos.c, y: this.pos.r, facing: this.facing });
     return true;

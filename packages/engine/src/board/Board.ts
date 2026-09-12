@@ -27,10 +27,21 @@ export class Board {
   public cat?: import('../rules/exotic.js').CatState
   /** Ducting squares "x,y" → intact (mission 6 "Defend"). */
   public readonly ducting = new Map<string, boolean>()
-  /** Squares currently on fire ("x,y"). Flames block entry (unless the mover
-   *  is itself standing in flames) and block sight; cleared each end-phase. */
-  public readonly flaming = new Set<string>()
+  /** Squares currently on fire: "x,y" to the tick the flame expires. Flames
+   *  block entry (unless the mover is itself standing in flames) and block
+   *  sight; rules/flame.ts expireFlames sweeps them out on the board clock. */
+  public readonly flaming = new Map<string, number>()
+  /** The engine's tick count, written at the start of every tick (2.x). Zero
+   *  on a board driven directly by a unit test. Pieces stamp absolute tick
+   *  timers against it (overwatch cooldown, flame expiry). */
+  public tick = 0
+  /** Bumped by every change that can alter what marines see or shoot: piece
+   *  add/remove/move/turn, door state, overwatch and jam state, flames. The
+   *  hive's threat map is cached under it so a quiet tick costs nothing. */
+  public version = 0
   private adjacentsCache: Map<Square, Square[]> = new Map()
+
+  touch(): void { this.version += 1 }
 
   constructor(width: number, height: number, squares?: SquareJSON[] | number[][]) {
     this.width = width; this.height = height;
@@ -55,7 +66,9 @@ export class Board {
           const key = `${sq.x},${sq.y}`;
           const square = new Square(sq.x, sq.y, sq.kind, sq.section);
           if (sq.doorFacing) {
-            square.features.add(new Door(square, DOOR_FACING[sq.doorFacing]));
+            const door = new Door(square, DOOR_FACING[sq.doorFacing]);
+            door.onChange = () => this.touch();
+            square.features.add(door);
           }
           this.grid.set(key, square);
         });
@@ -123,6 +136,7 @@ export class Board {
   addPiece(piece: BoardPiece): void {
     if (this.pieces.includes(piece)) return;
     this.pieces.push(piece);
+    this.touch();
     const kind = (piece as { kind?: string }).kind ?? 'piece';
     const facing = (piece as { facing?: number }).facing ?? 0;
     PieceEvents.emit('pieceAdded', { pieceId: piece.id, kind, x: piece.pos.c, y: piece.pos.r, facing });
@@ -130,7 +144,7 @@ export class Board {
 
   removePiece(piece: BoardPiece): void {
     const i = this.pieces.indexOf(piece);
-    if (i >= 0) this.pieces.splice(i, 1);
+    if (i >= 0) { this.pieces.splice(i, 1); this.touch(); }
   }
 
   pieceAt(coord: { c: number; r: number }): BoardPiece | undefined {

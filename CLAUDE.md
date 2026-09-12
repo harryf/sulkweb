@@ -12,7 +12,7 @@ ALL NINE missions registered (space_hulk 1–6, beta_1, beta_2, debug_1); the co
 | Missions, controls, roster, deployment phase | `docs/features.md` |
 | Gameplay log export schema (stealer-AI analysis corpus) | `docs/gamelog-format.md` |
 | Roadmap state and known gaps | `docs/status.md` |
-| **2.x real-time plan (APPROVED 2026-09-12, stages not yet built; the "Stage 1 kickoff" section at its end is where implementation starts)** | `docs/realtime-plan.md` |
+| **2.x real-time plan (APPROVED 2026-09-12; stage 1 BUILT and shipped as v2.0.0-alpha.1; its "Stage 1 as built" subsection records what changed from the kickoff; stage 2 starts from the Stage 2 section)** | `docs/realtime-plan.md` |
 | Original milestone specs (M0–M8) and roadmap | `docs/history/prompts/` |
 | Canonical game rules (AP costs, dice, blips, phases) | `docs/history/SULK Manual Combined.pdf`; distilled digest in ISA Decisions |
 | Original Pygame engine analysis | `docs/history/Analysis Sulk Pygame*.html` |
@@ -24,9 +24,9 @@ Resuming work = extend `ISA.md` (new ISCs, decisions, changelog); don't invent a
 ```bash
 pnpm install
 pnpm --filter ./packages/client dev      # play at localhost:5173
-pnpm --filter ./packages/engine test     # 319 unit tests + coverage (~95% lines)
+pnpm --filter ./packages/engine test     # 406 unit tests + coverage (~98% lines)
 pnpm --filter ./packages/client test     # HUD/minimap units (vitest, --dir src only)
-pnpm --filter ./packages/client e2e      # Playwright no-mock suite (115 tests: real browser, no mocks)
+pnpm --filter ./packages/client e2e      # Playwright no-mock suite (real browser, no mocks)
 pnpm build                               # engine tsc -b + client vite build
 pnpm --filter ./packages/engine example  # CLI engine tour
 ```
@@ -221,12 +221,31 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
   and F never reach past the front rank and the hive's sacrifice blocker still shields the lane.
   Missing squares are solid rock and block both; vision arc is 180°, fire arc 90° with 45° edges
   shootable (`board/vision.ts`).
-- **Fog of war (client only, `utils/fog.ts` + GameScene.updateFog):** stealers hidden unless in a
+- **Fog of war (client only, `utils/fog.ts` + LiveScene.updateFog):** stealers hidden unless in a
   marine's sight set or within Chebyshev 2; BLIPS on the main board show only while the pulse
   radar runs (`radarLogic.radarActive`: a sergeant alive; debug_1 has no sergeant, so its blips
-  are invisible until they convert). Both gates read pre-phase snapshots during replays
-  (`fogMarineSnap`, `fogRadarSnap`), engine truth after `finishReplay`. `?fog=0` disables.
-- **AI is a hive (AI1, 2026-08-17):** `ai/hive.ts` plans the whole stealer turn;
+  are invisible until they convert). The sight set recomputes on a dirty flag raised by the
+  engine events (moves, deaths, adds, conversions, doors, flames, cycle boundaries, escapes),
+  at most once per frame; both gates read engine truth. `?fog=0` disables.
+- **The clock (2.x, 2026-09-12):** `GameEngine.tick()` is the game; order: regen, deferred
+  commands, marine default AI (`ai/MarineAI.ts`), `stealerTick`, expiry sweep + cycle offset
+  events, cycle boundary every `TUNING.cycleTicks`, due reinforcements, victory, `tick` event.
+  The engine reads no clock (engine_lint.spec bans `Date`/`performance`); the client's
+  `LiveScene.update()` accumulator calls tick() (max 4 per frame). Every player action is
+  `engine.command(id, MarineCommand)`, applied at once between ticks and logged against the
+  tick it followed (the replay unit); the client NEVER calls piece action methods. A command
+  stamps `lastCommandTick` (the direct-control lease, `TUNING.leaseTicks`) and the default AI
+  skips leased marines. `endMarinePhase()` and `runStealerActions()` are TEST SHIMS (one cycle
+  of ticks; a whole activation) that die in stage 2. All real-time numbers live in
+  `core/CostTables.ts` `TUNING` (unvalidated; `?tuning=k:v` overrides before construction).
+  Pinned e2e fixtures: debug_1 seed 30 wins under autoplay, space_hulk_1 loses on every seed
+  (the autopilot feeds the flamer to the first contact); re-pin only after the last behavioural
+  change of a stage.
+- **AI is a hive (AI1, 2026-08-17; per tick since 2.x):** `ai/hive.ts` plans the stealer side
+  (2.x: every `TUNING.hivePlanTicks` ticks or on a marine death, cached on the board; the
+  threat map is cached under `Board.version`; patience/massing/idle counters advance once
+  per CYCLE so the turn-denominated thresholds below still hold; blip voluntary conversion is
+  "spent nothing since the pool was last full, or idle `TUNING.blipIdleTicks`");
   threat map (overwatch kill zones + seen squares), threat-weighted Dijkstra
   (kill +6, seen +2 per square; falls back to plain BFS behavior with no threat),
   staging ring + stall-based wave patience, approach-vector spread (separated
@@ -235,7 +254,7 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
   behind), staging door-shuts, emergent jam rush. HARD invariants: the hive
   consumes ZERO dice (hive.spec counts RollQueue draws exactly; any planning
   draw re-baselines every scripted test), hive memory is a WeakMap on Board,
-  variety comes only from turnNumber rotation. Pathing rules unchanged:
+  variety comes only from cycle-number rotation. Pathing rules unchanged:
   8-connected, closed door EDGES pathed through and opened on contact, friendly
   pieces transparent (queue through chokepoints) but never stepped on, corner-cut
   diagonals pruned. Greedy stepping was removed; it stalls in concave pockets
@@ -256,8 +275,9 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
   side alcoves is EMERGENT from the per-square kill penalty (pinned in
   hive.spec; don't add special-case code for it). CC targets an un-jammed
   overwatcher first. spawnBlips ranks entries by objective distance (bulk via
-  rotated top-3, watched entries last) and every third turn spawns a feint at
-  the entry nearest the MARINES.
+  rotated top-3, watched entries last) and every third cycle spawns a feint at
+  the entry nearest the MARINES; 2.x books each blip into its entry's slot
+  (entry index times `TUNING.spawnOffsetTicks`) instead of placing the wave at once.
 - **Doors are EDGES, not squares:** a `Door` anchors on a square + `doorFacing` and lives on
   the boundary to that neighbor. `Board.doorBetween(a,b)` is the lookup; movement blocks
   orthogonal crossings (`Piece.tryMove`), LOS does segment-intersection vs closed edges
@@ -266,15 +286,15 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
 - **Never emit events from a base-class constructor when subclass fields carry the payload:**
   JS runs subclass field initializers AFTER super() returns. `Piece.kind` is a base-constructor
   parameter for exactly this reason (the "every new piece renders as a marine" bug).
-- **Stealer-phase animation = event replay:** `PieceEvents.capture()` buffers the
-  endMarinePhase stream; the scene re-emits it via `PieceEvents.replay()` on a timeline.
-  Two invariants: engine logic must not depend on event delivery inside the captured
-  section, and state-mutating handlers (sight-conversion) must skip `PieceEvents.replaying`
- ; replayed events describe PAST board states.
+- **No replay pipeline any more (2.x):** the client renders engine events as they fire. The
+  emitter keeps `capture()`/`replay()`/`replaying` for the logger's exactly-once tap
+  semantics and for tests; nothing in the client calls them, and engine logic must never
+  depend on event delivery (the stealer side re-checks sight itself after every action).
 - **Sight-conversion lives at TWO levels, both required:** `GameEngine` handlers on
-  `pieceMoved`/`doorToggled`/`pieceDied` cover live marine-phase actions (a kill vacates a
-  square and can reveal a blip); `runStealerActions` calls `convertRevealedBlips` after every
-  AI action because `capture()` suppresses handlers during the animated stealer phase.
+  `pieceMoved`/`doorToggled`/`pieceDied` cover the marines' actions (a kill vacates a
+  square and can reveal a blip); the stealer side (`stealerAct` in StealerAI.ts) calls
+  `convertRevealedBlips` after every one of its actions itself, so a captured or
+  handler-free driver (tests, the shims) behaves like the live tick.
   Removing either half silently diverges browser games from engine seed scans.
 - **Determinism covers the RNG's whole lifetime:** blip values + first CP roll consume dice
   at engine CONSTRUCTION; swapping `board.dice` afterwards leaves them random. Pin with
@@ -286,7 +306,7 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
   ear-confirmed). The processed set under `assets/audio/` is committed and ships with the
   deployed site, attributed on `/credits.html` (see CREDITS.md); only the raw `.audio-cache/`
   is gitignored. `AudioManager` owns ALL playback;
-  never call `this.sound.play` from GameScene; every audible behaviour routes through the
+  never call `this.sound.play` from LiveScene; every audible behaviour routes through the
   pure-logic `audioLogic.ts` (vitest-covered) and cache-exists guards keep a no-audio clone
   booting silently. Music is OGG **Opus** (this ffmpeg has no libvorbis; Playwright's
   Chromium has no AAC; opus is the codec all our targets decode).
@@ -295,8 +315,11 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
 
 All nine missions are registered and playable; the campaign equipment (assault
 cannon, chain fist, parry sergeant, C.A.T., ambush counters) shipped with them.
-Genuinely open: marine interrupts during the stealer phase (the biggest named
-gap for winning space_hulk_1), thunder hammer + captain/grenades + librarian
-psi (no registered mission uses them; sprites exist unused per
-docs/asset-index.md), off-board entry-limbo lurking. Deferred verifications:
-FPS probe (ISC-71), live real-Chrome boot check once Interceptor is repaired.
+The 2.x line (docs/realtime-plan.md) is in progress: stage 1 (the clock) shipped
+as v2.0.0-alpha.1 and dissolved the old "marine interrupts" gap (marines act at
+any time now); stage 2 (individual orders) waits on the two playtest verdicts
+in the plan. Still open: thunder hammer + captain/grenades + librarian psi (no
+registered mission uses them; sprites exist unused per docs/asset-index.md),
+off-board entry-limbo lurking, the first balance sweep of the real-time
+constants. Deferred verifications: FPS probe (ISC-71), live real-Chrome boot
+check once Interceptor is repaired.

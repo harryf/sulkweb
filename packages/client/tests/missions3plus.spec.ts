@@ -10,7 +10,7 @@ const BOOTS: { name: string; squares: number; marines: number; objective: string
   { name: 'space_hulk_3', squares: 151, marines: 10, objective: 'ESCORT the C.A.T.', status: 'Escaped: 0' },
   { name: 'space_hulk_4', squares: 182, marines: 10, objective: 'FLAME both Gene Banks', status: 'Cleansed: 0/2' },
   { name: 'space_hulk_5', squares: 158, marines: 10, objective: 'ESCAPE 5 marines', status: 'Escaped: 0/5' },
-  { name: 'space_hulk_6', squares: 192, marines: 10, objective: 'DEFEND the ducting', status: 'Hold until turn 16' },
+  { name: 'space_hulk_6', squares: 192, marines: 10, objective: 'DEFEND the ducting', status: 'Hold until cycle 16' },
   { name: 'beta_1', squares: 192, marines: 5, objective: 'GET one marine out', status: 'Escaped: 0/1' },
 ];
 
@@ -18,7 +18,7 @@ for (const b of BOOTS) {
   test(`${b.name} boots: board, squad, objective, status line, zero errors`, async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (err: Error) => errors.push(err.message));
-    await page.goto(`/?deploy=0&mission=${b.name}&seed=1`);
+    await page.goto(`/?deploy=0&tick=0&mission=${b.name}&seed=1`);
     await expect(page.locator('canvas')).toBeVisible();
     await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
     const state = await page.evaluate(() => {

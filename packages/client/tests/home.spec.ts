@@ -69,14 +69,14 @@ test('attract mode is inert: no input, no clock, no audio', async ({ page }) => 
     return {
       turn: engine.turnNumber,
       phase: engine.phase,
-      timerRunning: scene.timerEvent !== undefined,
+      ticks: engine.tickCount,
       audioConstructed: audio !== undefined,
       inputEnabled: scene.input.enabled,
     };
   });
   expect(state.turn).toBe(1);
-  expect(state.phase).toBe('MarineAction');
-  expect(state.timerRunning).toBe(false);
+  expect(state.phase).toBe('Live');
+  expect(state.ticks).toBe(0); // the clock never runs behind the overlay
   expect(state.audioConstructed).toBe(false);
   expect(state.inputEnabled).toBe(false);
 });
@@ -130,15 +130,16 @@ test('legacy /?seed=N URLs redirect to debug_1 with the seed preserved', async (
   await expect(page.locator('#home-overlay')).toHaveCount(0);
 });
 
-test('an armed abort button does not fire on the end-turn Enter key', async ({ page }) => {
+test('an armed abort button does not fire on the Enter key (which the live game ignores)', async ({ page }) => {
   await page.goto('/?deploy=0&mission=debug_1&seed=1');
   await waitForScene(page);
   await page.locator('#abort-mission').click(); // armed — and blurred
-  await page.keyboard.press('Enter');           // means END TURN, not "confirm abort"
+  await page.keyboard.press('Enter');           // reaches the game (a no-op once live), never the button
   await page.waitForTimeout(300);
   expect(page.url()).toContain('mission=debug_1'); // still in the mission
-  const turn = await page.evaluate(() => (window as any).sulk.engine.turnNumber);
-  expect(turn).toBeGreaterThanOrEqual(2); // Enter reached the game, not the button
+  const live = await page.evaluate(() => ({ result: (window as any).sulk.engine.state.result, abort: document.getElementById('abort-mission')?.textContent }));
+  expect(live.result).toBe('ongoing');
+  expect(live.abort).toBe('Abandon squad?'); // still armed, not fired
 });
 
 test('mission music fades in from silence after the unlock gesture', async ({ page }) => {
@@ -185,7 +186,7 @@ test('every page links the marine favicon', async ({ page }) => {
 
 test('mission won: end dialog offers retry and mission select', async ({ page }) => {
   test.setTimeout(120000);
-  await page.goto('/?deploy=0&mission=debug_1&seed=1');
+  await page.goto('/?deploy=0&tick=0&mission=debug_1&seed=30'); // the pinned real-time win seed
   await waitForScene(page);
 
   await page.evaluate(() => {
@@ -238,7 +239,7 @@ test('field manual: rules sections, marine quotes, and a map for every mission',
   await page.goto('/manual.html');
 
   await expect(page.locator('.manual-header h1')).toHaveText('SULK');
-  for (const heading of ['How a turn works', 'Moving', 'Overwatch', 'The heavy flamer', 'Close combat', 'Blips', 'Winning and losing', 'Controls', 'The missions']) {
+  for (const heading of ['How the clock works', 'Moving', 'Overwatch', 'The heavy flamer', 'Close combat', 'Blips', 'Winning and losing', 'Controls', 'The missions']) {
     await expect(page.locator('h2', { hasText: heading })).toBeVisible();
   }
 

@@ -23,27 +23,41 @@ Every mission opens with a **deployment phase** before turn 1. The squad starts 
 
 Direct-URL play can skip the phase with `?deploy=0` (the marines then stand on their mission-default squares); the training scenario `debug_1` (a single deployment square) never enters it.
 
-## Turn structure
+## The clock (2.x)
 
-Each game turn runs:
+There are no turns. The game advances one **tick** at a time (250 ms), and forty ticks make a **cycle** (10 s), the period every once-a-turn rule of the original now fires on. Inside one tick, in this order: every piece regenerates AP; every marine nobody is steering runs his default behaviour (below); every stealer-side piece with AP takes one action under the hive plan, each followed by overwatch reactions and the blip sight check; timers expire (flames, sustained fire); the cycle's scheduled events fire at their own moments (the C.A.T. wanders at tick 10 of the cycle, the download counter ticks at 20, an ambush counter deploys at 30); at the cycle boundary the defend turn limit is judged, the entry blockade is judged, reinforcements are booked, a new command-point pool is rolled and close-in stealers turn to face their prey; then victory is checked. The player's own actions are not part of the tick: they apply the instant a key is pressed, between ticks, and each is logged against the tick it followed.
 
-1. **Marine phase.** The player acts with any marines in any order, spending AP and command points, under a real-time clock (below). The phase ends with the DONE button, the Enter key, or clock expiry.
-2. **Stealer phase** (automatic). Reinforcement blips spawn at entry points, then every stealer-side piece acts (AI, below), then ambush counters deploy where the mission uses them.
-3. **End phase** (automatic). Victory conditions are checked, flames go out, freed sight lines are re-checked, the loose C.A.T. wanders, mission counters tick (download), the turn number advances, every piece's AP refreshes, and a new command point pool is rolled.
+Victory checks also fire the moment the original demands it: a kill-quota win lands on the quota kill, a flame-objective win when the objective burns, an escape win when the quota marine leaves, and a reach-exit win on the step that reaches the exit.
 
-Victory checks also fire mid-turn where the original demands it: a kill-quota win lands the moment the quota kill happens, a flame-objective win the moment the objective burns, an escape win the moment the quota marine leaves.
-
-### The clock
-
-The marine phase is timed: **120 seconds, plus 30 for each living sergeant** (either sergeant type). Expiry ends the phase exactly like pressing DONE.
+**Reinforcements** arrive once a cycle: the mission's blips-per-turn count, booked at the cycle boundary into per-entry slots (the entry's index in the mission list times five ticks), so successive entries feed the hulk at different moments. A blip whose entry is occupied waits for it until the cycle ends, then takes any free ranked entry, else it is dropped without being charged to the mission's blip budget. Extermination means the board is empty, nothing is booked and the budget is spent.
 
 ### Action points (AP)
 
-Every piece gets a fixed AP pool at the start of each turn and spends it on actions. Unspent AP is lost. Marines have 4 AP; genestealers and blips have 6.
+Every piece has an AP pool and **regenerates** toward it: marines 1 AP every 4 ticks (one a second) up to 4; genestealers and blips 1 AP every 2 ticks up to 6. A full pool banks nothing, so a spend always restarts a whole interval. Nothing is ever reset or lost at a boundary. The costs of every action are unchanged from the original.
 
 ### Command points (CP)
 
-A fresh **d6 of command points** is rolled at the start of every turn (visible on the roster cards); the unspent remainder of the previous pool is discarded, never banked. Spending is legal only during the marine phase: 1 CP buys **+1 AP for any living marine**, any number of times while the pool lasts.
+A fresh **d6 of command points** is rolled at construction and at every cycle boundary (visible on the roster cards); the unspent remainder is discarded, never banked. 1 CP buys **+1 AP for any living marine**, any number of times while the pool lasts.
+
+### Direct control and the default behaviour
+
+A key press steers the selected marine at once and gives him a **lease** of 8 ticks (2 s) during which his default behaviour stays out of the way. Reactions (overwatch fire, close-combat defence) are never suspended. Every marine without a live lease runs this list once a tick, first match wins:
+
+1. jammed: unjam;
+2. on overwatch: hold (his reaction fire is his action);
+3. a stealer in the fire arc with line of fire: shoot (the storm bolter's 11-in-36 beats a marine's close combat several times over, so the shot comes before the fight);
+4. a stealer directly ahead and no shot possible: close combat;
+5. a stealer adjacent elsewhere: turn toward it;
+6. heavy flamer only, the last stand: a stealer within 2 squares, fuel left, and a blast section holding no marine and nothing the mission needs (control room, ducting, data room, the loose C.A.T.): flame it;
+7. a stealer visible but not shootable: turn toward the nearest;
+8. an open door directly ahead with a stealer seen beyond it and no friendly beyond it: close it;
+9. assault cannon only: an empty drum and nothing in sight: reload (never overwatch dry);
+10. not on overwatch with 2 AP or more and a weapon that can overwatch: overwatch;
+11. hold.
+
+The default never opens a door, never walks toward the objective, never autofires the cannon, never cuts a door with the chain fist and never flames outside the last stand; those are the player's calls (and, from stage 2, orders).
+
+All the real-time numbers above (tick length, cycle length, regeneration, caps, overwatch cooldown, flame duration, lease, plan cadence, slot spacing, event offsets) are unvalidated starting values kept as data in `core/CostTables.ts` (`TUNING`); the client's `?tuning=` query overrides them before a game is built.
 
 ## Movement
 
@@ -88,7 +102,8 @@ Additional movement rules:
 
 - Entering overwatch costs **2 AP** and excludes other actions until cancelled (free) or lost.
 - While on overwatch, the marine fires a free reaction shot at **every stealer-side action within his fire arc, clear LOS, and range 12**, resolved with his normal dice but no sustained bonus.
-- Any action by the marine (move, turn, door, aimed shot) drops overwatch. A bolter jam drops it too. Nothing else does: **overwatch persists across turns** until the marine acts or jams.
+- Any action by the marine (move, turn, door, aimed shot) drops overwatch. A bolter jam drops it too. Nothing else does: **overwatch persists** across cycles until the marine acts, jams or dies.
+- **Fire-rate gate (2.x)**: one reaction shot per marine every 2 ticks (`TUNING.overwatchCooldown`); a stealer action inside the cooldown draws no fire. The jam on doubles is the second brake.
 - Reactions target any acting stealer-side piece, blips and ambush counters included (blips rarely expose themselves; counters do it deliberately).
 - The heavy flamer cannot overwatch.
 
@@ -174,7 +189,7 @@ A storm-bolter terminator whose powered blade **cuts the door directly ahead apa
 - A flamer shot floods the target's section orthogonally from the target square, stopped by closed door edges, and sets those squares alight.
 - Every piece on an ignited square dies on a d6 of **2+** (self-destruct kills without a roll). A loose C.A.T. in the blast is destroyed outright.
 - Flaming squares block entry, except for pieces already standing in flames, which may move through or out of burning squares.
-- **All flames go out in the end phase** of the same turn. A flame-objectives square that burned stays permanently "cleansed" for the mission objective even after the flames clear.
+- **Flames burn for one cycle** (40 ticks) from the moment they are lit, then go out, and the freed sight lines are re-checked. A flame-objectives square that burned stays permanently "cleansed" for the mission objective even after the flames clear.
 
 ## Special mission features
 
@@ -202,11 +217,11 @@ One Data Room square. A sergeant (either type) standing on it at the end phase *
 - **Entry points**: off-board arrows where reinforcement blips spawn each stealer phase, round-robin across entries, skipping occupied ones. Spawning stops when the mission's total budget (`totalBlips`) is exhausted; most missions are uncapped.
 - **Exit points**: in escape-family missions (`escape-count`, `escort-cat`), a marine ending a move on an exit square immediately leaves the board and counts toward the escape quota. In `reach-exit` missions the marine wins by standing on the exit instead.
 
-## The stealer phase (AI behavior)
+## The stealer side (AI behavior)
 
-The stealer side plays as a **hive**: before any piece moves, a side-level plan (`ai/hive.ts`) reads the board and assigns each piece a role for the turn.
+The stealer side plays as a **hive**: a side-level plan (`ai/hive.ts`) reads the board and assigns each piece a role. In 2.x the plan is recomputed every 8 ticks, or at once when a marine dies, and each piece with AP takes one action per tick under it; the hive's patience, massing and idle counters advance once a cycle, so every threshold below keeps its original turn-denominated value.
 
-**The threat map.** The hive marks every square an un-jammed overwatching marine could shoot (fire arc + fire line of sight, which stops at any body + range 12: the *kill zones*) and every square any marine sees (sight line of sight, which passes stealer bodies). Pathing pays a heavy toll to enter a kill zone and a small one to be seen, so the horde routes around watched corridors and approaches through the dark. The map is recomputed as pieces act: a death, a door, or a body in a corridor changes it mid-phase.
+**The threat map.** The hive marks every square an un-jammed overwatching marine could shoot (fire arc + fire line of sight, which stops at any body + range 12: the *kill zones*) and every square any marine sees (sight line of sight, which passes stealer bodies). Pathing pays a heavy toll to enter a kill zone and a small one to be seen, so the horde routes around watched corridors and approaches through the dark. The map is recomputed whenever the board changes (a move, a death, a door, a flame, an overwatch or jam change bump a version counter) and at most once per tick; a quiet tick costs nothing.
 
 **Roles.**
 
@@ -266,10 +281,10 @@ All nine registered missions, transcribed from the original game's sources. Rein
 | `space_hulk_3` | Rescue | escort-cat | 6 bolters, 2 sergeants, 2 flamers | 0 / 3 | Squads Abel and Ilyich; C.A.T. starts at (28,13); damaged C.A.T. escape is a draw |
 | `space_hulk_4` | Cleanse and Burn | flame-objectives | 6 bolters, 2 sergeants, 2 flamers | 0 / 2 | Two Gene Bank squares to cleanse; both flamers are the mission's ammunition |
 | `space_hulk_5` | Decoy | escape-count | 6 bolters, 2 sergeants, 2 flamers | 3 / 2 | Five of ten marines must exit; dropping below five living + escaped loses |
-| `space_hulk_6` | Defend | defend | 6 bolters, 2 sergeants, 2 flamers | 2 / 2 | Survive to end of turn 16; three ducting squares; flamers carry only 4 shots; flaming inside the control room loses |
+| `space_hulk_6` | Defend | defend | 6 bolters, 2 sergeants, 2 flamers | 2 / 2 | Survive to the end of cycle 16; three ducting squares; flamers carry only 4 shots; flaming inside the control room loses |
 | `beta_1` | Messenger | escape-count | 3 bolters, sergeant, flamer | 2 / 1 | Any one marine out through the far exit |
-| `beta_2` | Download | download | 5 bolters, sergeant, sword sergeant, cannon, chain fist, flamer | 1 / 2 | The full armoury; hold the Data Room (12,22) for 4 quiet end phases; ambush counters active |
+| `beta_2` | Download | download | 5 bolters, sergeant, sword sergeant, cannon, chain fist, flamer | 1 / 2 | The full armoury; hold the Data Room (12,22) for 4 quiet cycles; ambush counters active |
 
 ## Determinism
 
-All randomness (attack dice, blip values, C.A.T. wander, ambush placement) flows through one dice source on the board. With a seeded source, an entire game replays identically, which is how the test suites script exact battles. There is no hidden randomness outside the dice stream. The marine-phase clock does not touch it: time consumes no dice, so the same actions produce the same game regardless of how fast the player takes them.
+All randomness (attack dice, blip values, C.A.T. wander, ambush placement) flows through one dice source on the board. With a seeded source, an entire game replays identically, which is how the test suites script exact battles. There is no hidden randomness outside the dice stream. The engine reads no clock: the tick count is its only time, a seed plus the ordered command log (tick, marine, command) replays a game headlessly, and a lint keeps `Date` and `performance` out of the engine.

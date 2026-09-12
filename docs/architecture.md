@@ -34,7 +34,7 @@ The engine is fully playable headless: the vitest suite and `MarineAutopilot` ru
 ## The client (`packages/client`)
 
 - `src/main.ts` and `src/gameConfig.ts`: boot a Phaser `Game` with two scenes; `main.ts` also routes the URL; no `?mission=` param mounts the landing overlay (attract mode), a mission param mounts the abort control.
-- `src/scenes/PreloadScene.ts`: loading bar. `src/scenes/GameScene.ts`: everything else: reads `?mission=` from the URL, constructs the engine, loads assets, draws the board, translates input into engine calls, and renders engine events.
+- `src/scenes/PreloadScene.ts`: loading bar. `src/scenes/LiveScene.ts`: everything else: reads `?mission=`, `?tick=` and `?tuning=` from the URL, constructs the engine, loads assets, draws the board, runs the engine clock inside `update()`, translates input into engine commands, and renders engine events.
 - `src/ui/`: `HudPanel` (canvas Mission Status strip), `Minimap`, `RosterPanel` (DOM marine cards, keyboard help, credits), `HighlightSprite`, `Selection` (the selected-piece store), `marineNames.ts` (deterministic roster identities), `keyboardHelp.ts` (key layout data), `missionMeta.ts` (curated mission titles/taglines), `HomeOverlay.ts` (the DOM landing screen), `endDialog.ts` (win/loss retry dialog), `abortButton.ts` (two-click abort control).
 - `src/audio/`: `AudioManager` (event-driven SFX, per-mission music, motion tracker), `audioManifest.ts` (single source of truth for every audio asset and credit), `alienSegments.ts`, `audioLogic.ts` (pure functions, unit-tested).
 - `src/config.ts`: HUD dimensions and colors. `src/utils/cameraBox.ts`: camera-to-minimap projection.
@@ -49,57 +49,51 @@ This is the part to understand before changing anything. There are three channel
 
 ### 1. Client calls in: methods and read-only state
 
-`GameScene.init` builds the engine:
+The `LiveScene` constructor builds the engine:
 
 ```ts
 this.engine = new GameEngine(loadMission(missionName), [], dice);
 ```
 
-From then on, input handlers call engine methods and let events drive the rendering. A `W` keypress becomes `piece.tryMove(dc, dr)`; `F` becomes `piece.shoot(target)`; the DONE button becomes `engine.endMarinePhase()`. The engine validates everything (AP, doors, LOS, occupancy) and returns `false` on refusal, so the client never re-implements a rule.
+From then on, input handlers issue commands and let events drive the rendering. A `W` keypress becomes `engine.command(id, { type: 'move', dir: 'forward' })`; `F` becomes `{ type: 'shoot', targetId }` or `{ type: 'flame', x, y }`; `O` toggles `{ type: 'overwatch', on }`. The engine applies a command at once, between ticks, validates everything (AP, doors, LOS, occupancy), returns `false` on refusal, and logs the command against the tick it followed, so the client never re-implements a rule and a seed plus the command log replays a game. The client never calls a piece's action methods directly.
 
 The client also reads engine state directly: `engine.state.board`, `engine.marines`, `engine.findPiece(id)`, `engine.mission`. These reads are treated as read-only snapshots. The client never mutates engine objects; the only writes go through method calls.
 
 ### 2. Engine broadcasts out: `PieceEvents`
 
-`events/PieceEvents.ts` exports a singleton typed emitter. Every gameplay fact the UI could care about is an event with a typed payload: `pieceMoved`, `shot`, `pieceDied`, `doorToggled`, `phaseChanged`, `apChanged`, `cpChanged`, `sectionFlamed`, `blipConverted`, `gameOver`, and about twenty more (the `PieceEventsType` interface is the authoritative list). The engine emits them as rules resolve; `GameScene`, `HudPanel`, `RosterPanel`, and `AudioManager` each subscribe to the slice they render. The engine never knows who is listening; the same events drive the vitest assertions.
+`events/PieceEvents.ts` exports a singleton typed emitter. Every gameplay fact the UI could care about is an event with a typed payload: `pieceMoved`, `shot`, `pieceDied`, `doorToggled`, `phaseChanged`, `apChanged`, `cpChanged`, `sectionFlamed`, `blipConverted`, `gameOver`, and about twenty more (the `PieceEventsType` interface is the authoritative list). The engine emits them as rules resolve; `LiveScene`, `HudPanel`, `RosterPanel`, and `AudioManager` each subscribe to the slice they render. The engine never knows who is listening; the same events drive the vitest assertions.
 
-### 3. The stealer phase: capture and replay
+### 3. The clock: one tick
 
-The engine resolves the entire stealer turn synchronously. `engine.endMarinePhase()` spawns reinforcements, runs the stealer AI, resolves overwatch, ticks mission objectives, clears flames, and re-rolls command points, all in one call. Played raw, the whole enemy turn would appear in a single frame.
+The engine reads no clock. `GameEngine.tick()` advances the game by one tick in a fixed order, and the client calls it from `update()` through a fixed-step accumulator (`TUNING.tickMs`, 250 ms; at most four ticks per frame, halted by pause, deployment, game over and the attract backdrop):
 
-So the client records it and plays it back:
+1. AP regeneration for every piece (`apChanged` on each gain)
+2. commands deferred from inside the previous tick (a handler issuing a command; normally none)
+3. the marine default AI (`ai/MarineAI.ts`): one action per marine with AP and no live direct-control lease
+4. the stealer side (`stealerTick`): one action per piece with AP under a hive plan cached for `TUNING.hivePlanTicks` ticks, with the threat map cached under `Board.version`
+5. the expiry sweep: piece timers (sustained fire, blip idleness), flames past their tick, and the cycle's offset events (C.A.T. wander, download counter, ambush counter)
+6. the cycle boundary every `TUNING.cycleTicks` ticks: defend turn limit, the blockade victory check, reinforcements booked at per-entry slots, the CP roll, the charge orientation sweep; then due reinforcements land
+7. the victory check
+8. the `tick` event
 
-```ts
-const stream = PieceEvents.capture(() => this.engine.endMarinePhase());
-// ... then re-emit each event on a Phaser timer:
-this.time.delayedCall(at, () => PieceEvents.replay(ev));
-this.time.delayedCall(at + 150, () => this.finishReplay());
-```
+Marines regenerate and act before stealers: the deliberate marine edge in a tie. Every event the engine emits during a tick is delivered at once; there is no captured stream and no replay. `PieceEvents.capture()` and `replay()` remain in the emitter for the logger's exactly-once tap semantics and for tests, and nothing in the client calls them. `endMarinePhase()` survives as a test shim equal to one cycle of ticks so the 1.x mission specs port by search and replace; it is deleted in stage 2.
 
-`capture()` buffers every emission instead of delivering it and returns the ordered stream. `GameScene.endTurn` then replays the stream with per-event pacing, so the player watches blips skitter and shots resolve one at a time, even though the engine finished the turn long ago. Two consequences shape code on both sides:
-
-- `PieceEvents.replaying` is true during playback. Engine handlers that mutate state on events (such as sight-triggered blip conversion) must skip replayed events, or they would re-run rules against the final board mid-animation. View handlers ignore the flag.
-- Replayed payloads describe past states, so view code driven by them must not read live engine state mid-replay. When playback ends, `finishReplay()` reconciles everything (roster, HUD, sprites) against engine truth.
-
-### Sequence of one full turn
+### Sequence of one tick
 
 ```mermaid
 sequenceDiagram
     participant P as Player
-    participant C as GameScene (client)
+    participant C as LiveScene (client)
     participant E as GameEngine (engine)
     participant B as PieceEvents bus
-    P->>C: W / F / H keys, clicks
-    C->>E: piece.tryMove / shoot / engine.spendCP
-    E->>B: pieceMoved, shot, apChanged...
+    P->>C: W / F / O keys, clicks
+    C->>E: engine.command(id, command)
+    E->>B: command, pieceMoved, shot, apChanged...
     B->>C: render sprite moves, flashes, HUD
-    P->>C: Enter / DONE
-    C->>E: capture(() => endMarinePhase())
-    E->>E: reinforce, stealer AI, end phase
-    E-->>C: buffered event stream
-    C->>B: replay events on timers
-    B->>C: animated stealer turn
-    C->>C: finishReplay(): reconcile to engine truth
+    C->>E: tick() every 250 ms (update accumulator)
+    E->>E: regen, marine AI, stealer tick, expiry, boundary, victory
+    E->>B: pieceMoved, shot, blipConverted, tick...
+    B->>C: sprites, fog dirty flag, HUD clock
 ```
 
 ### 4. The gameplay log: tap and export
@@ -110,9 +104,9 @@ sections (where handler delivery is suppressed) and never for replayed
 re-emissions. That gives an observer exactly-once, true-chronological coverage
 of the whole game regardless of the animation pipeline.
 
-`log/GameLogger.ts` builds on that: attached in the GameScene constructor for
-real missions, it records every event (except the UI-noise `selected` and
-`apChanged`) in an envelope of `{seq, turn, phase, type, ...payload}`, plus
+`log/GameLogger.ts` builds on that: attached in the LiveScene constructor for
+real missions, it records every event (except the UI-noise `selected`,
+`apChanged` and the per-tick `tick`) in an envelope of `{seq, turn, tick, phase, type, ...payload}`, plus
 mission/seed/version metadata and the initial piece layout. When the mission
 ends, the end dialog offers a debrief-notes field and a **Download game log**
 button that saves the record as
@@ -122,7 +116,7 @@ the full schema is in [gamelog-format.md](gamelog-format.md).
 
 ### Determinism and test hooks
 
-The engine takes an optional `DiceSource`; `SeededRng` and `RollQueue` pin every roll, which the Playwright suite uses to script exact battles. `GameScene` exposes `window.sulk` (engine, scene, `Selection`, autopilot helpers) so e2e tests and debugging sessions can reach both sides of the boundary. Mission selection is a URL parameter: `?mission=space_hulk_3` (unknown values fall back to `debug_1`). A bare URL with no mission param is the homepage: `space_hulk_1` loads as an attract-mode backdrop (input, clock, and audio disabled) under the DOM landing overlay.
+The engine takes an optional `DiceSource`; `SeededRng` and `RollQueue` pin every roll, which the Playwright suite uses to script exact battles. `LiveScene` exposes `window.sulk` (engine, scene, `Selection`, autopilot helpers, `step(n)`, `command(id, cmd)`, `TUNING`) so e2e tests and debugging sessions can reach both sides of the boundary; with `?tick=0` the clock stops and `step(n)` drives the engine deterministically. Mission selection is a URL parameter: `?mission=space_hulk_3` (unknown values fall back to `debug_1`). A bare URL with no mission param is the homepage: `space_hulk_1` loads as an attract-mode backdrop (input, clock, and audio disabled) under the DOM landing overlay.
 
 ## Deployment
 

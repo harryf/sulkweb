@@ -35,12 +35,18 @@ Where the port stands: what shipped, in what order, and what's knowingly missing
   see [rules-reference.md](rules-reference.md) and
   [features.md](features.md#deployment-phase)
 
-## Next line: 2.x real-time (PROPOSAL, 2026-09-12)
+## Next line: 2.x real-time (stage 1 shipped as v2.0.0-alpha.1, 2026-09-12)
 
-A reviewed plan for turning the port into a real-time game (ticking clock,
+The reviewed plan for turning the port into a real-time game (ticking clock,
 marine default AI, individual and squad orders, sergeant loss as command
 latency, staged delivery) lives in [realtime-plan.md](realtime-plan.md).
-Nothing in it is implemented; the 1.x line stays the faithful turn-based port.
+Stage 1, the clock, is built on main and published as a prerelease at
+https://harryf.github.io/sulkweb/2.0.0-alpha.1/ : the engine ticks, marines
+regenerate AP and defend themselves, the stealer side acts one action per
+piece per tick, overwatch persists with a cooldown, every key is an engine
+command, and the turn-based client is gone. The stable root stays on v1.1.0
+(the faithful turn-based port, frozen at /1.1.0/) until 2.0.0. Stage 2
+(individual orders) waits on the two playtest verdicts recorded in the plan.
 
 ## Known gaps / residue
 

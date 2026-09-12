@@ -7,7 +7,7 @@ import { test, expect, type Page } from '@playwright/test';
  * canvas clicks computed from the live camera.
  */
 
-async function boot(page: Page, url = '/?mission=space_hulk_1&seed=1') {
+async function boot(page: Page, url = '/?tick=0&mission=space_hulk_1&seed=1') {
   await page.goto(url);
   await expect(page.locator('canvas')).toBeVisible();
   await page.waitForFunction(() => (window as any).sulk?.scene?.minimap !== undefined, undefined, { timeout: 15000 });
@@ -51,17 +51,17 @@ test('missions boot into the deployment phase; deploy=0 skips it (ISC-814/821/83
   expect(p.deployRemaining).toBe(90); // one squad = 1.5 minutes
   await expect(page.locator('.marine-card.reserve')).toHaveCount(5);
 
-  await boot(page, '/?deploy=0&mission=space_hulk_1&seed=1');
+  await boot(page, '/?deploy=0&tick=0&mission=space_hulk_1&seed=1');
   const off = await probe(page);
   expect(off.deployMode).toBe(false);
-  expect(off.phase).toBe('MarineAction');
+  expect(off.phase).toBe('Live');
   expect(off.marines).toBe(5);
   expect(off.markers).toBe(0);
   expect(errors).toEqual([]);
 });
 
 test('two-squad missions get 3 minutes; attract mode never deploys (ISC-815/821)', async ({ page }) => {
-  await boot(page, '/?mission=space_hulk_5&seed=1');
+  await boot(page, '/?tick=0&mission=space_hulk_5&seed=1');
   expect((await probe(page)).deployRemaining).toBe(180);
   await page.goto('/');
   await page.waitForFunction(() => (window as any).sulk?.scene?.hud !== undefined, undefined, { timeout: 15000 });
@@ -162,22 +162,23 @@ test('AUTO DEPLOY fills the line in battle order — flamer no longer on point (
   expect(p.deployMode).toBe(true); // auto-deploy places; it does not start the mission
 });
 
-test('Done (Enter) starts the mission and every deploy control disappears (ISC-822/823/825)', async ({ page }) => {
+test('START (Enter) starts the mission and every deploy control disappears (ISC-822/823/825)', async ({ page }) => {
   await boot(page);
   await clickSquare(page, 10, 4); // one manual placement survives the auto-fill
   await page.keyboard.press('Enter');
   const p = await probe(page);
   expect(p.deployMode).toBe(false);
-  expect(p.phase).toBe('MarineAction');
+  expect(p.phase).toBe('Live');
   expect(p.marines).toBe(5);
   expect(p.reserve).toBe(0);
   expect(p.markers).toBe(0);
   expect(p.autoBtn).toBe(false);
-  expect(p.phaseText).toContain('Marines');
+  expect(p.phaseText).toContain('Cycle 1');
   await expect(page.locator('.marine-card.reserve')).toHaveCount(0);
-  // The marine clock took over (120s + 30s sergeant = 2:30).
-  const timer = await page.evaluate(() => (window as any).sulk.scene.hud ? ((window as any).sulk.scene as any).timerRemaining : 0);
-  expect(timer).toBe(150);
+  // The deployment clock is gone and the HUD's one button now pauses.
+  const clock = await page.evaluate(() => ({ deployTimer: ((window as any).sulk.scene as any).deployTimer, label: ((window as any).sulk.scene.hud as any).doneLabel.text }));
+  expect(clock.deployTimer).toBeUndefined();
+  expect(clock.label).toContain('PAUSE');
   // Normal play works: the board is unlocked and turning costs AP again.
   const live = await page.evaluate(() => {
     const { sulk } = window as any;
@@ -198,7 +199,7 @@ test('the deploy clock expiring auto-deploys and starts the mission (ISC-822)', 
   await page.evaluate(() => { ((window as any).sulk.scene as any).deployRemaining = 1; });
   await page.waitForFunction(() => (window as any).sulk.scene.deployMode === false, undefined, { timeout: 6000 });
   const p = await probe(page);
-  expect(p.phase).toBe('MarineAction');
+  expect(p.phase).toBe('Live');
   expect(p.marines).toBe(5);
   expect(p.markers).toBe(0);
 });

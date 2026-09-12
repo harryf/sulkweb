@@ -10,7 +10,7 @@ import { test, expect } from '@playwright/test';
 test('space_hulk_2: entry triangles render; cards select, update, and grey out on death', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err: Error) => errors.push(err.message));
-  await page.goto('/?deploy=0&mission=space_hulk_2&seed=1');
+  await page.goto('/?deploy=0&tick=0&mission=space_hulk_2&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
 
   // Entry triangles: 11 ENTRY squares → 11 off-board triangle images; no purple rects (ISC-270/272)
@@ -44,7 +44,7 @@ test('space_hulk_2: entry triangles render; cards select, update, and grey out o
   const before0 = await face.textContent();
   expect(['↑', '→', '↓', '←']).toContain(before0);
   await page.evaluate(() => {
-    const sgt = (window as any).sulk.engine.marines.find((m: any) => m.timerBonus > 0);
+    const sgt = (window as any).sulk.engine.marines.find((m: any) => m.spriteKey === 'terminator_sergeant');
     sgt.tryTurn(1);
   });
   await expect(face).not.toHaveText(before0!);
@@ -57,7 +57,7 @@ test('space_hulk_2: entry triangles render; cards select, update, and grey out o
   await cards.nth(0).click();
   const picked = await page.evaluate(() => (window as any).sulk.Selection.get());
   const sgtId = await page.evaluate(() =>
-    (window as any).sulk.engine.marines.find((m: any) => m.timerBonus > 0).id);
+    (window as any).sulk.engine.marines.find((m: any) => m.spriteKey === 'terminator_sergeant').id);
   expect(picked).toBe(sgtId);
   await expect(cards.nth(0)).toHaveClass(/selected/);
   await page.waitForTimeout(400); // pan tween
@@ -79,7 +79,7 @@ test('space_hulk_2: entry triangles render; cards select, update, and grey out o
 
   // Death: card greys out, shows KIA, stops selecting (ISC-279)
   const victimId = await page.evaluate(() => {
-    const m = (window as any).sulk.engine.marines.find((x: any) => x.timerBonus === 0 && x.ammo === undefined);
+    const m = (window as any).sulk.engine.marines.find((x: any) => x.spriteKey === 'terminator_storm_bolter');
     m.die();
     return m.id;
   });
@@ -96,7 +96,7 @@ test('space_hulk_2: entry triangles render; cards select, update, and grey out o
 test('space_hulk_3: exit arrows render off-board at the EXIT squares (ISC-273)', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err: Error) => errors.push(err.message));
-  await page.goto('/?deploy=0&mission=space_hulk_3&seed=1');
+  await page.goto('/?deploy=0&tick=0&mission=space_hulk_3&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
   const r = await page.evaluate(() => {
     const s = (window as any).sulk.scene;
@@ -118,7 +118,7 @@ test('space_hulk_3: exit arrows render off-board at the EXIT squares (ISC-273)',
 test('beta_2: two squad rows with all special-weapon labels; overwatch badge live (ISC-277/284)', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err: Error) => errors.push(err.message));
-  await page.goto('/?deploy=0&mission=beta_2&seed=1');
+  await page.goto('/?deploy=0&tick=0&mission=beta_2&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
 
   const rows = page.locator('#roster-panel .squad-row');
@@ -135,8 +135,9 @@ test('beta_2: two squad rows with all special-weapon labels; overwatch badge liv
 
   // Overwatch badge appears on the card when the engine flips the flag
   const owId = await page.evaluate(() => {
-    const m = (window as any).sulk.engine.marines.find((x: any) => x.overwatchOn && x.timerBonus === 0 && x.ammo === undefined);
-    m.overwatchOn();
+    const { sulk } = window as any;
+    const m = sulk.engine.marines.find((x: any) => x.spriteKey === 'terminator_storm_bolter');
+    sulk.command(m.id, { type: 'overwatch', on: true });
     return m.id;
   });
   await expect(page.locator(`[data-piece-id="${owId}"] .m-badges`)).toContainText('OW');
@@ -145,7 +146,7 @@ test('beta_2: two squad rows with all special-weapon labels; overwatch badge liv
 });
 
 test('keyboard help draws staggered keycap rows, collapses on click; Credits sit below (ISC-384/390..396)', async ({ page }) => {
-  await page.goto('/?deploy=0&mission=space_hulk_1&seed=1');
+  await page.goto('/?deploy=0&tick=0&mission=space_hulk_1&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
 
   // Canvas HUD header renamed; AP/CP gone from it; mission info retained (ISC-384/385/387)
@@ -157,7 +158,7 @@ test('keyboard help draws staggered keycap rows, collapses on click; Credits sit
   expect(hud.apText).toBeUndefined();
   expect(hud.cpText).toBeUndefined();
   expect(hud.texts).toContain('Mission Status');
-  expect(hud.texts.some((t: string) => t.startsWith('Turn 1:'))).toBe(true);
+  expect(hud.texts.some((t: string) => t.startsWith('Cycle 1'))).toBe(true);
   expect(hud.texts.some((t: string) => t.startsWith('Kills:'))).toBe(true);
   expect(hud.texts.some((t: string) => t.includes('Map: ▲'))).toBe(true);
   expect(hud.texts.some((t: string) => t.startsWith('AP:') || t.startsWith('CP:'))).toBe(false);
@@ -219,7 +220,7 @@ test('keyboard help draws staggered keycap rows, collapses on click; Credits sit
 });
 
 test('weapon keys dim when no such marine is deployed: space_hulk_1 greys R/T/G (ISC-643/644)', async ({ page }) => {
-  await page.goto('/?deploy=0&mission=space_hulk_1&seed=1');
+  await page.goto('/?deploy=0&tick=0&mission=space_hulk_1&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
   // No assault cannon and no chain fist in this mission: all three caps dim.
   const disabled = page.locator('#roster-panel .kb-help .keycap.disabled');
@@ -232,7 +233,7 @@ test('weapon keys dim when no such marine is deployed: space_hulk_1 greys R/T/G 
 });
 
 test('weapon keys stay live when the specialists ARE deployed: beta_2 dims nothing (ISC-645)', async ({ page }) => {
-  await page.goto('/?deploy=0&mission=beta_2&seed=1');
+  await page.goto('/?deploy=0&tick=0&mission=beta_2&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.scene?.roster !== undefined, undefined, { timeout: 15000 });
   await expect(page.locator('#roster-panel .kb-help .keycap.disabled')).toHaveCount(0);
   // Sub-labels still render on the live caps.

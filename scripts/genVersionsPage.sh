@@ -31,7 +31,11 @@ stable="$(cat STABLE_VERSION 2>/dev/null || echo 'unknown')"
 <li><a href="latest/">latest</a> <span class="note">head of main; may be broken</span></li>
 HTML
   for d in $(ls -d [0-9]*.[0-9]*.[0-9]* 2>/dev/null | sort -rV); do
-    echo "<li><a href=\"$d/\">v$d</a> <span class=\"note\">frozen release</span></li>"
+    case "$d" in
+      *-alpha.*) note="frozen prerelease (the 2.x real-time line; the stable root stays on 1.x until 2.0.0)" ;;
+      *) note="frozen release" ;;
+    esac
+    echo "<li><a href=\"$d/\">v$d</a> <span class=\"note\">$note</span></li>"
   done
   cat <<'HTML'
 </ul>

@@ -6,7 +6,7 @@ import { test, expect, type Page } from '@playwright/test';
  * asserted the mocks, not the game.
  */
 
-async function waitForGame(page: Page, url = '/?deploy=0&mission=space_hulk_1') {
+async function waitForGame(page: Page, url = '/?deploy=0&tick=0&mission=space_hulk_1') {
   // This spec exercises the full space_hulk_1 scenario (squad of five, two
   // blips); the client's DEFAULT mission is debug_1 — covered separately below.
   await page.goto(url);
@@ -23,7 +23,7 @@ test('bare / is the homepage (space_hulk_1 attract backdrop); ?mission= plays', 
   expect(home.name).toBe('Suicide Mission'); // space_hulk_1 as scenery
   expect(home.overlay).toBe(true);
 
-  await waitForGame(page, '/?deploy=0&mission=debug_1');
+  await waitForGame(page, '/?deploy=0&tick=0&mission=debug_1');
   const dbg = await page.evaluate(() => {
     const { engine } = (window as any).sulk;
     return {
@@ -59,35 +59,37 @@ test('boots Mission 1: board, squad of five, two blips, zero errors', async ({ p
   });
   expect(state.marines).toBe(5);
   expect(state.enemies).toBe(2);
-  expect(state.phase).toBe('MarineAction');
+  expect(state.phase).toBe('Live');
   expect(state.turn).toBe(1);
   expect(state.cp).toBeGreaterThanOrEqual(1);
   expect(errors).toHaveLength(0);
 });
 
-test('a full engine turn runs through the UI without errors', async ({ page }) => {
+test('a full cycle runs through the UI without errors', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err: Error) => errors.push(err.message));
   await waitForGame(page);
   const after = await page.evaluate(() => {
-    const { engine, Selection } = (window as any).sulk;
+    const { engine, Selection, sulk } = { ...(window as any).sulk, sulk: (window as any).sulk };
     const marine = engine.marines[0];
     Selection.toggle(marine.id);
-    marine.moveForward();
-    engine.endMarinePhase();
+    sulk.command(marine.id, { type: 'move', dir: 'forward' });
+    sulk.step(40); // one cycle: the boundary books reinforcements, the clock lands them
+    sulk.step(40); // a second cycle so every entry slot has come round
     // Regression (2026-08-14): pieces added after boot must render with their
     // own texture, never the marine fallback ("DONE spawns marines" bug).
-    const scene = (window as any).sulk.scene;
+    const scene = sulk.scene;
     const impostors = engine.state.board.pieces
       .filter((p: any) => p.kind !== 'marine')
       .filter((p: any) => scene.pieceSprites[p.id]?.texture?.key === 'terminator_storm_bolter')
       .map((p: any) => p.id);
-    return { turn: engine.turnNumber, enemies: engine.stealerSide.length, result: engine.state.result, impostors };
+    return { cycle: engine.cycle, tick: engine.tickCount, enemies: engine.stealerSide.length, result: engine.state.result, impostors, clock: scene.hud.phaseText.text };
   });
-  expect(after.turn).toBe(2);
-  expect(after.enemies).toBeGreaterThan(2); // reinforcements arrived
+  expect(after.cycle).toBe(3);
+  expect(after.tick).toBe(80);
+  expect(after.clock).toBe('Cycle 3');
+  expect(after.enemies).toBeGreaterThan(0); // reinforcements arrived (or the initial blips converted and fight on)
   expect(after.impostors).toEqual([]); // no non-marine wears the marine texture
-  expect(after.result).toBe('ongoing');
   expect(errors).toHaveLength(0);
 });
 

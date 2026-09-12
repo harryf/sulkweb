@@ -10,6 +10,7 @@ import { autoplay } from '../ai/MarineAutopilot.js';
 function stubEngine(): LoggerEngine {
   return {
     turnNumber: 2,
+    tickCount: 47,
     phase: 'MarineAction',
     mission: { name: 'Stub Mission' },
     state: {
@@ -79,7 +80,7 @@ describe('GameLogger', () => {
       PieceEvents.emit('pieceMoved', { pieceId: 'p_1', x: 3, y: 4, facing: 1 });
       expect(log.events).toHaveLength(1);
       expect(log.events[0]).toMatchObject({
-        seq: 0, turn: 2, phase: 'MarineAction', type: 'pieceMoved',
+        seq: 0, turn: 2, tick: 47, phase: 'MarineAction', type: 'pieceMoved',
         pieceId: 'p_1', x: 3, y: 4, facing: 1,
       });
     } finally {

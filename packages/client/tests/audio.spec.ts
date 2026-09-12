@@ -14,7 +14,7 @@ test('space_hulk_2: audio assets serve; manager holds the mission track; no auto
   const consoleErrors: string[] = [];
   page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
 
-  await page.goto('/?deploy=0&mission=space_hulk_2&seed=1');
+  await page.goto('/?deploy=0&tick=0&mission=space_hulk_2&seed=1');
   await page.waitForFunction(() => (window as any).sulk?.audio !== undefined, undefined, { timeout: 15000 });
 
   expect(await page.evaluate(() => (window as any).sulk.audio.trackKey)).toBe('music_space_hulk_2');
@@ -44,20 +44,33 @@ test('space_hulk_2: audio assets serve; manager holds the mission track; no auto
     return !s.locked && music && music.isPlaying && music.loop === true;
   }, undefined, { timeout: 10000 });
 
-  // Ducking live (ISC-312/313): ending the turn swells the bed above the
-  // quiet level while the stealers act, then it settles back down.
+  // Ducking live (ISC-312/313): contact swells the bed above the quiet
+  // level, its passing settles it back down (the tick event re-reads contact).
   // (Right at unlock Phaser reports volume=1 for a beat before the config
   // volume lands — wait for the quiet bed to settle instead of reading once.)
   await page.waitForFunction(() =>
     (window as any).sulk.scene.sound.get('music_space_hulk_2').volume < 0.2,
     undefined, { timeout: 6000 });
-  // Drive the same phaseChanged events the stealer replay emits — the real
-  // handler + tween path, without racing a short replay's down-fade.
-  await page.evaluate(() => (window as any).sulk.PieceEvents.emit('phaseChanged', { phase: 'StealerAction', turn: 1 }));
+  // A stealer beside the squad, then one tick: the real handler + tween path.
+  await page.evaluate(() => {
+    const { sulk } = window as any;
+    for (const m of sulk.engine.marines) m.lastCommandTick = 1e9; // no AI shot removes it
+    const m = sulk.engine.marines[0];
+    (window as any).contact = new sulk.Genestealer(sulk.engine.state.board, { c: m.pos.c, r: m.pos.r + 2 }, 0);
+    (window as any).contact.ap = 0;
+    sulk.engine.state.board.locked = true; // nobody moves; the contact just stands there
+    sulk.step(1);
+  });
   await page.waitForFunction(() =>
     (window as any).sulk.scene.sound.get('music_space_hulk_2').volume > 0.3,
     undefined, { timeout: 6000 });
-  await page.evaluate(() => (window as any).sulk.PieceEvents.emit('phaseChanged', { phase: 'MarineAction', turn: 2 }));
+  await page.evaluate(() => {
+    const { sulk } = window as any;
+    sulk.engine.state.board.locked = false;
+    (window as any).contact.die();
+    sulk.engine.state.board.locked = true;
+    sulk.step(1);
+  });
   await page.waitForFunction(() =>
     (window as any).sulk.scene.sound.get('music_space_hulk_2').volume < 0.2,
     undefined, { timeout: 6000 });

@@ -47,7 +47,7 @@ const blipState = (page: import('@playwright/test').Page) => page.evaluate(() =>
 });
 
 test('debug_1 has no sergeant: its blips exist but are never drawn under fog', async ({ page }) => {
-  const errors = await boot(page, '/?deploy=0&mission=debug_1&seed=5');
+  const errors = await boot(page, '/?deploy=0&tick=0&mission=debug_1&seed=5');
   await trickle(page);
   const st = await blipState(page);
   expect(st.fog).toBe(true);
@@ -58,7 +58,7 @@ test('debug_1 has no sergeant: its blips exist but are never drawn under fog', a
 });
 
 test('space_hulk_1: blips show while the sergeant lives, vanish when he dies, stealers unaffected', async ({ page }) => {
-  const errors = await boot(page, '/?deploy=0&mission=space_hulk_1&seed=3');
+  const errors = await boot(page, '/?deploy=0&tick=0&mission=space_hulk_1&seed=3');
   const before = await blipState(page);
   expect(before.sergeants).toBe(1);
   expect(before.blips).toBe(2);
@@ -95,7 +95,7 @@ test('space_hulk_1: blips show while the sergeant lives, vanish when he dies, st
 });
 
 test('the hover readout never names a blip while the radar is down', async ({ page }) => {
-  await boot(page, '/?deploy=0&mission=space_hulk_1&seed=3');
+  await boot(page, '/?deploy=0&tick=0&mission=space_hulk_1&seed=3');
   const readouts = await page.evaluate(() => {
     const s = (window as any).sulk;
     const squares = s.engine.state.pieces.filter((p: any) => p.kind === 'blip').map((p: any) => [p.pos.c, p.pos.r]);
@@ -110,7 +110,7 @@ test('the hover readout never names a blip while the radar is down', async ({ pa
 });
 
 test('?fog=0 is a true escape hatch: no fog object, blips drawn with no sergeant', async ({ page }) => {
-  const errors = await boot(page, '/?deploy=0&fog=0&mission=debug_1&seed=5');
+  const errors = await boot(page, '/?deploy=0&tick=0&fog=0&mission=debug_1&seed=5');
   await trickle(page);
   const st = await blipState(page);
   expect(st.fog).toBe(false);

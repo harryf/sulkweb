@@ -51,10 +51,6 @@ export class Minimap extends Phaser.GameObjects.Container {
   public lastBox: MiniRect | null = null;
   /** Click handler — GameScene points this at camera centerOn (ISC-672). */
   public onFocus?: (worldX: number, worldY: number) => void;
-  /** (2.x) The dots and rings always read the live engine; nothing freezes
-   *  them, since there is no replayed phase to keep ahead of any more.
-   *  Kept as a flag for the e2e probes that toggle it. */
-  public frozen = false;
   /** e2e probe: marine dot positions in MINIMAP-LOCAL px (ISC-678). */
   public lastMarineDots: { x: number; y: number }[] = [];
   /** e2e probe: pulse origins in BOARD squares + contact count (ISC-688). */
@@ -226,7 +222,6 @@ export class Minimap extends Phaser.GameObjects.Container {
    * sergeant: the scope goes dark (ISC-692).
    */
   pulse(intervalMs: number): void {
-    if (this.frozen) return; // a test hold, never set in play
     const all = this.pieces();
     const sergeants = all.filter(isSergeant);
     if (sergeants.length === 0) {

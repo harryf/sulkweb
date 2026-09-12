@@ -17,6 +17,7 @@ describe('versionsHref', () => {
   it('links up from a frozen version manual', () => {
     expect(versionsHref('/sulkweb/0.5.0/manual.html')).toBe('../versions.html');
     expect(versionsHref('/sulkweb/12.34.56/manual.html')).toBe('../versions.html');
+    expect(versionsHref('/sulkweb/2.0.0-alpha.1/manual.html')).toBe('../versions.html'); // 2.x prereleases
   });
 
   it('does not mistake ordinary directories for version dirs', () => {

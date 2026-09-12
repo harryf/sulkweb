@@ -81,12 +81,18 @@ jobs:
         run: |
           set -euo pipefail
           VERSION_DIR="${GITHUB_REF_NAME#v}"
-          # Strict vX.Y.Z only: the preserve-regex, the versions-page glob, and
-          # the manual's version-dir regex all assume it. A looser tag would
-          # create a snapshot the NEXT release silently deletes, and a
-          # pathological tag like vlatest would clobber /latest/.
-          [[ "$VERSION_DIR" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
-            || { echo "release tags must be vX.Y.Z, got ${GITHUB_REF_NAME}"; exit 1; }
+          # Strict vX.Y.Z, or a vX.Y.Z-alpha.N prerelease: the preserve-regex,
+          # the versions-page glob, and the manual's version-dir regex all
+          # assume these two shapes. A looser tag would create a snapshot the
+          # NEXT release silently deletes, and a pathological tag like vlatest
+          # would clobber /latest/.
+          [[ "$VERSION_DIR" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-alpha\.[0-9]+)?$ ]] \
+            || { echo "release tags must be vX.Y.Z or vX.Y.Z-alpha.N, got ${GITHUB_REF_NAME}"; exit 1; }
+          # A prerelease gets its own frozen directory and a versions-page
+          # entry, and NEVER touches the stable root: the root only moves on a
+          # full release (docs/realtime-plan.md: 2.x alphas ship beside 1.x).
+          PRERELEASE=""
+          [[ "$VERSION_DIR" == *-alpha.* ]] && PRERELEASE=1
           mkdir site && cd site
           git init -q -b gh-pages
           git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
@@ -96,23 +102,31 @@ jobs:
           # from-scratch result is a complete, correct site.
           { git fetch -q --depth=1 origin gh-pages && git checkout -q gh-pages; } \
             || git checkout -q --orphan gh-pages
-          # Refresh the stable root: clear root-level entries but preserve
-          # every frozen version dir, latest/, and .git itself.
-          find . -maxdepth 1 ! -name . ! -name .git ! -name latest \
-            -regextype posix-extended ! -regex '\./[0-9]+\.[0-9]+\.[0-9]+' \
-            -exec rm -rf {} +
-          cp -R ../packages/client/dist/. .
+          MANIFEST="{\"version\":\"${GITHUB_REF_NAME}\",\"sha\":\"${GITHUB_SHA}\",\"built\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+          if [[ -z "$PRERELEASE" ]]; then
+            # Refresh the stable root: clear root-level entries but preserve
+            # every frozen version dir (prereleases included), latest/, and
+            # .git itself.
+            find . -maxdepth 1 ! -name . ! -name .git ! -name latest \
+              -regextype posix-extended ! -regex '\./[0-9]+\.[0-9]+\.[0-9]+(-alpha\.[0-9]+)?' \
+              -exec rm -rf {} +
+            cp -R ../packages/client/dist/. .
+            echo "$GITHUB_REF_NAME" > STABLE_VERSION
+            echo "$MANIFEST" > manifest.json
+          fi
           rm -rf "$VERSION_DIR"
           cp -R ../packages/client/dist "$VERSION_DIR"
-          echo "$GITHUB_REF_NAME" > STABLE_VERSION
           touch .nojekyll
-          MANIFEST="{\"version\":\"${GITHUB_REF_NAME}\",\"sha\":\"${GITHUB_SHA}\",\"built\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
-          echo "$MANIFEST" > manifest.json
           echo "$MANIFEST" > "$VERSION_DIR/manifest.json"
           bash ../scripts/genVersionsPage.sh
           git add -A
+          if [[ -z "$PRERELEASE" ]]; then
+            SUMMARY="Release ${GITHUB_REF_NAME}: stable root + frozen /${VERSION_DIR}/"
+          else
+            SUMMARY="Prerelease ${GITHUB_REF_NAME}: frozen /${VERSION_DIR}/ only, root untouched"
+          fi
           git -c user.name=sulkweb-deploy -c user.email=deploy@users.noreply.github.com \
-            commit -q -m "Release ${GITHUB_REF_NAME}: stable root + frozen /${VERSION_DIR}/" \
+            commit -q -m "$SUMMARY" \
             || echo "site tree unchanged"
           git push -q origin gh-pages
           rm -rf .git

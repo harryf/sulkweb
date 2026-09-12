@@ -50,10 +50,10 @@ export const SECTIONS: ManualSection[] = [
     id: 'what-is-this',
     title: 'What is this?',
     html: `
-<p>Sulk is a turn-based squad game played against the ship itself. You command a
+<p>Sulk is a real-time squad game played against the ship itself. You command a
 handful of Terminator marines (slow, armoured, lethal from the front) through
 corridors crawling with genestealers: fast, clawed, and very interested in your
-back. The computer plays the swarm. You play the clock.</p>
+back. The computer plays the swarm. Nobody waits for you.</p>
 <p>Each mission gives you one objective. Read it in the panel on the right, then
 read it again. Everything else is a resource you will run out of: every door,
 every point of ammunition, every second.</p>`,
@@ -64,7 +64,7 @@ every point of ammunition, every second.</p>`,
     html: `
 <p>Every mission opens with a <strong>deployment phase</strong>: your squad waits in
 reserve and the marked squares (an <strong>&#x2715;</strong> on each free one) are yours to
-fill. Marching order matters more than anything you do on turn 1. Whoever stands at
+fill. Marching order matters more than anything you do in the first cycle. Whoever stands at
 the front meets the swarm first, and a heavy flamer on point is a corpse holding your
 best weapon.</p>
 <ul>
@@ -82,35 +82,45 @@ order: a storm bolter on point, the sergeant behind him, a heavy weapon third,
 the rest at the back.</li>
 </ul>
 <p>The phase runs on its own clock: <strong>90 seconds per squad</strong>. When it
-expires, or when you press DONE (or Enter), any marines still in reserve deploy
-automatically and the mission begins. Esc pauses here just like in play. Once the
-mission starts, every deployment control disappears.</p>`,
+expires, or when you press START (or Enter), any marines still in reserve deploy
+automatically and the mission begins; the game clock starts with it. Esc pauses
+here just like in play. Once the mission starts, every deployment control
+disappears.</p>`,
   },
   {
     id: 'the-turn',
-    title: 'How a turn works',
+    title: 'How the clock works',
     html: `
-<ol>
-<li><strong>Your phase.</strong> Act with any marines in any order, spending action
-points and command points, under a real-time clock of <strong>120 seconds, plus 30
-for each living sergeant</strong>. End the phase with the DONE button or Enter, or the
-clock ends it for you.</li>
-<li><strong>The swarm's phase.</strong> New blips spawn at entry points, then every
-genestealer and blip acts. Marines on overwatch fire reaction shots throughout.</li>
-<li><strong>End phase.</strong> Victory is checked, flames burn out, the turn counter
-advances, everyone's action points refresh, and a fresh command-point pool is rolled.</li>
-</ol>`,
+<p>There are no turns. The game runs on a fixed clock: a <strong>tick</strong> every
+quarter second, forty ticks to a <strong>cycle</strong> (ten seconds). Everything the
+old game did once a turn (reinforcements, the command-point roll, the counters and
+limits of the special missions) now happens once a cycle, each at its own moment
+inside it. The HUD shows the cycle and the seconds into it.</p>
+<ul>
+<li><strong>The swarm never stops.</strong> Every genestealer and blip with action points
+acts every tick. Marines on overwatch fire reaction shots at every move they see,
+at most one every half second.</li>
+<li><strong>Your marines think for themselves.</strong> A marine you are not steering
+unjams, shoots what he can see, turns to meet a threat, closes a door a stealer is
+looking through, and otherwise goes on overwatch. He never opens a door and never
+wanders toward the objective: that is your job. Steer one and his own judgement
+steps aside for two seconds.</li>
+<li><strong>Esc pauses.</strong> The clock stops, the board stays readable, and no key
+reaches the game until you resume. A hidden browser tab pauses on its own.</li>
+</ul>`,
   },
   {
     id: 'ap-cp',
     title: 'Action points and command points',
     html: `
-<p>Every marine gets <strong>4 action points (AP)</strong> a turn; genestealers and
-blips get <strong>6</strong>. Unspent AP is lost: there is no saving up.</p>
-<p>Each turn also rolls a <strong>d6 of command points (CP)</strong>, shown on the
-roster. During your phase, 1 CP buys <strong>+1 AP for any living marine</strong>, as
-often as the pool lasts. The unspent remainder is discarded at the end of the turn:
-spend it or lose it.</p>`,
+<p>Every marine holds up to <strong>4 action points (AP)</strong> and gets one back
+<strong>every second</strong>; genestealers and blips hold <strong>6</strong> and get one
+back every half second. A full pool banks nothing: spend, and the next point takes
+a whole second to arrive. Nothing is ever lost at a boundary.</p>
+<p>Every cycle also rolls a <strong>d6 of command points (CP)</strong>, shown on the
+roster. 1 CP buys <strong>+1 AP for any living marine</strong>, as often as the pool
+lasts. The unspent remainder is discarded when the next pool is rolled: spend it or
+lose it.</p>`,
   },
   {
     id: 'moving',
@@ -174,9 +184,9 @@ destroyed on any 6, permanently.</p>`,
 <p>For <strong>2 AP</strong>, a bolter-family marine braces and fires a free reaction
 shot at <strong>every</strong> stealer-side action he can see in his fire arc within
 <strong>range 12</strong>: every step, every turn, every door.</p>
-<p>Overwatch persists across turns until the marine acts or his weapon jams. It is how
-corridors are held; it is also how bolters jam at the worst possible moment. The heavy
-flamer cannot overwatch.</p>`,
+<p>Overwatch persists until the marine acts or his weapon jams, and it fires at most
+one reaction shot every half second. It is how corridors are held; it is also how
+bolters jam at the worst possible moment. The heavy flamer cannot overwatch.</p>`,
   },
   {
     id: 'flamer',
@@ -281,7 +291,7 @@ vanishes from the scope.</p>
     html: `
 <p>Fire floods outward through a board section from the target square, stopped only by
 closed doors. Anything standing in it dies on a 2+. Burning squares cannot be entered,
-and all flames go out in the end phase of the same turn. Fire is a scalpel, not a
+and every blast burns out one cycle after it was lit. Fire is a scalpel, not a
 wall.</p>
 <p>In Cleanse and Burn, a square that has burned once stays <em>cleansed</em> for the
 objective even after the flames die.</p>`,
@@ -291,7 +301,7 @@ objective even after the flames die.</p>`,
     title: 'Winning and losing',
     html: `
 <p>Each mission names its own victory rule: burn a room, hold a room, reach an exit,
-kill thirty, survive sixteen turns. The mission list below states each one. Two things
+kill thirty, survive sixteen cycles. The mission list below states each one. Two things
 are true in every mission:</p>
 <ul>
 <li>A wiped squad is a defeat.</li>

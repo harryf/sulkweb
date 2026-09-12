@@ -34,14 +34,14 @@ Opening the bare app URL (`http://localhost:5173/`) shows the **homepage**: a ti
   the moment no living flamer has ammo.
 - **`space_hulk_5`** "Decoy": get **five of ten marines out** through the
   single exit; lose when the squad drops below five.
-- **`space_hulk_6`** "Defend": survive to the **end of turn 16** while
+- **`space_hulk_6`** "Defend": survive to the **end of cycle 16** while
   protecting the ducting (a stealer stepping on it tears it out, instant
   defeat) and keeping the control room unburnt. Flamers carry only 4 shots
   here, and firing one from inside the control room wrecks the ducting,
   exactly the source's own booby-trap.
 - **`beta_1`** "Messenger": get any one marine out through the far exit.
 - **`beta_2`** "Download": the full exotic armoury. A sergeant must HOLD the
-  **Data Room** square through four quiet end-phases (moving resets the
+  **Data Room** square through four quiet cycles (moving resets the
   counter) while the squad covers him with the **assault cannon** (3 dice,
   kill on 5+, 10 rounds + one reload, 2-AP AUTOFIRE that shreds stealers,
   doors and even battle-brothers, and can catastrophically MALFUNCTION), the
@@ -62,9 +62,34 @@ mission's deployment squares carry an X while free. Click a square to place the
 next marine of that squad (or click his roster card first to pick him
 specifically), click a placed marine to lift him back up, and spin him with
 `A`/`D` for free. AUTO DEPLOY fills the line in battle order (bolter on point,
-sergeant second, heavy weapon third); DONE, Enter, or the deployment clock
-(90 seconds per squad) auto-deploys the rest and starts the mission. `?deploy=0`
-skips the phase for quick testing.
+sergeant second, heavy weapon third); START, Enter, or the deployment clock
+(90 seconds per squad) auto-deploys the rest and starts the mission, and the
+game clock starts with it. `?deploy=0` skips the phase for quick testing.
+
+## The clock (2.x)
+
+There are no turns. The game runs on a fixed clock: one **tick** every 250 ms,
+forty ticks to a **cycle** (10 s). Every marine regenerates **1 AP per second**
+up to his pool of 4; genestealers and blips regenerate **1 AP per half second**
+up to 6, so the swarm is twice as quick as the squad and the squad answers
+with firepower. Every rule the original ran once a turn (reinforcements, the
+command-point roll, the C.A.T. wander, the download counter, ambush counters,
+the defend turn limit) now fires once a cycle, at its own moment inside it,
+so the hulk never beats like a metronome. Overwatch is a standing order: it
+persists until the marine acts, jams or dies, fires a free reaction shot at
+every stealer action in its arc, and never more than one shot every two ticks.
+Flames burn for one cycle from the moment they are lit.
+
+A marine you are not steering steers himself: he unjams, shoots what he can
+see, turns to meet a threat he can see but not shoot, closes a door a stealer
+is looking through, and otherwise goes on overwatch with two AP. He never
+opens a door and never walks toward the objective on his own; the heavy
+flamer holds his fuel unless a stealer comes within two squares of a section
+nothing friendly stands in. A marine you have just steered is left alone for
+two seconds. For tuning without a rebuild, `?tick=<ms>` sets the tick and
+`?tuning=regen.marine:3,overwatchCooldown:1` overrides the real-time
+constants (see `TUNING` in the engine); `?tick=0` stops the clock and hands
+it to `window.sulk.step(n)`, which is how the e2e suite drives a game.
 
 ## Controls
 
@@ -88,8 +113,8 @@ skips the phase for quick testing.
 | `P` | Spend a Command Point (+1 AP) |
 | `K` | Mute sound on/off (persists) |
 | `L` (hold) | Show line of sight |
-| `Enter` / DONE | End marine phase |
-| `Esc` | Pause |
+| `Esc` / PAUSE | Pause: the clock stops, the board stays readable, no key reaches the game until you resume. A hidden browser tab pauses on its own |
+| `Enter` / START | During deployment only: start the mission |
 | Arrows / drag / mouse wheel | Pan camera (wheel down pans down, like the down arrow; sideways wheel pans sideways) |
 | Mini-map click | Jump the view to that point |
 | Mouse hover | Square coordinate + contents in the HUD (below the map legend) |
@@ -133,15 +158,12 @@ shimmer. Camera panning carries a little inertia: arrow keys accelerate and
 glide to a stop, and releasing a fast drag flings the view. All of it is
 cosmetic; the engine resolves instantly and the mini-map stays motionless.
 
-Genestealers near your squad end every stealer phase facing their nearest
-prey, so a room of contacts reads as a pack mid-charge. Fair warning: a
+Genestealers near your squad turn to face their nearest prey at every cycle
+boundary, so a room of contacts reads as a pack mid-charge. Fair warning: a
 stealer staring your marine down defends close combat at full strength and
 strikes back if it wins, exactly the position a human hive player would set
-up with its free turns. During the stealer
-phase the camera follows the action: it pans to swarm activity near your
-marines (far-off reinforcements are skipped), and a close-combat strike gets
-the full treatment: a hard pan onto the fight, a kick of camera shake, and a
-darkening spotlight that closes the corridor in around the kill.
+up with its free turns. The camera is yours: nothing pans it but you (arrows,
+drag, wheel, a roster card, the mini-map).
 With the OS "reduce motion" accessibility setting enabled, every animation is
 replaced by an instant snap.
 
@@ -160,8 +182,9 @@ pnpm fetch-audio
 
 - **Ambient music**: a different [Music of 40K](https://www.youtube.com/@Musicof40K)
   soundscape per mission, looping continuously, loudness-normalised, ducked
-  quiet during your phase and swelling while the stealers act (900ms fades;
-  the room literally gets louder when it isn't your turn).
+  quiet while nothing is close and swelling while a stealer or blip stands
+  within eight squares of a marine (900ms fades; the room literally gets
+  louder as the swarm closes in).
 - **SFX**: the original Sulk public-domain wavs voice the marines; storm
   bolters fire the *Aliens* M41A pulse-rifle burst; genestealers move, attack
   and die with *Alien: Isolation* vocalisations (cut points + role guesses in

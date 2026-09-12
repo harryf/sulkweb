@@ -1,6 +1,6 @@
 # Real-time Sulk: plan for the 2.x line
 
-Status: APPROVED 2026-09-12; nothing built yet. Round one (ISA run block ISC-1095..1133) was reviewed and Harry answered open questions 1 to 14 and added the command pause idea; round two (ISC-1134..1153) folded those answers in, assessed the idea and asked questions 15 to 22, which Harry answered the same day (all agreed). Every open question now carries a decision; the Decision column is the record. Implementation starts with stage 1 from the "Stage 1 kickoff" section at the end of this document and gets its own ISA run block per stage.
+Status: APPROVED 2026-09-12; stage 1 BUILT the same day and shipped as v2.0.0-alpha.1 (ISA run block ISC-1166..1324; the "Stage 1 as built" subsection at the end records what changed from the kickoff and the balance evidence the build produced). Round one (ISA run block ISC-1095..1133) was reviewed and Harry answered open questions 1 to 14 and added the command pause idea; round two (ISC-1134..1153) folded those answers in, assessed the idea and asked questions 15 to 22, which Harry answered the same day (all agreed). Every open question carries a decision; the Decision column is the record. Stage 2 starts from its own section once the two stage 1 verdicts are in.
 
 ## Summary
 
@@ -475,3 +475,21 @@ The stage's exit criteria are in "Stage 1: the clock" above. The two human quest
 - The advisor (Inference.ts) answers a terse question with `--timeout 400000`; a long question timed out.
 - No em dashes anywhere, ever; commit messages carry the Claude co-author and session trailers.
 - ISA.md's Criteria section holds sixteen runs; when a stage run closes, archive the oldest kept runs to docs/isa per the archive protocol at the top of Criteria.
+
+### Stage 1 as built (2026-09-12)
+
+What the build changed from the kickoff, each with its reason, so stage 2 starts from the code and not from the plan text above:
+
+- Commands apply at once, between ticks, and are logged against the tick they followed; there is no drain at the next tick. Determinism needs an ordered log, not a delay, and a 0 to 250 ms input lag would have corrupted the movement-feel verdict this stage exists to collect. A command issued from inside a tick (an event handler) is deferred to the next tick's step 2 by a re-entrancy guard.
+- Tick order is regeneration, deferred commands, marine default AI, stealer side, expiry sweep and cycle offset events, cycle boundary, due reinforcements, victory, `tick` event. Regeneration moved first (the advisor's finding: marines acting on last tick's AP while stealers act on this tick's was a hidden stealer edge); marines still act before stealers.
+- The marine default list shoots before it fights: a storm bolter lands on 11 in 36 per shot, a marine's close combat on roughly 1 in 12 against three dice, so close combat is the fallback when no shot is possible (flamer, dry cannon). An overwatching marine holds even with a stealer adjacent: free reaction fire at one shot per two ticks out-rates aimed fire at one AP a shot.
+- One scene, renamed: GameScene became LiveScene in place (git mv) instead of living beside it under `?rules=live`. The engine change left the old scene non-functional either way; the frozen /1.1.0/ directory and git history keep the turn-based client.
+- Same-entry spawns retry each tick until the cycle ends, then take any free ranked entry, else are dropped without charging the budget; two blips booked into one entry no longer bunch onto a neighbour on the same tick.
+- Extermination requires the reinforcement budget spent: a per-tick check would otherwise read the empty opening board of a trickle mission as a win (the debug_1 regression, now a spec).
+- The hive's counters advance at the first plan of each new cycle, before the launch check, so every plan inside cycle N sees the value a 1.x plan saw on turn N (a first attempt incremented on the first plan of the cycle and launched a cycle early; stealer_tick.spec pins it).
+- Blip voluntary conversion is "spent nothing since the pool was last full, or idle `blipIdleTicks`": the original "taken no action this turn" reads as a full pool in real time, and the behaviour fixtures pass unchanged.
+- `runStealerActions` stays as a test-only whole-activation driver sharing the loop body with `stealerTick`; hive.spec keeps its zero-dice counts through it. It dies with the `endMarinePhase` shim in stage 2.
+- The autopilot issues commands (so its marines hold a lease) and covers instead of walking when enemies are within 10 squares: a marine who spends each AP the moment it arrives walks blind. It also holds position for the flamer's 2 AP when the objective is in reach.
+- Music ducks on contact (a threat within 8 squares of a marine) instead of on the phase; the HUD's one button is START during deployment and PAUSE afterwards; a hidden tab pauses.
+
+Balance evidence from the build (the first sweep the plan asked for, autopilot-driven, not a human verdict): under marine 1 AP per 4 ticks the scripted autopilot wins debug_1 on 1 seed in 30 (seed 30, the pinned fixture) and loses space_hulk_1 on every seed inside the first cycle (the flamer leads the column into the first contact, an autopilot artefact known from 1.x); under marine 1 per 3 ticks debug_1 wins 4 in 30. space_hulk_2 wipes the squad inside 8 cycles on 24 of 30 seeds. The 1:2 regeneration ratio is the advisor's caution made visible; Harry's playtest, not the autopilot, decides it.

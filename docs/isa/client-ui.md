@@ -280,6 +280,62 @@ Docs + suites:
 - [x] ISC-761: visual evidence captured — a mid-replay or mid-slide screenshot set written to the scratchpad (Playwright screenshots)
 - [x] ISC-762: v0.4.8 released — main pushed, tag CI green BEFORE the release is created, release published, live bundle serves v0.4.8 with the motion code present (gh run watch; bundle greps for version + motion strings)
 
+### Deployment phase (2026-08-19 run)
+
+- [x] ISC-796: engine rules/deploy.ts exports pure orderSquaresFrontToBack; front = argmax(pos·facingVec); a left-facing squad orders lowest-x first (unit)
+- [x] ISC-797: pure autoDeployPlan orders reserves storm_bolter, sergeant(/sword), heavy weapon, remainder; assigned front to back (unit)
+- [x] ISC-798: GameEngine.beginDeployment moves every marine into engine.reserve (deployment order kept), sets phase Deploy, locks the board (unit)
+- [x] ISC-799: Anti: beginDeployment refuses after turn 1 has begun, when already in Deploy, or with no marineDeployment (unit)
+- [x] ISC-800: deployMarine places a reserve marine on a free deploy square of HIS squad at the square default facing, emitting pieceAdded (unit)
+- [x] ISC-801: Anti: deployMarine refuses non-deploy squares, occupied squares, already-deployed marines, and wrong phase (unit)
+- [x] ISC-802: Anti: cross-squad deployment refused; a marine cannot take a square tagged with another squad (unit)
+- [x] ISC-803: undeployMarine returns a deployed marine to reserve and frees the square (unit)
+- [x] ISC-804: turnDeployed rotates a deployed marine free of AP cost and emits a facing-only pieceMoved (unit)
+- [x] ISC-805: Anti: normal piece actions dead during Deploy; tryMove/tryTurn/shoot return false via the locked board (unit)
+- [x] ISC-806: autoDeploy fills only FREE squares with remaining reserves in the sensible order per squad; player placements untouched (unit)
+- [x] ISC-807: finishDeployment auto-deploys the remainder, unlocks the board, sets phase MarineAction with every marine on board at full AP (unit)
+- [x] ISC-808: Suicide auto-deploy: front square (10,4) holds a storm bolter, sergeant behind, flamer third; flamer no longer in front (unit)
+- [x] ISC-809: Anti: checkVictory is inert during Deploy; an empty board is not a squad wipe (unit)
+- [x] ISC-810: Anti: engine pieceMoved side effects (blip conversion, escape, download abort) suppressed during Deploy (unit)
+- [x] ISC-811: deployment consumes no dice; same seed, any deploy sequence, identical CP and blip values to an untouched game (unit)
+- [x] ISC-812: space_hulk_5.json squares (10..14,10) face right (Read)
+- [x] ISC-813: Anti: the Decoy diff touches ONLY those five facing values (git diff)
+- [x] ISC-814: missions with 2+ deploy squares boot into deploy mode; ?deploy=0 skips straight to MarineAction (e2e)
+- [x] ISC-815: Anti: attract mode (no mission param) never enters deploy mode (e2e)
+- [x] ISC-816: free deploy squares show an X marker; occupied ones do not; all markers gone after Done (e2e)
+- [x] ISC-817: clicking a free deploy square places the roster-armed marine, else the next reserve marine of that squad (e2e)
+- [x] ISC-818: clicking a deployed marine during deploy undeploys him; X returns, card back to reserve (e2e)
+- [x] ISC-819: A/D during deploy rotates the selected deployed marine with AP untouched (e2e)
+- [x] ISC-820: roster cards show a RESERVE state until deployed; clicking a reserve card arms that marine (e2e)
+- [x] ISC-821: deploy clock = 90s per squad shown in the HUD; the phase line reads Deployment (e2e)
+- [x] ISC-822: the clock reaching 0 auto-deploys the remainder and starts the mission (e2e)
+- [x] ISC-823: DONE during deploy finishes deployment and restarts the marine clock at marinePhaseSeconds (e2e)
+- [x] ISC-824: AUTO DEPLOY control fills every square in the sensible order and exists only during the phase (e2e)
+- [x] ISC-825: Anti: after deployment no deploy-only UI survives (X markers, AUTO button) and normal action keys work (e2e)
+- [x] ISC-826: ESC pauses deployment; clock frozen, deploy clicks inert, resume works (e2e)
+- [x] ISC-827: Anti: W/F and other action keys during deploy never move a marine or spend AP (e2e)
+- [x] ISC-828: Anti: every pre-existing e2e suite stays green with the mechanical deploy=0 URL update (playwright)
+- [x] ISC-829: deploy mode fully works under prefers-reduced-motion (e2e)
+- [x] ISC-830: HUD phase text renders Deploy as deployment, never as Stealers (e2e)
+- [x] ISC-831: placement default facing = the square mission facing; Decoy Abraham deploys facing right (e2e)
+- [x] ISC-832: the in-game manual gains a Deployment section: phase, clock, controls (Read)
+- [x] ISC-833: docs/rules-reference.md documents the deployment rules (Read)
+- [x] ISC-834: keyboard help notes deploy-phase controls (Read)
+- [x] ISC-835: Anti: zero em dashes in new player-facing strings (grep)
+- [x] ISC-836: engine suite green including the new deploy spec (bun test)
+- [x] ISC-837: client unit suite green (vitest)
+- [x] ISC-838: full e2e suite green (playwright)
+- [x] ISC-839: tsc clean in both packages (tsc)
+- [x] ISC-840: README mentions the deployment phase (Read)
+- [x] ISC-841: Anti: the deploy lock also kills the quieter verbs; useDoor, overwatchOn, unjam refuse on a locked board, and the doorToggled/pieceDied engine listeners are Deploy-guarded (unit)
+- [x] ISC-842: Anti: drag-to-pan starting on a deploy square never places or lifts a marine; placement fires on pointerup under a 6px movement gate (code + e2e clicks still work)
+- [x] ISC-843: Anti: finishDeployment never strands a marine in reserve; a squatted deploy square falls back to the nearest free passable square (unit)
+- [x] ISC-844: Anti: the AUTO DEPLOY button covers no populated HUD line; bottom-anchored (screenshot)
+- [x] ISC-845: Anti: Enter and ESC dedupe Phaser's same-event replay; one press is one toggle/end, even under stalled headless frames (e2e pause test)
+- [x] ISC-846: Anti: a marine's first turn-in-place never plays the footstep SFX; lastPos seeded at construction and on pieceAdded (code)
+- [x] ISC-847: an armed reserve roster card keeps the selection border (CSS specificity fix)
+- [x] ISC-848: v0.5.0 released; main pushed, tag CI green BEFORE the release is created, release published, live bundle serves v0.5.0 with the deployment-phase code present (gh run watch; bundle greps for version + deploy strings)
+
 ## Verification (archived evidence)
 
 ### Minimap radar (2026-08-19 eighth run, ISC-672..712)
@@ -491,3 +547,104 @@ Docs + suites:
 - ISC-94: deterministic scan (dice at construction) 120 seeds: 62 win / 58 loss / 0 ongoing; pins ?seed=1 (win, MISSION COMPLETE overlay) / ?seed=5 (loss); full suites: engine 101/101, client 6/6, e2e 7/7, build clean
 - ISC-95: conversion_on_sight.spec — `PieceEvents.replay(doorToggled)` leaves visible blip alive; identical live emit converts it
 
+### Deployment phase run (2026-08-19)
+
+- ISC-796..811: Bash bun test; engine suite 316/316 green (18 new tests in deploy.spec.ts covering front-to-back ordering with left-facing reversal, battle order, begin/deploy/undeploy/turnDeployed/autoDeploy/finishDeployment, squad-mixing refusal, locked-board action deadness, checkVictory + blip-conversion suppression, dice neutrality vs a seeded control, Suicide auto-order flamer-third); rules/deploy.ts 100% line coverage
+- ISC-812: bun eval; space_hulk_5 marineDeployment reads 10,10:right … 14,10:right (Harken untouched at left)
+- ISC-813: git diff --numstat; 5 insertions, 5 deletions, only the facing values
+- ISC-814..831: Bash playwright; new deploy.spec.ts 11/11 green: boot probe (deployMode, phase Deploy, 5 reserve, 5 X markers, DEPLOYMENT phase text, 90s clock; deploy=0 → MarineAction with 0 markers), attract inert + 180s two-squad clock, click-to-place at mission facing with roster-order pick + selection for A/D, roster-card arming placing the flamer at a chosen square, pick-back-up with X restore + free A/D rotation + dead action keys, AUTO DEPLOY battle order bolter/sergeant/flamer with mission NOT started, Done teardown (no markers, no AUTO button, marine clock 150s, board unlocked, AP spendable), clock-expiry auto-start, ESC pause gating clicks, Decoy cross-squad refusal with Abraham fallback facing right, reduced-motion exact placement
+- ISC-828: Bash playwright; full e2e 114/114 (103 pre-existing suites green after the mechanical deploy=0 URL update; home.spec mission-launch test updated to assert the new deploy-mode player flow)
+- ISC-832: Read; manual/content.ts 'Deployment' section (id deployment) between 'What is this?' and 'How a turn works'
+- ISC-833: Read; docs/rules-reference.md '## Deployment' section before Turn structure: placement, squad areas, facing, auto order, clock, rules stance, deploy=0
+- ISC-834: Read; keyboardHelp KEY_NOTES leads with the deployment controls note
+- ISC-835: Bash grep; zero em dashes in new player-facing strings (manual section, KEY_NOTES, HUD labels)
+- ISC-836: engine 316/316; ISC-837: client unit 82/82; ISC-838: e2e 114/114; ISC-839: tsc --noEmit clean in both packages
+- ISC-840: Read; README '### Deployment' section above Controls
+- Visual: scratchpad deploy-phase.png (5 X markers, RESERVE cards, AUTO DEPLOY + DEPLOYMENT 1:30) and deploy-done.png (squad placed, zero deploy UI, Turn 1: Marines 2:29)
+- Review round (code-reviewer 6 findings + pr-test-analyzer 7 gaps, all resolved):
+  - ISC-841: bun test; ISC-805 test extended to overwatchOn/unjam/useDoor all false with AP untouched; locked guards added to the three verbs, Deploy guards to the doorToggled + pieceDied listeners
+  - ISC-842: Read GameScene; deploy pointerdown branch inert; placement on pointerup gated by p.getDistance() < 6; all 12 deploy e2e clicks still pass (Playwright click = down+up in place)
+  - ISC-843: bun test; stealer parked on a deploy square: finishDeployment lands all 6 marines on 6 distinct squares, reserve 0 (nearest-free-passable fallback)
+  - ISC-844: scratchpad deploy-phase.png re-shot; AUTO DEPLOY bottom-anchored, objective/status/legend all readable
+  - ISC-845: playwright; strengthened ESC test (AUTO emit + Enter while paused stay inert) exposed the replay double-fire live, then passed with the seenKeyEvents dedupe on keydown-ENTER/ESC
+  - ISC-846: Read AudioManager; lastPos seeded in the constructor loop and the pieceAdded handler
+  - ISC-847: Read styles.css; .marine-card.reserve.selected border override present
+  - Analyzer G1 REFUTED with tool evidence: endMarinePhase() lands at turn 2 / MarineAction / ongoing (bun probe), so the ISC-799 refusal WAS the turn guard; test hardened with explicit phase/turn asserts and a pinned seed anyway
+  - Analyzer G2/G3 adopted: space_hulk_2 scattered mixed-facing lifecycle + space_hulk_6 interleaved squads with flamerAmmo-survives-reserve, both green
+  - Analyzer G5 adopted: undeploy-then-timeout e2e reconciliation test green; G6 skipped (digit hotkeys share selectFromRoster's tested code path); G7 addressed by the ISC-843 fallback
+  - Final suites after the round: engine 319/319, client unit 82/82, e2e 115/115, tsc clean both
+- ISC-848: Bash; pushed 712c90d..0be552d; tag v0.5.0; deploy run 32305330852 completed success BEFORE the release was created (codified order); release https://github.com/harryf/sulkweb/releases/tag/v0.5.0 "Your squad, your marching order" published; live home 200; main-BsS2_Wa0.js carries v0.5.0 plus the deploy strings AUTO DEPLOY, deploy-x, DEPLOYMENT, beginDeployment (deploySeconds absent only because minification renames plain identifiers). Classifier returned ALGORITHM E2 on "push and tag"; run executed on the standing E1 release precedent (seventh application); same checklist either way.
+
+Repo cleanup (2026-08-20, ISC-849..883):
+- ISC-849..852: Bash; README 63 lines; live link on line 5; manual.html linked; pnpm install + `packages/client dev` present.
+- ISC-853/854/855: Bash + Read; docs/images/gameplay.png (182KB) and homepage.png (181KB) embedded and on disk; gameplay image visually confirmed (five marine cards, HUD, mini-map, blips closing, turn 3); homepage image shows title + mission list over the attract board. Captured via Playwright vs temp vite :5199 (Interceptor still down; standing stand-in).
+- ISC-856..859: grep; links to all seven top-level docs pages + CLAUDE.md + ISA.md; gpl-3.0 + Games Workshop disclaimer; "version tags only" release fact.
+- ISC-860..862: grep; all 9 mission ids in features.md; 19 control-table rows; headers The missions/Deployment phase/Controls/Marine roster panel/Mini-map auspex/Motion/Sound.
+- ISC-863/864: grep; status.md has Roadmap state + Known gaps headers; stale "revisit against tag v0.1" line gone; autopilot numbers dated 2026-08-15; parry/autofire "arrive later" line replaced (they shipped with beta_2); librarian/psi gap named.
+- ISC-865: rg; zero hits for 259/43/51 counts outside docs/history; no live counts asserted anywhere (README lists commands, not counts).
+- ISC-866..869: ls; prompts/ gone from root; docs/history/prompts/ = 14 files, no .DS_Store; 4 legacy files + README.md in docs/history/; history README links all files (11 relative links, all resolve).
+- ISC-870: git status; all 18 moves recorded as R (rename) entries; --follow re-probed post-commit.
+- ISC-871: ls; docs/ top level exactly architecture, asset-index, development-guide, features, rules-reference, status, writing-guide + history/ + images/.
+- ISC-872/873: grep; beginDeployment/Deploy-phase paragraph in architecture.md; deployment-phase row in development-guide.md GameEngine entry.
+- ISC-874: grep; CLAUDE.md rows point at docs/features.md, docs/status.md, docs/history/prompts/, docs/history/SULK Manual, docs/history/Analysis; stale "76 verified criteria" refreshed.
+- ISC-875/876: bun linkcheck.ts; 48 relative links across README + all top-level docs + history README: ALL_LINKS_OK.
+- ISC-877: rg -P "(?<!history/)prompts/" outside ISA/history; zero hits.
+- ISC-878: grep; Exterminate/overwatch/auspex/reduce-motion/motion-tracker/AUTO DEPLOY in features.md, roadmap + interrupt gaps in status.md; rules summary superseded by rules-reference.md (already canonical).
+- ISC-879/880: git status; zero packages/** paths in the change set; no player-facing strings touched.
+- ISC-881: Bash; commit 5937405 pushed e33a7a7..5937405; GitHub README API returns the new landing page verbatim (first 12 lines matched); features.md and docs/history tree render 200 on github.com.
+- ISC-882: curl; raw.githubusercontent.com/.../docs/images/{gameplay,homepage}.png both 200 image/png (181923B / 180713B).
+v0.5.1 release (2026-08-20 fourth run, ISC-933): run 32365171073 green FIRST (first live pass of the new deploy.yml), then release https://github.com/harryf/sulkweb/releases/tag/v0.5.1 published. Probes: root + /0.5.1/ manifests both v0.5.1 sha 009f58f built 11:43:45Z; root manual bundle manual-WTAvwBr9.js contains the All versions footer; /0.5.0/ bundle sha unchanged (a4dabfb); /latest/ manifest unchanged (latest-d746703); versions.html lists Stable (v0.5.1), latest, 0.5.1, 0.5.0. The known root-manifest gap from the bootstrap is closed.
+
+Versioned Pages deploys (2026-08-20 third run, ISC-901..932):
+- ISC-901: git ls-remote; gh-pages at 7e09c9d bootstrap, advanced by run commits; tree = root build + 0.5.0/ + latest/ + STABLE_VERSION + versions.html.
+- ISC-902/903/915: curl + shasum; root and /0.5.0/ both serve main-BsS2_Wa0.js with IDENTICAL sha a4dabfb...; the latest deploy left both untouched.
+- ISC-904: curl; /latest/manifest.json = {"version":"latest-d746703","sha":"d746703...","built":"2026-08-20T11:08:47Z"}, matching the pushed head.
+- ISC-905/928: curl; versions.html lists Stable (v0.5.0) href ./, latest/ href, 0.5.0/ href, all relative.
+- ISC-906..914, 916, 929, 931, 932: Read yml; verification gate intact in deploy.yml; root-refresh find preserves version dirs + latest + .git; strict vX.Y.Z tag validation; deploy-latest paths-ignore + dispatch + no test gate; shared concurrency group; both push branch then upload entire tree; slice separation enforced by the sync steps; permissions contents/pages/id-token write; size note in header comment.
+- ISC-917/918: vitest 5/5 on versionsHref (root, domain root, latest, two frozen shapes, negative case); built manual bundle greps "All versions".
+- ISC-919/920/921: pnpm client tests 87/87, tsc clean, git diff shows zero packages/engine paths.
+- ISC-922/923: Read; architecture.md carries the three-URL table, storage-branch mechanics, pre-emption caveat, rollback-by-dispatch, size arithmetic; README Releases and versions section links all four URLs.
+- ISC-924: rg; zero em dashes across every touched file.
+- ISC-925: gh run watch 32362351782 (Deploy latest) exit 0.
+- ISC-926/927: curl; /0.5.0/manual.html and /latest/manual.html both 200; /latest/ manual bundle (manual-B3qkU2HM.js) contains "All versions" while /0.5.0/manual.html has zero versions-link matches (frozen snapshot predates the link, documented).
+- ISC-930: this record. Advisor + reviewer rounds adjudicated in Decisions (advisor 5 adopted / 2 declined with rationale; reviewer 6/6 adopted).
+
+Em dash purge + ISA restructure (2026-08-20 second run, ISC-884..900):
+- ISC-884/885/895/900: rg; zero em dashes across README, CLAUDE.md, CREDITS.md, root ISA, .gitignore, deploy.yml, every top-level docs page, docs/history/README.md, docs/isa/README.md (15 files, all 0). The four largest docs pages were scrubbed by a parallel agent with per-instance judgment (before/after: 25/9/7/7 to 0).
+- ISC-886/887: grep + git diff; en dash ranges (1–3, M0–M8) intact; the June-2025 history archives show zero edits.
+- ISC-888: Edit applied to ~/.claude-personal/CLAUDE.md Operational Rules; the ban now loads at every session start.
+- ISC-889/890/891: Read + ls; frontmatter progress value quoted (the unquoted colon was the GitHub YAML error at line 6 col 40); root ISA 51,784 bytes (was 369KB); docs/isa/ holds 10 files (7 topics + 2 logs + README).
+- ISC-892/897: bun script; 900 unique ISC ids across root + archives, 0 duplicates; ISC-77/472/567 verbatim in engine-core/client-ui/stealer-ai.
+- ISC-893/894/896: grep; archive protocol + index table in root Criteria; 3 deferred pointers; CLAUDE.md routes to docs/isa/.
+- ISC-898: linkcheck; ALL_LINKS_OK across root ISA + all docs/isa files.
+- ISC-899: curl; github.com/harryf/sulkweb/blob/main/ISA.md returns 200 with zero "Error in user YAML" matches and the frontmatter task rendered in the metadata table (commit 743c837 pushed 609f01a..743c837).
+- ISC-883: this record. Review round: code-reviewer agent audited the diff; links all clean (48 targets incl. angle-bracket space paths), 3 findings ADOPTED (CLAUDE.md stale "see README Known gaps" heading → docs/status.md; stale remaining-work paragraph rewritten to the genuinely-open list; release recipe + SULK_VERSION→__APP_VERSION__ chain restored as architecture.md "Cutting a release"; the one real information loss); both sub-threshold wording notes also adopted ("one squad" → "your Terminator marines"; "square-for-square" softened). git log --follow shows 2 commits on the moved roadmap file (rename detected at 100%).
+
+Gameplay log export run (2026-08-20 fifth run, ISC-934..967):
+- ISC-934/935: vitest; taps observe capture()-suppressed emissions exactly once and never their replay ("taps observe emissions inside capture() exactly once, and never their replay" passes; stream 2, seen 2 before AND after replaying both).
+- ISC-936: Read + grep; packages/engine/src/log/GameLogger.ts exists; engine index exports GameLogger, GAMELOG_FORMAT_VERSION and the GameLog types.
+- ISC-937/938/939/940/941/942/943/944/945: vitest; 10 GameLogger unit cases green (envelope {seq,turn,phase,type,payload}; selected/apChanged skipped, doorToggled/cpChanged kept; meta fields incl. seed null default and version 'unknown'; initial snapshot with sprite identity; gameOver stamps result+endedAt; notes embedded in serialize; filename('2026-08-20 09:05:03 local') = sulk-log_space_hulk_1_2026-08-20_09-05-03.json; detach stops recording; JSON.parse round-trip).
+- ISC-946/964: vitest; space_hulk_1 seed=1 full autoplay: loss at turn 5, 225 events, 7 pieceDied, >0 pieceMoved, exactly ONE gameOver, seq gap-free 0..224 (exactly-once through capture/replay), zero selected/apChanged, round-trip intact. (debug_1 rejected as the fixture: the autopilot's post-move checkVictory reads its empty turn-1 board as exterminated, instant 3-event win; pre-existing quirk surfaced by this logger, recorded in Decisions.)
+- ISC-947/948: Read + e2e; GameScene builds the logger for real missions with {mission, seed, __APP_VERSION__} and null in attract; window.sulk.gameLog !== null asserted on ?mission=debug_1, gameLog === null asserted on /.
+- ISC-949/950/951/952: Playwright; #end-notes textarea visible and filled; #end-download click produced a real download event; suggestedFilename matched /^sulk-log_debug_1_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.json$/; downloaded JSON asserted: formatVersion 1, mission debug_1, seed 1, result win, startedAt ISO, initialPieces non-empty, events non-empty with gameOver, notes exact match.
+- ISC-953: Read; showEndDialog gameLog param optional, export section built only inside `if (gameLog)`.
+- ISC-954/955/956/957: Bash; engine vitest 330/330 (11 new), client vitest 87/87, client e2e 117/117 (2 new gamelog tests), engine tsc build exit 0, client tsc --noEmit exit 0.
+- ISC-958/959/960/961: Read; docs/gamelog-format.md (schema field-by-field + jq analysis sketches); architecture.md "4. The gameplay log: tap and export" section; features.md "Gameplay log export" section; CLAUDE.md routing row added.
+- ISC-962/963: grep; 0 fetch/XMLHttpRequest in endDialog.ts + GameLogger.ts (Blob download only); 0 phaser imports in engine src, 0 document refs in GameLogger.
+- ISC-965: Playwright; homepage shows no #end-dialog and sulk.gameLog is null.
+- ISC-966: git diff added-lines grep; 0 em dashes across every touched file (three caught and fixed mid-run; endDialog.ts line-6 em dash is the untouched pre-existing comment).
+- ISC-967: git status/diff; packages/engine/src/ai/ untouched (0 changed lines).
+- Visual evidence: Playwright screenshot (Interceptor stand-in per standing waiver) shows the end dialog with debrief textarea + DOWNLOAD GAME LOG button styled consistently: scratchpad/end-dialog-export.png.
+- Review round amendments (same run): engine suite now 334/334 (14 gamelog tests incl. envelope-collision, deep-copy mutation, throwing-tap isolation, deploy-phase placements, phase-integrity walk, rolls presence); client e2e 118/118 incl. pressSequentially human-typing proof, retry-fresh-logger, attract negative; both tsc clean after every fix. Advisor verdict adjudicated in Decisions (2 adopted incl. structuredClone, 2 deferred to formatVersion 2, 4 declined with rationale); code-reviewer 7/7 adopted (CRITICAL textarea key-capture fix verified by the failing-then-passing typed-key e2e); test-analyzer 6 adopted / 3 declined.
+- Live probe (post-push): deploy-latest run 32375734730 green; /latest/manifest.json = latest-bfac487 (built 2026-08-20T13:42:17Z); /latest/ main bundle contains "Download game log" and the sulk-log_ filename stamp; stable root manifest UNTOUCHED (v0.5.1 sha 009f58f): slice ownership held. The feature reaches the stable root at the next v* release.
+
+v0.6.0 release run (2026-08-20 sixth run, ISC-968):
+- ISC-968: reproduced first (live Playwright: stable root end dialog had NO notes/download, /latest/ had both: the root was the frozen v0.5.1 build). Release run 32384520292 green FIRST (full build+test gate), then https://github.com/harryf/sulkweb/releases/tag/v0.6.0 published. Live probes: root + /0.6.0/ manifests both v0.6.0 sha ae548ec built 15:11:02Z; root bundle main-DTTxxxsY.js contains "Download game log"; /0.5.1/ manifest untouched (009f58f); /0.5.0/ bundle byte-unchanged (main-BsS2_Wa0.js sha a4dabfba1efd; its missing manifest.json is the pre-existing bootstrap gap, snapshots before v0.5.1 never had one); /latest/ untouched (latest-bfac487); versions.html lists Stable (v0.6.0), latest, 0.6.0, 0.5.1, 0.5.0. Final user-path probe ON THE STABLE ROOT: typed "live check" into #end-notes (registered), clicked #end-download, got sulk-log_debug_1_2026-08-20_17-12-49.json, zero page errors.
+
+Latest-pipeline hardening run (2026-08-20 seventh run, ISC-969..975):
+- ISC-969/970: Read; deploy.yml has per-job permissions (redispatch-latest holds the only actions: write) and the always-run redispatch-latest job (needs both jobs, if: always(), continue-on-error, ::warning fallback).
+- ISC-971: Bash; manual dispatch proof: gh workflow run deploy-latest.yml → run 32386011118, event workflow_dispatch, conclusion success, /latest/ at main head sha. In-workflow dispatch [DEFERRED-VERIFY: confirm redispatch-latest fires green on the next v* release run].
+- ISC-972: Read; CLAUDE.md "Shipping policy" section: stable release offered same run, "release"/"ship" means v* release, ship reports name the URL, deploy-latest watched to green, redispatch step protected.
+- ISC-973: Read; architecture.md caveat paragraph now names the healed /latest/ path and narrows the watch-to-green rule to releases.
+- ISC-974: Bash; the two md-only ISA pushes this run fired zero workflow runs (gh run list unchanged); workflow-file pushes fired deploy-latest as expected (runs 32385881992, 32386661790, both green, /latest/ stamped 7b1d409 then 290790e = head).
+- ISC-975: git diff added-lines grep: 0 em dashes across both commits; YAML lint passed on both workflow files.

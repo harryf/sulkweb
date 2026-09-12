@@ -1,6 +1,6 @@
 # Real-time Sulk: plan for the 2.x line
 
-Status: PROPOSAL, 2026-09-12. Nothing in this document is implemented. It exists to be argued with before any code changes. The ISA run block ISC-1095..1133 tracks the review of this plan; implementation gets its own run blocks per stage.
+Status: PROPOSAL, second round, 2026-09-12. Nothing in this document is implemented. Round one (ISA run block ISC-1095..1133) was reviewed and Harry answered open questions 1 to 14 and added the command pause idea; round two (ISC-1134..1153) folds those answers in, assesses the idea, and asks the questions it raises (15 onward). Implementation waits for those answers and gets its own run blocks per stage.
 
 ## Summary
 
@@ -13,7 +13,7 @@ The change is smaller than it looks and larger than it looks, in different place
 
 Stage 1 delivers: a ticking engine with AP regeneration, the stealer hive acting per tick, the marine default AI (hold, face, fight, overwatch, unjam), direct keyboard control of the selected marine exactly as today, fog of war recomputed live, the stealer-phase replay pipeline removed, and debug_1 plus space_hulk_1 playable end to end. No orders yet. It is playable on its own, and it is the slice that tests the one assumption nothing so far has tested: that real time is more fun than the original's timed phase.
 
-Three stages follow: individual orders, squad orders with per-type AI and the sergeant-loss mechanic, then mission orders with a balance sweep across all nine missions and the 2.0.0 stable release. The command hierarchy the review settled on is two levels (individual, squad) on top of a default behaviour; the mission level is a squad order applied to every squad and waits for a mission that needs it. The turn-based 1.x line stays frozen at /1.1.0/ and is not kept as a mode in the code.
+Three stages follow: individual orders, squad orders with per-type AI and the sergeant-loss mechanic, then mission orders, the command pause (Harry's idea: freeze the game for a recharging, sergeant-scaled budget of seconds and issue several orders at once; it replaces command points when it lands) and a balance sweep across all nine missions for the 2.0.0 stable release. The command hierarchy the review settled on is two levels (individual, squad) on top of a default behaviour; the mission level is a squad order applied to every squad and waits for a mission that needs it. The turn-based 1.x line stays frozen at /1.1.0/ and is not kept as a mode in the code.
 
 ## Verdict
 
@@ -49,7 +49,7 @@ Why the March 2026 attempt stalled, and what this plan does differently: that at
 
 `GameEngine.tick()` is a pure function call that advances the game by one tick. The client owns the clock and calls it on a fixed interval; the engine never reads wall-clock time. Tests call `tick()` directly, as many times as they like, with scripted dice.
 
-| Constant | Proposed default | Notes |
+| Constant | Value (decided, round 1) | Notes |
 |---|---|---|
 | Tick interval | 250 ms | Client-side only; `?tick=<ms>` for playtests, `?tick=0` means manual stepping for e2e |
 | Cycle | 40 ticks (10 s) | The turn-equivalent period. Every per-turn mission number (blips per turn, turn limit, download turns) keeps its value and fires once per cycle |
@@ -109,7 +109,7 @@ Every line of `GameEngine.endMarinePhase` maps to one of these.
 
 The 120 s marine clock (plus 30 s per sergeant) exists to stop the marine player thinking forever. Real time removes the need; the clock goes, along with `marinePhaseSeconds`, `timerBonus` as a clock bonus, and the HUD timer. The sergeant's bonus finds a new home in the command model (relay speed).
 
-Command points: keep the original roll (1..6) once per cycle into a shared pool, spend with P on the selected marine for +1 AP as today. The alternative (drop CP) is listed under Open questions; it is the simplest rule and CP has a real job in real time (an emergency burst when the squad is caught mid-move).
+Command points (decided, round 1, amended by the command pause): stages 1 to 3 keep the original roll (1..6) once per cycle into a shared pool, spent with P on the selected marine for +1 AP as today. When the command pause lands (stage 4) it replaces CP outright: the pause budget is command points denominated in seconds, and two currencies for one resource (command capacity) would teach the player nothing and double the HUD. Whether the per-cycle d6 survives as a random top-up of the pause pool is open question 16.
 
 ### Overwatch
 
@@ -139,6 +139,7 @@ The biggest named gap in docs/status.md (marines spending CP during the stealer 
 - Dice come only from `board.dice`; the hive still plans with zero dice (hive.spec keeps counting draws).
 - A seeded game driven by `tick()` with no player input is reproducible. With player input, the replay unit is `(tick, marineId, action)` from the command queue; GameLogger records it from stage 1, so a seed plus a log replays a game headlessly.
 - Guard rails: a vitest runs the same seed and command log twice and compares a state hash per tick; a lint rule bans `Date` and `performance` in packages/engine/src.
+- The command pause pool (stage 4) is engine state ticked like everything else; wall-clock seconds spent paused reach the engine only as a logged `pauseSpent` command at the resume tick, so replays reproduce the pool without the engine ever reading a clock.
 
 ### Hive adaptation
 
@@ -159,6 +160,28 @@ Priority rule: **the most specific live order wins.** Each marine holds exactly 
 
 There are no priority numbers to tune. "Individual beats squad" is fixed, and a squad order re-issued after an individual order still waits behind it until the individual order completes. If play shows a need for "this squad order overrides everything", that is a single flag on the squad order (stage 3 option), not a priority system.
 
+### Command pause (Harry's idea, stage 4; unmetered prototype in stage 3)
+
+The rule as proposed, made precise:
+
+- The player presses Space: the clock stops (no ticks run, no manual control), the board stays fully readable, and the player issues any number of L1 and L2 orders. Space again, or the budget running out, resumes the clock.
+- The budget is a pool of seconds that lives in the engine: `pausePool` with a cap and a recharge per tick, both scaled by the living sergeants and captains (proposed: cap 10 s plus 10 s per living sergeant or captain, recharge 1 s per cycle plus 1 s per cycle per sergeant or captain; so a full squad with one sergeant can pause for 20 s and refills in about 100 s of play). A second pause a few seconds after a long one gets only what has recharged.
+- Orders issued during the pause are queued and enter the command queue at the resume tick with their normal relay latency. The pause buys thinking time, never reaction time: a squad order given in the pause still arrives 1 tick later with a sergeant and 8 ticks later without one.
+- When it lands it replaces command points (see Command points above).
+
+What it fixes: the attention problem the systems pass found. Real time with one keyboard marine makes the player choose between steering one marine and commanding four; every squad move that looks wrong invites micromanagement (Shifting the Burden). A budgeted pause turns command capacity into a resource with a visible meter, which is what command points always were in spirit, and it maps the sergeant's value onto something the player feels directly: with him alive you get to think longer.
+
+The two biggest risks, each with the rule that defuses it (advisor, round 2):
+
+- Pause-scumming: optimal play becomes "pause every tick" and the real-time game dissolves into turn-based with more clicks. Defused by the latency rule above (paused orders never fire on resume) and by the budget itself; the numbers are the balance lever.
+- Reflex-save: the pause becomes a panic button that nullifies every ambush and makes sergeant loss painless. Two candidate rules: a lockout (no pause for about 1 s of game time after a new enemy contact or an overwatch trigger: you plan through fog, you do not rewind surprises), or no lockout and let the budget price the panic. Open question 17.
+
+Determinism: the pool is engine state advanced by `tick()`, so its cap and recharge are deterministic and unit-testable; the seconds consumed during a pause are wall-clock (no ticks run), so the client reports them as a command (`pauseSpent {seconds}`) at the resume tick and the command log replays the pool exactly.
+
+Placement: stage 4, after squad orders exist, because batching orders has no value until there are many orders worth batching; stage 3 ships the same pause unmetered (a free Space pause with orders allowed) so the feel is known before it is priced. Until then, stages 1 and 2 have only the free pause without orders (a menu, in effect).
+
+Accessibility: a run-level setting (`?pause=free`, chosen before the mission, not a mid-run button) makes the pause unmetered with orders allowed, so it never competes with the budget economy inside a run. A pause that cannot issue orders is a screenshot, not accessibility (open question 18 asks whether this setting ships at all).
+
 ### Sergeant loss
 
 Chosen rule: **command latency.** Squad orders are relayed through the squad's sergeant. With a living sergeant an order reaches every marine on the next tick. Without one, each marine receives a squad order after a delay (proposed 8 ticks, 2 s) and, in stage 3's refinement, executes it without coordination: a "defend" becomes "hold where you stand and overwatch" instead of the squad repositioning to cover lanes. Individual orders and direct control are never delayed: the player can always grab a marine by hand.
@@ -170,6 +193,8 @@ Rejected alternatives:
 - Nothing changes: throws away the sergeant's role, which the original marks with the +30 s clock bonus and +1 close-combat die. Latency is that clock bonus reborn.
 
 The sergeant keeps his close-combat bonus. `timerBonus` is renamed to a relay property or removed.
+
+With the command pause (stage 4) sergeant loss bites on two axes that stack: responsiveness (relay latency) and command throughput (a smaller, slower pause pool). Both are clamped with floors so a squad with every sergeant dead is degraded, not bricked: latency never exceeds 8 ticks and the pool never drops below a 10 s cap with a 1 s per cycle recharge. Open question 19 asks whether both should apply or only the pool once the pause exists.
 
 ## Marine AI
 
@@ -186,6 +211,8 @@ Decision list, first match wins:
 7. Hold.
 
 Doors: the default never opens a door; it closes an open door directly ahead when a stealer is seen through it and no friendly marine is beyond it. Everything else with doors happens on orders.
+
+Decided (round 1, Harry's notes on questions 5 and 9): an uncontrolled marine defaults to overwatch and turns to meet threats (rules 5 and 6 above are the implementation of that note, and rule 6 fires for any weapon that can overwatch); the heavy flamer and the assault cannon's autofire are used only on an explicit order or under direct control, with the flamer's last-stand rule as the single exception; the cannon reloads on its own only when it is empty and no stealer is visible (per-type table below).
 
 Rules 1 to 5 reuse `MarineAutopilot.ts` pieces (shootNearest, the adjacency and facing helpers) but the autopilot's mission march (advanceToward, missionTarget, assignEntryPosts) is not part of the default: an unordered marine does not wander toward the objective. Once orders exist, `MarineAutopilot.autoplay` becomes a scripted issuer of orders for the deterministic e2e fixtures.
 
@@ -240,8 +267,10 @@ Extends docs/features.md Controls. Existing keys keep their meaning.
 | Shift + right-click (squad selected) | L2: advance to |
 | Right-click door (squad selected) | L2: clear |
 | Esc (squad selected) | L2: hold (clears the order) |
-| Space | Pause and resume the clock (pause was Esc; Esc becomes the order cancel) |
-| Enter / DONE | Dropped (no turn to end); DONE button becomes pause |
+| Esc (nothing selected) | Free pause: the clock stops, the board is readable, no orders or keys (stages 1 and 2: the only pause) |
+| Space | Command pause: stage 3 unmetered with orders allowed; stage 4 metered by the pause pool, replaces P |
+| P | Spend a command point (stages 1 to 3 only; removed with the command pause) |
+| Enter / DONE | Dropped (no turn to end); the DONE button becomes the pause button with the pool meter beside it |
 
 Order markers: a small arrow or ring on the target square per order, colour by level; the roster card shows the marine's live order as one word (HOLD, OW, MOVE, DEFEND, ADVANCE, CLEAR).
 
@@ -337,14 +366,14 @@ Exit criteria: a marine ordered across the map arrives and goes on overwatch fac
 
 ### Stage 3: squad orders and the chain of command (v2.0.0-alpha.3)
 
-Ships: squad selection; defend, advance, clear; per-type AI variations; relay latency and uncoordinated execution without a sergeant; the "orders only" playtest.
-Leaves out: mission orders, cross-squad coordination.
+Ships: squad selection; defend, advance, clear; per-type AI variations; relay latency and uncoordinated execution without a sergeant; the unmetered command pause (Space freezes the clock, orders allowed, no budget) so its feel is known before it is priced; the "orders only" playtest.
+Leaves out: mission orders, cross-squad coordination, the pause budget.
 Exit criteria: on space_hulk_1, "defend the start corridor" places the marines so that every entrance lane is covered by at least one overwatcher (unit test on the set cover); "advance to the objective" reaches it with a rear guard facing back at every leapfrog step (fixture); killing the sergeant delays the next squad order by the configured ticks (unit test); a human plays space_hulk_1 using only squad orders and records the verdict.
 
 ### Stage 4: mission orders, balance, 2.0.0 (v2.0.0)
 
-Ships: mission orders; all nine missions playable under the tick rules (defend's turn limit, download, escort, kill quota, blockade re-verified per cycle); an unpinned-seed balance sweep with the autopilot order issuer, numbers recorded in CLAUDE.md replacing the STALE baselines; manual and rules reference final; stable root moves to 2.0.0.
-Exit criteria: every mission's victory and loss paths exercised by a fixture; the balance table in CLAUDE.md dated; release published after the run is green, root manifest reads v2.0.0, /1.1.0/ unchanged.
+Ships: mission orders; the metered command pause (pool, cap and recharge scaled by sergeants and captains, paused orders carry normal latency, the pool meter on the HUD) replacing command points; all nine missions playable under the tick rules (defend's turn limit, download, escort, kill quota, blockade re-verified per cycle); an unpinned-seed balance sweep with the autopilot order issuer, numbers recorded in CLAUDE.md replacing the STALE baselines; manual and rules reference final; stable root moves to 2.0.0.
+Exit criteria: every mission's victory and loss paths exercised by a fixture; the pool's cap, recharge and sergeant scaling covered by unit tests and a same-log replay; the balance table in CLAUDE.md dated; release published after the run is green, root manifest reads v2.0.0, /1.1.0/ unchanged.
 
 ## Risks
 
@@ -358,27 +387,44 @@ Exit criteria: every mission's victory and loss paths exercised by a fixture; th
 | GameScene surgery: fog, radar gate, camera focus, audio mirror and roster truth all encode the "payload, not engine" replay invariant, and removing replay invalidates their reasoning | 1 | Build LiveScene.ts beside GameScene, switch by query parameter, delete GameScene and replayFocus.ts only when the e2e suite is green on LiveScene |
 | Player and squad AI fight over a marine (a squad order yanks the marine under the keys) | 2, 3 | Direct control clears the individual slot and holds a short lease (a few ticks) during which no order moves him |
 | The game stops being Space Hulk (the AP economy and the move-or-overwatch choice are the board game) | 1 | An identity decision, not a fix: 1.x stays the faithful port; the stage 1 verdict asks whether 2.x is a game Harry wants |
+| Pause-scumming: the command pause turns the real-time game back into turn-based with extra clicks | 3, 4 | Paused orders enter the queue with normal latency (thinking time, not reaction time); the budget's cap and recharge are the lever; the stage 3 unmetered prototype shows the pattern before it is priced |
+| Reflex-save: the pause becomes a panic button that cancels ambushes and makes sergeant loss painless | 4 | Contact lockout (open question 17) or budget pricing; the pool floors keep it a slope |
+| Two command currencies (CP and pause pool) confuse the player and double the HUD | 4 | The pause replaces CP outright when it lands |
 | Hive planning per tick too slow on the big maps (Dijkstra per plan, per piece) | 1 | Plan every 8 ticks and on marine death; per-action computeThreat stays as today; measure with the FPS probe (ISC-71) on space_hulk_6 |
 | Two rule sets in one codebase (turn-based kept as a mode) | 1 | Not kept; 1.x is frozen at /1.1.0/ and reachable from versions.html |
 | Squad set cover picks silly spots on odd map shapes | 3 | Unit tests on hand-picked rooms; the player can always override with L1 orders |
 
 ## Open questions
 
-Each with the recommended default. Decisions belong to Harry.
+Each with the recommended default. Decisions belong to Harry. Questions 1 to 14 were answered in round one; 15 onward come from the command pause and wait for answers.
 
-| # | Question | Recommended default | Alternative |
-|---|---|---|---|
-| 1 | Tick interval | 250 ms | 500 ms (the earlier design) |
-| 2 | AP regeneration table | marine 1 per 4 ticks, stealer and blip 1 per 2 ticks | tune after the stage 1 playtest |
-| 3 | Cycle length | 40 ticks (10 s) | 30 or 60; it scales every per-turn mission number |
-| 4 | Command points | keep the roll per cycle, P to spend | drop CP entirely |
-| 5 | Persistent overwatch cost | none | 1 AP drain per cycle |
-| 6 | Sergeant loss | relay latency 8 ticks plus uncoordinated execution (stage 3) | latency only; or squad orders vanish |
-| 7 | Turn-based 1.x | frozen at /1.1.0/, no mode in code | keep a `?rules=turn` mode (doubles the test surface, not recommended) |
-| 8 | Order input | right-click and Shift right-click | a click-mode key (V for move, then click) |
-| 9 | Flamer autonomy | last-stand rule only | never fires without an order; or fires when two or more stealer-side pieces stand in the target section |
-| 10 | Mission orders | stage 4 | drop; squad orders per squad suffice |
-| 11 | Stage 1 missions | debug_1 and space_hulk_1 | all nine from the start (bigger blast radius) |
-| 12 | Version line | 2.0.0-alpha.N tags, root moves at 2.0.0 | root moves at each alpha |
-| 13 | Identity: is 2.x still Sulk, or a new game beside it? | same repo and name, 1.x frozen as the faithful port | a new name for the real-time game once stage 1 has a verdict |
-| 14 | Direct control lease | a few ticks after the last key press during which no order moves the marine | none (orders may move him at once) |
+| # | Question | Recommended default | Alternative | Decision |
+|---|---|---|---|---|
+| 1 | Tick interval | 250 ms | 500 ms (the earlier design) | 250 ms |
+| 2 | AP regeneration table | marine 1 per 4 ticks, stealer and blip 1 per 2 ticks | tune after the stage 1 playtest | Agreed with recommendation |
+| 3 | Cycle length | 40 ticks (10 s) | 30 or 60; it scales every per-turn mission number | Agreed with recommendation |
+| 4 | Command points | keep the roll per cycle, P to spend | drop CP entirely | Agreed with recommendation but see "CP Replacement Idea” below |
+| 5 | Persistent overwatch cost | none | 1 AP drain per cycle | Agreed with recommendation - uncontrolled marines should default to overwatch and also turn to meet threats - for the AI implementation |
+| 6 | Sergeant loss | relay latency 8 ticks plus uncoordinated execution (stage 3) | latency only; or squad orders vanish | Agreed with recommendation but also see "CP Replacement Idea” below |
+| 7 | Turn-based 1.x | frozen at /1.1.0/, no mode in code | keep a `?rules=turn` mode (doubles the test surface, not recommended) | Agreed with recommendation - frozen at /1.1.0/ - no mode in code |
+| 8 | Order input | right-click and Shift right-click | a click-mode key (V for move, then click) | Agreed with recommendation |
+| 9 | Flamer autonomy | last-stand rule only | never fires without an order; or fires when two or more stealer-side pieces stand in the target section | Agreed with recommendation - otherwise requires an explicit order or human control to use the flamer. Similar applies for the some of the auto-cannon modes |
+| 10 | Mission orders | stage 4 | drop; squad orders per squad suffice | Agreed with recommendation - stage 4 |
+| 11 | Stage 1 missions | debug_1 and space_hulk_1 | all nine from the start (bigger blast radius) | Agreed with recommendation - debug_1 and space_hulk_1 |
+| 12 | Version line | 2.0.0-alpha.N tags, root moves at 2.0.0 | root moves at each alpha | Agreed with recommendation |
+| 13 | Identity: is 2.x still Sulk, or a new game beside it? | same repo and name, 1.x frozen as the faithful port | a new name for the real-time game once stage 1 has a verdict | Agreed with recommendation |
+| 14 | Direct control lease | a few ticks after the last key press during which no order moves the marine | none (orders may move him at once) | Agreed with recommendation |
+| 15 | Command pause: replace CP or coexist | replace CP outright when the pause lands (stage 4); CP stays until then | keep both (two currencies) | |
+| 16 | Pause pool numbers and randomness | cap 10 s plus 10 s per living sergeant or captain; recharge 1 s per cycle plus 1 s per cycle per sergeant or captain; no random element | keep the original d6: each cycle rolls 1..6 s into the pool (random top-up, hidden information kept) | |
+| 17 | Reflex-save rule | no lockout in the first metered build; the budget prices the panic | lockout: no pause for about 1 s of game time after a new contact or an overwatch trigger | |
+| 18 | Accessibility free pause with orders | ship `?pause=free` as a run-level setting chosen before the mission | do not ship it; the unmetered pause exists only in the stage 3 prototype | |
+| 19 | Sergeant loss once the pause exists | both axes stack with floors: relay latency and a smaller, slower pool | pool scaling only; latency retired at stage 4 | |
+| 20 | Pause placement | unmetered prototype in stage 3, metered and replacing CP in stage 4 | metered from stage 3 | |
+| 21 | Captains | the pool and relay rules read "sergeant or captain" from day one, but no captain piece class exists; add the captain (grenades, per docs/status.md) as its own item after 2.0.0 | fold the captain into stage 4 | |
+| 22 | Direct control during the pause | none (as proposed); the paused player only issues orders | allow direct-control keys to queue as L1 orders at the resume tick | |
+
+## CP Replacement Idea
+
+(Harry, round 1. Assessed and made precise in "Command pause" under Command model; consequences traced through Command points, Sergeant loss, Input summary, Determinism, Stages 3 and 4, Risks, and open questions 15 to 22.)
+
+For a later stage, we could introduce a game state where the player effectively pauses the game for a limited time and is able to issue multiple orders all at once. The length of time depends on the number of sergeants / captains available - if they are alive there is more time to issue orders. The time for orders also needs to “charge up” e.g. if it’s possible for pause for 30 seconds to issue a bunch of orders (no manual control in this game state), once the time is depleted, if the player enters this state a few seconds later, there might be only 5 seconds to issue orders - ticks would recharge this “pause time”. We need a good time for this mode and it needs to be reviewed.

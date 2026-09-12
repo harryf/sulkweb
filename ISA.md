@@ -1,13 +1,13 @@
 ---
 project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
-effort: E4
+effort: E3
 effort_source: classifier
-phase: complete
-progress: "1066/1066 (real-time plan run ISC-1095..1133 complete, plan pending user review; ISC-1038 dropped; ISC-71 deferred)"
+phase: verify
+progress: "1085/1086 (real-time plan round 2 ISC-1134..1153; ISC-1152 awaits the commit; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T16:00:00Z
+updated: 2026-09-12T17:45:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -521,10 +521,39 @@ Deliverable is a reviewed plan document, docs/realtime-plan.md, plus this ISA's 
 - [x] ISC-1132: Antecedent: the plan reads in one sitting, at most 700 lines (wc -l)
 - [x] ISC-1133: Antecedent: the Summary states what stage 1 delivers within the first 40 lines (Read)
 
+### Real-time plan, round 2: command pause idea and the answered questions (2026-09-12, seventeenth run, PLANNING ONLY)
+
+Harry answered open questions 1..14 in the plan and added a "CP Replacement Idea" (a recharging command pause). This run reviews the idea, folds the answers into the body, and lists the next open questions.
+
+- [x] ISC-1134: docs/realtime-plan.md has a "Command pause" section inside the Command model (Read)
+- [x] ISC-1135: the section states the rule: pool measured in seconds, cap and recharge per tick, scaling by living sergeants and captains, no manual control while paused, orders queued and applied at the resume tick (Read)
+- [x] ISC-1136: the section assesses the idea: what it fixes (attention load, the Shifting the Burden loop) and its two biggest risks each with a defusing rule (Read)
+- [x] ISC-1137: the command points paragraph states the pause's relation to CP (replace or coexist) as a recommendation with the question left to Harry (Read)
+- [x] ISC-1138: the sergeant loss section states how the pool scaling combines with relay latency (Read)
+- [x] ISC-1139: the input summary resolves Space and Esc: free pause versus command pause and what each allows (Read)
+- [x] ISC-1140: determinism section states the pool lives in the engine and pause consumption enters the command log (Read)
+- [x] ISC-1141: the stage placement of the command pause is stated with a reason (Read)
+- [x] ISC-1142: the Risks table has rows for the command pause (Read)
+- [x] ISC-1143: open questions 1..14 keep Harry's Decision column verbatim; new questions 15 onward each carry a recommended default and an empty Decision cell (Read, git diff)
+- [x] ISC-1144: decided items read as decisions in the body: no "Proposed default" column, the 1.x freeze, 250 ms tick and 40-tick cycle stated as settled (grep "Proposed default" = 0)
+- [x] ISC-1145: Harry's notes on Q5 (uncontrolled marines default to overwatch and turn to meet threats) and Q9 (cannon modes need an order or direct control) are reflected in the Marine AI section (Read)
+- [x] ISC-1146: the Status line records the second round and that the doc awaits answers to the new questions (Read)
+- [x] ISC-1147: Anti: no game code changed (git diff --stat main -- packages/ empty)
+- [x] ISC-1148: Anti: zero em dashes in the plan and this run's ISA text (grep)
+- [x] ISC-1149: Anti: zero banned writing-guide words in the plan (grep)
+- [x] ISC-1150: advisor consulted on the command pause; adopted and rejected points in Decisions (Read)
+- [x] ISC-1151: Decisions entry for this round records the assessment and the doc changes (Read)
+- [ ] ISC-1152: plan and ISA committed on main (git log)
+- [x] ISC-1153: PROJECTS.md records the second round as pending Harry's answers (grep)
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
+| ISC-1134..1146,1150..1151 | plan-doc | Read the named section of docs/realtime-plan.md or ISA Decisions | present as stated | Read |
+| ISC-1143,1144 | diff/grep | git diff on the open-questions table; grep "Proposed default" | Decision column intact; 0 hits | Bash |
+| ISC-1147..1149 | anti | git diff scope, em dash grep, banned-word grep | 0 / 0 / 0 | Bash |
+| ISC-1152..1153 | repo | git log; grep PROJECTS.md | commit on main; entry present | Bash |
 | ISC-1095..1120,1124..1128,1133 | plan-doc | Read the named section of docs/realtime-plan.md or the ISA Decisions and confirm the stated content | present as stated | Read |
 | ISC-1099,1109,1110 | cross-check | grep endMarinePhase rules / find source files and compare counts to the plan's tables | every rule and file accounted for | Bash grep, find |
 | ISC-1121..1123 | anti | git diff scope, em dash grep, banned-word grep | 0 changes / 0 matches | Bash |
@@ -730,6 +759,10 @@ Deliverable is a reviewed plan document, docs/realtime-plan.md, plus this ISA's 
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-12 17:40 (real-time plan round 2, assessment of the command pause): Harry's idea: freeze the game for a budget of seconds that recharges with ticks and scales with living sergeants and captains, issue many orders at once, no manual control while paused, framed as a CP replacement for a later stage. Assessment: it is the tactical-pause pattern (Door Kickers, Frozen Synapse) and it answers the attention problem the systems pass named (one keyboard marine, four spectators, Shifting the Burden): command capacity becomes a resource with a visible meter, which is what command points always were in spirit, and the sergeant's worth becomes "you get to think longer". Made precise in the plan: pool in seconds as ENGINE state (cap and recharge per tick, proposed 10 s plus 10 s per sergeant or captain, recharge 1 s per cycle plus 1 s per cycle per sergeant or captain), paused orders enter the command queue at the resume tick WITH their normal relay latency (thinking time, never reaction time), wall-clock seconds spent paused reach the engine only as a logged pauseSpent command so replays reproduce the pool. Advisor (terse call, answered in time): ADOPTED (a) the latency rule against pause-scumming; (b) replace CP outright when the pause lands, two currencies for one resource teach nothing (Harry had said keep CP on Q4 "but see idea": resolved as keep CP through stage 3, replace at stage 4, open question 15 asks him to confirm); (c) stack pool scaling with relay latency, both floored so a sergeant-less squad is degraded not bricked (open question 19); (d) stage 4 metered, stage 3 unmetered prototype to feel it before pricing it (Harry said "later stage"; open question 20); (e) accessibility free pause as a run-level setting chosen before the mission, never a mid-run button (open question 18). NOT ADOPTED as a rule, kept as a question: the contact lockout against reflex-save (open question 17, default no lockout, the budget prices the panic). Doc changes: Status line, Summary, tick table now "decided", Command points paragraph, new "Command pause" section, Sergeant loss stacking paragraph, Marine AI decided note for Harry's Q5 and Q9 remarks, Input summary (Esc free pause, Space command pause, P until stage 4, DONE becomes pause with the meter), Determinism bullet, Stage 3 and 4 ships and exit criteria, three Risks rows, open questions 15..22 (also captains, which have no piece class yet, and direct control during the pause). Harry's Decision column for 1..14 preserved verbatim (13 "Agreed with recommendation" cells plus "250 ms").
+
+- 2026-09-12 17:10 (real-time plan round 2, OBSERVE): Harry read the plan, accepted every recommendation (Q1..Q14), added AI notes on Q5 and Q9, and proposed a recharging command pause as a CP replacement for a later stage. Tier E3 by the classifier; ISC count 20 against the soft floor of 32, show-your-math: one idea folded into one document, every consequence has its own probe already. Delegation waived: single-author design judgment inside a 10-minute budget; the advisor is the second opinion.
 
 - 2026-09-12 15:40 (real-time plan, advisor): first call timed out at 170 s; second call (terse, 400 s budget) returned three points. (1) Persistent free reaction fire without a fire-rate gate is a balance trap the default AI will exploit at once: ADOPTED, the plan now names OVERWATCH_COOLDOWN (default 2 ticks) plus jam as stage 1 requirements with a unit test in the exit criteria. (2) The 1:2 regeneration ratio doubles the stealer edge over the tabletop 4:6 with costs unchanged: ADOPTED as a caution, the constants live as unvalidated data in CostTables with a ?tuning= override and the first sweep tests marine 1 per 3 ticks. (3) Square-per-AP movement under direct control may feel like stuttering, which is the real pass/fail of the port and must be tested in stage 1 before any AI: ADOPTED into the stage 1 verdict questions and the Risks table. Also flagged: a single 40-tick heartbeat fires every per-turn rule in one burst; ADOPTED as per-entity offsets within the cycle. The advisor called the rest (fixed tick, deterministic sim, most-specific-live-order-wins, sequencing) sound.
 
@@ -1082,3 +1115,25 @@ Latest-pipeline hardening run (2026-08-20 seventh run, ISC-969..975):
 - ISC-1132: wc -l docs/realtime-plan.md = 384
 - ISC-1133: grep: "Stage 1 delivers" at line 14
 - ISC-1131: git log: 6573491 "docs: real-time 2.x plan (proposal, reviewed, nothing implemented)" on main; closed by the following ISA commit
+
+### Real-time plan, round 2 (2026-09-12)
+
+- ISC-1134: grep: "### Command pause (Harry's idea, stage 4; unmetered prototype in stage 3)" at line 163
+- ISC-1135: Read: the section's first bullet list states Space, pool in seconds, cap and recharge scaled by sergeants and captains, no manual control, orders applied at the resume tick with normal latency
+- ISC-1136: Read: "What it fixes" paragraph (attention, Shifting the Burden) and "The two biggest risks" with the latency rule and the lockout-or-budget rule
+- ISC-1137: Read: Command points paragraph: CP kept stages 1 to 3, replaced by the pause at stage 4, d6 top-up left to question 16
+- ISC-1138: Read: Sergeant loss closes with the stacking paragraph (latency plus pool, floors: 8 ticks, 10 s cap, 1 s per cycle) and points to question 19
+- ISC-1139: grep: Input summary rows "Esc (nothing selected)" free pause, "Space" command pause per stage, "P" until stage 4, DONE becomes pause with the meter (line 270 area)
+- ISC-1140: grep: Determinism bullet with pauseSpent at line 142; Command pause section repeats it at line 179
+- ISC-1141: Read: "Placement: stage 4 ... stage 3 ships the same pause unmetered"
+- ISC-1142: grep: Risks rows "Pause-scumming" (line 390), "Reflex-save", "Two command currencies"
+- ISC-1143: grep: 13 "Agreed with recommendation" cells and row 1 "| 250 ms |" intact; rows 15..22 present with empty Decision cells (lines 417..424)
+- ISC-1144: grep "Proposed default" = 0; tick table header reads "Value (decided, round 1)"
+- ISC-1145: grep: "Decided (round 1, Harry's notes on questions 5 and 9)" at line 215
+- ISC-1146: Read: Status line "second round ... asks the questions it raises (15 onward)"
+- ISC-1147: git diff --stat main -- packages/ printed 0 lines
+- ISC-1148: grep '—' docs/realtime-plan.md = 0; this run's ISA text written without em dashes (grep on the round-2 entries = 0)
+- ISC-1149: banned words 0, phrases 0 (word-bounded grep)
+- ISC-1150: Read: Decisions "round 2, assessment of the command pause" lists advisor points a..e adopted and the lockout kept as a question
+- ISC-1151: Read: the same Decisions entry lists every doc change
+- ISC-1153: grep -c "open questions 15..22" PROJECTS.md = 1

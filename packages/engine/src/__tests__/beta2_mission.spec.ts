@@ -49,6 +49,7 @@ describe('download victory (ISC-258..260)', () => {
   it('the downloading sergeant moving resets the counter; turning does not (ISC-259)', () => {
     const engine = new GameEngine(downloadMission(), [], new SeededRng(1));
     const sgt = engine.marines[0];
+    sgt.lastCommandTick = 1e9; // under the player's hand: the facing rule must not turn him between the manual turns
     sgt.moveForward(); sgt.moveForward();
     runCycle(engine); // begin
     runCycle(engine); // 3

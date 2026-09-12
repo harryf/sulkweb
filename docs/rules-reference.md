@@ -44,14 +44,15 @@ A fresh **d6 of command points** is rolled at construction and at every cycle bo
 A key press steers the selected marine at once and gives him a **lease** of 8 ticks (2 s) during which his default behaviour stays out of the way. Reactions (overwatch fire, close-combat defence) are never suspended. Every marine without a live lease runs this list once a tick, first match wins:
 
 1. jammed: unjam;
-2. on overwatch: hold (his reaction fire is his action);
+2. on overwatch: hold (his reaction fire is his action), unless nothing is in his fire arc, the nearest threat in sight stands outside it and a turn would put it in his line of fire: then he turns (overwatch drops; rule 10 re-arms him). A threat already in the arc vetoes every turn, so two threats on two sides never spin him unarmed;
 3. a stealer in the fire arc with line of fire: shoot (the storm bolter's 11-in-36 beats a marine's close combat several times over, so the shot comes before the fight);
 4. a stealer directly ahead and no shot possible: close combat;
 5. a stealer adjacent elsewhere: turn toward it;
 6. heavy flamer only, the last stand: a stealer within 2 squares, fuel left, and a blast section holding no marine and nothing the mission needs (control room, ducting, data room, the loose C.A.T.): flame it;
-7. a stealer visible but not shootable: turn toward the nearest;
+7. a threat in sight but not shootable, and nothing in his fire arc: turn toward the nearest. "In sight" is a clear sight line from his square in any direction, blips included; rock, closed doors and marine bodies hide it;
 8. an open door directly ahead with a stealer seen beyond it and no friendly beyond it: close it;
 9. assault cannon only: an empty drum and nothing in sight: reload (never overwatch dry);
+9b. nothing in sight and a facing whose fire cone covers more squares than his (by more than one): turn to it, so he never arms overwatch into a bulkhead; a closed door straight ahead counts what it would show; ties and near-ties keep the current facing;
 10. not on overwatch with 2 AP or more and a weapon that can overwatch: overwatch;
 11. hold.
 
@@ -61,7 +62,7 @@ The default never opens a door, never walks toward the objective, never autofire
 
 Every marine has one **order slot**. An order is standing intent that his default behaviour carries out one action per tick until it is done:
 
-- **moveTo (then hold or overwatch)**: he walks the shortest path (marines block it, closed doors on it are opened on contact, 1 AP each; he turns before each change of direction, so he arrives facing the way he came), then holds or, with 2 AP, goes on overwatch. An optional facing is taken on arrival first. A target square held by another marine counts as reached when he stands next to it.
+- **moveTo (then hold or overwatch)**: he walks the shortest path (marines block it, closed doors on it are opened on contact, 1 AP each; he turns before each change of direction, so he arrives facing the way he came), then holds or, with 2 AP, goes on overwatch. An optional facing is taken on arrival first; without one, a marine going on overwatch with nothing in sight first turns to the facing whose fire cone covers the most squares (rule 9b). A target square held by another marine counts as reached when he stands next to it.
 - **openDoor**: he walks to either side of the door edge, faces across it and opens it.
 
 While an order is live the reactions still come first (unjam, shoot what is shootable, fight what is ahead, turn to what is adjacent, the flamer's last stand), plus one transit reaction: a seen stealer that a turn would bring into the fire arc is turned to. The parking rules (close a door on a threat, overwatch with spare AP) sleep: an order that cannot progress this tick holds its AP for the next. A door a marine opened stays open for a cycle as far as the door-close rule is concerned, so an openDoor order is not undone by its own executor.

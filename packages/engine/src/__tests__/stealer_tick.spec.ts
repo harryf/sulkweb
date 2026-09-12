@@ -25,6 +25,7 @@ function twoLanes(): CompiledMission {
 describe('stealerTick: one action per piece per tick', () => {
   it('a stealer six squares out closes exactly one square per tick', () => {
     const engine = new GameEngine(corridor(10, { marineDeployment: [{ x: 1, y: 0, facing: 'up' }] }));
+    engine.marines[0].lastCommandTick = 1e9; // leased: he would turn and shoot (facing rule), the stealer's pace is what is measured
     const stealer = new Genestealer(engine.state.board, { c: 1, r: 7 }, Dir.N);
     for (let expected = 6; expected >= 1; expected--) {
       engine.tick();

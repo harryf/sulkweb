@@ -19,6 +19,7 @@ test('flamer two-press targeting: arm, aim with preview, fire into the square', 
     const flamer = engine.marines.find((m: any) => m.spriteKey === 'terminator_heavy_flamer');
     flamer.pos = { c: 17, r: 20 };
     flamer.facing = 1; // east
+    flamer.lastCommandTick = 1e9; // under the player's hand: the facing rule must not turn a staged flamer
     scene.pieceSprites[flamer.id].setPosition(17 * 40 + 20, 20 * 40 + 20);
     board.doorBetween({ c: 18, r: 20 }, { c: 19, r: 20 }).open();
     Selection.select(flamer.id);

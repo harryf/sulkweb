@@ -7,7 +7,8 @@ import { HeavyFlamerMarine } from '../pieces/HeavyFlamerMarine.js';
 import { AssaultCannonMarine, ChainFistMarine } from '../pieces/AssaultCannonMarine.js';
 import { Dir } from '../core/Direction.js';
 import { PieceEvents } from '../events/PieceEvents.js';
-import { marineTick, runMarineAI } from '../ai/MarineAI.js';
+import { marineTick, runMarineAI, nearestThreatInSight, preferredFacing } from '../ai/MarineAI.js';
+import { Blip } from '../pieces/Blip.js';
 import { autoplay, runMarineTurn } from '../ai/MarineAutopilot.js';
 import { loadMission } from '../missions/missionLoader.js';
 import { TUNING } from '../core/CostTables.js';
@@ -184,6 +185,95 @@ describe('marine default AI: the decision list, first match wins', () => {
     expect(fistE.marines[0]).toBeInstanceOf(ChainFistMarine);
     expect(marineTick(fistE, fistE.marines[0])).toBe('overwatch');
     expect(door.destroyed).toBe(false);
+  });
+
+  // Alpha.2 playtest (2026-09-13): "marines should automatically turn to face
+  // the nearest threat if inactive including blips ... a marine would face a
+  // wall in overwatch ... if there isn't an obvious threat a marine should turn
+  // to face the direction that gives them the greatest line of sight".
+  it('facing: a threat in sight BEHIND him (outside the vision arc) is turned to; a blip counts', () => {
+    const { engine, board, marine } = scene();
+    new Genestealer(board, { c: 2, r: 8 }, Dir.N); // two squares behind
+    expect(marineTick(engine, marine)).toBe('turn');
+    expect(marine.facing).toBe(Dir.S);
+
+    const b = scene();
+    new Blip(b.board, { c: 2, r: 8 }, 2);
+    expect(nearestThreatInSight(b.board, b.marine)?.kind).toBe('blip');
+    expect(marineTick(b.engine, b.marine)).toBe('turn');
+    expect(b.marine.facing).toBe(Dir.S);
+  });
+
+  it('facing: Anti: a threat behind a closed door is not in sight; nothing to turn to, overwatch as usual', () => {
+    const squares: SquareJSON[] = Array.from({ length: 8 }, (_, y) => ({ x: 1, y, kind: 'corridor' }));
+    squares[3].doorFacing = 'down'; // edge between (1,3) and (1,4)
+    const engine = new GameEngine(corridor(8, { squares, marineDeployment: [{ x: 1, y: 3, facing: 'up' }] }));
+    const board = engine.state.board;
+    const marine = engine.marines[0];
+    new Genestealer(board, { c: 1, r: 6 }, Dir.N);
+    expect(nearestThreatInSight(board, marine)).toBeUndefined();
+    expect(marineTick(engine, marine)).toBe('overwatch');
+    expect(marine.facing).toBe(Dir.N);
+  });
+
+  it('facing: an overwatcher turns to a threat in sight outside his arc when the turn would bear on it, then re-arms', () => {
+    const { engine, board, marine } = scene();
+    const m = marine as StormBolterMarine;
+    m.overwatchOn();
+    new Genestealer(board, { c: 2, r: 8 }, Dir.N);
+    expect(marineTick(engine, marine)).toBe('turn');
+    expect(m.overwatch).toBe(false);
+    expect(m.facing).toBe(Dir.S);
+    m.ap = 2;
+    // The stealer is now straight ahead in the fire lane: rule 3 shoots first.
+    expect(marineTick(engine, marine)).toBe('shoot');
+  });
+
+  it('facing: nothing in sight, facing rock: he turns to the direction that shows the most squares, then overwatches, and never dithers', () => {
+    const engine = new GameEngine(corridor(8, { marineDeployment: [{ x: 1, y: 0, facing: 'up' }] }));
+    const board = engine.state.board;
+    const marine = engine.marines[0] as StormBolterMarine;
+    expect(preferredFacing(board, marine)).toBe(Dir.S);
+    expect(marineTick(engine, marine)).toBe('turn');
+    expect(marine.facing).toBe(Dir.S);
+    expect(preferredFacing(board, marine)).toBeUndefined();
+    expect(marineTick(engine, marine)).toBe('overwatch');
+    for (let i = 0; i < 5; i++) expect(marineTick(engine, marine)).toBeNull();
+    expect(marine.facing).toBe(Dir.S);
+
+    // Ties keep the current facing: the room's middle row, north and south
+    // cones cover 14 squares each; the east cone only 8, so from E he turns N
+    // (the first strictly better facing in N, E, S, W order).
+    const sym = new GameEngine(room(5, 9, { x: 2, y: 4, facing: 'up' }));
+    expect(preferredFacing(sym.state.board, sym.marines[0])).toBeUndefined();
+    sym.marines[0].facing = Dir.E;
+    expect(preferredFacing(sym.state.board, sym.marines[0])).toBe(Dir.N);
+  });
+
+  it('facing: Anti: a threat already in the fire arc vetoes every turn (a nearer blip behind never swings him off a stealer in his lane)', () => {
+    const { engine, board, marine } = scene();
+    const m = marine as StormBolterMarine;
+    m.overwatchOn();
+    new Genestealer(board, { c: 2, r: 1 }, Dir.S); // five squares ahead, in the lane
+    new Blip(board, { c: 2, r: 8 }, 2);            // two squares behind, nearer
+    expect(marineTick(engine, marine)).toBeNull();  // holds overwatch facing the stealer
+    expect(m.overwatch).toBe(true);
+    m.overwatchOff();
+    m.ap = 0; m.ap = 4;
+    // Off overwatch, out of a shot (no line of fire needed here: rule 3 would shoot;
+    // make the stealer unshootable by jamming and unjamming is rule 1, so use a flamer)
+    const f = scene('heavy_flamer');
+    new Genestealer(f.board, { c: 2, r: 1 }, Dir.S);
+    new Blip(f.board, { c: 2, r: 8 }, 2);
+    expect(marineTick(f.engine, f.marine)).toBeNull(); // no shot, no flame, and no turn away
+    expect(f.marine.facing).toBe(Dir.N);
+  });
+
+  it('facing: the rule is Piece-level: a heavy flamer turns to face a threat behind him too', () => {
+    const { engine, board, marine } = scene('heavy_flamer');
+    new Genestealer(board, { c: 2, r: 8 }, Dir.N);
+    expect(marineTick(engine, marine)).toBe('turn');
+    expect(marine.facing).toBe(Dir.S);
   });
 
   it('runMarineAI: one action per unleased marine per tick; a leased marine is skipped', () => {

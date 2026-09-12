@@ -81,8 +81,11 @@ every stealer action in its arc, and never more than one shot every two ticks.
 Flames burn for one cycle from the moment they are lit.
 
 A marine you are not steering steers himself: he unjams, shoots what he can
-see, turns to meet a threat he can see but not shoot, closes a door a stealer
-is looking through, and otherwise goes on overwatch with two AP. He never
+see, turns to face the nearest threat he has a sight line to in any
+direction (blips included; a closed door hides), even off overwatch when the
+turn would bring it into his line of fire, closes a door a stealer is looking
+through, and otherwise faces whichever way covers the most squares and goes
+on overwatch with two AP. He never
 opens a door and never walks toward the objective on his own; the heavy
 flamer holds his fuel unless a stealer comes within two squares of a section
 nothing friendly stands in. A marine you have just steered is left alone for

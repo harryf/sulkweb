@@ -115,6 +115,7 @@ describe('reinforcements ride the cycle at per-entry slots', () => {
 
   it('two entries land at ticks 40 and 45 (entry index times spawnOffsetTicks)', () => {
     const engine = new GameEngine(twoEntries(), [], new SeededRng(1));
+    engine.marines[0].lastCommandTick = 1e9; // under the player's hand: the booking is what is measured
     engine.runTicks(TUNING.cycleTicks - 1);
     expect(engine.stealerSide).toHaveLength(0); // cycle 1 spawns nothing
     engine.tick(); // the boundary: entry index 0 has offset 0
@@ -164,6 +165,7 @@ describe('reinforcements ride the cycle at per-entry slots', () => {
       blipsPerTurn: 1, totalBlips: 1,
       marineDeployment: [{ x: 1, y: 0, facing: 'up' }],
     }), [], new SeededRng(1));
+    trickle.marines[0].lastCommandTick = 1e9; // leased: the budget rule is what is measured
     trickle.tick();
     expect(trickle.state.result).toBe('ongoing'); // the empty opening board is not a win
     trickle.runTicks(TUNING.cycleTicks);

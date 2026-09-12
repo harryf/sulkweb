@@ -6,7 +6,7 @@ import { StormBolterMarine } from '../pieces/StormBolterMarine.js';
 import { DIR_VEC, ORTHO_VECS, chebyshev, facingToward, turnToward, type Dir } from '../core/Direction.js';
 import { pathStep } from './hive.js';
 import type { MarineAiAction } from './MarineAI.js';
-import { moveDirFor } from './MarineAI.js';
+import { moveDirFor, nearestThreatInSight, preferredFacing } from './MarineAI.js';
 import { PieceEvents } from '../events/PieceEvents.js';
 import { canShoot } from '../board/vision.js';
 
@@ -117,9 +117,15 @@ function marchStep(board: Board, m: Piece, isGoal: (c: Coord) => boolean): Order
 /** The terminal of a moveTo: optional facing, then hold or overwatch. Returns
  *  'done' once the slot is cleared, an action while still working on it, or
  *  null when waiting for AP. */
-function finishMove(m: Piece, order: Extract<MarineOrder, { type: 'moveTo' }>): OrderAction | null {
+function finishMove(board: Board, m: Piece, order: Extract<MarineOrder, { type: 'moveTo' }>): OrderAction | null {
   if (order.facing !== undefined && m.facing !== order.facing) {
     return faceDir(m, order.facing as Dir) ? 'turn' : null;
+  }
+  // No ordered facing, going on overwatch, nothing in sight: take the facing
+  // that shows the most squares first (the alpha.2 wall-facing overwatcher).
+  if (order.facing === undefined && order.then === 'overwatch' && !nearestThreatInSight(board, m)) {
+    const pf = preferredFacing(board, m);
+    if (pf !== undefined) return faceDir(m, pf) ? 'turn' : null;
   }
   if (order.then === 'overwatch' && m instanceof StormBolterMarine) {
     if (m.overwatch) { setOrder(m, null); return 'done'; }
@@ -150,7 +156,7 @@ export function orderStep(engine: GameEngine, m: Piece): OrderAction | null {
     const holder = board.pieceAt(target) as Piece | undefined;
     const heldByOther = holder !== undefined && holder !== m && holder.kind === 'marine';
     const arrived = heldByOther ? chebyshev(m.pos, target) <= 1 : (m.pos.c === target.c && m.pos.r === target.r);
-    if (arrived) return finishMove(m, order);
+    if (arrived) return finishMove(board, m, order);
     const isGoal = heldByOther
       ? (c: Coord) => chebyshev(c, target) <= 1
       : (c: Coord) => c.c === target.c && c.r === target.r;

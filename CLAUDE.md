@@ -245,6 +245,16 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
   All real-time numbers live in `core/CostTables.ts` `TUNING` (`?tuning=k:v` overrides before
   construction; regen.marine 3 was chosen by the stage 2 scan, the rest is unvalidated).
   Re-pin the seed fixtures only after the last behavioural change of a stage.
+- **Facing (alpha.2 playtest, 2026-09-13):** an idle marine turns to face the nearest
+  stealer-side piece with a clear sight line from his square in ANY direction
+  (`nearestThreatInSight`, blips included; rock, closed doors, marine bodies hide); an
+  overwatcher turns for one outside his fire arc when `turnWouldBearOn` (re-arms next tick); any
+  threat already in the fire arc (`threatInArc`) vetoes every facing turn (no spinning between two);
+  with nothing in sight he turns to `preferredFacing` (the fire cone covering the most
+  squares, closed door ahead peeked, current facing wins ties and near-ties) BEFORE rule 10
+  arms overwatch, and at a move order's arrival with then overwatch and no ordered facing.
+  Never use the 180 degree vision count for this: the flank line counts as seen, which in a
+  corridor ranks a wall-facing as high as the corridor.
 - **Orders (2.x stage 2, 2026-09-12):** `Piece.order` holds one `MarineOrder` (moveTo then
   hold|overwatch, optional facing; openDoor); `ai/orders.ts` executes it inside `marineTick`
   AFTER the reactions (unjam, shoot, adjacent fight/turn, flamer last stand, plus the transit

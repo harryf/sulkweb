@@ -200,6 +200,17 @@ describe('orders: the march (executed by the default AI, one action per tick)', 
     expect(s.order).toBeNull();
   });
 
+  it('then overwatch with no ordered facing and nothing in sight takes the facing that shows the most squares', () => {
+    const engine = new GameEngine(corridor(8));
+    const m = engine.marines[0] as StormBolterMarine;
+    engine.command(m.id, { type: 'order', order: moveTo(1, 7, 'overwatch') }); // the dead end
+    engine.runTicks(40);
+    expect(m.pos).toEqual({ c: 1, r: 7 });
+    expect(m.facing).toBe(Dir.N); // arrived facing rock to the south, turned round
+    expect(m.overwatch).toBe(true);
+    expect(m.order).toBeNull();
+  });
+
   it('an ordered facing is taken on arrival before the terminal', () => {
     const engine = new GameEngine(corridor(8));
     const m = engine.marines[0];

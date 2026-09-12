@@ -4,10 +4,10 @@ task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: context-override
 phase: complete
-progress: "1430/1430 (facing rule shipped on /latest/; ISC-1038 dropped; ISC-71 deferred)"
+progress: "1436/1436 (final write-up before compaction; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T18:57:00Z
+updated: 2026-09-12T19:22:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -873,10 +873,22 @@ Harry: "marines should automatically turn to face the nearest threat if inactive
 - [x] ISC-1496: the e2e suite is green (orders.spec arrival-facing assertion updated if the preferred facing differs)
 - [x] ISC-1497: Anti: a threat already in the fire arc vetoes every facing turn: an overwatcher with a stealer in his lane and a nearer blip behind holds; a flamer in the same spot neither turns nor flames (marine_ai.spec; the advisor's flip-flop case)
 
+### Final write-up before compaction (2026-09-13, twenty-third run)
+
+Harry: "write up anything else then let's commit and be ready to compact". E1-sized; the E2 ISC floor is waived for a four-pointer docs commit (Decisions).
+
+- [x] ISC-1498: CLAUDE.md read-first row names the facing fix on /latest/ and points the next session at the plan's last two sections (grep "Playtest notes on alpha.2" in CLAUDE.md)
+- [x] ISC-1499: docs/status.md next-line paragraph names the facing fix, its URL and that alpha.3 freezes it (grep "facing walls")
+- [x] ISC-1500: the plan's playtest note says fire cone, the door peek and the in-arc veto, and ends with a "### Next session" subsection naming the two playtest questions, the stage 3 entry points and the housekeeping owed (grep)
+- [x] ISC-1501: Anti: zero em dashes and banned words in the new text (grep)
+- [x] ISC-1502: everything committed on main with the trailers and pushed; git status clean; the docs-only push triggers no deploy (paths-ignore)
+- [x] ISC-1503: PROJECTS.md Sulk entry already carries the shipped fix and the next step (grep "FIXED AND SHIPPED ON /latest/")
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
+| ISC-1498..1503 | docs/repo | greps, git status | present; clean | grep, git |
 | ISC-1473..1496 | engine AI, docs, ship | marine_ai.spec and orders.spec cases, greps, scan, gh run, curl | green; 0; green; sha match | vitest, grep, gh, curl |
 | ISC-1341..1356 | balance | scan script output rows, TUNING literals, spec runs | counts recorded; specs green | Bash, grep |
 | ISC-1357..1390, 1466..1468 | engine | orders.spec, determinism.spec, gamelog.spec, tsc, lint, coverage | green; >= 98% lines | vitest, tsc, grep |
@@ -1137,6 +1149,8 @@ Harry: "marines should automatically turn to face the nearest threat if inactive
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-13 (final write-up, E1 fast path under a classifier E2): three pointer edits (CLAUDE.md row, status.md, the plan's playtest note corrected to the fire-cone metric and the veto, plus a "Next session" subsection) and a commit; the E2 ISC floor of 16 is waived because the natural granularity of a docs commit is six probes. Nothing else was left unwritten: the stage 2 record, the tuning numbers, the facing fix and the archive-rotation debt are all in the plan and the ISA.
 
 - 2026-09-13 (facing, VERIFY to LEARN): built as designed with one metric correction found by the first test run: the 180 degree vision count ranks a wall-facing in a corridor as high as the corridor itself, because the original's vision rule counts the whole flank line as seen; the ranking uses the 90 degree fire cone instead (what overwatch actually covers), with a closed door straight ahead peeked open so a marine posted at a door keeps covering it (the chain-fist anti test caught the door case). Four fixtures that drive a marine by hand (reinforcement booking, the stealer's pace, the download counter) now lease him, since an unleased idle marine facing rock is exactly what the new rule turns. Seeds unchanged (scan above). Advisor: named the flip-flop between two threats on two sides (each turn drops overwatch) and the nearer-blip-behind case; both adopted as one veto, no facing turn while any threat sits in the fire arc (threatInArc, ISC-1497); its first call failed on the tool's argument form (auto-state omitted needs three arguments), re-issued. Delegation floor waived: one engine file, its spec, three doc touches. Shipped on /latest/ per the shipping policy's callout; v2.0.0-alpha.3 (stage 3) carries it to a frozen dir.
 
@@ -1581,3 +1595,7 @@ The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/
 - ISC-1495: the ship report names https://harryf.github.io/sulkweb/latest/ and that v2.0.0-alpha.3 carries the change to a frozen dir
 - ISC-1496: full e2e 119 passed
 - ISC-1497: marine_ai.spec veto case green (overwatcher holds, flamer holds facing N)
+
+### Final write-up (2026-09-13)
+
+- ISC-1498..1503: greps as named, git status clean after the push, no run triggered by the docs-only push

@@ -52,8 +52,12 @@ https://harryf.github.io/sulkweb/2.0.0-alpha.2/ : right-click orders (walk
 there then hold or overwatch, go open a door) carried out by the default AI,
 the autopilot rewritten as an order issuer, the two 1.x test shims deleted,
 and marine regeneration tuned from 4 to 3 ticks per AP. The plan's "Stage 2
-as built" subsection records the deviations and the balance numbers; stage 3
-(squad orders, the chain of command) is next.
+as built" subsection records the deviations and the balance numbers. The
+alpha.2 playtest's one finding (marines on overwatch facing walls) is fixed
+on https://harryf.github.io/sulkweb/latest/ (idle marines face the nearest
+threat in sight, else the widest fire lane; commit 9398c7c) and will be
+frozen with v2.0.0-alpha.3; stage 3 (squad orders, the chain of command) is
+next.
 
 ## Known gaps / residue
 

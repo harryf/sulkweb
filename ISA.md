@@ -4,7 +4,7 @@ task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: classifier
 phase: complete
-progress: "951/951 (fog of war RESUMED on branch fog-of-war 2026-09-12, main v0.6.1 merged in: ISC-989..1018; ISC-71 deferred)"
+progress: "965/965 (fog of war RESUMED on branch fog-of-war 2026-09-12: ISC-1019..1032; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
 updated: 2026-09-12T00:00:00Z
@@ -382,6 +382,23 @@ ISC-989..1013 (the fog run block above) were reserved on main while the feature 
 - [x] ISC-1017: Anti: ISC IDs 989..1013 are reserved on main so a future run cannot collide with the branch's run block (Read)
 - [x] ISC-1018: Anti: zero fog code remains on main: no utils/fog.ts, no updateFog reference in GameScene (ls + grep)
 
+### Fog of war resumed: branch restored, main merged, running locally (2026-09-12, eleventh run)
+
+- [x] ISC-1019: branch fog-of-war is checked out and its tip is a merge commit whose parents are 1418ca9 (fog tip) and df42de2 (main tip) (git log)
+- [x] ISC-1020: main is fully contained in fog-of-war: git merge-base --is-ancestor main fog-of-war exits 0 (git)
+- [x] ISC-1021: ISA.md carries both the fog run block (ISC-989..1013) and the parking block (ISC-1014..1018) with zero conflict markers (grep)
+- [x] ISC-1022: engine vitest suite green on the merged tree, 337/337 (pnpm -r test)
+- [x] ISC-1023: client vitest suite green on the merged tree, 97/97, fog.ts at 100 percent line coverage (pnpm -r test)
+- [x] ISC-1024: pnpm build green on the merged tree, engine tsc -b plus client vite build (pnpm build)
+- [x] ISC-1025: Vite dev server serves the merged tree on localhost:5173 with HTTP 200 (curl)
+- [x] ISC-1026: real Chrome boots ?mission=space_hulk_1 to the Deploy phase with fogEnabled true and the fog graphics object present (live probe)
+- [x] ISC-1027: after AUTO DEPLOY and DONE the mission is in MarineAction turn 1 with a five-square sight set and the board beyond the column visibly dimmed (live probe + screenshot)
+- [x] ISC-1028: ending turn 1 runs a stealer phase and lands in engine turn 2 with a blip spawned and the fog flag dirty for the post-replay recompute (live probe)
+- [x] ISC-1029: Anti: zero console errors or page exceptions across boot, deploy, turn 1 and the turn 2 replay (console read, onlyErrors)
+- [x] ISC-1030: Anti: no game code changed in this run; the merge diff against 1418ca9 touches ISA.md only (git diff --stat)
+- [x] ISC-1031: Anti: the branch was not pushed and no tag was created (git branch -vv, git tag)
+- [x] ISC-1032: Anti: zero em dashes on any line added this run (git diff grep)
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
@@ -579,6 +596,8 @@ ISC-989..1013 (the fog run block above) were reserved on main while the feature 
 
 ## Decisions
 
+- 2026-09-12 (fog resumed, eleventh run): user instruction: restore branch fog-of-war, merge main in, use it as the base for the 1.x version series, get it running locally first so the open fog issues can be fixed. The branch was intact locally (never pushed); main had moved by exactly one commit since the park (df42de2, the ISA parking record), so the merge conflicted in ISA.md only. Resolution keeps both sides whole: the fog run block and the parking block both live in Criteria, both Decisions entries stay, the frontmatter progress line is combined. Suites, build and a real-Chrome boot all green; the branch is runnable and unchanged in game code. Open fog design questions carried forward from the 2026-08-21 entries: creep reveal leaks through walls (Chebyshev 2 vs BFS path distance), and whether the hearing reveal should draw an ambiguous marker rather than the full stealer sprite. First live observation worth checking against the user's own list: at mission start on space_hulk_1 the sight set is only the five marine squares (the column faces a closed door), so the whole map reads as black except the squad. The 1.x series starts from this branch; the branch-to-main landing and the v1.0.0 cut wait until the fog issues are fixed. Interceptor CLI was blocked by a stale daemon (documented gotcha); the live probe used the Claude-in-Chrome extension, which is still real Chrome. Forge waived (13th): codex binary still absent.
+
 - 2026-08-24 (fog parked): user verdict on the fog-of-war build: "hold on this for now... it needs more work but I want to make some other changes to the stable release first". The complete, review-hardened feature is parked on branch `fog-of-war` (tip 1418ca9; three commits: the feature, the review-round fixes, the ISA record). What it contains: stealers hidden outside marine LOS with a Chebyshev-2 creep reveal, 0.42 dim overlay on unseen squares at depth 0.7, blips/minimap untouched, replay-frozen sight set with a pre-phase marine snapshot for the creep reveal, side channels closed (hover, click, L-cone), ?fog=0 escape hatch, 10 pure vitest cases, all suites and live probes green at park time. Its ISA run block (ISC-989..1013, all [x]) rides the branch; those IDs are reserved on main, next allocation starts at ISC-1019. TO RESUME: `git checkout fog-of-war`, then either rebase onto main or merge main in; re-run pnpm -r test plus the fog Playwright probe after; the known open design questions are in the branch ISA's fog Decisions entries (creep-radius wall-leak tunable vs BFS, ambiguous-marker rendering instead of full sprite for the hearing reveal). Branch intentionally NOT pushed; the branches-on-main exception was explicit user instruction, overriding the direct-to-main default for this repo.
 
 - 2026-08-21 (fog-of-war run, code review): code-reviewer found one CRITICAL, one MEDIUM, four nits; all but one adopted (ISC-1009..1013). CRITICAL: updateFog read live engine.marines every frame, but the whole stealer phase resolves synchronously inside PieceEvents.capture BEFORE frame 1 of the replay, so a marine killed this phase was already spliced out of engine state and projected no creep reveal for the entire animation: his killer approached and struck invisibly, and the missing reveal doubled as an inverse payload-not-engine leak (it told the player who was already dead). My own melee-attacker-always-revealed test missed it because it hands threatRevealed a literal marines array. Fix mirrors the existing anchors snapshot two lines above (same splice hazard, same cure): fogMarineSnap taken in endTurn, used by fogMarines() while animating, cleared in finishReplay; hover guard shares fogMarines(). MEDIUM: the pointerdown hit test scans children.list manually and ignored visible, so a fog-hidden stealer was clickable, which forced the highlight visible at its square, leaked its AP to the HUD, and let the L key paint its whole vision cone above the fog; fixed with a visible gate on the hit predicate. Nits adopted: marineEscaped added to the dirty triggers (was correct only via pieceMoved ordering coupling), game-over fog lift gated on !animating (post-mortem readability without leaking the result mid-replay), hover guard exempted during Deploy. Nit skipped: per-frame allocation micro-optimization outside replays (few marines, few stealers, not measurable). Reviewer confirmed clean: coordinate math (tile flips at the 50% pixel mid-tween as intended, lunge 10px never flips a tile), ?fog=0 truly zero-change (pieceKind stash has exactly two occurrences), sprite lifecycle races, permanent desync impossibility, capture-buffering vs fogDirty, AmbushCounter is kind blip, fire reticle cannot mark a hidden stealer (90 degree arc is a strict subset of the 180 degree sight arc over the same LOS).
@@ -764,3 +783,20 @@ Latest-pipeline hardening run (2026-08-20 seventh run, ISC-969..975):
 - ISC-986: gh run view 32424973007: event workflow_dispatch, conclusion success; /latest/ built one minute after the release deploy.
 - ISC-987: Playwright on https://harryf.github.io/sulkweb/?mission=debug_1&seed=1: engine live (phase MarineAction, turn 1), errorCount 0.
 - ISC-988: curl 200 + unchanged version field on /0.6.0/manifest.json after the release completed.
+
+### Fog of war resumed (2026-09-12)
+
+- ISC-1019: git log --oneline -3 on fog-of-war: b461208 Merge main (v0.6.1 head + fog parking record) into fog-of-war, parents df42de2 and 1418ca9
+- ISC-1020: git merge-base --is-ancestor main fog-of-war exit 0
+- ISC-1021: grep -c of conflict markers in ISA.md: 0; both run blocks present under Criteria
+- ISC-1022: pnpm -r test: packages/engine Test Files 34 passed, Tests 337 passed
+- ISC-1023: pnpm -r test: packages/client Test Files 12 passed, Tests 97 passed; coverage row fog.ts 100 100 100 100
+- ISC-1024: pnpm build exit 0; client vite build "built in 2.57s"
+- ISC-1025: curl -o /dev/null -w %{http_code} http://localhost:5173/ printed 200 (VITE v6.3.5)
+- ISC-1026: page eval: {"phase":"Deploy","fogEnabled":true,"hasFogGfx":true}
+- ISC-1027: page eval after AUTO DEPLOY + DONE: {"phase":"MarineAction","turn":1,"marines":5,"fogSight":5,"fogDirty":false}; screenshot shows the five-marine column lit, every other square dimmed
+- ISC-1028: page eval after Enter: {"phase":"MarineAction","turn":2,"animating":true,"fogSight":5,"fogDirty":true,"blips":3,"blipsSpawned":1}
+- ISC-1029: read_console_messages onlyErrors after each step: "No console errors or exceptions found"
+- ISC-1030: git diff --stat 1418ca9 fog-of-war: ISA.md only
+- ISC-1031: git branch -vv shows fog-of-war with no upstream; git tag unchanged, latest v0.6.1
+- ISC-1032: git diff HEAD~1 | grep -c on added lines for the em dash character: 0

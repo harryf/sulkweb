@@ -1526,7 +1526,7 @@ The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/
 - ISC-1779..1783: rg pauseSpent docs/rules-reference.md, docs/architecture.md, docs/gamelog-format.md (formatVersion 2); features.md Space row and the step 5 paragraph, no P row; CLAUDE.md invariant "Metered command pause (2.x stage 4 step 5, 2026-09-13)", 553 unit tests, the numbers, the read-first row, the continuation; status.md step 5 paragraph
 - ISC-1784, 1785: em dashes and banned words over the diff's added lines: 0 and 0
 - ISC-1786..1788: engine tsc exit 0; 553 tests; coverage 98.41% lines
-- ISC-1789: commit 9e7fb02fccba47902985ddc9b0a02be4e99afe6f on main, Deploy latest to GitHub Pages green, manifest latest-9e7fb02, /latest/ index 200
+- ISC-1789: commit 9e7fb02 on main, pushed with the ISA close 59df4fe as the head: Deploy latest to GitHub Pages run 34775371898 success, live manifest latest-59df4fe (built 2026-09-13T18:41:09Z), /latest/ index 200
 - ISC-1790: this block; PROJECTS.md updated; tree clean after the ISA close commit
 - ISC-1791: the summary carries the times table (0, 1, 2 sergeants: 10/20/30 s cap, 1/2/3 s per cycle, refill 100 s, 9/17/23% of wall clock)
 - ISC-1792: the advisor before BUILD (ten points, folded in or answered in Decisions) and before complete (Decisions)

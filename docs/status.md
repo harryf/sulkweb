@@ -75,8 +75,13 @@ step is done (2026-09-13): the balance instrument, a squad-order issuer for
 the autopilot and `packages/engine/scripts/scan.ts` with Wilson intervals;
 the numbers and the reading are in the plan's "Stage 4 step 1: the
 instrument" (no detectable difference between the two policies at sixty
-seeds; the traces point at the transit; nothing tuned). The transit rule and the win-rate band wait on
-Harry before steps 2 and 6.
+seeds; the traces point at the transit; nothing tuned). Step 2 (2026-09-13) built Harry's three transit
+decisions (overwatch kept while moving in formation, staged posting under
+fire with the order held until every post is reached and a marine the
+player takes dropping out of the plan, the whole column covering on
+contact): space_hulk_1 under squad orders went from 2 to 10 wins in 60 on
+the same seeds, nothing tuned; on /latest/. The win-rate band per mission
+still waits on Harry before step 6.
 
 ## Known gaps / residue
 

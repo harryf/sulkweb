@@ -205,13 +205,20 @@ function finishMove(board: Board, m: Piece, order: Extract<MarineOrder, { type: 
  * and a live slot; the player's order is executed before the squad's task.
  */
 export function orderStep(engine: GameEngine, m: Piece): OrderAction | null {
-  const board = engine.state.board;
   const active = activeOrder(m);
   if (!active) return null;
-  const { order, level } = active;
-  // An ordered marine on overwatch comes off it (free) so he can act, but
-  // only when the order can progress: a blocked march keeps his overwatch.
-  const offOverwatch = () => { if (m instanceof StormBolterMarine && m.overwatch) m.overwatchOff(); };
+  // A squad task moves him in formation: his overwatch survives every step,
+  // turn and door of it (transit rule A, 2.x stage 4); a player's order
+  // takes him off overwatch (free) so he can act, but only when the order
+  // can progress: a blocked march keeps his overwatch.
+  m.inFormation = active.level === 2;
+  try { return orderStepInner(engine, m, active.order, active.level); }
+  finally { m.inFormation = false; }
+}
+
+function orderStepInner(engine: GameEngine, m: Piece, order: MarineOrder, level: OrderLevel): OrderAction | null {
+  const board = engine.state.board;
+  const offOverwatch = () => { if (level === 1 && m instanceof StormBolterMarine && m.overwatch) m.overwatchOff(); };
   if (order.type === 'moveTo') {
     const target = { c: order.x, r: order.y };
     const holder = board.pieceAt(target) as Piece | undefined;
@@ -223,6 +230,10 @@ export function orderStep(engine: GameEngine, m: Piece): OrderAction | null {
         if (order.then === 'overwatch' && (order.facing === undefined || m.facing === order.facing)) {
           clearLevel(m, level); return 'done';
         }
+        if (order.then === 'overwatch' && level === 2 && order.facing !== undefined) {
+          // In formation the turn to the post facing keeps his overwatch.
+          return faceDir(m, order.facing as Dir) ? 'turn' : null;
+        }
         offOverwatch();
       }
       return finishMove(board, m, order, level);
@@ -231,6 +242,10 @@ export function orderStep(engine: GameEngine, m: Piece): OrderAction | null {
       ? (c: Coord) => chebyshev(c, target) <= 1
       : (c: Coord) => c.c === target.c && c.r === target.r;
     if (!canMarch(board, m, isGoal)) return null;
+    // In formation a bolter marches armed: off overwatch (a shot took it, or
+    // he never had it) he re-arms first when he has the 2 AP; rule 10 cannot
+    // do it for him behind a live task.
+    if (level === 2 && m instanceof StormBolterMarine && !m.overwatch && !m.jammed && m.ap >= 2 && m.overwatchOn()) return 'overwatch';
     offOverwatch();
     return marchStep(board, m, isGoal);
   }

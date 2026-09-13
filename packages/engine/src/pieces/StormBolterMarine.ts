@@ -205,7 +205,9 @@ export class StormBolterMarine extends Piece {
 
   protected override onActed(action: 'move' | 'turn' | 'door'): void {
     this.clearSustained();
-    this.clearOverwatch();
+    // Overwatch survives a move made in formation (a squad task's step, turn
+    // or door); any other action, the player's included, clears it.
+    if (!this.inFormation) this.clearOverwatch();
     // Move-and-shoot: a move earns one free shot; any other action forfeits it.
     this.freeShot = action === 'move';
   }

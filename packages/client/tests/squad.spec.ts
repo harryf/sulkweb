@@ -294,8 +294,9 @@ test('the command pause holds the clock while orders still go out and direct key
   expect(errors).toHaveLength(0);
 });
 
-test('a direct key takes one marine back from a live squad order without touching his task', async ({ page }) => {
+test('a direct key takes one marine back from a live squad order and drops his task (the stage 4 rider); the rest keep theirs', async ({ page }) => {
   const errors = await waitForGame(page, 'mission=space_hulk_1&seed=1');
+  await quietStealers(page); // the pin must lapse with the game still on (a dead flamer ends a flame mission)
   await squadCommand(page, DEFEND_ROOM);
   await step(page, 1);
 
@@ -315,14 +316,21 @@ test('a direct key takes one marine back from a live squad order without touchin
   await page.keyboard.press('d');
   await page.waitForTimeout(150);
 
-  // The turn reached the engine, and it took the level 1 slot (already empty)
-  // rather than the squad's level 2 task: the post survives the wheel.
+  // The turn reached the engine; the player taking him drops his squad task
+  // at once and the planner leaves him out, while his squad-mates keep theirs.
   expect(await page.evaluate(() => (window as any).__cmds)).toEqual(['turn']);
   const after = await page.evaluate((pid: string) => {
-    const m = (window as any).sulk.engine.findPiece(pid);
-    return { order: m.order, task: m.task };
+    const { sulk } = window as any;
+    const m = sulk.engine.findPiece(pid);
+    const others = sulk.engine.marines.filter((x: any) => x.id !== pid && x.alive).map((x: any) => x.task !== null);
+    return { order: m.order, task: m.task, others };
   }, id);
   expect(after.order).toBeNull();
-  expect(after.task).toEqual(before.task);
+  expect(after.task).toBeNull();
+  expect(after.others.some((t: boolean) => t)).toBe(true);
+  // The pin lapses a cycle after the key press: the planner takes him back.
+  await step(page, 41);
+  const back = await page.evaluate((pid: string) => (window as any).sulk.engine.findPiece(pid).task !== null, id);
+  expect(back).toBe(true);
   expect(errors).toHaveLength(0);
 });

@@ -43,6 +43,9 @@ export abstract class Piece {
   /** Tick of the last direct player command: the default AI leaves a marine
    *  alone for TUNING.leaseTicks after it (the direct-control lease). */
   lastCommandTick = -Infinity;
+  /** Set by the order executor around a squad-task action (2.x stage 4
+   *  transit rule A): a bolter moving in formation keeps his overwatch. */
+  inFormation = false;
 
   /** The live individual order (2.x stage 2), executed by the default AI;
    *  null when the marine is on his own. Set only through GameEngine.command

@@ -13,7 +13,7 @@ import { distanceField } from './hive.js';
 import { TUNING } from '../core/CostTables.js';
 import { nearestThreatInSight } from './MarineAI.js';
 import { chooseStep } from './orders.js';
-import { squadMembers, walk, downhill, flameJobPending } from './squad.js';
+import { squadMembers, walk, downhill, flameJobPending, postsReached } from './squad.js';
 import { assignEntryPosts } from './MarineAutopilot.js';
 
 /**
@@ -56,6 +56,8 @@ export const AUTOPILOT = {
   clearsPerDoor: 2,
   /** Walk distance within which the flamer leaves the column for a firing square. */
   flamerReach: 8,
+  /** Ticks a defend may stay short of its posts before the issuer moves on anyway. */
+  postWaitTicks: 80,
 };
 
 type Phase = 'defend' | 'advance' | 'clear';
@@ -282,7 +284,9 @@ export function runSquadTurn(engine: GameEngine): void {
       }
     }
     if (is.phase === 'defend') {
-      if (quiet && target && tkey !== is.doneKey) advanceTo(target);
+      // The order is held until every post is reached (transit rule C).
+      const posted = !live || postsReached(engine, squad) || (st !== undefined && tick - st.issuedTick >= AUTOPILOT.postWaitTicks);
+      if (quiet && posted && target && tkey !== is.doneKey) advanceTo(target);
       else if (!live && !flamePending(engine, members)) defendHere();
       continue;
     }

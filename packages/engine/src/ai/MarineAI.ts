@@ -267,8 +267,13 @@ export function marineTick(engine: GameEngine, m: Piece): MarineAiAction | null 
   const active = activeOrder(m);
   if (active) {
     const seenInTransit = nearestSeen(board, m);
-    if (seenInTransit && turnWouldBearOn(board, m, seenInTransit)
-        && faceIfNeeded(m, facingToward(m.pos, seenInTransit.pos))) return 'turn';
+    if (seenInTransit && turnWouldBearOn(board, m, seenInTransit)) {
+      // A squad task moves him in formation: the transit turn keeps his
+      // overwatch like every other action of the task (transit rule A).
+      m.inFormation = active.level === 2;
+      try { if (faceIfNeeded(m, facingToward(m.pos, seenInTransit.pos))) return 'turn'; }
+      finally { m.inFormation = false; }
+    }
     const action = orderStep(engine, m);
     if (action !== null) { m.orderStall = 0; return action; }
     if (active.level === 1) { noteOrderStall(m, TUNING.orderStallTicks); return null; }

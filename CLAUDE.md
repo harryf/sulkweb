@@ -24,7 +24,7 @@ Resuming work = extend `ISA.md` (new ISCs, decisions, changelog); don't invent a
 ```bash
 pnpm install
 pnpm --filter ./packages/client dev      # play at localhost:5173
-pnpm --filter ./packages/engine test     # 504 unit tests + coverage (~98% lines)
+pnpm --filter ./packages/engine test     # 520 unit tests + coverage (~98% lines)
 pnpm --filter ./packages/client test     # HUD/minimap units (vitest, --dir src only)
 pnpm --filter ./packages/client e2e      # Playwright no-mock suite (real browser, no mocks)
 pnpm build                               # engine tsc -b + client vite build
@@ -192,11 +192,13 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
    an autopilot artifact, NOT balance evidence; unopposed the autopilot wins turn 9,
    proving the kill chain (flamer.spec); debug_1: 40W/0L over 40.
    SUPERSEDED 2026-09-13 by the stage 4 instrument (scripts/scan.ts, 60 seeds, cycle cap
-   60, shipped tuning; raw output docs/scans/2026-09-13-stage4-step1.txt): space_hulk_1
-   orders 2W (seeds 26, 27), squads 2W (seeds 24, 31); space_hulk_2 orders 3W (seeds 29, 36,
-   58), squads 0W; all nine under squads (10 seeds, liveness only): space_hulk_6 10W,
-   space_hulk_4 1W, the rest 0W. No detectable difference between the policies at 60
-   seeds. Read the plan's "Stage 4 step 1: the instrument" before touching a number.
+   60, shipped tuning; raw output docs/scans/2026-09-13-stage4-step*.txt). Step 1 (before
+   the transit rules): space_hulk_1 orders 2W (seeds 26, 27), squads 2W; space_hulk_2 orders
+   3W (seeds 29, 36, 58), squads 0W. Step 2 (the transit rules): space_hulk_1 squads 10W
+   (16.7%, interval 9.3 to 28.0; orders unchanged at 2W), space_hulk_2 squads still 0W; all
+   nine under squads (10 seeds, liveness only): space_hulk_6 10W, space_hulk_4 8W,
+   space_hulk_1 2W, space_hulk_5 1W, the rest 0W. Read the plan's "Stage 4 step 2: the
+   transit rules" before touching a number.
    CAUTION: playthrough.spec idles turn 1 before its DONE click, so it consumes dice
    differently from plain autoplay; scan loss seeds under THAT pattern. If a rules change
    alters dice-consumption order, re-scan and re-pin. Stage 2 pins (2026-09-12): the win
@@ -282,6 +284,25 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
   The pinned seeds do NOT cover squad orders (the default autopilot policy issues
   individual orders only): seed drift after a squad-planner change points elsewhere; the
   scan's `squads` policy (stage 4, `ai/SquadAutopilot.ts`) does cover them.
+- **Transit rules (2.x stage 4 step 2, 2026-09-13, Harry's decisions):** (A) a level 2
+  task moves a marine in formation: `Piece.inFormation` is set by `orderStep` around the
+  action and `StormBolterMarine.onActed` keeps overwatch while it is set; off overwatch a
+  bolter under a task re-arms before stepping (rule 10 is gated off behind a live task);
+  a level 1 order still drops it. (B, C) defend posts in two stages (`SquadState.stage`,
+  `firstPostId`, `posts`) ONLY under contact (a threat in sight within contactRange): the
+  shortest walk first, the rest once it is held; movers include whoever stands outside the
+  area, on a mover's post or in the first walker's path; holders face the nearest entrance;
+  with nothing in sight the stage opens at once (unconditional staging cost space_hulk_6
+  ten wins in ten down to two on the instrument: the wait spends the first wave's AP);
+  `postsReached` is the order "reached"; the plan breaks occupancy cycles without slack
+  and drops posts on stayers' squares (a corridor column never gets a rotation of its own
+  squares). The transit turn in MarineAI's order branch is inside the formation flag too. The rider:
+  `isPinned` = steered within a cycle (`isSteered`) OR a live level 1 order; the
+  player's order or key clears the task at once (applyCommand) and the planners leave a
+  pinned member out entirely (no post, not in the column); the first-plan L1 clearing
+  uses `isSteered` only. (E) on contact the whole column holds on its squares facing the
+  threat; re-arm only on the threat's own step closer (`contactKey`), never on the
+  column's. Never put the re-arm rule back on distance alone: a parked blip gives stop-go.
 - **Squad planner rules the instrument added (2.x stage 4 step 1, 2026-09-13):** a
   different squad order clears the members' tasks (`sameSquadOrder` in GameEngine; the
   same order again is a re-plan and keeps the posts); on a flame mission with the flamer's

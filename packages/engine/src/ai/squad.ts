@@ -54,6 +54,14 @@ export interface SquadState {
   /** advance: nearest contact distance seen and when it last closed in. */
   contactDist: number;
   contactTick: number;
+  /** advance: the nearest threat's square last tick (`id@c,r`); only its own
+   *  movement toward the squad re-arms the hold, never the column's. */
+  contactKey: string;
+  /** defend: the plan's posts, the stage (the first post fills first, the
+   *  rest once it is held) and the first post's member. */
+  posts: DefendPost[];
+  stage: 'first' | 'all';
+  firstPostId: string | null;
   /** clear: the tick the covers' tasks were issued (the opener's timeout). */
   coverIssuedTick: number;
   /** The planner has acted on the order at least once. */
@@ -66,7 +74,7 @@ export interface SquadState {
 export function newSquadState(squad: string): SquadState {
   return {
     squad, order: null, issuedTick: -1, dueTick: -1, coordinated: true,
-    planKey: '', contactDist: Infinity, contactTick: -Infinity, coverIssuedTick: -1, started: false, column: [],
+    planKey: '', contactDist: Infinity, contactTick: -Infinity, contactKey: '', posts: [], stage: 'first', firstPostId: null, coverIssuedTick: -1, started: false, column: [],
   };
 }
 
@@ -91,9 +99,16 @@ export function hasSergeant(members: Piece[]): boolean {
   return members.some(m => m instanceof SergeantMarine);
 }
 
-/** A member the player steered within the last cycle keeps his ground. */
-export function isPinned(engine: GameEngine, m: Piece): boolean {
+/** A member the player steered by hand within the last cycle. */
+export function isSteered(engine: GameEngine, m: Piece): boolean {
   return engine.tickCount - m.lastCommandTick < TUNING.cycleTicks;
+}
+
+/** A member the player has taken: steered within the last cycle, or holding
+ *  a live player order. The planners leave him out until the pin lapses
+ *  (stage 4 rider: his previous orders were dropped when he was taken). */
+export function isPinned(engine: GameEngine, m: Piece): boolean {
+  return isSteered(engine, m) || m.order !== null;
 }
 
 function marineType(m: Piece): MarineType {
@@ -277,23 +292,15 @@ export function planDefend(engine: GameEngine, members: Piece[], x: number, y: n
     taken.add(key(c));
     posts.push({ id: m.id, c, facing: f, covers });
   };
-  // Pinned members first: their ground is the plan.
-  const pinned = members.filter(m => isPinned(engine, m));
-  for (const m of pinned) {
-    if (!area.has(key(m.pos))) continue;
-    if (!cover.has(`${key(m.pos)}|${m.facing}`)) {
-      withDoorsOpen(board, doors, () => cover.set(`${key(m.pos)}|${m.facing}`, coverFrom(board, m.pos, m.facing, lane)));
-    }
-    commit(m, m.pos, m.facing);
-  }
-  const rest = members.filter(m => !pinned.includes(m) || !area.has(key(m.pos)));
+  // A pinned member is the player's: no post for him, his square not one.
+  const rest = members.filter(m => !isPinned(engine, m));
   const cannons = rest.filter(m => m instanceof AssaultCannonMarine);
   const flamers = rest.filter(m => m instanceof HeavyFlamerMarine);
   const bolters = rest.filter(m => !(m instanceof AssaultCannonMarine) && !(m instanceof HeavyFlamerMarine));
   const armed = [...cannons, ...bolters];
   // Step 1: the post set.
-  const centre = members.length > 0
-    ? { c: Math.round(members.reduce((a, m) => a + m.pos.c, 0) / members.length), r: Math.round(members.reduce((a, m) => a + m.pos.r, 0) / members.length) }
+  const centre = rest.length > 0
+    ? { c: Math.round(rest.reduce((a, m) => a + m.pos.c, 0) / rest.length), r: Math.round(rest.reduce((a, m) => a + m.pos.r, 0) / rest.length) }
     : { c: x, r: y };
   const fromSquad = walk(board, [centre], 400);
   const held = new Set(members.flatMap(m => m.task?.type === 'moveTo' ? [`${m.task.x},${m.task.y}|${m.task.facing}`] : []));
@@ -351,6 +358,46 @@ export function planDefend(engine: GameEngine, members: Piece[], x: number, y: n
     }
     if (best) commit(m, best.c, best.f);
   }
+  // A plan a column can execute (the stage 4 finding: in a one-wide corridor
+  // the set cover handed five marines a rotation of their own five squares).
+  // A chain (everyone steps into the square the man ahead vacates) works,
+  // and so does a cycle in "whose square do I want" when it has slack (a
+  // member of it with a free square beside him to step aside into, a room);
+  // a cycle without slack cannot turn and is broken by dropping the post of
+  // the member with the longest walk in it. Then a post on the square of a
+  // member who stays (no post, or his post is where he stands) can never be
+  // taken: drop it, its member stays too, repeat.
+  const walkTo = (m: Piece, c: Coord) => dists.get(m.id)?.get(key(c)) ?? walk(board, [m.pos], 400).get(key(c)) ?? Infinity;
+  const occupant = (c: Coord) => members.find(m => m.pos.c === c.c && m.pos.r === c.r);
+  const slack = (ids: string[]) => ids.some(id => {
+    const m = members.find(q => q.id === id)!;
+    for (const { dc, dr } of STEPS) {
+      const n = { c: m.pos.c + dc, r: m.pos.r + dr };
+      if (area.has(key(n)) && board.isPassable(n) && !board.pieceAt(n) && !(dc !== 0 && dr !== 0 && board.diagonalBlockedByDoor(m.pos, n))) return true;
+    }
+    return false;
+  });
+  for (;;) {
+    const wants = new Map<string, string>();
+    for (const p of posts) { const o = occupant(p.c); if (o && o.id !== p.id) wants.set(p.id, o.id); }
+    let dropped = false;
+    for (const start of wants.keys()) {
+      const seen: string[] = []; let cur: string | undefined = start;
+      while (cur && !seen.includes(cur)) { seen.push(cur); cur = wants.get(cur); }
+      if (cur !== start) continue;
+      const cycle = seen.slice(seen.indexOf(start));
+      if (slack(cycle)) continue;
+      const longest = cycle.map(id => posts.find(p => p.id === id)!).sort((a, b) => walkTo(members.find(m => m.id === b.id)!, b.c) - walkTo(members.find(m => m.id === a.id)!, a.c))[0];
+      posts.splice(posts.indexOf(longest), 1);
+      dropped = true;
+      break;
+    }
+    if (dropped) continue;
+    const stays = new Set(members.filter(m => { const p = posts.find(q => q.id === m.id); return !p || (p.c.c === m.pos.c && p.c.r === m.pos.r); }).map(m => key(m.pos)));
+    const i = posts.findIndex(p => { const m = members.find(q => q.id === p.id)!; return !(p.c.c === m.pos.c && p.c.r === m.pos.r) && stays.has(key(p.c)); });
+    if (i < 0) break;
+    posts.splice(i, 1);
+  }
   return posts;
 }
 
@@ -361,16 +408,104 @@ export function entrancesCovered(board: Board, x: number, y: number, posts: Defe
   return entrancesOf(board, area).every(e => posts.some(p => p.covers.has(key(e))));
 }
 
+const at = (a: Coord, b: Coord) => a.c === b.c && a.r === b.r;
+
+/** A post is held: its member stands on it, on overwatch if he can be. */
+function postHeld(members: Piece[], p: DefendPost): boolean {
+  const m = members.find(q => q.id === p.id);
+  if (!m || m.pos.c !== p.c.c || m.pos.r !== p.c.r) return false;
+  return !(m instanceof StormBolterMarine) || m.overwatch || m.jammed;
+}
+
+/** Every post of the squad's defend plan is held (the order "reached"). */
+export function postsReached(engine: GameEngine, squad: string): boolean {
+  const st = engine.squadState(squad);
+  if (!st?.order || st.order.type !== 'defend') return false;
+  const members = squadMembers(engine, squad).filter(m => !isPinned(engine, m));
+  if (!st.started) return false;
+  return st.posts.filter(p => members.some(m => m.id === p.id)).every(p => postHeld(members, p));
+}
+
+/**
+ * Defend runs in two stages (transit rule B, 2.x stage 4): the post with the
+ * shortest walk for its member fills first while everyone else holds his own
+ * square on overwatch; once it is held the rest walk to their posts. A holder
+ * standing in the first walker's path walks too (a corridor would deadlock
+ * otherwise, the advisor's case). The order is "reached" when every post is
+ * held (postsReached); pinned members are the player's and take no part.
+ */
 function runDefend(engine: GameEngine, st: SquadState, members: Piece[], order: Extract<SquadOrder, { type: 'defend' }>): void {
   if (!st.coordinated) { for (const m of members) setTask(m, null); return; } // hold where you stand
+  const board = engine.state.board;
+  const active = members.filter(m => !isPinned(engine, m));
   const pins = members.filter(m => isPinned(engine, m)).map(m => m.id).join(',');
   const planKey = `${members.map(m => m.id).join(',')}|${pins}|${engine.cycle}`;
-  if (planKey === st.planKey) return;
-  st.planKey = planKey;
-  const posts = planDefend(engine, members, order.x, order.y);
+  if (planKey !== st.planKey) {
+    st.planKey = planKey;
+    st.posts = planDefend(engine, members, order.x, order.y);
+    // The first post: the shortest walk for its member; a held post first.
+    let best: { id: string; d: number } | undefined;
+    for (const p of st.posts) {
+      const m = active.find(q => q.id === p.id); if (!m) continue;
+      const d = postHeld(active, p) ? -1 : (walk(board, [m.pos], 400).get(key(p.c)) ?? Infinity);
+      if (!best || d < best.d) best = { id: p.id, d };
+    }
+    if (st.firstPostId === null || !st.posts.some(p => p.id === st.firstPostId)) st.firstPostId = best?.id ?? null;
+  }
+  const first = st.posts.find(p => p.id === st.firstPostId);
+  // Staging is a safety under fire: with a threat in sight within contact
+  // range the first post fills while the rest cover; with nothing in sight
+  // everyone goes at once (the walk itself is armed, rule A), because the
+  // wait costs the first wave's readiness (space_hulk_6 fell from 10 wins
+  // in 10 to 2 with unconditional staging on the instrument).
+  const contact = active.some(m => { const t = nearestThreatInSight(board, m); return t !== undefined && chebyshev(t.pos, m.pos) <= TUNING.contactRange; });
+  if (st.stage === 'first' && (!first || !contact || postHeld(active, first))) st.stage = 'all';
+  // Stage 1 movers: the first post's member, anyone standing outside the
+  // area (holding in the open is exposure, not a post: space_hulk_6's
+  // flamers died alone there on the first scan), whoever stands on a
+  // mover's post (a chain: he must vacate it, so he walks to his own), and
+  // whoever stands on the first walker's path.
+  const movers = new Set<string>();
+  const area = defendArea(board, order.x, order.y);
+  const entrances = entrancesOf(board, area);
+  // A holder faces the nearest way in: on overwatch where he stands, he
+  // covers the approach while the first post fills (facing his deployment
+  // way left the room's flank open on the first scan).
+  const holdFacing = (m: Piece): Dir => {
+    const e = [...entrances].sort((a, b) => chebyshev(a, m.pos) - chebyshev(b, m.pos))[0];
+    return e && !at(e, m.pos) ? facingToward(m.pos, e) : m.facing;
+  };
+  if (st.stage === 'first' && first) {
+    movers.add(first.id);
+    for (const m of active) if (!area.has(key(m.pos)) && st.posts.some(q => q.id === m.id)) movers.add(m.id);
+    for (;;) {
+      let grew = false;
+      for (const id of [...movers]) {
+        const p = st.posts.find(q => q.id === id); if (!p) continue;
+        const occ = active.find(m => at(m.pos, p.c) && !movers.has(m.id));
+        if (occ && st.posts.some(q => q.id === occ.id)) { movers.add(occ.id); grew = true; }
+      }
+      if (!grew) break;
+    }
+    const walker = active.find(m => m.id === first.id);
+    if (walker) {
+      let cur: Coord = walker.pos;
+      for (let guard = 0; guard < 400; guard++) {
+        const step = pathStep(board, cur, c => at(c, first.c), { avoid: new Set() });
+        if (!step) break;
+        cur = step.step;
+        const occ = active.find(m => at(m.pos, cur));
+        if (occ && st.posts.some(q => q.id === occ.id)) movers.add(occ.id);
+        if (at(cur, first.c)) break;
+      }
+    }
+  }
   for (const m of members) {
-    const p = posts.find(q => q.id === m.id);
-    setTask(m, p ? postTask(m, p.c, p.facing) : null);
+    if (isPinned(engine, m)) continue;
+    const p = st.posts.find(q => q.id === m.id);
+    if (!p) { setTask(m, postTask(m, m.pos, holdFacing(m))); continue; } // no post of his own: he holds his square
+    const walks = st.stage === 'all' || movers.has(m.id) || postHeld(active, p);
+    setTask(m, walks ? postTask(m, p.c, p.facing) : postTask(m, m.pos, holdFacing(m)));
   }
 }
 
@@ -464,9 +599,12 @@ function runAdvance(engine: GameEngine, st: SquadState, members: Piece[], order:
     return;
   }
   const field = distanceField(board, [target]);
-  const alive = new Set(members.map(m => m.id));
-  let col = st.column.map(id => members.find(m => m.id === id)).filter((m): m is Piece => m !== undefined);
-  if (col.length !== members.length || !st.column.every(id => alive.has(id))) col = columnOrder(members, field);
+  // Pinned members are the player's: the column is the rest.
+  const active = members.filter(m => !isPinned(engine, m));
+  if (active.length === 0) return;
+  const alive = new Set(active.map(m => m.id));
+  let col = st.column.map(id => active.find(m => m.id === id)).filter((m): m is Piece => m !== undefined);
+  if (col.length !== active.length || !st.column.every(id => alive.has(id))) col = columnOrder(active, field);
   const at = (m: Piece, c: Coord) => m.pos.c === c.c && m.pos.r === c.r;
   // The one re-sort after the first plan: the leader's waypoint held by his
   // own column (a corner pocket where the follower behind him waits for his
@@ -475,7 +613,7 @@ function runAdvance(engine: GameEngine, st: SquadState, members: Piece[], order:
   // target in front, and his downhill square can never be a squad-mate's.
   const head = col[0];
   const wp0 = head?.task?.type === 'moveTo' ? { c: head.task.x, r: head.task.y } : undefined;
-  if (head && wp0 && !at(head, wp0) && members.some(m => m !== head && at(m, wp0))) col = columnOrder(members, field);
+  if (head && wp0 && !at(head, wp0) && active.some(m => m !== head && at(m, wp0))) col = columnOrder(active, field);
   demoteFlamer(engine, board, col, field);
   st.column = col.map(m => m.id);
   const leader = col[0];
@@ -489,19 +627,37 @@ function runAdvance(engine: GameEngine, st: SquadState, members: Piece[], order:
   const holder = board.pieceAt(target) as Piece | undefined;
   const leaderThere = at(leader, target) || (holder !== undefined && holder !== leader && chebyshev(leader.pos, target) <= 1);
   if (leaderThere && closed) { completeSquadOrder(engine, st, members); return; }
-  // Contact: a threat in sight within TUNING.contactRange of a member
-  // suspends the leader's march while it is closing in.
-  let d = Infinity;
-  for (const m of members) {
+  // Contact: a threat in sight within TUNING.contactRange of a member holds
+  // the whole column while it closes in (transit rule E, 2.x stage 4):
+  // everyone stands on his square on overwatch facing it. "Closing in" is
+  // the threat's own movement toward the squad, never the column's step
+  // toward a parked blip (the advisor's stop-go case).
+  let d = Infinity; let nearest: Piece | undefined;
+  for (const m of active) {
     const t = nearestThreatInSight(board, m);
-    if (t) d = Math.min(d, chebyshev(t.pos, m.pos));
+    if (t) { const dt = chebyshev(t.pos, m.pos); if (dt < d) { d = dt; nearest = t; } }
   }
-  if (d <= TUNING.contactRange) {
-    if (d < st.contactDist) { st.contactDist = d; st.contactTick = engine.tickCount; }
+  if (nearest && d <= TUNING.contactRange) {
+    const k = `${nearest.id}@${key(nearest.pos)}`;
+    const sameThreat = st.contactKey.startsWith(nearest.id + '@');
+    const threatMoved = sameThreat && st.contactKey !== k;
+    // A new threat in range, or the same one stepping closer, re-arms the
+    // hold; a parked one does not, however the column moves.
+    if (!sameThreat || (threatMoved && d < st.contactDist)) st.contactTick = engine.tickCount;
+    st.contactDist = d;
+    st.contactKey = k;
   } else {
     st.contactDist = Infinity;
+    st.contactKey = '';
   }
   const suspended = engine.tickCount - st.contactTick < TUNING.contactHoldTicks;
+  if (suspended) {
+    for (const m of col) {
+      const t = nearestThreatInSight(board, m);
+      setTask(m, postTask(m, m.pos, t ? facingToward(m.pos, t.pos) : m.facing));
+    }
+    return;
+  }
   for (let i = 0; i < col.length; i++) {
     const m = col[i];
     if (isPinned(engine, m)) continue;
@@ -509,7 +665,6 @@ function runAdvance(engine: GameEngine, st: SquadState, members: Piece[], order:
       // Leader: the next waypoint two steps down the field once the column
       // has closed up; his current waypoint until then.
       const walking = m.task?.type === 'moveTo' && !at(m, { c: m.task.x, r: m.task.y });
-      if (suspended) { setTask(m, null); continue; }
       if (walking || (!closed && !plugged)) continue;
       let wp: Coord = m.pos;
       for (let s = 0; s < 2; s++) { const n = downhill(board, field, wp); if (!n) break; wp = n; }
@@ -672,6 +827,10 @@ export function completeSquadOrder(engine: GameEngine, st: SquadState, members: 
   st.coverIssuedTick = -1;
   st.contactDist = Infinity;
   st.contactTick = -Infinity;
+  st.contactKey = '';
+  st.posts = [];
+  st.stage = 'first';
+  st.firstPostId = null;
   st.started = false;
   st.column = [];
   PieceEvents.emit('squadOrderChanged', { squad: st.squad, order: null, coordinated: st.coordinated, dueTick: engine.tickCount });
@@ -688,7 +847,7 @@ export function squadTick(engine: GameEngine): void {
     if (members.length === 0) { completeSquadOrder(engine, st, members); continue; }
     if (!st.started) {
       st.started = true;
-      for (const m of members) if (m.order && !isPinned(engine, m)) setOrder(m, null);
+      for (const m of members) if (m.order && !isSteered(engine, m)) setOrder(m, null);
     }
     const order = st.order;
     if (order.type === 'defend') runDefend(engine, st, members, order);

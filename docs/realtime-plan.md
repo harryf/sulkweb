@@ -1,6 +1,6 @@
 # Real-time Sulk: plan for the 2.x line
 
-Status: APPROVED 2026-09-12; stage 1 BUILT the same day and shipped as v2.0.0-alpha.1 (ISA run block ISC-1166..1324; the "Stage 1 as built" subsection records what changed from the kickoff and the balance evidence the build produced); stage 2 BUILT the same day and shipped as v2.0.0-alpha.2 (ISA run block ISC-1341..1470; "Stage 2 as built" records its deviations and the tuning numbers); stage 3 BUILT 2026-09-13 and shipped as v2.0.0-alpha.3 (ISA run block ISC-1504..1582; "Stage 3 as built" records what changed from the sketches); Harry's verdict on alpha.3: "It's not bad. We're going to have to make it easier for the marines but for now this is good"; stage 4 started 2026-09-13 at "Stage 3 verdict and stage 4 handover". Round one (ISA run block ISC-1095..1133) was reviewed and Harry answered open questions 1 to 14 and added the command pause idea; round two (ISC-1134..1153) folded those answers in, assessed the idea and asked questions 15 to 22, which Harry answered the same day (all agreed). Every open question carries a decision; the Decision column is the record. Stage 2 starts from its own section once the two stage 1 verdicts are in. Stage 4 step 1 (the balance instrument) is built and scanned, see "Stage 4 step 1: the instrument"; steps 2 and 6 wait on Harry (the transit rule, the win-rate band).
+Status: APPROVED 2026-09-12; stage 1 BUILT the same day and shipped as v2.0.0-alpha.1 (ISA run block ISC-1166..1324; the "Stage 1 as built" subsection records what changed from the kickoff and the balance evidence the build produced); stage 2 BUILT the same day and shipped as v2.0.0-alpha.2 (ISA run block ISC-1341..1470; "Stage 2 as built" records its deviations and the tuning numbers); stage 3 BUILT 2026-09-13 and shipped as v2.0.0-alpha.3 (ISA run block ISC-1504..1582; "Stage 3 as built" records what changed from the sketches); Harry's verdict on alpha.3: "It's not bad. We're going to have to make it easier for the marines but for now this is good"; stage 4 started 2026-09-13 at "Stage 3 verdict and stage 4 handover". Round one (ISA run block ISC-1095..1133) was reviewed and Harry answered open questions 1 to 14 and added the command pause idea; round two (ISC-1134..1153) folded those answers in, assessed the idea and asked questions 15 to 22, which Harry answered the same day (all agreed). Every open question carries a decision; the Decision column is the record. Stage 2 starts from its own section once the two stage 1 verdicts are in. Stage 4 step 1 (the balance instrument) is built and scanned, see "Stage 4 step 1: the instrument"; steps 2 and 6 wait on Harry (the transit rule, the win-rate band). Step 2 (the transit rules, Harry's three decisions) built and re-scanned 2026-09-13, see "Stage 4 step 2: the transit rules": space_hulk_1 under squad orders 2 to 10 wins in 60; on /latest/.
 
 ## Summary
 
@@ -651,4 +651,42 @@ All nine missions under `squads`, ten seeds each: space_hulk_6 (defend) 10 of 10
 - A rough win-rate band per mission for the sweep (build step 6): "easier" is not a number, and the table above is the bot's floor, not a target.
 
 Reproduce: `bun packages/engine/scripts/scan.ts --missions space_hulk_1,space_hulk_2 --seeds 60 --policy both` from the repo root; the raw output of the run above is committed at docs/scans/2026-09-13-stage4-step1.txt.
+
+#### Harry’s Decisions
+
+- overwatch kept while moving in formation: agreed ✅
+- posting in stages, the nearest post first and the rest once it is covered; the order held until every post is reached. Agreed ✅ but if player selects a marine and issues a new order or takes over manual control, all previous orders are dropped
+- give the advance that rule (every follower on overwatch while a threat is within contact range, not only the leader): Agreed ✅
+
+## Stage 4 step 2: the transit rules (2026-09-13)
+
+Built on Harry's three decisions above, specs in transit.spec (15 cases), squad.spec and squad_autopilot.spec; the same sixty seeds re-scanned in one run, raw output in docs/scans/2026-09-13-stage4-step2.txt.
+
+### As built
+
+- **Overwatch kept while moving in formation.** A squad task moves a marine in formation: the executor sets a piece flag around every action of it (step, turn, door, and the transit turn the marine AI issues before the executor), and a bolter's action hook keeps his overwatch while the flag is set. Reaction fire is unchanged: free, cooldown-gated, arc and line as ever, so a walking column fires at what crosses its front and not at what is behind it. Off overwatch, from a shot he took or because he never had it, a bolter under a task arms it before walking on when he has the 2 AP (the default list's rule 10 cannot do it for him behind a live task). A player's order still takes him off overwatch to act; a direct-control key clears it as before.
+- **Posting in stages, the order held until every post is reached.** The defend plan names a first post, the one with the shortest walk for its member; in stage 1 he walks while every other member holds his own square on overwatch facing the nearest way in, and once the first post is held the rest walk to theirs. Members who must move anyway walk in stage 1 too: anyone standing outside the area (holding in the open is exposure, not a post), on a mover's post (a chain), or in the first walker's path. The order counts as reached when every post is held (`postsReached`), which is what the autopilot's issuer now waits for before the next advance. One refinement the instrument forced: staging gates only under contact (a threat in sight within contact range). With nothing in sight everyone walks at once, since the walk itself is armed and the wait spent the first wave's AP: unconditional staging dropped the defend mission from ten wins in ten to two in ten on the ten-seed rows, contact-gated staging brings it back to ten. A second refinement from the same traces: the plan must be one a column can execute. In a one-wide corridor the set cover handed five marines a rotation of their own five squares, which cannot turn; a cycle in "whose square do I want" without slack (no member of it with a free square beside him inside the area) is broken by dropping the post of its longest walker, and a post on the square of a member who stays is dropped too; a member without a post holds his square.
+- **The rider.** A marine the player takes, by an individual order or by a direct-control key, drops his squad task at once and is the player's until his pin lapses: `isPinned` now covers a live player order as well as the wheel, and the planners leave a pinned member out entirely (no post, his square not one, no place in the column, never the opener). A squad order that takes effect still clears earlier player orders of members not under the player's hand.
+- **The column covers on contact.** A threat in sight within contact range holds the whole column: every member stands on his square on overwatch, the ones who see the threat facing it, for the hold time after it last closed in. Closing in is the threat's own step toward the squad (its square is remembered), never the column's own step toward a parked blip, which the advisor flagged as a stop-go source.
+
+### The numbers (60 seeds, cycle cap 60, shipped tuning, 2026-09-13)
+
+| Mission | Policy | Step 1 wins of 60 | Step 2 wins of 60 | Step 2 rate, 95% interval | Marines alive at the end (step 1 to step 2) | Step 2 winning seeds |
+|---|---|---|---|---|---|---|
+| space_hulk_1 | orders | 2 | 2 | 3.3% [0.9, 11.4] | 2.83 to 2.83 | 26, 27 |
+| space_hulk_1 | squads | 2 | 10 | 16.7% [9.3, 28.0] | 2.17 to 3.08 | 2, 4, 12, 13, 18, 27, 43, 51, 53, 59 |
+| space_hulk_2 | orders | 3 | 3 | 5.0% [1.7, 13.7] | 0.23 to 0.23 | 29, 36, 58 |
+| space_hulk_2 | squads | 0 | 0 | 0.0% [0.0, 6.0] | 0.00 to 0.00 | none |
+
+All nine missions under `squads`, ten seeds each (liveness rows; zero of ten still allows up to 28%): space_hulk_4 8 of 10 (was 1), space_hulk_6 10 of 10, space_hulk_5 1 of 10 (was 0), space_hulk_1 2 of 10, every other mission 0 of 10; every game resolves, every row replays. The individual-orders rows are unchanged to the seed, as they must be: the default autopilot issues no squad order and the transit rules live in the squad task path.
+
+### The reading
+
+1. The transit hypothesis held, directionally. On space_hulk_1 the squad-orders bot went from 2 wins in 60 to 10 in 60 under the transit rules with nothing else changed. The seeds are the same sixty, so the paired split is the honest measure: 10 seeds flipped from loss to win and 2 (24 and 31) from win to loss (McNemar on 10 against 2 gives p about 0.02); against individual orders on the same seeds, 9 seeds are won by squads only and 1 (26) by orders only, with 27 won by both (p about 0.01). The intervals still touch (9.3 to 28.0 against 0.9 to 11.4), so the size of the gain is not pinned down beyond "about ten points"; the mean marines standing (2.17 to 3.08) is a mean without a spread and is not evidence on its own. No mission got worse on the ten-seed rows.
+2. space_hulk_2 is untouched by transit: the squad still marches to one entry post and loses 60 of 60. That was the second hypothesis and it stands: a blockade wants marines split across entries, a mission order (build step 4).
+3. Ten-seed rows moved where the rules bite: the flame-objectives mission from 1 to 8 of 10 (a squad that holds armed and burns from the threshold), the escape mission from 0 to 1. Not balance evidence, but the direction is the same everywhere the squad walks somewhere.
+4. Nothing was tuned. regen.marine stays 3; no TUNING value changed. The two refinements above (staging under contact only, the executable plan) are implementation the instrument forced, not changes to the decisions' intent; they are recorded here for Harry to overrule.
+
+Ships on /latest/ (a user-facing rules change on the prerelease line) with space_hulk_2's zero named as the known gap (a squad marches to one entry post; build step 4); v2.0.0-alpha.4 will freeze it with the next steps. Next: build order step 3.
+
 

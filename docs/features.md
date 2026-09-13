@@ -111,10 +111,14 @@ then the next squad on each press); every member gets a ring in the squad
 colour and the roster row lights up. Right-click a square and the squad
 defends that section: each marine walks to a post that covers one of its
 entrances and goes on overwatch there, the assault cannon on the longest
-lane, the flamer tucked inside facing the nearest way in. Shift right-click
+lane, the flamer tucked inside facing the nearest way in; under fire the nearest
+post fills first while the others hold on overwatch, then the rest go. Marines
+moving under a squad order keep their overwatch on the way and fire at what
+crosses their front. A marine you order or steer yourself leaves the squad's
+plan until you let him be for a cycle. Shift right-click
 and the squad advances there in a column, two squares at a hop, the rear
 marine on overwatch facing the way you came until the column pulls away
-from him; a stealer closing in stops the leader until it is dealt with.
+from him; a stealer closing in stops the whole column on overwatch, facing it, until it is dealt with.
 Right-click a closed door and two marines take positions that fire through
 it, a third goes and opens it, the flamer waits a square behind him. Esc
 drops the order (and the squad selection). The target carries a marker in

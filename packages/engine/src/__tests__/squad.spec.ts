@@ -141,19 +141,23 @@ describe('squad orders: the command, the slot and the relay', () => {
     expect((seen[0] as { order: unknown }).order).toBeNull();
   });
 
-  it('a direct command clears the player order only; the task survives and resumes after the lease', () => {
-    const engine = engineOn();
+  it('the player taking a marine drops his squad task at once (an order or the wheel); he rejoins the plan when the pin lapses', () => {
+    const engine = engineOn(inRoom());
     engine.command(engine.marines[0].id, { type: 'squadOrder', order: defend(10, 7) });
     engine.tick();
     const m = engine.marines[3];
-    const task = taskOf(m);
-    engine.command(m.id, { type: 'order', order: { type: 'moveTo', x: 10, y: 2, then: 'hold' } });
+    expect(taskOf(m)).not.toBeNull();
+    engine.command(m.id, { type: 'order', order: { type: 'moveTo', x: 10, y: 6, then: 'hold' } });
+    expect(taskOf(m)).toBeNull(); // the rider: his previous orders are dropped
     engine.command(m.id, { type: 'turn', delta: 1 });
-    expect(m.order).toBeNull();
-    expect(taskOf(m)).toEqual(task);
+    expect(m.order).toBeNull(); // the wheel clears the player order too
+    expect(taskOf(m)).toBeNull();
     const facing = m.facing;
     engine.runTicks(TUNING.leaseTicks - 1);
     expect(m.facing).toBe(facing); // leased: the AI leaves him alone
+    expect(taskOf(m)).toBeNull(); // pinned: the planner leaves him out
+    engine.runTicks(TUNING.cycleTicks);
+    expect(taskOf(m)).not.toBeNull(); // the pin lapsed: back in the plan
   });
 
   it('individual beats squad: a later player order is executed first, the task once it completes', () => {
@@ -183,7 +187,9 @@ describe('squad orders: the command, the slot and the relay', () => {
     // route), never a replacement.
     expect(level1[0]).toEqual(far);
     expect(level1.slice(1).every(o => o === null)).toBe(true);
-    expect(taskOf(m)).not.toBeNull();
+    // While his order lives he is the player's (no task); once the stall
+    // guard dropped it he rejoined the plan.
+    expect(m.order === null ? taskOf(m) !== null : taskOf(m) === null).toBe(true);
   });
 
   it('the relay counts engine ticks, so a paused clock freezes it and an order issued while paused starts on resume', () => {
@@ -356,7 +362,7 @@ describe('defend: entrances, lanes, posts', () => {
     expect(engine.squadState('Calvin')!.order).toEqual(defend(10, 7));
   });
 
-  it('a member steered by the player this cycle keeps his square as his post', () => {
+  it('a member steered by the player this cycle is left out of the plan: no post for him, his square not one', () => {
     const engine = engineOn(inRoom());
     engine.command(engine.marines[0].id, { type: 'squadOrder', order: defend(10, 7) });
     engine.runTicks(30);
@@ -364,8 +370,10 @@ describe('defend: entrances, lanes, posts', () => {
     engine.command(m.id, { type: 'move', dir: 'backward' });
     const here = { ...m.pos };
     engine.runTicks(TUNING.leaseTicks + 1);
-    const t = taskOf(m)!;
-    expect(t.type === 'moveTo' && t.x === here.c && t.y === here.r).toBe(true);
+    expect(taskOf(m)).toBeNull();
+    const posts = engine.squadState('Calvin')!.posts;
+    expect(posts.some(p => p.id === m.id)).toBe(false);
+    expect(posts.some(p => p.c.c === here.c && p.c.r === here.r)).toBe(false);
   });
 });
 
@@ -406,8 +414,10 @@ describe('advance: the column, the leapfrog, the rear guard', () => {
       const task = taskOf(rear);
       if (task?.type === 'moveTo' && at(rear, task.x, task.y)) {
         // Posture task: his own square, facing back (north, away from row 13).
+        // In formation his overwatch survives the walk, so he can be on
+        // overwatch before the turn: count the ticks he guards facing back.
         expect(task.facing).toBe(Dir.N);
-        if (ow(rear)) { expect(rear.facing).toBe(Dir.N); guarded += 1; }
+        if (ow(rear) && rear.facing === Dir.N) guarded += 1;
       }
     }
     expect(guarded).toBeGreaterThan(10);
@@ -434,10 +444,17 @@ describe('advance: the column, the leapfrog, the rear guard', () => {
     // A stealer in sight three squares down the corridor.
     const s = new Genestealer(engine.state.board, { c: 10, r: leader.pos.r + 3 }, Dir.N);
     engine.tick();
-    expect(taskOf(leader)).toBeNull();
+    // The whole column holds: every member on his own square, the leader
+    // facing the threat (transit rule E).
+    for (const m of engine.marines) {
+      const t = taskOf(m)!;
+      expect(t.type === 'moveTo' && at(m, t.x, t.y)).toBe(true);
+    }
+    expect(taskOf(leader)!.type === 'moveTo' && (taskOf(leader) as { facing?: number }).facing).toBe(Dir.S);
     s.die();
     engine.runTicks(TUNING.contactHoldTicks + 1);
-    expect(taskOf(leader)).not.toBeNull();
+    // Marching again: somebody in the column has a task away from his square.
+    expect(engine.marines.some(m => { const t = taskOf(m); return t?.type === 'moveTo' && !at(m, t.x, t.y); })).toBe(true);
   });
 });
 

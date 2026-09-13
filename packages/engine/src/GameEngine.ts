@@ -632,6 +632,9 @@ export class GameEngine {
       m.lastCommandTick = this.tickCount
       if (m.order) setOrder(m, null)
     }
+    // The player taking a marine (an order or the wheel) drops his squad
+    // task at once; he is the player's until the pin lapses (stage 4 rider).
+    if (cmd.type !== 'clearOrder' && cmd.type !== 'squadOrder' && cmd.type !== 'clearSquadOrder' && m.task) setTask(m, null)
     const ok = this.execute(m, cmd)
     PieceEvents.emit('command', { tick: this.tickCount, pieceId: m.id, command: cmd, ok })
     if (ok) {
@@ -718,7 +721,10 @@ export class GameEngine {
         // inherited the defend's flamer post read it as his march and never
         // moved; the stage 4 instrument's finding). The same order again is
         // a re-plan and keeps the posts.
-        if (!st.order || !sameSquadOrder(st.order, cmd.order)) for (const m of members) setTask(m, null)
+        if (!st.order || !sameSquadOrder(st.order, cmd.order)) {
+          for (const m of members) setTask(m, null)
+          st.posts = []; st.stage = 'first'; st.firstPostId = null
+        }
         st.coordinated = hasSergeant(members)
         st.order = cmd.order
         st.issuedTick = this.tickCount

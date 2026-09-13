@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: context-override
-phase: complete
-progress: "1562/1562 (stage 4 step 1 done: the instrument built and scanned, two decisions put to Harry; ISC-1038 dropped; ISC-71 deferred)"
+phase: verify
+progress: "1601/1603 (stage 4 step 2: ISC-1630..1667 and 1670 verified; 1668 the /latest/ deploy and 1669 the commit pending; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-12T21:20:00Z
+updated: 2026-09-13T09:38:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -577,10 +577,73 @@ Housekeeping and close:
 - [x] ISC-1628: commit on main with the trailers, pushed, tree clean; deploy-latest green for the engine change
 - [x] ISC-1629: the transit rule (four options) and the win-rate band are put to Harry in this turn's close with the scan numbers beside them
 
+### Stage 4 step 2: the transit rules (2026-09-13, twenty-seventh run)
+
+Harry's decisions on the step 1 question (recorded by him under "Harry's Decisions" in the plan): overwatch kept while moving in formation; posting in stages, the nearest post first and the rest once it is covered, the order held until every post is reached, and a marine the player orders or steers drops all previous orders; every follower on overwatch while a threat is within contact range. "Let's continue": build, spec, re-scan the same sixty seeds, then on down the build order. E3.
+
+Rule A, overwatch kept in formation:
+
+- [x] ISC-1630: a bolter on overwatch marching under a level 2 task keeps overwatch through steps, turns and door opens (spec: every tick of the walk to his defend post reads overwatch true)
+- [x] ISC-1631: the same march under a level 1 player order drops overwatch on the first action, as before (spec)
+- [x] ISC-1632: a marching overwatcher still reacts: mid-walk his overwatch shot at a stealer in his lane is legal and lands (spec with a pinned dice queue; refined: the trigger is StealerAI's unchanged reaction chain, the flag surviving the march is the new fact)
+- [x] ISC-1633: the mechanism is a piece flag set only around a level 2 executor action (`Piece.inFormation`), read by StormBolterMarine.onActed (grep both)
+- [x] ISC-1634: Anti: a direct move command (manual control) still clears overwatch (spec)
+
+Rule B and C, staged posting and the order held:
+
+- [x] ISC-1635: a defend plan names its first post: the one with the shortest walk for its assigned member (spec on the room fixture)
+- [x] ISC-1636: stage 1, under contact only: the first post's member walks (with anyone outside the area, on a mover's post or in his path); every other member holds his own square facing the nearest entrance (spec); with nothing in sight everyone walks at once (refined: unconditional staging cost space_hulk_6 ten wins in ten down to two on the instrument; spec)
+- [x] ISC-1637: stage 2: once the first post is held (its member there, on overwatch, or the flamer at his post) the rest receive their post tasks the next tick (spec under a parked threat)
+- [x] ISC-1638: the first post's member dying before he arrives re-plans and names a new first post (spec)
+- [x] ISC-1639: `postsReached(engine, squad)` is true only when every non-pinned member stands at his post (spec: false mid-walk, true at the end)
+- [x] ISC-1640: the issuer advances only when the posts are reached and the quiet count has run (spec: with a far post the advance comes after quietTicks)
+- [x] ISC-1641: the same defend order re-issued keeps the stage (no restart of stage 1) (spec)
+- [x] ISC-1642: uncoordinated defend unchanged: no tasks (existing test green)
+
+The rider, a marine the player takes drops out:
+
+- [x] ISC-1643: `isPinned` is true while the member has a live player order, not only within the lease (spec)
+- [x] ISC-1644: a player order to a member clears his squad task at once (spec: task null right after the command)
+- [x] ISC-1645: a direct command to a member clears his squad task at once (spec)
+- [x] ISC-1646: the defend planner leaves a pinned member out: he gets no post and his square is not one (spec replaces the "keeps his square as his post" case; refined ISC-1530 behaviour recorded in Decisions)
+- [x] ISC-1647: the advance column leaves pinned members out (spec: column length = members minus pinned)
+- [x] ISC-1648: when the pin lapses (lease over, order done) the member rejoins at the next re-plan (spec)
+
+Rule E, the column covers on contact:
+
+- [x] ISC-1649: on contact every member, not only the leader, gets a hold task on his own square; the hold re-arms only on the threat's own step closer, never on the column's (refined per the advisor's stop-go case; spec with a parked threat, resume after the hold asserted)
+- [x] ISC-1650: a member with the threat in sight holds facing it; one without keeps his facing (spec)
+- [x] ISC-1651: after the hold the march resumes (existing contact test green)
+- [x] ISC-1652: the rear guard posture test green
+
+Docs and the re-scan:
+
+- [x] ISC-1653: rules-reference.md "Squad orders" states the three rules and the rider (grep "in formation", "stages", "drops")
+- [x] ISC-1654: features.md squad paragraph names overwatch kept in formation and the staged posting (grep)
+- [x] ISC-1655: CLAUDE.md gains a "Transit rules (2.x stage 4 step 2)" invariant (grep)
+- [x] ISC-1656: the plan gains "## Stage 4 step 2: the transit rules (2026-09-13)" with the rules as built, the re-scan table beside the step 1 table and the delta (grep)
+- [x] ISC-1657: the raw scan output committed at docs/scans/2026-09-13-stage4-step2.txt (ls)
+- [x] ISC-1658: CLAUDE.md balance numbers updated to the step 2 scan (grep "step 2")
+- [x] ISC-1659: docs/status.md and the plan Status line name step 2 as done (grep)
+- [x] ISC-1660: engine tsc --noEmit exit 0
+- [x] ISC-1661: engine suite green, counts reported
+- [x] ISC-1662: coverage at or above 98% lines
+- [x] ISC-1663: client e2e green (124 or the new count)
+- [x] ISC-1664: the headless squad boot check (boot-check-squads.mjs) passes on the dev server
+- [x] ISC-1665: Anti: em dashes in the diff's added lines 0 (Harry's own decision block excepted, his text)
+- [x] ISC-1666: Anti: banned words in the added lines 0
+- [x] ISC-1667: Anti: git diff core/CostTables.ts empty
+- [ ] ISC-1668: the change ships on /latest/ with a callout (user-facing rules change, prerelease line): deploy-latest green, manifest sha = HEAD, the URL in the summary
+- [ ] ISC-1669: this run block all [x] with Verification, PROJECTS.md updated, commit pushed, tree clean
+- [x] ISC-1670: Antecedent: the re-scan is read against step 1 with the intervals, and the reading names what changed and what it cannot see (grep the plan section for "interval")
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
+| ISC-1630..1652 | engine | squad.spec, orders.spec, squad_autopilot.spec | green | vitest |
+| ISC-1653..1659 | docs | greps, ls | present | grep |
+| ISC-1660..1670 | repo | tsc, vitest, playwright, node boot check, gh run, curl | green | tools |
 | ISC-1593..1611 | engine | squad_autopilot.spec, suites, tsc | green, counts | vitest, tsc |
 | ISC-1612..1616 | script | bun scripts/scan.ts | rows with intervals | bun |
 | ISC-1617..1624 | docs | greps, git diff | present; 0 violations | grep, git |
@@ -736,6 +799,11 @@ Housekeeping and close:
 
 | Feature | Description | Satisfies | Depends on | Parallel |
 |---|---|---|---|---|
+| formation-overwatch | Piece.inFormation flag, executor, onActed | ISC-1630..1634 | none | no |
+| staged-posting | first post, stages, postsReached, issuer gate | ISC-1635..1642 | none | no |
+| player-takes-over | isPinned with orders, task cleared, planners exclude | ISC-1643..1648 | none | no |
+| column-covers | hold tasks for all on contact | ISC-1649..1652 | formation-overwatch | no |
+| step2-docs-scan | docs, re-scan, /latest/ callout | ISC-1653..1670 | all above | no |
 | squad-issuer | runSquadTurn, squadTarget, autoplay policy, spec | ISC-1593..1611 | none | no |
 | scan-script | scripts/scan.ts with Wilson intervals and det column (Forge) | ISC-1612..1616 | squad-issuer for the squads rows | yes |
 | stage4-docs | plan section, CLAUDE.md, status, architecture, rotation, PROJECTS | ISC-1617..1629 | scan-script | no |
@@ -841,6 +909,8 @@ Housekeeping and close:
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-13 (stage 4 step 2, OBSERVE to VERIFY): Harry's three decisions built as rules, none as numbers. FirstPrinciples put the clearing point on the piece (one flag around the action, StormBolterMarine.onActed reads it), read "the rest once it is covered" as two stages and "all previous orders dropped" as the marine's, not the squad's. SystemsThinking found the free-shot disarm and the cold start (a bolter under a task re-arms before stepping), the corridor cork, the instant undo (isPinned must cover a live order and the exclusion must apply to task writing only, so a steered sergeant still coordinates), and the two-master facing (the hold task faces the member's own nearest threat, the same the reaction turns to); the advisor before BUILD asked that a holder in the walker's path walk too and that "closing in" be the threat's own movement. The instrument then forced two deviations from the literal decisions, both recorded in the plan for Harry to overrule: staging gates only under contact (unconditional staging dropped space_hulk_6 from 10 of 10 to 2 of 10 because the stage 1 wait spent the first wave's AP; the isolating experiment: rule A off with staging on gave 2 of 10, staging off with rule A on gave 10 of 10), and the plan drops what a column cannot execute (a corridor column was handed a rotation of its own five squares; occupancy cycles without slack are broken, posts on stayers' squares dropped; slack counted inside the area only, or the corridor's door square counted). A third finding: the transit turn in the marine AI's order branch sat outside the formation flag and cost a re-arm per turn; it is inside now. The advisor before complete: report the paired split (10 seeds flipped to wins, 2 to losses, McNemar p about 0.02; against orders 9 to 1, p about 0.01), no claim from the marines mean without a spread, name no mission got worse, put both deviations to Harry as provisional, pin them with specs (done: the quiet case, the corridor and room plans, the hold that lapses), an e2e for the pin lapsing (done, with the stealers quieted so a dead flamer does not end the mission mid-test), and name space_hulk_2's zero in the callout (done). Shipped on /latest/ per the shipping policy since Harry said "let's continue"; the advisor's "not before he answers" is met by the provisional marking, not by holding the deploy. Delegation floor: single author, waived (every change touches squad.ts internals).
 
 - 2026-09-13 (stage 4 step 1, OBSERVE to VERIFY): the instrument first, per the handover. FirstPrinciples classed "clear the door in front of a stalled column" as an assumption (the march opens doors on contact, a column never stalls at one) and rebuilt the trigger as "a closed door on the leader's next step"; the SystemsThinking pass mapped four loops between a per-tick issuer and the stage 3 planners (the relay treadmill, defend-on-contact as Fixes That Fail, the clear churn, the flame pin freeze) and the issuer is stateful, one order per state change, with no contact reaction and the stall watchdog gated on quiet; the advisor before BUILD asked for the arrival defend on the target's section, a stall watchdog and stalled seeds reported apart from losses (the first two built, the third covered by the O column and the det check). The quiet traces then found four stage 3 planner faults, each fixed as a rule, none as a number: the corner-pocket column deadlock (one re-sort when the leader's waypoint is held by his own follower), the flamer demoted behind a one-wide corridor on a flame mission (he keeps the head while his job is pending), clear covers posted on the far side of a corridor loop (COVER_RADIUS 3), and an advance over a live defend inheriting the flamer's post as his march (a different squad order clears tasks; the same order is a re-plan). The threshold target and the hold-for-the-shot rule came from the same traces (the squad walked into the room it meant to burn). A kill-quota experiment (defend in place all game) also lost 60 of 60 and was not adopted; the reading names the one-post plan as the issuer's limit and the blockade as a mission order. Forge built scripts/scan.ts by hand: the codex CLI is not on PATH (flag to Harry). Delegation floor: one author for the issuer (coupled to squad.ts internals), Forge on the separable script; the second delegation waived. No release: engine-only, no user-facing change; deploy-latest carries the engine to /latest/ unchanged in play. The advisor before complete: tests for each planner fix (three dedicated, the deadlock covered by the quiet whole-game win; a task-clearing case added to squad.spec), the baseline re-scanned in the same run as the squads rows (stated in the plan), the raw output committed under docs/scans/, the seed lists labelled as seeds not intervals, and the reading softened: no detectable difference at sixty seeds, 0 of 60 against 3 of 60 not significant, the transit and one-post explanations labelled hypotheses with option 5 as the test, the ten-seed rows labelled liveness evidence.
 
@@ -1200,3 +1270,16 @@ The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/
 - ISC-1627: grep PROJECTS.md "STAGE 4 OPENED 2026-09-13, STEP 1 DONE"
 - ISC-1628: commit c31d701 on main with the trailers, pushed (HEAD == origin/main, tree clean); deploy-latest run 34719570072 success (build-publish, deploy); /latest/manifest.json version latest-c31d701
 - ISC-1629: the transit rule (four handover options plus the fifth from the data) and the win-rate band per mission are in this turn's closing summary with the scan table beside them; the ISA close commit follows this block
+
+### Stage 4 step 2: the transit rules (2026-09-13)
+
+- ISC-1630..1634: transit.spec rule A cases (four moves in formation all on overwatch; the level 1 walk drops it on the first tick; the mid-march overwatch shot lands with a 6s queue; grep Piece.ts "inFormation", StormBolterMarine.ts "if (!this.inFormation) this.clearOverwatch()"; the manual turn clears it and the task re-arms him)
+- ISC-1635..1642: transit.spec staging cases under a parked threat (first post named, stage 1 movers only, stage 2 opens at the first post held, the dead walker re-plans, postsReached false then true, the issuer waits on posts then quiet, the same order keeps the stage, the corridor plan holds); the quiet case opens at once; squad.spec uncoordinated defend green
+- ISC-1643..1648: transit.spec rider cases (isPinned with an order, isSteered with the wheel; an order and a direct command drop the task; the column drops to 4 of 5); squad.spec rewritten pin cases (no post, his square not one; rejoin after the cycle); the e2e rider case with the lapse (5 of 5 in tests/squad.spec.ts)
+- ISC-1649..1652: transit.spec rule E cases (every member holds his square, the leader facing S; the parked threat does not re-arm, its own step does, the march resumes after the hold); squad.spec contact and rear guard cases green
+- ISC-1653..1655: grep rules-reference.md "Moving in formation", "Posting in stages", "drops all his previous orders"; features.md "keep their overwatch on the way"; CLAUDE.md "Transit rules (2.x stage 4 step 2"
+- ISC-1656..1659: grep realtime-plan.md "## Stage 4 step 2: the transit rules (2026-09-13)" with the table and "### The reading"; docs/scans/2026-09-13-stage4-step2.txt 24 lines; CLAUDE.md "Step 2 (the transit rules)"; status.md "Step 2 (2026-09-13) built"; the plan Status line names step 2
+- ISC-1660..1663: tsc --noEmit no output; engine suite 47 files, 520 tests green (transit.spec 16); coverage 98.09% lines; e2e 124 passed, then tests/squad.spec.ts 5 of 5 after the rider case gained the lapse
+- ISC-1664: node boot-check-squads.mjs: "errors": [], no "ok": false
+- ISC-1665..1667: em dashes 0 (Harry's own decision block excepted), banned words 0, git diff core/CostTables.ts empty, no packages/client/src path in git status
+- ISC-1670: the reading names the intervals, the paired split and the McNemar p values, the mean without a spread, and what sixty seeds cannot see

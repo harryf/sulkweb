@@ -19,7 +19,7 @@ export { AP_PER_TURN, MOVE_COST, TURN_COST, TUNING, applyTuning, parseTuning } f
 export type { Tuning, TuningPatch } from './core/CostTables.js';
 export type { MarineCommand, MoveDir, MarineOrder, SquadOrder } from './core/Commands.js';
 export { orderStep, orderLabel, orderIsValid, setOrder, setTask, activeOrder, squadLabel } from './ai/orders.js';
-export { squadTick, squadOf, squadMembers, hasSergeant, isPinned, planDefend, planClear, defendArea, entrancesOf, laneOf, entrancesCovered, columnOrder, battleOrder } from './ai/squad.js';
+export { squadTick, squadOf, squadMembers, hasSergeant, isPinned, isSteered, postsReached, flameJobPending, planDefend, planClear, defendArea, entrancesOf, laneOf, entrancesCovered, columnOrder, battleOrder } from './ai/squad.js';
 export type { SquadState, DefendPost, ClearPlan } from './ai/squad.js';
 
 export { Door } from './rules/Door.js';

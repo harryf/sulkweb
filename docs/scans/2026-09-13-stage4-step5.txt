@@ -1,0 +1,39 @@
+# Stage 4 step 5 scan, 2026-09-13, the metered command pause: command points and their d6 removed, the bot never pauses, nothing tuned
+# The removal shifts every seed's dice stream by one draw per cycle, so the rows are compared by rate and interval against step 4, not seed by seed.
+
+# Stage (a): the removal with a phantom die drawn where the d6 was (construction and every boundary). Byte-identical to step 4: the removal itself changed nothing.
+
+$ bun packages/engine/scripts/scan.ts --missions space_hulk_1,space_hulk_2 --seeds 60 --policy both --cycles 60
+scan 2026-09-13  seeds 1-60 (60)  cycles 60  tuning (default)  cycleTicks 40  regen.marine 3
+mission        policy     N    W    L   D   O        rate [lo, hi] %   cycle  marines  det  winners
+space_hulk_1   orders    60    2   58   0   0        3.3 [0.9, 11.4]     2.0     2.83  yes  26,27
+space_hulk_1   squads    60   10   50   0   0       16.7 [9.3, 28.0]     3.5     3.08  yes  2,4,12,13,18,27,43,51,53,59
+space_hulk_2   orders    60    3   57   0   0        5.0 [1.7, 13.7]     5.2     0.23  yes  29,36,58
+space_hulk_2   squads    60    7   53   0   0       11.7 [5.8, 22.2]     4.9     0.58  yes  10,12,20,36,44,45,53
+delta space_hulk_1: squads 16.7 minus orders 3.3 = +13.3 points
+delta space_hulk_2: squads 11.7 minus orders 5.0 = +6.7 points
+
+# Stage (b): the shipped build, no phantom die (the step's numbers).
+
+$ bun packages/engine/scripts/scan.ts --missions space_hulk_1,space_hulk_2 --seeds 60 --policy both --cycles 60
+scan 2026-09-13  seeds 1-60 (60)  cycles 60  tuning (default)  cycleTicks 40  regen.marine 3
+mission        policy     N    W    L   D   O        rate [lo, hi] %   cycle  marines  det  winners
+space_hulk_1   orders    60    3   57   0   0        5.0 [1.7, 13.7]     2.0     2.85  yes  5,13,43
+space_hulk_1   squads    60   11   49   0   0      18.3 [10.6, 29.9]     3.3     3.60  yes  10,21,27,28,29,32,43,51,53,54,58
+space_hulk_2   orders    60    3   57   0   0        5.0 [1.7, 13.7]     5.4     0.22  yes  12,36,53
+space_hulk_2   squads    60    9   51   0   0       15.0 [8.1, 26.1]     5.0     0.72  yes  7,10,12,13,20,23,36,44,53
+delta space_hulk_1: squads 18.3 minus orders 5.0 = +13.3 points
+delta space_hulk_2: squads 15.0 minus orders 5.0 = +10.0 points
+
+$ bun packages/engine/scripts/scan.ts --missions space_hulk_1,space_hulk_2,space_hulk_3,space_hulk_4,space_hulk_5,space_hulk_6,beta_1,beta_2,debug_1 --seeds 10 --policy squads --cycles 60
+scan 2026-09-13  seeds 1-10 (10)  cycles 60  tuning (default)  cycleTicks 40  regen.marine 3
+mission        policy     N    W    L   D   O        rate [lo, hi] %   cycle  marines  det  winners
+space_hulk_1   squads    10    1    9   0   0       10.0 [1.8, 40.4]     3.7     3.70  yes  10
+space_hulk_2   squads    10    2    8   0   0       20.0 [5.7, 51.0]     4.9     0.90  yes  7,10
+space_hulk_3   squads    10    0   10   0   0        0.0 [0.0, 27.8]     5.8     0.00  yes  -
+space_hulk_4   squads    10    7    3   0   0      70.0 [39.7, 89.2]     3.9     6.60  yes  2,4,5,6,7,8,10
+space_hulk_5   squads    10    2    8   0   0       20.0 [5.7, 51.0]     5.2     2.50  yes  4,5
+space_hulk_6   squads    10   10    0   0   0    100.0 [72.2, 100.0]    16.0     6.80  yes  1,2,3,4,5,6,7,8,9,10
+beta_1         squads    10    0   10   0   0        0.0 [0.0, 27.8]     5.6     0.00  yes  -
+beta_2         squads    10    0   10   0   0        0.0 [0.0, 27.8]     5.4     3.40  yes  -
+debug_1        squads    10    0   10   0   0        0.0 [0.0, 27.8]     3.0     0.00  yes  -

@@ -93,9 +93,9 @@ disappears.</p>`,
     html: `
 <p>There are no turns. The game runs on a fixed clock: a <strong>tick</strong> every
 quarter second, forty ticks to a <strong>cycle</strong> (ten seconds). Everything the
-old game did once a turn (reinforcements, the command-point roll, the counters and
-limits of the special missions) now happens once a cycle, each at its own moment
-inside it. The HUD shows the cycle and the seconds into it.</p>
+old game did once a turn (reinforcements, the counters and limits of the special
+missions) now happens once a cycle, each at its own moment inside it. The HUD
+shows the cycle and the seconds into it.</p>
 <ul>
 <li><strong>The swarm never stops.</strong> Every genestealer and blip with action points
 acts every tick. Marines on overwatch fire reaction shots at every move they see,
@@ -107,20 +107,27 @@ wanders toward the objective: that is your job. Steer one and his own judgement
 steps aside for two seconds.</li>
 <li><strong>Esc pauses.</strong> The clock stops, the board stays readable, and no key
 reaches the game until you resume. A hidden browser tab pauses on its own.</li>
+<li><strong>Space is the command pause.</strong> The clock stops while you give orders,
+and the command time on the HUD runs down as you think.</li>
 </ul>`,
   },
   {
-    id: 'ap-cp',
-    title: 'Action points and command points',
+    id: 'ap-pause',
+    title: 'Action points and command time',
     html: `
 <p>Every marine holds up to <strong>4 action points (AP)</strong> and gets one back
 <strong>every second</strong>; genestealers and blips hold <strong>6</strong> and get one
 back every half second. A full pool banks nothing: spend, and the next point takes
 a whole second to arrive. Nothing is ever lost at a boundary.</p>
-<p>Every cycle also rolls a <strong>d6 of command points (CP)</strong>, shown on the
-roster. 1 CP buys <strong>+1 AP for any living marine</strong>, as often as the pool
-lasts. The unspent remainder is discarded when the next pool is rolled: spend it or
-lose it.</p>`,
+<p>Thinking has a price of its own: <strong>command time</strong>, a pool of seconds
+shown as a bar on the HUD. <strong>Space</strong> stops the clock and the pool runs
+down while it is held. The cap is <strong>10 seconds plus 10 per living
+sergeant</strong>, and it refills at <strong>1 second per cycle plus 1 per
+sergeant</strong>, so a squad with its sergeant thinks for 20 seconds and takes 100
+seconds of play to fill again. Orders given during a pause still take their normal
+time to reach the squad: the pause buys you the thinking, not the relay. The pool is
+one pool for the whole force while the relay is per squad. Below one second the
+pause will not open at all.</p>`,
   },
   {
     id: 'moving',

@@ -14,7 +14,7 @@ import { waitForGame } from './harness';
 test('space_hulk_1 is winnable by orders: the pinned seed reaches MISSION COMPLETE', async ({ page }) => {
   test.setTimeout(120000);
   // ?seed pins the WHOLE game (construction rolls included); ?tick=0 hands the clock to autoplay.
-  const errors = await waitForGame(page, 'mission=space_hulk_1&seed=26');
+  const errors = await waitForGame(page, 'mission=space_hulk_1&seed=43');
 
   const result = await page.evaluate(() => {
     const { engine, autoplay, PieceEvents } = (window as any).sulk;

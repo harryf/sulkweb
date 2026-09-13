@@ -29,8 +29,8 @@ describe('Emitter taps (the logger capture hook)', () => {
     PieceEvents.tap(tap);
     try {
       const stream = PieceEvents.capture(() => {
-        PieceEvents.emit('cpChanged', { cp: 3 });
-        PieceEvents.emit('cpChanged', { cp: 2 });
+        PieceEvents.emit('pausePoolChanged', { pool: 3000, cap: 20000 });
+        PieceEvents.emit('pausePoolChanged', { pool: 2000, cap: 20000 });
       });
       expect(stream).toHaveLength(2); // still buffered for the animation replay
       expect(seen).toHaveLength(2); // tapped at real emit time despite suppression
@@ -48,16 +48,16 @@ describe('Emitter taps (the logger capture hook)', () => {
     const handler = () => seen.push('handler');
     PieceEvents.tap(bad);
     PieceEvents.tap(good);
-    PieceEvents.on('cpChanged', handler);
+    PieceEvents.on('pausePoolChanged', handler);
     try {
-      PieceEvents.emit('cpChanged', { cp: 2 });
+      PieceEvents.emit('pausePoolChanged', { pool: 2000, cap: 20000 });
       expect(seen).toEqual(['good', 'handler']);
-      const stream = PieceEvents.capture(() => PieceEvents.emit('cpChanged', { cp: 1 }));
+      const stream = PieceEvents.capture(() => PieceEvents.emit('pausePoolChanged', { pool: 1000, cap: 20000 }));
       expect(stream).toHaveLength(1); // buffer intact despite the throwing tap
     } finally {
       PieceEvents.untap(bad);
       PieceEvents.untap(good);
-      PieceEvents.off('cpChanged', handler);
+      PieceEvents.off('pausePoolChanged', handler);
     }
   });
 
@@ -65,10 +65,10 @@ describe('Emitter taps (the logger capture hook)', () => {
     const seen: CapturedEvent<PieceEventsType>[] = [];
     const tap = (ev: CapturedEvent<PieceEventsType>) => seen.push(ev);
     PieceEvents.tap(tap);
-    PieceEvents.emit('cpChanged', { cp: 1 });
+    PieceEvents.emit('pausePoolChanged', { pool: 1000, cap: 20000 });
     expect(seen).toHaveLength(1);
     PieceEvents.untap(tap);
-    PieceEvents.emit('cpChanged', { cp: 0 });
+    PieceEvents.emit('pausePoolChanged', { pool: 0, cap: 20000 });
     expect(seen).toHaveLength(1);
   });
 });
@@ -94,8 +94,8 @@ describe('GameLogger', () => {
       PieceEvents.emit('selected', { pieceId: 'p_1' });
       PieceEvents.emit('apChanged', { pieceId: 'p_1', apRemaining: 3, apInitial: 4 });
       PieceEvents.emit('doorToggled', { x: 1, y: 1, facing: 0, open: true });
-      PieceEvents.emit('cpChanged', { cp: 4 });
-      expect(log.events.map(e => e.type)).toEqual(['doorToggled', 'cpChanged']);
+      PieceEvents.emit('pausePoolChanged', { pool: 4000, cap: 20000 });
+      expect(log.events.map(e => e.type)).toEqual(['doorToggled', 'pausePoolChanged']);
     } finally {
       log.detach();
     }
@@ -144,7 +144,7 @@ describe('GameLogger', () => {
   it('serialize embeds the player notes and round-trips through JSON.parse', () => {
     const log = new GameLogger(stubEngine(), { mission: 'debug_1' });
     try {
-      PieceEvents.emit('cpChanged', { cp: 5 });
+      PieceEvents.emit('pausePoolChanged', { pool: 5000, cap: 20000 });
       log.notes = 'Stealers camped the west door; never flanked.';
       const parsed = JSON.parse(log.serialize());
       expect(parsed.notes).toBe('Stealers camped the west door; never flanked.');
@@ -190,9 +190,9 @@ describe('GameLogger', () => {
 
   it('detach stops recording', () => {
     const log = new GameLogger(stubEngine(), { mission: 'debug_1' });
-    PieceEvents.emit('cpChanged', { cp: 3 });
+    PieceEvents.emit('pausePoolChanged', { pool: 3000, cap: 20000 });
     log.detach();
-    PieceEvents.emit('cpChanged', { cp: 2 });
+    PieceEvents.emit('pausePoolChanged', { pool: 2000, cap: 20000 });
     expect(log.events).toHaveLength(1);
   });
 

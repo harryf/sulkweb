@@ -186,7 +186,7 @@ test('every page links the marine favicon', async ({ page }) => {
 
 test('mission won: end dialog offers retry and mission select', async ({ page }) => {
   test.setTimeout(120000);
-  await page.goto('/?deploy=0&tick=0&mission=space_hulk_1&seed=26'); // the pinned stage 2 win seed (orders alone)
+  await page.goto('/?deploy=0&tick=0&mission=space_hulk_1&seed=43'); // the pinned stage 2 win seed (orders alone)
   await waitForScene(page);
 
   await page.evaluate(() => {

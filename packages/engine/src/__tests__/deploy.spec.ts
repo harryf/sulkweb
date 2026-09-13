@@ -149,7 +149,7 @@ describe('GameEngine deployment phase (ISC-798..811)', () => {
     e.deployMarine(a.id, 0, 1);
     expect(a.tryMove(1, 0)).toBe(false);
     expect(a.tryTurn(1)).toBe(false);
-    expect(e.spendCP(a)).toBe(false);
+    expect(e.command(a.id, { type: 'pauseSpent', ms: 1000 })).toBe(false);
     // The lock covers the quieter verbs too: overwatch, unjam, doors
     // (reviewer finding — these lacked the locked check the movers had).
     expect((a as any).overwatchOn()).toBe(false);
@@ -293,7 +293,7 @@ describe('GameEngine deployment phase (ISC-798..811)', () => {
     deployed.turnDeployed(a.id, 1);
     deployed.undeployMarine(a.id);
     deployed.finishDeployment();
-    expect(deployed.cp).toBe(control.cp);
+    expect(deployed.pausePool).toBe(control.pausePool);
     // Blip values drawn at construction match square for square.
     const blipVals = (e: GameEngine) => e.stealerSide.map(p => `${p.pos.c},${p.pos.r}:${(p as any).value ?? '?'}`).sort();
     expect(blipVals(deployed)).toEqual(blipVals(control));

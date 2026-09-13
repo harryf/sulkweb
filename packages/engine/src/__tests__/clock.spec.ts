@@ -59,14 +59,15 @@ describe('the engine clock (2.x stage 1)', () => {
     expect(seen).toEqual([{ tick: 1, cycle: 1 }, { tick: 2, cycle: 1 }, { tick: 3, cycle: 1 }]);
   });
 
-  it('the cycle boundary every TUNING.cycleTicks ticks advances the cycle and rolls CP', () => {
+  it('the cycle boundary every TUNING.cycleTicks ticks advances the cycle and draws no dice (command points are gone)', () => {
     const engine = new GameEngine(corridor(6));
-    engine.state.board.dice = new RollQueue([5, ...missStream()]); // first draw after construction: the boundary CP roll
+    const dice = new RollQueue(missStream());
+    engine.state.board.dice = dice;
     engine.runTicks(TUNING.cycleTicks - 1);
     expect(engine.cycle).toBe(1);
     engine.tick();
     expect(engine.cycle).toBe(2);
-    expect(engine.cp).toBe(5);
+    expect(dice.remaining).toBe(400); // a quiet corridor: the boundary itself rolls nothing
   });
 
   it('runTicks(TUNING.cycleTicks) is exactly one cycle: the boundary fires on the last tick', () => {

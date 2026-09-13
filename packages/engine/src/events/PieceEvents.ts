@@ -27,7 +27,8 @@ export type PieceEventsType = {
   blipConverted: { blipId: string; x: number; y: number; stealerIds: string[]; lost: number }
   pieceAdded: { pieceId: string; kind: string; x: number; y: number; facing: number }
   phaseChanged: { phase: string; turn: number }
-  cpChanged: { cp: number }
+  /** The command pause pool was spent (the per-tick recharge is silent). */
+  pausePoolChanged: { pool: number; cap: number }
   gameOver: { result: string }
   /** Bolter jam state changed (jam on overwatch doubles; unjam action). */
   jammed: { pieceId: string; jammed: boolean }

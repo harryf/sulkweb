@@ -297,13 +297,16 @@ describe('marine default AI: the decision list, first match wins', () => {
   });
 
   it('the autopilot issues orders and drives a whole game to a result', () => {
-    // space_hulk_1 seed 26 (stage 2 pin, 2026-09-12): under orders with the
-    // default AI defending, the squad delivers the flamer and wins (2 of 60
-    // seeds do). debug_1 is no longer the win fixture: at the shipped
+    // space_hulk_1 seed 43 (re-pinned 26 -> 43 on 2026-09-13, stage 4 step 5: the
+    // command point d6 is gone and every seed's dice stream shifted; under
+    // orders seeds 5, 13 and 43 win; 43 is the one that issues more than four
+    // orders on the way). Earlier: seed 26 (stage 2
+    // pin, 2026-09-12): under orders with the default AI defending, the squad
+    // delivers the flamer and wins (2 of 60 seeds did). debug_1 is no longer the win fixture: at the shipped
     // regeneration the lone marine loses the exit race on 60 of 60 seeds,
     // and at regen.marine 2 he wins all 30 without a shot fired (a walk,
     // not a game); see ISA Decisions.
-    const engine = new GameEngine(loadMission('space_hulk_1'), [], new SeededRng(26));
+    const engine = new GameEngine(loadMission('space_hulk_1'), [], new SeededRng(43));
     const types: string[] = [];
     const h = ({ command }: { command: { type: string } }) => { types.push(command.type); };
     PieceEvents.on('command', h);

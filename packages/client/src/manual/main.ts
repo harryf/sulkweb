@@ -59,7 +59,7 @@ root.appendChild(toc);
 
 // ---- Rule sections, with the squad's testimony interleaved ----
 /** Section ids after which a quote lands (spread through the document). */
-const QUOTE_AFTER = ['what-is-this', 'ap-cp', 'shooting', 'flamer', 'doors', 'flames'];
+const QUOTE_AFTER = ['what-is-this', 'ap-pause', 'shooting', 'flamer', 'doors', 'flames'];
 let quoteIdx = 0;
 
 for (const s of SECTIONS) {

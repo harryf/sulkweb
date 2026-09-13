@@ -67,6 +67,11 @@ export interface Tuning {
   clearTimeoutTicks: number;
   /** An order or task that makes no progress on a full pool for this many ticks is dropped. */
   orderStallTicks: number;
+  /** The command pause pool (stage 4 step 5), in seconds: the cap is base plus
+   *  perSergeant per living sergeant; the recharge per cycle is rechargeBase
+   *  plus rechargePerSergeant per living sergeant. The pool itself is engine
+   *  state in whole milliseconds (GameEngine.pausePool). */
+  pausePool: { base: number; perSergeant: number; rechargeBase: number; rechargePerSergeant: number };
 }
 
 export const TUNING: Tuning = {
@@ -92,6 +97,10 @@ export const TUNING: Tuning = {
   laneDepth: 8,
   clearTimeoutTicks: 20,
   orderStallTicks: 10,
+  // Stage 4 step 5 (2026-09-13): the plan's numbers (open question 16), to be
+  // reviewed on feel: a squad with one sergeant thinks for 20 s and refills
+  // in 100 s of play; with none 10 s and 400 s.
+  pausePool: { base: 10, perSergeant: 10, rechargeBase: 1, rechargePerSergeant: 1 },
 };
 
 /** Nested partial of Tuning: every leaf optional. */

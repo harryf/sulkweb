@@ -65,8 +65,15 @@ export class GameEngine {
   /** 1.x name for the cycle; the log corpus and the HUD read it. */
   get turnNumber(): number { return this.cycle }
   phase: PhaseName = 'Live'
-  /** Command points: 1d6 at construction and at every cycle boundary. */
-  cp = 0
+  /** The command pause pool (stage 4 step 5) in whole milliseconds: the
+   *  seconds the player may hold the clock while giving orders. Starts at
+   *  the cap, recharges every tick, is clamped to the cap (which falls with
+   *  each sergeant's death) and is spent by `pauseSpent`. */
+  pausePool = 0
+  /** Recharge remainder in ms times TUNING.cycleTicks: the per-cycle amount
+   *  is added here every tick and whole milliseconds move to the pool, so
+   *  the recharge is exact for any cycle length and the pool stays an integer. */
+  private pauseAcc = 0
   /** Reinforcement blips already placed (counts against mission.totalBlips). */
   private blipsSpawned = 0
   private pendingSpawns: PendingSpawn[] = []
@@ -107,8 +114,8 @@ export class GameEngine {
     this.mission = mission
     const board = new Board(mission.width, mission.height, mission.squares)
     // A pinned dice source must be installed BEFORE deployment: initial blip
-    // values and the first CP roll consume dice at construction time;
-    // swapping the source afterwards leaves those rolls nondeterministic.
+    // values consume dice at construction time; swapping the source
+    // afterwards leaves those rolls nondeterministic.
     if (dice) board.dice = dice
     this.state = { board, pieces: board.pieces as Piece[], result: 'ongoing' }
     for (const p of extraPieces) board.addPiece(p)
@@ -158,7 +165,7 @@ export class GameEngine {
       // cheap standing threat from the entry nearest the marines).
       spawnBlips(board, this.entries, mission.initialBlips!, this.cycle, this.hiveObjectives)
     }
-    this.rollCommandPoints()
+    this.pausePool = this.pausePoolCap()
 
     // Sulk rule: a blip converts the moment ANY marine sees it. Marine moves,
     // turns and door toggles change vision, so re-check on those events. The
@@ -404,14 +411,50 @@ export class GameEngine {
     this.setPhase('Live')
   }
 
-  /** Spend one command point to give a marine one extra AP. */
-  spendCP(marine: Piece): boolean {
-    if (this.state.result !== 'ongoing' || this.phase !== 'Live') return false
-    if (this.cp < 1 || marine.kind !== 'marine' || !marine.alive) return false
-    this.cp -= 1
-    marine.ap += 1
-    PieceEvents.emit('cpChanged', { cp: this.cp })
-    PieceEvents.emit('apChanged', { pieceId: marine.id, apRemaining: marine.apRemaining, apInitial: marine.apInitial })
+  // ---------- The command pause pool ----------
+
+  /** Living sergeants (a sword sergeant is one): the pool and the relay scale by them. */
+  livingSergeants(): number {
+    return this.marines.filter(m => m instanceof SergeantMarine && m.alive).length
+  }
+
+  /** The pool's cap in milliseconds: TUNING.pausePool.base plus perSergeant per living sergeant. */
+  pausePoolCap(): number {
+    const p = TUNING.pausePool
+    return Math.round((p.base + p.perSergeant * this.livingSergeants()) * 1000)
+  }
+
+  /** The pool's recharge per cycle in milliseconds: rechargeBase plus
+   *  rechargePerSergeant per living sergeant. Spread over the cycle's ticks
+   *  by rechargePausePool. */
+  pausePoolRecharge(): number {
+    const p = TUNING.pausePool
+    return Math.round((p.rechargeBase + p.rechargePerSergeant * this.livingSergeants()) * 1000)
+  }
+
+  /** Tick step 1b: recharge toward the cap. The per-cycle amount lands in
+   *  the remainder every tick and whole milliseconds move to the pool, exact
+   *  for any cycle length. A sergeant's death lowers the cap without
+   *  touching what is banked: the surplus is spent by pauses, never
+   *  recharged (deleting banked time at the death would be a lockout at the
+   *  moment the player most wants to think). Silent. */
+  private rechargePausePool(): void {
+    const cap = this.pausePoolCap()
+    if (this.pausePool >= cap) { this.pauseAcc = 0; return }
+    this.pauseAcc += this.pausePoolRecharge()
+    const whole = Math.floor(this.pauseAcc / TUNING.cycleTicks)
+    this.pauseAcc -= whole * TUNING.cycleTicks
+    this.pausePool = Math.min(cap, this.pausePool + whole)
+  }
+
+  /** The pauseSpent command: the wall-clock milliseconds a pause consumed,
+   *  taken from the pool (clamped at zero: a spend past the pool is the
+   *  client's rounding, not a debt). A bill that is not a positive safe
+   *  integer is refused: nothing may mint pool or poison the hash. */
+  private spendPause(ms: number): boolean {
+    if (!Number.isSafeInteger(ms) || ms <= 0) return false
+    this.pausePool = Math.max(0, this.pausePool - ms)
+    PieceEvents.emit('pausePoolChanged', { pool: this.pausePool, cap: this.pausePoolCap() })
     return true
   }
 
@@ -432,7 +475,8 @@ export class GameEngine {
   /**
    * Advance the game by one tick. No-op while deploying or once the game is
    * over. Fixed order:
-   *  1. AP regeneration for every piece (apChanged on each gain)
+   *  1. AP regeneration for every piece (apChanged on each gain), then the
+   *     command pause pool's recharge (silent)
    *  2. commands deferred from inside the previous tick (normally none)
    *  3. squad planners: every due squad order writes its members' tasks
    *     (stage 3, ai/squad.ts), then the marine default AI: one action per
@@ -458,6 +502,7 @@ export class GameEngine {
           PieceEvents.emit('apChanged', { pieceId: p.id, apRemaining: p.apRemaining, apInitial: p.apInitial })
         }
       }
+      this.rechargePausePool()
       for (const d of this.deferred.splice(0)) {
         const m = this.findPiece(d.marineId)
         if (m && m.kind === 'marine' && m.alive) this.applyCommand(m, d.cmd)
@@ -531,7 +576,7 @@ export class GameEngine {
    * original order. Defend's turn-limit win judges the cycle just closed;
    * the boundary victory check is the only one that judges the blockade
    * (positions "final" for the cycle); reinforcements are scheduled, not
-   * placed; CP rolls; every close-in stealer turns to face its prey.
+   * placed; every close-in stealer turns to face its prey.
    */
   private cycleBoundary(): void {
     // Mission 6 marine win, an explicit END-PHASE check in the original
@@ -544,7 +589,6 @@ export class GameEngine {
     this.checkVictory()
     if (this.state.result !== 'ongoing') return
     this.scheduleSpawns()
-    this.rollCommandPoints()
     chargeOrientation(this.state.board)
     this.setPhase('Live') // announces the new cycle (phaseChanged carries it)
   }
@@ -629,13 +673,13 @@ export class GameEngine {
     // or refused, is the player taking the wheel: it clears a live order.
     // Both rules key off receipt, which the command log records, so a replay
     // makes the same choices.
-    if (cmd.type !== 'order' && cmd.type !== 'clearOrder' && cmd.type !== 'squadOrder' && cmd.type !== 'clearSquadOrder' && cmd.type !== 'missionOrder') {
+    if (cmd.type !== 'order' && cmd.type !== 'clearOrder' && cmd.type !== 'squadOrder' && cmd.type !== 'clearSquadOrder' && cmd.type !== 'missionOrder' && cmd.type !== 'pauseSpent') {
       m.lastCommandTick = this.tickCount
       if (m.order) setOrder(m, null)
     }
     // The player taking a marine (an order or the wheel) drops his squad
     // task at once; he is the player's until the pin lapses (stage 4 rider).
-    if (cmd.type !== 'clearOrder' && cmd.type !== 'squadOrder' && cmd.type !== 'clearSquadOrder' && cmd.type !== 'missionOrder' && m.task) setTask(m, null)
+    if (cmd.type !== 'clearOrder' && cmd.type !== 'squadOrder' && cmd.type !== 'clearSquadOrder' && cmd.type !== 'missionOrder' && cmd.type !== 'pauseSpent' && m.task) setTask(m, null)
     const ok = this.execute(m, cmd)
     PieceEvents.emit('command', { tick: this.tickCount, pieceId: m.id, command: cmd, ok })
     if (ok) {
@@ -699,7 +743,7 @@ export class GameEngine {
       case 'autofire': return m instanceof AssaultCannonMarine && m.autofire()
       case 'reload': return m instanceof AssaultCannonMarine && m.reload()
       case 'cutDoor': return m instanceof ChainFistMarine && m.cutDoor()
-      case 'cp': return this.spendCP(m)
+      case 'pauseSpent': return this.spendPause(cmd.ms)
       case 'order': {
         if (!orderIsValid(board, cmd.order)) return false
         setOrder(m, cmd.order)
@@ -784,20 +828,22 @@ export class GameEngine {
 
   /**
    * Determinism probe: a short hash of everything that matters to play
-   * (clock, CP, result, every piece's position, facing, AP and weapon state,
+   * (clock, the pause pool, result, every piece's position, facing, AP and weapon state,
    * every door, every flame). Two engines from one seed and one command log
    * agree on it at every tick, or replay is broken.
    */
   stateHash(): string {
     const board = this.state.board
-    const parts: string[] = [`t${this.tickCount}c${this.cycle}cp${this.cp}r${this.state.result}`]
+    const parts: string[] = [`t${this.tickCount}c${this.cycle}pp${this.pausePool}.${this.pauseAcc}r${this.state.result}`]
     // Board order, no ids: piece ids come from a process-wide counter, so two
     // engines in one process never share them, while their board order is
     // the same deterministic insertion order.
     for (const p of this.state.pieces) {
-      const w = p as StormBolterMarine & HeavyFlamerMarine & AssaultCannonMarine
+      const w = p as StormBolterMarine & HeavyFlamerMarine & AssaultCannonMarine & Blip
+      // A blip's hidden value is play state (it converts into that many
+      // stealers): without it two seeds look alike until a blip is seen.
       parts.push(`${p.spriteKey}@${p.pos.c},${p.pos.r}f${p.facing}a${p.ap}` +
-        `o${w.overwatch ? 1 : 0}j${w.jammed ? 1 : 0}m${w.ammo ?? '-'}`)
+        `o${w.overwatch ? 1 : 0}j${w.jammed ? 1 : 0}m${w.ammo ?? '-'}v${p instanceof Blip ? w.value : '-'}`)
     }
     for (const d of board.allDoors()) parts.push(`d${d.square.x},${d.square.y},${d.facing}:${d.isOpen ? 1 : 0}${d.destroyed ? 'x' : ''}`)
     for (const [k, exp] of board.flaming) parts.push(`F${k}:${exp}`)
@@ -968,11 +1014,6 @@ export class GameEngine {
     this.state.result = result
     this.state.board.locked = true
     PieceEvents.emit('gameOver', { result })
-  }
-
-  private rollCommandPoints(): void {
-    this.cp = this.state.board.dice.roll()
-    PieceEvents.emit('cpChanged', { cp: this.cp })
   }
 
   /** Abort/reset the beta_2 download: clear the downloader, restore the counter, announce. */

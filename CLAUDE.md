@@ -12,7 +12,7 @@ ALL NINE missions registered (space_hulk 1–6, beta_1, beta_2, debug_1); the co
 | Missions, controls, roster, deployment phase | `docs/features.md` |
 | Gameplay log export schema (stealer-AI analysis corpus) | `docs/gamelog-format.md` |
 | Roadmap state and known gaps | `docs/status.md` |
-| **2.x real-time plan (APPROVED 2026-09-12; stage 1 shipped as v2.0.0-alpha.1 and played: "works, playable, really hard"; stage 2 shipped as v2.0.0-alpha.2 the same day; stage 3 (squad orders, the chain of command, the command pause) shipped as v2.0.0-alpha.3 on 2026-09-13 and played: "not bad, we're going to have to make it easier for the marines"; stage 4 steps 1 and 2 built 2026-09-13 (the instrument, the transit rules, on /latest/); step 4 (mission orders) built 2026-09-13; START THE NEXT SESSION at its LAST section, "Stage 4 step 4: mission orders" (as built, the numbers: space_hulk_2 0 to 7 in 60), then "Stage 4 build order" for what is left: step 3 (fixtures, deferred), step 5 (the metered pause), step 6 (the sweep, needs Harry's band), step 7 (2.0.0))** | `docs/realtime-plan.md` |
+| **2.x real-time plan (APPROVED 2026-09-12; stage 1 shipped as v2.0.0-alpha.1 and played: "works, playable, really hard"; stage 2 shipped as v2.0.0-alpha.2 the same day; stage 3 (squad orders, the chain of command, the command pause) shipped as v2.0.0-alpha.3 on 2026-09-13 and played: "not bad, we're going to have to make it easier for the marines"; stage 4 steps 1 and 2 built 2026-09-13 (the instrument, the transit rules, on /latest/); step 4 (mission orders) and step 5 (the metered command pause, command points retired) built 2026-09-13; START THE NEXT SESSION at its LAST section, "Stage 4 step 5: the metered command pause" (as built, the times table for Harry's review, the two-stage scan), then "Stage 4 build order" for what is left: step 3 (fixtures, deferred), step 6 (the sweep, needs Harry's band), step 7 (2.0.0))** | `docs/realtime-plan.md` |
 | Original milestone specs (M0–M8) and roadmap | `docs/history/prompts/` |
 | Canonical game rules (AP costs, dice, blips, phases) | `docs/history/SULK Manual Combined.pdf`; distilled digest in ISA Decisions |
 | Original Pygame engine analysis | `docs/history/Analysis Sulk Pygame*.html` |
@@ -24,7 +24,7 @@ Resuming work = extend `ISA.md` (new ISCs, decisions, changelog); don't invent a
 ```bash
 pnpm install
 pnpm --filter ./packages/client dev      # play at localhost:5173
-pnpm --filter ./packages/engine test     # 541 unit tests + coverage (~98% lines)
+pnpm --filter ./packages/engine test     # 553 unit tests + coverage (~98% lines)
 pnpm --filter ./packages/client test     # HUD/minimap units (vitest, --dir src only)
 pnpm --filter ./packages/client e2e      # Playwright no-mock suite (real browser, no mocks)
 pnpm build                               # engine tsc -b + client vite build
@@ -56,7 +56,7 @@ invisible on the site the user actually plays. Non-negotiable rules:
 - **Events are the only engine→client channel:** `engine/src/events/PieceEvents.ts`
   (pieceMoved, pieceDied, shot, doorToggled, phaseChanged, gameOver, …). To surface new
   engine behavior in the UI, emit an event and subscribe in `GameScene`/`HudPanel`.
-- `GameEngine` orchestrates: deployment, CP, turn cycle, reinforcements (finite
+- `GameEngine` orchestrates: deployment, the pause pool, turn cycle, reinforcements (finite
   `totalBlips` budget), AI (`ai/StealerAI.ts` executes; `ai/hive.ts` plans),
   victory. `ai/MarineAutopilot.ts` is a legal-actions scripted player used by
   the deterministic e2e tests.
@@ -199,8 +199,13 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
    Step 4 (mission orders, the blockade): space_hulk_2 squads 7W (11.7%, interval 5.8 to
    22.2; seeds 10, 12, 20, 36, 44, 45, 53; orders unchanged at 3W), space_hulk_1 unchanged
    to the seed; all nine under squads (10 seeds, liveness only): space_hulk_6 10W,
-   space_hulk_4 8W, space_hulk_1 2W, space_hulk_2 1W, space_hulk_5 1W, the rest 0W. Read the
-   plan's "Stage 4 step 4: mission orders" before touching a number.
+   space_hulk_4 8W, space_hulk_1 2W, space_hulk_2 1W, space_hulk_5 1W, the rest 0W.
+   Step 5 (the metered pause, the command point d6 removed so every seed's stream shifted;
+   compared by interval): space_hulk_1 orders 3W (5, 13, 43), squads 11W (18.3%, interval
+   10.6 to 29.9); space_hulk_2 orders 3W (12, 36, 53), squads 9W (15.0%, interval 8.1 to
+   26.1); nine at ten: space_hulk_6 10W, space_hulk_4 7W, space_hulk_5 2W, space_hulk_2 2W,
+   space_hulk_1 1W, the rest 0W. Nothing outside its step 4 interval. Read the plan's
+   "Stage 4 step 5: the metered command pause" before touching a number.
    CAUTION: playthrough.spec idles turn 1 before its DONE click, so it consumes dice
    differently from plain autoplay; scan loss seeds under THAT pattern. If a rules change
    alters dice-consumption order, re-scan and re-pin. Stage 2 pins (2026-09-12): the win
@@ -322,6 +327,21 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
   past its quiet gate issues ONE `missionOrder { objective }` per game (`missionIssued`),
   every later re-issue is its own `squadOrder { objective }`; an issuer adopts a live order
   it did not place; kill-quota's first call is the blockade itself (no gathering defend).
+- **Metered command pause (2.x stage 4 step 5, 2026-09-13):** command points are GONE (no
+  `cp` command, no `cpChanged`, no d6 at construction or the boundary: every seed's dice
+  stream shifted, see the re-pins in marine_ai.spec and quota_victory.spec; the log format
+  version is 2). `GameEngine.pausePool` is whole milliseconds, starts at the cap
+  (`TUNING.pausePool`: 10 s + 10 s per living sergeant), recharges in tick step 1 by 1 s +
+  1 s per sergeant per cycle through an integer remainder (`pauseAcc`, exact for any
+  cycleTicks), silently; a sergeant's death lowers cap and recharge but KEEPS the banked
+  surplus (spent, never recharged: no clamp). `pauseSpent { ms }` is the client's bill at
+  resume, addressed to any living marine (no lease, no task change), a positive safe integer
+  or refused; it emits `pausePoolChanged`. The hash carries the pool, the remainder and each
+  blip's hidden value (the d6 used to make two seeds differ; now the value does). The bot and
+  the scan never bill. Client: Space opens only with 1 s or more, bills at least 1 s per
+  open, auto-resumes at zero, `?pause=free` is unmetered; the HUD button is COMMAND with the
+  meter under it; P and the roster's CP are gone. The two-stage scan (phantom draw, then
+  none) is the method for any change that moves the dice stream.
 - **Squad planner rules the instrument added (2.x stage 4 step 1, 2026-09-13):** a
   different squad order clears the members' tasks (`sameSquadOrder` in GameEngine; the
   same order again is a re-plan and keeps the posts); on a flame mission with the flamer's
@@ -398,8 +418,9 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
   `convertRevealedBlips` after every one of its actions itself, so a captured or
   handler-free driver (tests, the shims) behaves like the live tick.
   Removing either half silently diverges browser games from engine seed scans.
-- **Determinism covers the RNG's whole lifetime:** blip values + first CP roll consume dice
-  at engine CONSTRUCTION; swapping `board.dice` afterwards leaves them random. Pin with
+- **Determinism covers the RNG's whole lifetime:** blip values consume dice at engine
+  CONSTRUCTION (the command point d6 is gone since stage 4 step 5, which shifted every
+  seed's stream); swapping `board.dice` afterwards leaves them random. Pin with
   `?seed=N` (installs the source at construction), never a post-hoc dice swap.
 - Root `package.json` has `build`/`test` scripts; engine coverage artifacts are gitignored.
 - **Audio: `scripts/fetchAudio.ts` is the ONLY producer of fetched/derived audio.** Sources,
@@ -427,8 +448,9 @@ squad-order autopilot issuer, the transit overwatch rule, then numbers;
 mission orders, the metered pause, all nine missions, 2.0.0) starts from the
 plan's "Stage 3 verdict and stage 4 handover" section; steps 1 (the instrument), 2
 (the transit rules) and 4 (mission orders) are done 2026-09-13, see the plan's "Stage 4
-step 4: mission orders" for the numbers; step 3 (fixtures) is deferred, step 5 (the
-metered pause) is next unless Harry orders step 3 first; step 6 waits on the band. Still open: thunder hammer + captain/grenades + librarian psi (no
+step 4: mission orders" and "Stage 4 step 5: the metered command pause" for the numbers
+and the times table Harry still has to review; step 3 (fixtures) is deferred, step 6 (the
+sweep) waits on the win-rate band, step 7 is 2.0.0. Still open: thunder hammer + captain/grenades + librarian psi (no
 registered mission uses them; sprites exist unused per docs/asset-index.md),
 off-board entry-limbo lurking, the first balance sweep of the real-time
 constants. Deferred verifications: FPS probe (ISC-71), live real-Chrome boot

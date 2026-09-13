@@ -175,10 +175,10 @@ test('START (Enter) starts the mission and every deploy control disappears (ISC-
   expect(p.autoBtn).toBe(false);
   expect(p.phaseText).toContain('Cycle 1');
   await expect(page.locator('.marine-card.reserve')).toHaveCount(0);
-  // The deployment clock is gone and the HUD's one button now pauses.
+  // The deployment clock is gone and the HUD's one button is the command pause.
   const clock = await page.evaluate(() => ({ deployTimer: ((window as any).sulk.scene as any).deployTimer, label: ((window as any).sulk.scene.hud as any).doneLabel.text }));
   expect(clock.deployTimer).toBeUndefined();
-  expect(clock.label).toContain('PAUSE');
+  expect(clock.label).toContain('COMMAND');
   // Normal play works: the board is unlocked and turning costs AP again.
   const live = await page.evaluate(() => {
     const { sulk } = window as any;

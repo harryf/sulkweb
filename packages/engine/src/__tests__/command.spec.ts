@@ -88,14 +88,15 @@ describe('engine.command: the one way the player acts', () => {
     expect(cmd({ type: 'shoot', targetId: stealer.id })).toBe(true);
     expect(m.ap).toBe(3);
     expect(cmd({ type: 'shoot', targetId: 'ghost' })).toBe(false);
-    // Overwatch on, off, unjam, cp.
+    // Overwatch on, off, unjam, the pause bill.
     expect(cmd({ type: 'overwatch', on: true })).toBe(true);  expect(m.overwatch).toBe(true);
     expect(cmd({ type: 'overwatch', on: false })).toBe(true); expect(m.overwatch).toBe(false);
     expect(cmd({ type: 'overwatch', on: false })).toBe(false);
     m.jammed = true;
     expect(cmd({ type: 'unjam' })).toBe(true); expect(m.jammed).toBe(false);
-    const cpBefore = engine.cp;
-    expect(cmd({ type: 'cp' })).toBe(cpBefore > 0);
+    const poolBefore = engine.pausePool;
+    expect(cmd({ type: 'pauseSpent', ms: 1000 })).toBe(true);
+    expect(engine.pausePool).toBe(poolBefore - 1000);
     // Melee: the stealer directly ahead.
     m.ap = 4; m.pos = { c: 2, r: 3 };
     expect(cmd({ type: 'melee' })).toBe(true);

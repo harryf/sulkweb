@@ -60,7 +60,11 @@ export type MarineCommand =
   | { type: 'autofire' }
   | { type: 'reload' }
   | { type: 'cutDoor' }
-  | { type: 'cp' }
+  /** The command pause's bill (2.x stage 4 step 5): the wall-clock
+   *  milliseconds the clock stood still, reported by the client at the
+   *  resume tick and addressed to any living marine. The engine never reads
+   *  a clock, so this is how the log replays the pool. */
+  | { type: 'pauseSpent'; ms: number }
   | { type: 'order'; order: MarineOrder }
   | { type: 'clearOrder' }
   /** Addressed to any member: the squad is the marine's deployment tag. */

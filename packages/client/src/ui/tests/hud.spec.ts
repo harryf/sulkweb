@@ -6,7 +6,10 @@ vi.mock('phaser', () => {
   class Container {
     x = 0; y = 0; width = 0; height = 0
     list: unknown[] = []
-    constructor(_scene?: unknown, _x?: number, _y?: number) {}
+    // The real Container keeps its scene: the meter marks are drawn from it
+    // after construction, so the double has to keep it too.
+    scene: any
+    constructor(scene?: unknown, _x?: number, _y?: number) { this.scene = scene }
     add(child: unknown) { this.list.push(child); return this }
     setScrollFactor(_f: number) { return this }
     setPosition(x: number, y: number) { this.x = x; this.y = y; return this }
@@ -23,7 +26,16 @@ function makeSceneStub() {
   return {
     scale: { height: 720 },
     add: {
-      rectangle: () => ({ x: 0, y: 0, setOrigin() { return this }, setInteractive() { return this }, on() { return this } }),
+      rectangle: (x: number, y: number, w: number, h: number) => ({
+        x, y, width: w, height: h, visible: true,
+        setOrigin() { return this },
+        setInteractive() { return this },
+        setScrollFactor() { return this },
+        setSize(nw: number, nh: number) { this.width = nw; this.height = nh; return this },
+        setVisible(v: boolean) { this.visible = v; return this },
+        destroy() { /* the meter dividers are rebuilt when the cap moves */ },
+        on() { return this }
+      }),
       text: (_x: number, _y: number, content: string) => ({
         text: content,
         visible: true,
@@ -93,9 +105,62 @@ describe('HudPanel (the live clock, 2.x)', () => {
     expect((hud as any).timerText.text).toBe('0s / 10s')
   })
 
-  it('the one button reads PAUSE and can be relabelled START for deployment', () => {
-    expect((hud as any).doneLabel.text).toBe('PAUSE  Esc')
+  it('the one button reads COMMAND and can be relabelled START for deployment', () => {
+    expect((hud as any).doneLabel.text).toBe('COMMAND  Space')
     hud.setPrimaryButton('START  ⏎')
     expect((hud as any).doneLabel.text).toBe('START  ⏎')
+  })
+})
+
+describe('HudPanel (the command-time meter, stage 4 step 5)', () => {
+  let hud: HudPanel
+
+  beforeEach(() => {
+    PieceEvents.all.clear()
+    hud = new HudPanel(makeSceneStub(), makeMiniMapStub())
+  })
+
+  const meter = () => (hud as any).meterText.text as string
+  const fillWidth = () => (hud as any).meterFill.width as number
+  const trackWidth = () => (hud as any).meterTrack.width as number
+
+  it('reads the pool against the cap with the recharge per cycle', () => {
+    hud.setPausePool(20000, 20000, 2000)
+    expect(meter()).toBe('Command time 20.0 / 20 s  +2 s/cycle')
+    expect(fillWidth()).toBe(trackWidth())
+  })
+
+  it('the fill follows the pool and the recharge survives a two-argument refresh', () => {
+    hud.setPausePool(20000, 20000, 2000)
+    hud.setPausePool(5000, 20000)
+    expect(meter()).toBe('Command time 5.0 / 20 s  +2 s/cycle')
+    expect(fillWidth()).toBe(Math.round(trackWidth() / 4))
+  })
+
+  it('a pool above the cap fills the bar and still reads honestly', () => {
+    // A sergeant died: the cap halves, the seconds already banked stay spendable.
+    hud.setPausePool(18000, 10000, 1000)
+    expect(meter()).toBe('Command time 18.0 / 10 s  +1 s/cycle')
+    expect(fillWidth()).toBe(trackWidth())
+  })
+
+  it('an empty pool empties the bar', () => {
+    hud.setPausePool(0, 20000, 2000)
+    expect(meter()).toBe('Command time 0.0 / 20 s  +2 s/cycle')
+    expect(fillWidth()).toBe(0)
+  })
+
+  it('free mode hides the bar and says so', () => {
+    hud.setPausePool(20000, 20000, 2000)
+    hud.setPausePoolFree()
+    expect(meter()).toBe('Command time: FREE')
+    expect((hud as any).meterTrack.visible).toBe(false)
+    expect((hud as any).meterFill.visible).toBe(false)
+  })
+
+  it('marks each sergeant block past the first and the one-second floor', () => {
+    hud.setPausePool(20000, 20000, 2000)
+    expect((hud as any).meterDividers).toHaveLength(1) // the 10 s line inside a 20 s cap
+    expect((hud as any).meterFloor.x).toBe(8 + Math.round(trackWidth() / 20)) // 1 s of 20
   })
 })

@@ -85,8 +85,14 @@ still waits on Harry before step 6. Step 4 (2026-09-13) built mission
 orders: one `missionOrder` fanned out inside the engine, `objective`
 resolved per squad, the `blockade` order for Exterminate, Tab's all-squads
 stop and the I key; numbers in the plan's "Stage 4 step 4: mission orders".
-Next is step 3 (the fixtures, deferred) or step 5 (the metered pause), per
-Harry.
+Step 5 (2026-09-13) built the metered command pause: a pool of
+command time on the engine (10 s plus 10 s per living sergeant, refilled at
+1 s plus 1 s per sergeant per cycle), the `pauseSpent` bill at resume so the
+log replays it, the HUD meter under the COMMAND button, command points and
+the P key retired, `?pause=free` for an unmetered pause; the re-scan moved
+no row outside its interval; on /latest/. The times are provisional and want Harry's review.
+Next is step 3 (the fixtures, deferred) or step 6 (the sweep, needs the
+win-rate band), per Harry.
 
 ## Known gaps / residue
 
@@ -111,7 +117,7 @@ buff and the v0.5.0 deployment phase.
   are the original's main tool for exactly this fight.
 - The two marines the original lets the STEALER player place (a bolter and the
   sergeant) deploy at fixed adversarial spots instead; see ISA Decisions.
-- Marine interrupt actions (CP spending during the stealer phase) not implemented:
+- Marine interrupt actions (the original's command point spending during the stealer phase; 2.x has no command points and no phases, the command pause stands in) not implemented:
   a real mission-1 marine tool in the original (Space key), and the biggest
   named gap for a human trying to win space_hulk_1.
 - The librarian (psi rules) is not implemented; no registered mission needs him.

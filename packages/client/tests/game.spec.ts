@@ -54,14 +54,14 @@ test('boots Mission 1: board, squad of five, two blips, zero errors', async ({ p
       enemies: engine.stealerSide.length,
       phase: engine.phase,
       turn: engine.turnNumber,
-      cp: engine.cp,
+      pausePool: engine.pausePool,
     };
   });
   expect(state.marines).toBe(5);
   expect(state.enemies).toBe(2);
   expect(state.phase).toBe('Live');
   expect(state.turn).toBe(1);
-  expect(state.cp).toBeGreaterThanOrEqual(1);
+  expect(state.pausePool).toBe(20000); // the command time starts full: 10 s plus 10 s for the sergeant
   expect(errors).toHaveLength(0);
 });
 

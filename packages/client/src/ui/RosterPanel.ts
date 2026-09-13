@@ -38,8 +38,6 @@ export class RosterPanel {
   readonly root: HTMLElement;
   private cards = new Map<string, HTMLElement>();
   private byId = new Map<string, RosterEntry>();
-  /** Team command-point pool (shared) — shown on every living card. */
-  private cp = 0;
   /** Squad row headers by squad name, with the plain title to rebuild from. */
   private squadRows = new Map<string, { row: HTMLElement; h: HTMLElement; title: string }>();
 
@@ -104,7 +102,6 @@ export class RosterPanel {
     this.refreshAll();
 
     // Event-driven updates — payloads only; full truth re-read on refreshAll().
-    PieceEvents.on('cpChanged', ({ cp }) => { this.cp = cp; this.refreshAll(); });
     PieceEvents.on('pieceMoved', ({ pieceId }) => this.refreshCard(pieceId)); // turns update the facing arrow
     PieceEvents.on('apChanged', ({ pieceId }) => this.refreshCard(pieceId));
     PieceEvents.on('ammoChanged', ({ pieceId }) => this.refreshCard(pieceId));
@@ -169,7 +166,7 @@ export class RosterPanel {
     if (!s) return;
     if (!s.alive) { this.markState(id, 'dead', 'KIA'); return; }
     card.querySelector('.m-face')!.textContent = FACING_ARROWS[s.facing] ?? '';
-    card.querySelector('.m-stats')!.textContent = `AP ${s.apRemaining}/${s.apInitial} · CP ${this.cp}`;
+    card.querySelector('.m-stats')!.textContent = `AP ${s.apRemaining}/${s.apInitial}`;
     card.querySelector('.m-ammo')!.textContent = s.ammo !== undefined ? `Ammo ${s.ammo}` : '';
     const badges: string[] = [];
     if (s.overwatch) badges.push('OW');

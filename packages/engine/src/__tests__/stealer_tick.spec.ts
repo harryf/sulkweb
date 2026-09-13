@@ -93,7 +93,7 @@ describe('stealerTick: one action per piece per tick', () => {
     expect(stealer.pos).toEqual({ c: 1, r: 6 });
     engine.tick();
     expect(stealer.pos).not.toEqual({ c: 1, r: 6 });
-    expect((board.dice as RollQueue).remaining).toBe(60 - 3); // three boundary CP rolls, nothing else
+    expect((board.dice as RollQueue).remaining).toBe(60); // nothing draws a die: the boundary rolls no command points since stage 4 step 5
   });
 
   it('charge orientation runs at the cycle boundary, free, even for a piece that cannot move', () => {

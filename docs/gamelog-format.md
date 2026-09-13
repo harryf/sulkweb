@@ -29,7 +29,7 @@ replay is never double-counted and events appear in true chronological order.
 
 | field | meaning |
 |---|---|
-| `formatVersion` | schema version of this file, currently `1` |
+| `formatVersion` | schema version of this file, currently `2` (since stage 4 step 5: the `pauseSpent` command kind, `pausePoolChanged` in place of `cpChanged`, and a dice stream without the command point roll, so a version 1 log's seed replays to a different game) |
 | `mission` | mission REGISTRY key (`space_hulk_1`), the grouping key for analysis |
 | `missionName` | display title ("Suicide Mission") |
 | `seed` | the `?seed` pin as a number, or `null` for an unseeded game |
@@ -66,7 +66,7 @@ Recorded types include `pieceMoved`, `shot` (with actual dice rolls),
 `blipConverted`, `doorToggled`, `doorDestroyed`, `overwatchChanged`, `jammed`,
 `sectionFlamed`, `flamesCleared`, `ammoChanged`, `casualtiesChanged`,
 `marineEscaped`, `cat*`, `objectiveCleansed`, `ductingDestroyed`,
-`malfunction`, `downloadChanged`, `phaseChanged`, `cpChanged`, `gameOver`.
+`malfunction`, `downloadChanged`, `phaseChanged`, `pausePoolChanged`, `gameOver`.
 
 Deliberately skipped: `selected` (pure UI selection chatter) and `apChanged`
 (one tick per AP spend; derivable from the logged actions).
@@ -101,7 +101,7 @@ to any mission.
   exterminated. Human play never triggers this path (victory is only checked
   at phase boundaries, after reinforcements spawn). Filter suspect records
   with: result `win` + zero `pieceDied` + gameOver in turn 1.
-- **Planned for formatVersion 2** (when stealer-AI work begins): hive intent
+- **Planned for a later version** (when stealer-AI work begins): hive intent
   events (chosen role/target and runner-up per piece, wave decisions) and a
   per-turn canonical board hash for replay-equivalence checks. Both live
   inside the AI decider, which this version deliberately leaves untouched so

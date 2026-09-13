@@ -35,7 +35,7 @@ export const KEY_ROWS: KeyRow[] = [
       { key: 'U', label: 'unjam' },
       { key: 'I', label: 'objective' },
       { key: 'O', label: 'overwatch' },
-      { key: 'P', label: 'spend CP' },
+      { key: 'P' },
     ],
   },
   {
@@ -78,7 +78,7 @@ export const SPECIAL_KEYS: KeyCap[] = [
   { key: 'Shift+RMB squad', label: 'advance there' },
   { key: 'RMB door squad', label: 'clear it' },
   { key: 'Esc squad', label: 'squad: hold' },
-  { key: 'Space', label: 'command pause' },
+  { key: 'Space', label: 'command pause (metered)' },
 ];
 
 /** Usage notes that need more room than a keycap label. */
@@ -93,5 +93,5 @@ export const KEY_NOTES: string[] = [
   'Orders: right-click a square and the selected marine walks there on his own, opening doors on the way, then holds; Shift right-click and he goes on overwatch when he arrives; right-click a closed door and he goes to open it. He still shoots what he sees on the way. Any key takes the wheel back and drops the order. His card reads MOVE, DOOR, OW or HOLD.',
   'Squad orders: Tab selects a squad (the selected marine\'s, then the next). Right-click a square and the squad defends that section, each marine taking a post that covers an entrance; Shift right-click and the squad advances there in a column with a rear guard; right-click a closed door and two marines cover it while a third opens it. Esc drops the order. Orders reach the squad through its sergeant; without one they arrive two seconds late and every marine acts on his own. The squad row reads DEFEND, ADVANCE or CLEAR.',
   'Tab past the last squad selects every squad at once (every row lit); with every squad selected a right-click is a mission order (defend, Shift advance, a door clears) sent to all squads and Esc drops every order; I sends the selected squad, or every squad, to the mission objective: the room to burn, the Data Room, the nearest exit, a blockade of the entries on Exterminate, or a defend where it stands.',
-  'Space is the command pause: the clock stops while you give orders (right-click, Tab, Esc); the keys that move a marine wait until Space resumes.',
+  'Space is the command pause: the clock stops while you give orders (right-click, Tab, Esc, I) and the command time on the HUD runs down; a full squad has 20 seconds and earns 2 back per cycle, each sergeant lost halves both; below one second Space does nothing; the keys that move a marine wait until Space resumes. ?pause=free on the URL makes it unmetered.',
 ];

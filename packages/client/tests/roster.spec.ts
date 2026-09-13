@@ -36,7 +36,7 @@ test('space_hulk_2: entry triangles render; cards select, update, and grey out o
   await expect(cards.nth(0).locator('.m-name')).toContainText('Sgt.');
   await expect(cards.nth(1).locator('.m-weapon')).toHaveText('Heavy Flamer');
   // AP + team CP pool share the stats line; ammo sits on its OWN line (ISC-289/290)
-  await expect(cards.nth(0).locator('.m-stats')).toContainText('AP 4/4 · CP ');
+  await expect(cards.nth(0).locator('.m-stats')).toContainText('AP 4/4');
   await expect(cards.nth(1).locator('.m-ammo')).toHaveText('Ammo 6');
   await expect(cards.nth(1).locator('.m-stats')).not.toContainText('Ammo');
   // Facing arrow renders and follows a turn (ISC-288)
@@ -177,7 +177,7 @@ test('keyboard help draws staggered keycap rows, collapses on click; Credits sit
   });
   expect(stagger[1]).toBeGreaterThan(stagger[0]);
   expect(stagger[2]).toBeGreaterThan(stagger[1]);
-  await expect(help.locator('.keycap.unbound')).toHaveCount(4); // Y J V N spacers (K is mute, I is the objective key)
+  await expect(help.locator('.keycap.unbound')).toHaveCount(5); // Y J P V N spacers (K is mute, I is the objective key)
   // W keycap carries its action label ("fwd" also contains a w — match the <b> exactly)
   const wLabel = help.locator('.keycap').filter({ has: page.locator('kbd', { hasText: /^W$/ }) }).locator('i');
   await expect(wLabel).toHaveText('forward');

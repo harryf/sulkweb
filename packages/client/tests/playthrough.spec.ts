@@ -28,10 +28,11 @@ test('Mission 1 plays start to finish and reaches a result', async ({ page }) =>
   const scale = box!.width / gameW;
   await page.mouse.click(box!.x + pos!.x * scale, box!.y + pos!.y * scale);
   await page.waitForTimeout(200);
-  expect(await page.evaluate(() => (window as any).sulk.scene.isPaused)).toBe(true);
+  // The HUD button is the command pause since stage 4 step 5 (the free pause stays on Esc).
+  expect(await page.evaluate(() => (window as any).sulk.scene.isCommandPaused)).toBe(true);
   await page.mouse.click(box!.x + pos!.x * scale, box!.y + pos!.y * scale);
   await page.waitForTimeout(200);
-  expect(await page.evaluate(() => (window as any).sulk.scene.isPaused)).toBe(false);
+  expect(await page.evaluate(() => (window as any).sulk.scene.isCommandPaused)).toBe(false);
 
   // Deterministic completion: one round of autopilot commands, one tick,
   // a cycle at a time, until the game resolves (at most 60 cycles).

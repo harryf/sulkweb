@@ -191,10 +191,12 @@ describe('kill-quota victory (original victory_check)', () => {
 
 describe('mission 2 autopilot (ISC-178)', () => {
   it('plays space_hulk_2 legally for 8 turns without errors', () => {
-    // Re-pinned 2 -> 29 on 2026-09-12 (stage 2: under orders with the default AI
-    // defending, 2 of 60 seeds win; seed 29 is one). Earlier: 1 -> 2 the same day
+    // Re-pinned 29 -> 12 on 2026-09-13 (stage 4 step 5: the command point d6 is
+    // gone and every seed's dice stream shifted; under orders seeds 12, 36 and 53
+    // win). Before that 2 -> 29 on 2026-09-12 (stage 2: under orders with the
+    // default AI defending, 2 of 60 seeds win; seed 29 was one). Earlier: 1 -> 2 the same day
     // (real time), 5 -> 1 on 2026-08-18 for the watcher-priority CC.
-    const engine = new GameEngine(loadMission('space_hulk_2'), [], new SeededRng(29));
+    const engine = new GameEngine(loadMission('space_hulk_2'), [], new SeededRng(12));
     autoplay(engine, 8);
     expect(engine.turnNumber).toBeGreaterThan(1);
     // Marines must have left their deployment rooms toward the entries.

@@ -12,7 +12,10 @@ import { PieceEvents, type PieceEventsType, type CapturedEvent, type Tap } from 
  * recorded exactly once, in true chronological order.
  */
 
-export const GAMELOG_FORMAT_VERSION = 1;
+/** 2 since stage 4 step 5 (2026-09-13): the pauseSpent command kind,
+ *  pausePoolChanged in place of cpChanged, and no command point die, so a
+ *  version 1 log's seed replays to a different game. */
+export const GAMELOG_FORMAT_VERSION = 2;
 
 /** UI-only chatter excluded from the log: selection changes carry no game
  *  state, per-AP-spend ticks are derivable from the logged actions, and the

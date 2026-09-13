@@ -23,12 +23,12 @@ function tinyMission(overrides: Partial<CompiledMission> = {}): CompiledMission 
 }
 
 describe('GameEngine turn flow', () => {
-  it('deploys marines from the mission and rolls CP 1-6', () => {
+  it('deploys marines from the mission and fills the pause pool to its cap', () => {
     const engine = new GameEngine(tinyMission());
     expect(engine.marines).toHaveLength(1);
     expect(engine.marines[0].pos).toEqual({ c: 1, r: 0 });
-    expect(engine.cp).toBeGreaterThanOrEqual(1);
-    expect(engine.cp).toBeLessThanOrEqual(6);
+    expect(engine.pausePool).toBe(engine.pausePoolCap());
+    expect(engine.pausePool).toBe(10000); // no sergeant: the base alone
     expect(engine.phase).toBe('Live');
     expect(engine.turnNumber).toBe(1);
   });
@@ -52,13 +52,12 @@ describe('GameEngine turn flow', () => {
     expect(engine.stealerSide.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('CP spend grants a marine one extra AP', () => {
+  it('pauseSpent takes the bill from the pool and leaves the marine as he was', () => {
     const engine = new GameEngine(tinyMission());
     const marine = engine.marines[0];
-    const cpBefore = engine.cp;
-    expect(engine.spendCP(marine)).toBe(true);
-    expect(engine.cp).toBe(cpBefore - 1);
-    expect(marine.ap).toBe(5);
+    expect(engine.command(marine.id, { type: 'pauseSpent', ms: 2500 })).toBe(true);
+    expect(engine.pausePool).toBe(7500);
+    expect(marine.ap).toBe(4);
   });
 
   it('win: marine reaches the exit square', () => {

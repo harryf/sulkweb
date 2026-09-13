@@ -168,7 +168,6 @@ describe('beta_2 fidelity (ISC-261/262)', () => {
       const dp = engine.mission.downloadPoint!;
       const lead = engine.marines.filter(m => m instanceof SergeantMarine).sort((a, b) =>
         Math.hypot(dp.x - a.pos.c, dp.y - a.pos.r) - Math.hypot(dp.x - b.pos.c, dp.y - b.pos.r))[0];
-      while (lead && engine.cp > 0) { if (!engine.spendCP(lead)) break; }
       runMarineTurn(engine);
       if (engine.state.result !== 'ongoing') break;
       runCycle(engine);

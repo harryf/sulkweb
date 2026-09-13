@@ -7,8 +7,8 @@ describe('keyboard help layout data', () => {
 
   it('covers every bound key exactly once, each with a label (ISC-392/642)', () => {
     const expected = [
-      // LiveScene addKeys('W,A,S,D,Q,E,Z,C,O,F,X,B,H,U,P,T,R,G,M') ...
-      'W', 'A', 'S', 'D', 'Q', 'E', 'Z', 'C', 'O', 'F', 'X', 'B', 'H', 'U', 'P', 'T', 'R', 'G', 'M',
+      // LiveScene addKeys('W,A,S,D,Q,E,Z,C,O,F,X,B,H,U,T,R,G,M') ...
+      'W', 'A', 'S', 'D', 'Q', 'E', 'Z', 'C', 'O', 'F', 'X', 'B', 'H', 'U', 'T', 'R', 'G', 'M',
       // ... plus the dedicated keydown handlers (Enter only starts the
       // mission during deployment and is described in the deploy note; I is
       // the squad objective key, deliberately outside the addKeys list)
@@ -60,6 +60,6 @@ describe('keyboard help layout data', () => {
 
   it('unbound keys stay in place as spacers so bound keys sit at true positions', () => {
     const unbound = letterCaps.filter(c => !c.label).map(c => c.key)
-    expect(unbound.sort()).toEqual(['J', 'N', 'V', 'Y'])
+    expect(unbound.sort()).toEqual(['J', 'N', 'P', 'V', 'Y'])
   })
 })

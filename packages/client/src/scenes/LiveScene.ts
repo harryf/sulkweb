@@ -27,6 +27,15 @@ const ammoOf = (p: Piece | undefined): number | undefined =>
  *  up a little, never in one burst that plays a whole cycle unseen. */
 const MAX_TICKS_PER_FRAME = 4
 
+/** The command pause bills at least this much: opening it is itself priced,
+ *  and it will not open below it. */
+const PAUSE_MIN_MS = 1000
+/** The last seconds of a pause turn the overlay red before it closes itself. */
+const PAUSE_WARN_MS = 3000
+/** What still works while the pause holds the clock. */
+const PAUSE_HINT = 'right-click orders, Tab squads, I objective, Space resumes'
+const PAUSE_FREE_TEXT = `COMMAND PAUSE   ${PAUSE_HINT}`
+
 /**
  * The live game (2.x): the engine ticks on a fixed step inside update(),
  * every key becomes an engine command, and every sprite follows engine
@@ -63,9 +72,18 @@ export default class LiveScene extends Phaser.Scene {
   private squadMarkers: { [squad: string]: Phaser.GameObjects.Graphics } = {};
   /** Rings on every member of the selected squad. */
   private squadHighlight?: Phaser.GameObjects.Graphics;
-  /** The command pause (stage 3, unmetered): the clock stops, orders still go. */
+  /** The command pause (stage 4 step 5, metered): the clock stops, orders
+   *  still go, and the wall-clock time it took is billed to the engine's
+   *  pause pool when it ends. */
   private commandPaused = false;
   private commandPauseOverlay?: Phaser.GameObjects.Container;
+  private commandPauseLabel?: Phaser.GameObjects.Text;
+  /** performance.now() at the open, and the pool it may spend (ms). */
+  private pauseStartedAt = 0;
+  private pauseBudget = 0;
+  /** `?pause=free`: the stage 3 pause, unmetered, for testing and for play
+   *  without the clock pressure. */
+  private readonly pauseFree: boolean;
   private flameSprites: { [coord: string]: Phaser.GameObjects.Image } = {};
   private ductingSprites: { [coord: string]: Phaser.GameObjects.Image } = {};
   private catSprite?: Phaser.GameObjects.Image;
@@ -156,7 +174,7 @@ export default class LiveScene extends Phaser.Scene {
   constructor() {
     super('LiveScene')
     // The engine builds the board, deploys the squad, and seeds the first blips.
-    // `?seed=N` pins the WHOLE game (blip values + CP roll included): used by
+    // `?seed=N` pins the WHOLE game (blip values included): used by
     // the deterministic e2e suite and handy for bug reports.
     // `?mission=<name>` selects any registered mission (unknown = debug_1).
     // NO mission param at all = the homepage: space_hulk_1 plays as a dimmed
@@ -183,6 +201,9 @@ export default class LiveScene extends Phaser.Scene {
     this.deployRequested = params.get('deploy') !== '0';
     // Fog defaults ON in real missions; the homepage backdrop keeps its look.
     this.fogEnabled = !this.attract && params.get('fog') !== '0';
+    // `?pause=free` turns the command pause back into the stage 3 one: no
+    // bill, no countdown, the meter reads FREE.
+    this.pauseFree = params.get('pause') === 'free';
     const requested = missionParam ?? 'space_hulk_1';
     // Own-property check, not `in`: prototype-chain keys (?mission=toString)
     // must fall back to debug_1, not reach loadMission and throw.
@@ -540,7 +561,7 @@ export default class LiveScene extends Phaser.Scene {
     pieces.forEach(p => this.createPieceSprite(p));
 
     this.cursors = this.input.keyboard!.createCursorKeys()
-    this.wasd = this.input.keyboard!.addKeys('W,A,S,D,Q,E,Z,C,O,F,X,B,H,U,P,T,R,G,M') as any
+    this.wasd = this.input.keyboard!.addKeys('W,A,S,D,Q,E,Z,C,O,F,X,B,H,U,T,R,G,M') as any
     // Both single-press handlers dedupe through seenKeyEvents like every
     // other key: under load Phaser replays the SAME native event across
     // frames, and an un-deduped ESC double-toggles pause.
@@ -588,9 +609,9 @@ export default class LiveScene extends Phaser.Scene {
       if (this.attract || this.deployMode || this.paused || this.engine.state.result !== 'ongoing') return;
       this.objectiveOrder();
     });
-    // Space: the command pause (stage 3, unmetered). The clock stops, the
-    // board stays readable, orders (right-click, Tab, Esc) still go; direct
-    // control keys do nothing. Space again resumes.
+    // Space: the command pause (stage 4 step 5, metered). The clock stops,
+    // the board stays readable, orders (right-click, Tab, Esc, I) still go;
+    // direct control keys do nothing. Space again resumes and pays the bill.
     this.input.keyboard!.on('keydown-SPACE', (e: KeyboardEvent) => {
       e.preventDefault();
       if (this.seenKeyEvents.has(e)) return;
@@ -816,13 +837,18 @@ export default class LiveScene extends Phaser.Scene {
       this.refreshFireReticle(); // hover picks the door F targets
     });
 
-    PieceEvents.emit('cpChanged', { cp: this.engine.cp }); // HUD subscribed after the initial roll
+    this.refreshPauseMeter(); // the HUD subscribed after the pool was filled
+    PieceEvents.on('pausePoolChanged', () => this.refreshPauseMeter());
     this.hud.setClock(this.engine.tickCount, this.engine.cycle);
 
     // A hidden tab freezes the render loop but not the wall clock: pause the
     // game rather than let the accumulator burst through a cycle on return.
+    // A command pause is billed and closed first, or a tab left in the
+    // background would come back with the whole pool spent.
     const onVisibility = () => {
-      if (document.visibilityState === 'hidden' && !this.paused && !this.attract
+      if (document.visibilityState !== 'hidden') return;
+      if (this.commandPaused) this.endCommandPause();
+      if (!this.paused && !this.attract
           && this.engine.state.result === 'ongoing' && !this.deployMode) {
         this.togglePause();
       }
@@ -994,17 +1020,19 @@ export default class LiveScene extends Phaser.Scene {
     if (K(keys.T)) return { type: 'autofire' };
     if (K(keys.R)) return { type: 'reload' };
     if (K(keys.G)) return { type: 'cutDoor' };
-    if (K(keys.P)) return { type: 'cp' };
     return null;
   }
 
-  /** The HUD's one button: START during deployment, PAUSE afterwards. */
+  /** The HUD's one button: START during deployment, the command pause
+   *  afterwards. The free pause stays on Esc, so a click cannot open a
+   *  command pause underneath it. */
   private primaryButton(): void {
     if (this.deployMode) {
       if (!this.paused) this.finishDeploy();
       return;
     }
-    this.togglePause();
+    if (this.paused) return;
+    this.toggleCommandPause();
   }
 
   /** Roster card click: select the marine, sync map highlight + HUD, pan to him. */
@@ -1155,7 +1183,7 @@ export default class LiveScene extends Phaser.Scene {
     PieceEvents.emit('selected', { pieceId: null });
     this.refreshDeployMarkers(); // deployMode off: all markers destroyed
     this.hud.setDeployMode(false);
-    this.hud.setPrimaryButton('PAUSE  Esc');
+    this.hud.setPrimaryButton('COMMAND  Space');
     this.hud.setClock(this.engine.tickCount, this.engine.cycle);
     this.roster.clearDeploy();
     this.roster.refreshAll();
@@ -1237,7 +1265,21 @@ export default class LiveScene extends Phaser.Scene {
         this.tickAcc -= this.tickMs;
         ticks += 1;
       }
-      if (ticks > 0) this.hud.setClock(this.engine.tickCount, this.engine.cycle);
+      if (ticks > 0) {
+        this.hud.setClock(this.engine.tickCount, this.engine.cycle);
+        this.refreshPauseMeter(); // the pool recharges silently, every tick
+      }
+    }
+
+    // The command pause spends wall-clock time, so it is counted down here
+    // rather than on a timer: one frame late is one frame the player had.
+    if (this.commandPaused && !this.pauseFree) this.countDownCommandPause();
+
+    // A squad order's marker stays dim until the relay reaches the squad, so
+    // the lag of a squad without its sergeant is visible on the board.
+    for (const [squad, marker] of Object.entries(this.squadMarkers)) {
+      const due = this.engine.squadState(squad)?.dueTick;
+      marker.setAlpha(due !== undefined && this.engine.tickCount < due ? 0.4 : 1);
     }
 
     if (this.reducedMotion) {
@@ -1753,22 +1795,78 @@ export default class LiveScene extends Phaser.Scene {
     this.squadMarkers[squad] = g;
   }
 
-  /** Space: the command pause. */
+  /** Space, or the HUD button: open the command pause, or close and bill it. */
   private toggleCommandPause(): void {
     if (this.engine.state.result !== 'ongoing') return;
-    this.commandPaused = !this.commandPaused;
-    if (this.commandPaused) {
-      const cam = this.cameras.main;
-      const bar = this.add.rectangle(0, 0, cam.width - HUD_WIDTH, 34, 0x000000, 0.65).setOrigin(0);
-      const label = this.add.text((cam.width - HUD_WIDTH) / 2, 17, 'COMMAND PAUSE   right-click orders, Tab squads, Space resumes', {
+    if (this.commandPaused) this.endCommandPause();
+    else this.openCommandPause();
+  }
+
+  /** Open the pause if there is a second of command time to spend. Below the
+   *  floor it does not open at all: a pause that bills more than it holds
+   *  would be a trap. */
+  private openCommandPause(): void {
+    if (!this.pauseFree && this.engine.pausePool < PAUSE_MIN_MS) {
+      this.hud.flash('NO COMMAND TIME');
+      return;
+    }
+    this.commandPaused = true;
+    this.pauseStartedAt = performance.now();
+    this.pauseBudget = this.engine.pausePool;
+    const cam = this.cameras.main;
+    const bar = this.add.rectangle(0, 0, cam.width - HUD_WIDTH, 34, 0x000000, 0.65).setOrigin(0);
+    const label = this.add.text((cam.width - HUD_WIDTH) / 2, 17,
+      this.pauseFree ? PAUSE_FREE_TEXT : this.commandPauseText(this.pauseBudget), {
         fontFamily: UI_FONT, fontSize: '16px', color: '#ffffff', fontStyle: 'bold'
       }).setOrigin(0.5);
-      this.commandPauseOverlay = this.add.container(0, 0, [bar, label]).setScrollFactor(0).setDepth(90).setName('command-pause');
-    } else {
-      this.commandPauseOverlay?.destroy();
-      this.commandPauseOverlay = undefined;
-      this.tickAcc = 0;
+    this.commandPauseLabel = label;
+    this.commandPauseOverlay = this.add.container(0, 0, [bar, label]).setScrollFactor(0).setDepth(90).setName('command-pause');
+    if (!this.pauseFree) this.refreshPauseMeter(this.pauseBudget);
+  }
+
+  /** Every frame of a metered pause: the seconds left on the overlay and on
+   *  the HUD meter, red for the last few, and the auto-resume at zero. */
+  private countDownCommandPause(): void {
+    const left = this.pauseBudget - (performance.now() - this.pauseStartedAt);
+    if (left <= 0) { this.endCommandPause(); return; }
+    this.commandPauseLabel?.setText(this.commandPauseText(left));
+    this.commandPauseLabel?.setColor(left <= PAUSE_WARN_MS ? '#ff5544' : '#ffffff');
+    this.refreshPauseMeter(left);
+  }
+
+  /** Close the pause and bill what it took. The open itself costs a second,
+   *  so tapping Space is never free, and the bill never exceeds the budget
+   *  the pause opened with. */
+  private endCommandPause(): void {
+    if (!this.commandPaused) return;
+    this.commandPaused = false;
+    if (!this.pauseFree) {
+      const elapsed = performance.now() - this.pauseStartedAt;
+      const ms = Math.min(this.pauseBudget, Math.max(PAUSE_MIN_MS, Math.round(elapsed)));
+      // Any living marine takes the bill: it stamps no lease and drops no
+      // task, so the addressee is irrelevant. None alive means the mission
+      // is over and there is nothing left to charge.
+      const payer = this.engine.marines.find(m => m.alive);
+      if (payer) this.engine.command(payer.id, { type: 'pauseSpent', ms });
     }
+    this.commandPauseOverlay?.destroy();
+    this.commandPauseOverlay = undefined;
+    this.commandPauseLabel = undefined;
+    this.tickAcc = 0;
+    this.refreshPauseMeter();
+  }
+
+  /** The overlay line: the seconds left, then what still works while held. */
+  private commandPauseText(leftMs: number): string {
+    // Rounded up: while any time is left the line never reads 0.0.
+    return `COMMAND PAUSE  ${(Math.ceil(Math.max(0, leftMs) / 100) / 10).toFixed(1)} s   ${PAUSE_HINT}`;
+  }
+
+  /** Push the pool to the HUD meter. During a pause the caller passes the
+   *  live remainder, which the engine does not know about until the bill. */
+  private refreshPauseMeter(poolMs = this.engine.pausePool): void {
+    if (this.pauseFree) { this.hud.setPausePoolFree(); return; }
+    this.hud.setPausePool(poolMs, this.engine.pausePoolCap(), this.engine.pausePoolRecharge());
   }
 
   /** True while the command pause holds the clock; public for the e2e suite. */

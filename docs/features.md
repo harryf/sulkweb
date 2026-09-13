@@ -133,7 +133,7 @@ to the target alone, the nearest one opens the door). A marine you steer
 yourself keeps his ground for a cycle before the squad plan takes him back.
 Space is the command pause: the clock stops, the board stays readable,
 right-click orders, Tab and Esc still work, and the keys that move a marine
-wait until Space resumes.
+wait until Space resumes (metered since stage 4 step 5, below).
 
 **Mission orders (2.x stage 4).** Tab past the last squad selects every
 squad at once (every roster row lights, every marine gets his squad's ring).
@@ -146,6 +146,17 @@ Exterminate spreads out to blockade the entries (each marine takes a post
 within six squares of the entries he covers, the spare marines reinforce;
 the squad row reads BLOCKADE and each marine's post ring is the only marker).
 Orders reach each squad through its own sergeant as before.
+
+**The metered command pause (2.x stage 4 step 5).** Command points are
+gone. Space spends **command time**: a pool of seconds on the HUD meter
+under the COMMAND button, 10 s plus 10 s per living sergeant, refilled at 1 s
+per cycle plus 1 s per cycle per sergeant (a full squad thinks for 20 s and
+refills in 100 s of play; without its sergeant 10 s and 400 s). The pause
+opens with at least one second left, counts down on the bar and in the
+overlay, and resumes on Space, the button, or when the time is gone; each
+open costs at least a second. Orders given in the pause still take their
+normal time to reach the squad. The pool is one for the whole force. Add
+`?pause=free` to the URL for an unmetered pause.
 
 ## Controls
 
@@ -160,7 +171,7 @@ Orders reach each squad through its own sergeant as before.
 | Shift + right-click square (squad selected) | Squad order: advance there in a column with a rear guard |
 | Right-click closed door (squad selected) | Squad order: clear it (two cover, one opens, the flamer waits behind) |
 | `Esc` (squad selected) | Squad order: hold (drops the order and the squad selection) |
-| `Space` | Command pause: the clock stops, orders (right-click, Tab, Esc) still go, direct-control keys wait; Space resumes |
+| `Space` | Command pause, metered by the HUD's command time: the clock stops, orders (right-click, Tab, Esc, I) still go, direct-control keys wait; Space, the COMMAND button or an empty pool resumes |
 | `1`-`0` | Select marine by number: 1-5 the first squad, 6-0 the second (shown as `[n]` on his card; dead marines' keys go inert) |
 | `W` / `X` | Move forward (1 AP) / backward (2 AP) |
 | `Q` / `E` | Move diagonally forward-left / forward-right (1 AP, facing kept) |
@@ -175,7 +186,6 @@ Orders reach each squad through its own sergeant as before.
 | `R` / `T` | Reload (4 AP) / autofire (assault cannon only) |
 | `G` | Cut the door ahead (chain fist only, 1 AP) |
 | `B` `B` | Heavy flamer self-destruct: press twice to confirm (torches his own section) |
-| `P` | Spend a Command Point (+1 AP) |
 | `K` | Mute sound on/off (persists) |
 | `L` (hold) | Show line of sight |
 | `Esc` / PAUSE | Pause: the clock stops, the board stays readable, no key reaches the game until you resume. A hidden browser tab pauses on its own |

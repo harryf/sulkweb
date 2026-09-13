@@ -24,7 +24,7 @@ Pick a mission with a URL parameter: `http://localhost:5173/?mission=beta_2` (de
 
 | Path | Contents | Touch it when... |
 |---|---|---|
-| `GameEngine.ts` | State owner: the deployment phase (`beginDeployment`/`autoDeploy`/`finishDeployment`, helpers in `rules/deploy.ts`), the clock (`tick()`, `cycleBoundary()`, `cycleEvents()`), the command path (`command()`), victory checks, CP | changing the tick order, victory rules, deployment |
+| `GameEngine.ts` | State owner: the deployment phase (`beginDeployment`/`autoDeploy`/`finishDeployment`, helpers in `rules/deploy.ts`), the clock (`tick()`, `cycleBoundary()`, `cycleEvents()`), the command path (`command()`), victory checks, the command pause pool | changing the tick order, victory rules, deployment |
 | `board/` | `Board`, `Square`, `los.ts`, `vision.ts` (sight and fire arcs) | changing movement space, LOS, arcs |
 | `pieces/` | `Piece` base + every unit class (marines, `Genestealer`, `Blip`, `AmbushCounter`) | adding or changing a unit type |
 | `rules/` | `Door.ts`, `combat.ts` (close combat), `flame.ts`, `exotic.ts` (C.A.T., ducting) | changing a cross-piece rule |

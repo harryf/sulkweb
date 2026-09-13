@@ -81,7 +81,8 @@ fire with the order held until every post is reached and a marine the
 player takes dropping out of the plan, the whole column covering on
 contact): space_hulk_1 under squad orders went from 2 to 10 wins in 60 on
 the same seeds, nothing tuned; on /latest/. The win-rate band per mission
-still waits on Harry before step 6.
+still waits on Harry before step 6. Next is step 4, mission orders, from the
+plan's "Stage 4 step 4 entry notes" (step 3 deferred behind it).
 
 ## Known gaps / residue
 

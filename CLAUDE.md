@@ -12,7 +12,7 @@ ALL NINE missions registered (space_hulk 1–6, beta_1, beta_2, debug_1); the co
 | Missions, controls, roster, deployment phase | `docs/features.md` |
 | Gameplay log export schema (stealer-AI analysis corpus) | `docs/gamelog-format.md` |
 | Roadmap state and known gaps | `docs/status.md` |
-| **2.x real-time plan (APPROVED 2026-09-12; stage 1 shipped as v2.0.0-alpha.1 and played: "works, playable, really hard"; stage 2 shipped as v2.0.0-alpha.2 the same day; stage 3 (squad orders, the chain of command, the command pause) shipped as v2.0.0-alpha.3 on 2026-09-13 and played: "not bad, we're going to have to make it easier for the marines"; stage 4 step 1 built 2026-09-13; START THE NEXT SESSION at its last section, "Stage 4 step 1: the instrument" (the scan numbers, the reading, the two questions for Harry: the transit rule and the win-rate band), then the "Stage 3 verdict and stage 4 handover" build order from step 2)** | `docs/realtime-plan.md` |
+| **2.x real-time plan (APPROVED 2026-09-12; stage 1 shipped as v2.0.0-alpha.1 and played: "works, playable, really hard"; stage 2 shipped as v2.0.0-alpha.2 the same day; stage 3 (squad orders, the chain of command, the command pause) shipped as v2.0.0-alpha.3 on 2026-09-13 and played: "not bad, we're going to have to make it easier for the marines"; stage 4 steps 1 and 2 built 2026-09-13 (the instrument, the transit rules, on /latest/); START THE NEXT SESSION at its LAST section, "Stage 4 step 4 entry notes" (mission orders: the `missionOrder` fan-out, `objective`, the `blockade` split space_hulk_2 needs, where it hooks), then "Stage 4 step 2: the transit rules" for the numbers)** | `docs/realtime-plan.md` |
 | Original milestone specs (M0–M8) and roadmap | `docs/history/prompts/` |
 | Canonical game rules (AP costs, dice, blips, phases) | `docs/history/SULK Manual Combined.pdf`; distilled digest in ISA Decisions |
 | Original Pygame engine analysis | `docs/history/Analysis Sulk Pygame*.html` |
@@ -406,9 +406,10 @@ pause) shipped as v2.0.0-alpha.3 and passed its playtest with one carried
 requirement, "easier for the marines"; stage 4 (the balance pass first: a
 squad-order autopilot issuer, the transit overwatch rule, then numbers;
 mission orders, the metered pause, all nine missions, 2.0.0) starts from the
-plan's "Stage 3 verdict and stage 4 handover" section; step 1 (the instrument: the
-squads autopilot policy and scripts/scan.ts) is done 2026-09-13, see the plan's "Stage 4
-step 1: the instrument" for the numbers; steps 2 and 6 wait on Harry's answers. Still open: thunder hammer + captain/grenades + librarian psi (no
+plan's "Stage 3 verdict and stage 4 handover" section; steps 1 (the instrument) and 2
+(the transit rules) are done 2026-09-13, see the plan's "Stage 4 step 2: the transit
+rules" for the numbers; step 4 (mission orders) is next per Harry, from the plan's "Stage 4
+step 4 entry notes"; step 3 is deferred behind it; step 6 waits on the band. Still open: thunder hammer + captain/grenades + librarian psi (no
 registered mission uses them; sprites exist unused per docs/asset-index.md),
 off-board entry-limbo lurking, the first balance sweep of the real-time
 constants. Deferred verifications: FPS probe (ISC-71), live real-Chrome boot

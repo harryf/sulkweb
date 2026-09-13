@@ -4,10 +4,10 @@ task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: context-override
 phase: complete
-progress: "1603/1603 (stage 4 step 2 shipped on /latest/; two provisional deviations for Harry; ISC-1038 dropped; ISC-71 deferred)"
+progress: "1622/1622 (step 4 entry notes written; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-13T09:40:00Z
+updated: 2026-09-13T10:45:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -637,10 +637,35 @@ Docs and the re-scan:
 - [x] ISC-1669: this run block all [x] with Verification, PROJECTS.md updated, commit pushed, tree clean
 - [x] ISC-1670: Antecedent: the re-scan is read against step 1 with the intervals, and the reading names what changed and what it cannot see (grep the plan section for "interval")
 
+### Step 4 entry notes (2026-09-13, twenty-eighth run)
+
+Harry: "ok write any notes you need to so we can continue with step 4". Notes only, no code; step 3 deferred behind step 4 by his call; the two step 2 refinements stand. E2, the ISC floor waived for a notes commit (Decisions).
+
+- [x] ISC-1671: the plan gains "## Stage 4 step 4 entry notes (2026-09-13)" as its LAST section (grep)
+- [x] ISC-1672: the section states what a mission order is (the L3 fan-out over engine.squadNames(), the `missionOrder` command shape) (grep "missionOrder")
+- [x] ISC-1673: the section states what `objective` means per mission and names squadTarget as the resolver to lift (grep "squadTarget already reads")
+- [x] ISC-1674: the section states the kill-quota finding with the numbers (60 of 60 lost under a single squad order, 3 of 60 by the per-marine spread) and the `blockade` order as the split (grep "blockade")
+- [x] ISC-1675: the section names the engine, bot, client and spec hook points (grep "handleSquadOrderClick", "runBlockade", "mission.spec")
+- [x] ISC-1676: the section names the step 4 exit criterion (space_hulk_2 above zero on the re-scan) and the step 2 baseline (grep "exit criterion")
+- [x] ISC-1677: the section records step 3 as deferred with its fixture list (grep "### Step 3, deferred")
+- [x] ISC-1678: the section carries the session gotchas (grep "Gotchas for the session")
+- [x] ISC-1679: the plan Status line says NEXT: step 4 and names the section (grep)
+- [x] ISC-1680: CLAUDE.md read-first row points at "Stage 4 step 4 entry notes" (grep)
+- [x] ISC-1681: CLAUDE.md "Where work would continue" names step 4 next and step 3 deferred (grep)
+- [x] ISC-1682: docs/status.md names step 4 next (grep)
+- [x] ISC-1683: PROJECTS.md NEXT SESSION points at the section with the step 4 shape and the ISC start (grep "Stage 4 step 4 entry notes")
+- [x] ISC-1684: Anti: em dashes in the added lines 0
+- [x] ISC-1685: Anti: banned words in the added lines 0
+- [x] ISC-1686: Anti: git diff --stat names docs, CLAUDE.md and ISA.md only (no engine or client path)
+- [x] ISC-1687: this run block with Verification; frontmatter progress
+- [x] ISC-1688: the commit on main with the trailers, pushed, tree clean; a docs-only push triggers no deploy
+- [x] ISC-1689: the closing summary tells Harry where the next session starts and what it builds first
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
 |-----|------|-------|-----------|------|
+| ISC-1671..1689 | docs/repo | greps, git | present, clean | grep, git |
 | ISC-1630..1652 | engine | squad.spec, orders.spec, squad_autopilot.spec | green | vitest |
 | ISC-1653..1659 | docs | greps, ls | present | grep |
 | ISC-1660..1670 | repo | tsc, vitest, playwright, node boot check, gh run, curl | green | tools |
@@ -909,6 +934,8 @@ Docs and the re-scan:
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-13 (step 4 entry notes, E2 with the ISC floor waived: a notes commit has nineteen probes): Harry moved step 4 ahead of step 3 and did not overrule the two step 2 refinements, so they stand. The notes commit the instrument's finding as design input: a single squad order cannot blockade space_hulk_2, so \`objective\` on kill-quota is a fourth squad order, \`blockade\`, built on the individual bot's per-marine entry cover; the recommended command shape is one \`missionOrder\` fanning out inside the engine so the log holds one entry and each squad keeps its own relay. No code changed.
 
 - 2026-09-13 (stage 4 step 2, OBSERVE to VERIFY): Harry's three decisions built as rules, none as numbers. FirstPrinciples put the clearing point on the piece (one flag around the action, StormBolterMarine.onActed reads it), read "the rest once it is covered" as two stages and "all previous orders dropped" as the marine's, not the squad's. SystemsThinking found the free-shot disarm and the cold start (a bolter under a task re-arms before stepping), the corridor cork, the instant undo (isPinned must cover a live order and the exclusion must apply to task writing only, so a steered sergeant still coordinates), and the two-master facing (the hold task faces the member's own nearest threat, the same the reaction turns to); the advisor before BUILD asked that a holder in the walker's path walk too and that "closing in" be the threat's own movement. The instrument then forced two deviations from the literal decisions, both recorded in the plan for Harry to overrule: staging gates only under contact (unconditional staging dropped space_hulk_6 from 10 of 10 to 2 of 10 because the stage 1 wait spent the first wave's AP; the isolating experiment: rule A off with staging on gave 2 of 10, staging off with rule A on gave 10 of 10), and the plan drops what a column cannot execute (a corridor column was handed a rotation of its own five squares; occupancy cycles without slack are broken, posts on stayers' squares dropped; slack counted inside the area only, or the corridor's door square counted). A third finding: the transit turn in the marine AI's order branch sat outside the formation flag and cost a re-arm per turn; it is inside now. The advisor before complete: report the paired split (10 seeds flipped to wins, 2 to losses, McNemar p about 0.02; against orders 9 to 1, p about 0.01), no claim from the marines mean without a spread, name no mission got worse, put both deviations to Harry as provisional, pin them with specs (done: the quiet case, the corridor and room plans, the hold that lapses), an e2e for the pin lapsing (done, with the stealers quieted so a dead flamer does not end the mission mid-test), and name space_hulk_2's zero in the callout (done). Shipped on /latest/ per the shipping policy since Harry said "let's continue"; the advisor's "not before he answers" is met by the provisional marking, not by holding the deploy. Delegation floor: single author, waived (every change touches squad.ts internals).
 
@@ -1285,3 +1312,9 @@ The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/
 - ISC-1670: the reading names the intervals, the paired split and the McNemar p values, the mean without a spread, and what sixty seeds cannot see
 - ISC-1668: commit b86c9a3 on main, deploy-latest run 34749911930 success (build-publish, deploy); /latest/manifest.json version latest-b86c9a3; the callout with the URL and space_hulk_2's gap is in the closing summary
 - ISC-1669: this block; PROJECTS.md names step 2 done with the hash; the ISA close commit follows; tree clean after it
+
+### Step 4 entry notes (2026-09-13)
+
+- ISC-1671..1683: greps as named (the plan section and its subsections, the Status line, the CLAUDE.md row and continuation note, status.md, PROJECTS.md)
+- ISC-1684..1686: em dashes and banned words in the added lines 0; git status: CLAUDE.md, ISA.md, docs/realtime-plan.md, docs/status.md
+- ISC-1687..1689: this block; the commit below on main, pushed, tree clean, no workflow run for a docs-only push; the summary names the section and the blockade order

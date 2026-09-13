@@ -177,7 +177,7 @@ test('keyboard help draws staggered keycap rows, collapses on click; Credits sit
   });
   expect(stagger[1]).toBeGreaterThan(stagger[0]);
   expect(stagger[2]).toBeGreaterThan(stagger[1]);
-  await expect(help.locator('.keycap.unbound')).toHaveCount(5); // Y I J V N spacers (K is mute now)
+  await expect(help.locator('.keycap.unbound')).toHaveCount(4); // Y J V N spacers (K is mute, I is the objective key)
   // W keycap carries its action label ("fwd" also contains a w — match the <b> exactly)
   const wLabel = help.locator('.keycap').filter({ has: page.locator('kbd', { hasText: /^W$/ }) }).locator('i');
   await expect(wLabel).toHaveText('forward');

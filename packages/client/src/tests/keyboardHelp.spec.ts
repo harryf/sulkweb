@@ -10,8 +10,9 @@ describe('keyboard help layout data', () => {
       // LiveScene addKeys('W,A,S,D,Q,E,Z,C,O,F,X,B,H,U,P,T,R,G,M') ...
       'W', 'A', 'S', 'D', 'Q', 'E', 'Z', 'C', 'O', 'F', 'X', 'B', 'H', 'U', 'P', 'T', 'R', 'G', 'M',
       // ... plus the dedicated keydown handlers (Enter only starts the
-      // mission during deployment and is described in the deploy note)
-      'L', 'K', '1-0', 'Esc',
+      // mission during deployment and is described in the deploy note; I is
+      // the squad objective key, deliberately outside the addKeys list)
+      'L', 'K', '1-0', 'Esc', 'I',
       // ... and the mouse orders (stage 2)
       'RMB', 'Shift+RMB', 'RMB door',
       // ... and the squad orders and the command pause (stage 3)
@@ -59,6 +60,6 @@ describe('keyboard help layout data', () => {
 
   it('unbound keys stay in place as spacers so bound keys sit at true positions', () => {
     const unbound = letterCaps.filter(c => !c.label).map(c => c.key)
-    expect(unbound.sort()).toEqual(['I', 'J', 'N', 'V', 'Y'])
+    expect(unbound.sort()).toEqual(['J', 'N', 'V', 'Y'])
   })
 })

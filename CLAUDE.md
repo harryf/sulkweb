@@ -12,7 +12,7 @@ ALL NINE missions registered (space_hulk 1–6, beta_1, beta_2, debug_1); the co
 | Missions, controls, roster, deployment phase | `docs/features.md` |
 | Gameplay log export schema (stealer-AI analysis corpus) | `docs/gamelog-format.md` |
 | Roadmap state and known gaps | `docs/status.md` |
-| **2.x real-time plan (APPROVED 2026-09-12; stage 1 shipped as v2.0.0-alpha.1 and played: "works, playable, really hard"; stage 2 shipped as v2.0.0-alpha.2 the same day; stage 3 (squad orders, the chain of command, the command pause) shipped as v2.0.0-alpha.3 on 2026-09-13 and played: "not bad, we're going to have to make it easier for the marines"; stage 4 steps 1 and 2 built 2026-09-13 (the instrument, the transit rules, on /latest/); START THE NEXT SESSION at its LAST section, "Stage 4 step 4 entry notes" (mission orders: the `missionOrder` fan-out, `objective`, the `blockade` split space_hulk_2 needs, where it hooks), then "Stage 4 step 2: the transit rules" for the numbers)** | `docs/realtime-plan.md` |
+| **2.x real-time plan (APPROVED 2026-09-12; stage 1 shipped as v2.0.0-alpha.1 and played: "works, playable, really hard"; stage 2 shipped as v2.0.0-alpha.2 the same day; stage 3 (squad orders, the chain of command, the command pause) shipped as v2.0.0-alpha.3 on 2026-09-13 and played: "not bad, we're going to have to make it easier for the marines"; stage 4 steps 1 and 2 built 2026-09-13 (the instrument, the transit rules, on /latest/); step 4 (mission orders) built 2026-09-13; START THE NEXT SESSION at its LAST section, "Stage 4 step 4: mission orders" (as built, the numbers: space_hulk_2 0 to 7 in 60), then "Stage 4 build order" for what is left: step 3 (fixtures, deferred), step 5 (the metered pause), step 6 (the sweep, needs Harry's band), step 7 (2.0.0))** | `docs/realtime-plan.md` |
 | Original milestone specs (M0–M8) and roadmap | `docs/history/prompts/` |
 | Canonical game rules (AP costs, dice, blips, phases) | `docs/history/SULK Manual Combined.pdf`; distilled digest in ISA Decisions |
 | Original Pygame engine analysis | `docs/history/Analysis Sulk Pygame*.html` |
@@ -24,7 +24,7 @@ Resuming work = extend `ISA.md` (new ISCs, decisions, changelog); don't invent a
 ```bash
 pnpm install
 pnpm --filter ./packages/client dev      # play at localhost:5173
-pnpm --filter ./packages/engine test     # 520 unit tests + coverage (~98% lines)
+pnpm --filter ./packages/engine test     # 541 unit tests + coverage (~98% lines)
 pnpm --filter ./packages/client test     # HUD/minimap units (vitest, --dir src only)
 pnpm --filter ./packages/client e2e      # Playwright no-mock suite (real browser, no mocks)
 pnpm build                               # engine tsc -b + client vite build
@@ -195,10 +195,12 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
    60, shipped tuning; raw output docs/scans/2026-09-13-stage4-step*.txt). Step 1 (before
    the transit rules): space_hulk_1 orders 2W (seeds 26, 27), squads 2W; space_hulk_2 orders
    3W (seeds 29, 36, 58), squads 0W. Step 2 (the transit rules): space_hulk_1 squads 10W
-   (16.7%, interval 9.3 to 28.0; orders unchanged at 2W), space_hulk_2 squads still 0W; all
-   nine under squads (10 seeds, liveness only): space_hulk_6 10W, space_hulk_4 8W,
-   space_hulk_1 2W, space_hulk_5 1W, the rest 0W. Read the plan's "Stage 4 step 2: the
-   transit rules" before touching a number.
+   (16.7%, interval 9.3 to 28.0; orders unchanged at 2W), space_hulk_2 squads still 0W.
+   Step 4 (mission orders, the blockade): space_hulk_2 squads 7W (11.7%, interval 5.8 to
+   22.2; seeds 10, 12, 20, 36, 44, 45, 53; orders unchanged at 3W), space_hulk_1 unchanged
+   to the seed; all nine under squads (10 seeds, liveness only): space_hulk_6 10W,
+   space_hulk_4 8W, space_hulk_1 2W, space_hulk_2 1W, space_hulk_5 1W, the rest 0W. Read the
+   plan's "Stage 4 step 4: mission orders" before touching a number.
    CAUTION: playthrough.spec idles turn 1 before its DONE click, so it consumes dice
    differently from plain autoplay; scan loss seeds under THAT pattern. If a rules change
    alters dice-consumption order, re-scan and re-pin. Stage 2 pins (2026-09-12): the win
@@ -303,6 +305,23 @@ the mocks, not the game. Standing rules (see ISA Principles + Changelog):
   uses `isSteered` only. (E) on contact the whole column holds on its squares facing the
   threat; re-arm only on the threat's own step closer (`contactKey`), never on the
   column's. Never put the re-arm rule back on distance alone: a parked blip gives stop-go.
+- **Mission orders (2.x stage 4 step 4, 2026-09-13):** `missionOrder { order }` fans out INSIDE
+  `GameEngine.execute` (never a client loop): the request is resolved per squad at receipt
+  (`ai/objective.ts` `resolveObjective`: blockade on kill-quota, defend at the sergeant's
+  square on defend, an advance to the threshold / Data Room / nearest exit elsewhere;
+  undefined skips the squad, none taken refuses the command), `applySquadOrder` per squad,
+  idempotent for a squad already on the same order past its relay (no reset, no event: one
+  squad's re-issue must never restart the others' plans, the systems pass's accidental
+  adversaries loop). `squadOrder` takes the same `SquadOrderRequest`. The stored order is
+  always concrete; the log carries the request. `blockade`: `planBlockade` (greedy square
+  cover of the entries under the victory metric, raw adjacency within `BLOCKADE_RANGE` 6,
+  computed over every living unpinned marine with each squad running its slice, sticky
+  between re-plans on a death, a pin or the cycle, a post reachable without crossing another
+  post, reinforcement posts for the spare marines) and `runBlockade` with no staging
+  (`BLOCKADE_STAGING` false: the posts are far apart by design). The bot: the first squad
+  past its quiet gate issues ONE `missionOrder { objective }` per game (`missionIssued`),
+  every later re-issue is its own `squadOrder { objective }`; an issuer adopts a live order
+  it did not place; kill-quota's first call is the blockade itself (no gathering defend).
 - **Squad planner rules the instrument added (2.x stage 4 step 1, 2026-09-13):** a
   different squad order clears the members' tasks (`sameSquadOrder` in GameEngine; the
   same order again is a re-plan and keeps the posts); on a flame mission with the flamer's
@@ -406,10 +425,10 @@ pause) shipped as v2.0.0-alpha.3 and passed its playtest with one carried
 requirement, "easier for the marines"; stage 4 (the balance pass first: a
 squad-order autopilot issuer, the transit overwatch rule, then numbers;
 mission orders, the metered pause, all nine missions, 2.0.0) starts from the
-plan's "Stage 3 verdict and stage 4 handover" section; steps 1 (the instrument) and 2
-(the transit rules) are done 2026-09-13, see the plan's "Stage 4 step 2: the transit
-rules" for the numbers; step 4 (mission orders) is next per Harry, from the plan's "Stage 4
-step 4 entry notes"; step 3 is deferred behind it; step 6 waits on the band. Still open: thunder hammer + captain/grenades + librarian psi (no
+plan's "Stage 3 verdict and stage 4 handover" section; steps 1 (the instrument), 2
+(the transit rules) and 4 (mission orders) are done 2026-09-13, see the plan's "Stage 4
+step 4: mission orders" for the numbers; step 3 (fixtures) is deferred, step 5 (the
+metered pause) is next unless Harry orders step 3 first; step 6 waits on the band. Still open: thunder hammer + captain/grenades + librarian psi (no
 registered mission uses them; sprites exist unused per docs/asset-index.md),
 off-board entry-limbo lurking, the first balance sweep of the real-time
 constants. Deferred verifications: FPS probe (ISC-71), live real-Chrome boot

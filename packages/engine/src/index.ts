@@ -17,9 +17,10 @@ export { flameFlood, igniteSquares, sectionSquares, clearFlames, expireFlames } 
 export { Dir } from './core/Direction.js';
 export { AP_PER_TURN, MOVE_COST, TURN_COST, TUNING, applyTuning, parseTuning } from './core/CostTables.js';
 export type { Tuning, TuningPatch } from './core/CostTables.js';
-export type { MarineCommand, MoveDir, MarineOrder, SquadOrder } from './core/Commands.js';
+export type { MarineCommand, MoveDir, MarineOrder, SquadOrder, SquadOrderRequest } from './core/Commands.js';
 export { orderStep, orderLabel, orderIsValid, setOrder, setTask, activeOrder, squadLabel } from './ai/orders.js';
-export { squadTick, squadOf, squadMembers, hasSergeant, isPinned, isSteered, postsReached, flameJobPending, planDefend, planClear, defendArea, entrancesOf, laneOf, entrancesCovered, columnOrder, battleOrder } from './ai/squad.js';
+export { squadTick, squadOf, squadMembers, hasSergeant, isPinned, isSteered, postsReached, flameJobPending, planDefend, planClear, planBlockade, BLOCKADE_RANGE, defendArea, entrancesOf, laneOf, entrancesCovered, columnOrder, battleOrder } from './ai/squad.js';
+export { resolveObjective, objectiveTarget, thresholdSquare } from './ai/objective.js';
 export type { SquadState, DefendPost, ClearPlan } from './ai/squad.js';
 
 export { Door } from './rules/Door.js';

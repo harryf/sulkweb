@@ -31,7 +31,20 @@ export type MarineOrder =
 export type SquadOrder =
   | { type: 'defend'; x: number; y: number }
   | { type: 'advance'; x: number; y: number }
-  | { type: 'clear'; x: number; y: number; facing: number };
+  | { type: 'clear'; x: number; y: number; facing: number }
+  /** Cover the mission's entry squares (2.x stage 4, kill-quota): one post
+   *  per marine from a greedy cover of the entries, no target square. */
+  | { type: 'blockade' };
+
+/**
+ * What the player asks of a squad: a concrete order, or `objective`, which
+ * the engine resolves at receipt into the order the mission wants of that
+ * squad (blockade on kill-quota, defend where it stands on defend missions,
+ * an advance to the threshold of the room to burn, the Data Room or the
+ * nearest exit elsewhere). The log carries the request; the squad state
+ * holds the concrete order, so a replay resolves it the same way.
+ */
+export type SquadOrderRequest = SquadOrder | { type: 'objective' };
 
 export type MarineCommand =
   | { type: 'move'; dir: MoveDir }
@@ -51,5 +64,9 @@ export type MarineCommand =
   | { type: 'order'; order: MarineOrder }
   | { type: 'clearOrder' }
   /** Addressed to any member: the squad is the marine's deployment tag. */
-  | { type: 'squadOrder'; order: SquadOrder }
-  | { type: 'clearSquadOrder' };
+  | { type: 'squadOrder'; order: SquadOrderRequest }
+  | { type: 'clearSquadOrder' }
+  /** A mission order (2.x stage 4): the same request to every squad with a
+   *  living member, addressed to any living marine, fanned out inside the
+   *  engine so the log holds one entry and each squad keeps its own relay. */
+  | { type: 'missionOrder'; order: SquadOrderRequest };

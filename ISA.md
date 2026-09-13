@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: context-override
-phase: complete
-progress: "1622/1622 (step 4 entry notes written; ISC-1038 dropped; ISC-71 deferred)"
+phase: execute
+progress: "1622/1679 (stage 4 step 4 opened: ISC-1690..1746; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-13T10:45:00Z
+updated: 2026-09-13T11:45:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -661,6 +661,79 @@ Harry: "ok write any notes you need to so we can continue with step 4". Notes on
 - [x] ISC-1688: the commit on main with the trailers, pushed, tree clean; a docs-only push triggers no deploy
 - [x] ISC-1689: the closing summary tells Harry where the next session starts and what it builds first
 
+### Stage 4 step 4: mission orders (2026-09-13, twenty-ninth run)
+
+Harry: "continue now with stage 4 step 4". The plan's "Stage 4 step 4 entry notes" is the spec: one `missionOrder` command fanned out inside the engine, `objective` resolved per squad at receipt, a fourth squad order `blockade` for kill-quota, the bot issuing `objective` after its first defend, the re-scan (space_hulk_2 above zero is the exit criterion), the client all-squads selection and a key. E3.
+
+Engine: commands, the resolver, the fan-out
+- [ ] ISC-1690: Commands.ts: `SquadOrder` gains `{ type: 'blockade' }`; `SquadOrderRequest` is a SquadOrder or `{ type: 'objective' }`; `squadOrder.order` takes a request; a `missionOrder { order: SquadOrderRequest }` command exists (grep, tsc)
+- [ ] ISC-1691: `ai/objective.ts` exports `resolveObjective(engine, members)`: kill-quota gives blockade, defend gives defend at the leader's square, flame missions an advance to the threshold square of the nearest uncleansed objective, download an advance to the Data Room square, every other mission an advance to the nearest exit; undefined when nothing is left to march on (spec over the nine missions)
+- [ ] ISC-1692: SquadAutopilot.squadTarget reads the mission through the resolver's target function (one switch over the objective kinds in the engine; grep shows no second switch)
+- [ ] ISC-1693: `squadOrder { type: 'objective' }` on one squad stores the concrete order and logs the request: the command event carries objective, the squad state never holds it (spec)
+- [ ] ISC-1694: `missionOrder` fans out inside execute to every squad with a living member: one command event, one squadOrderChanged per squad (spec on the two-squad space_hulk_3 board)
+- [ ] ISC-1695: the relay stays per squad under a mission order: a squad without a sergeant is due TUNING.relayTicks later and uncoordinated while the other is due next tick (spec)
+- [ ] ISC-1696: a squad whose objective resolves to nothing is left untouched by the fan-out; the command returns true when any squad accepted and false when none (spec)
+- [ ] ISC-1697: a game whose log holds a missionOrder replays to the same state hash on a second engine (spec)
+- [ ] ISC-1698: missionOrder and an objective squadOrder stamp no lease on the addressee (m.lastCommandTick unchanged; spec)
+- [ ] ISC-1699: a mission order that repeats a squad's live order is a re-plan for it (posts kept), a different one clears its tasks, as squadOrder does (spec)
+
+Engine: the blockade planner
+- [ ] ISC-1700: squad.ts `runBlockade`: the posts are the greedy entry cover over the living, non-pinned marines in deployment order (each takes his nearest still-uncovered entry, standing there covers every entry within six walk squares, leftovers reinforce), this squad's members' posts written as level 2 tasks (spec on space_hulk_2: every entry within six walk squares of a post)
+- [ ] ISC-1701: a blockade post faces the nearest other entry from the post, his current facing when there is none (spec)
+- [ ] ISC-1702: blockade staging is defend's: under contact the first post (shortest walk) fills while the rest hold their squares on overwatch facing the nearest threat in sight; with nothing in sight everyone walks (spec)
+- [ ] ISC-1703: the blockade re-plans when a member dies (his entry is retaken by the greedy) and at the cycle boundary (spec)
+- [ ] ISC-1704: postsReached is true for a blockade when every post is held (spec)
+- [ ] ISC-1705: an uncoordinated blockade (no sergeant) sends everyone to his own post at once, no staging (spec)
+- [ ] ISC-1706: a pinned member takes no part in a blockade (no post, the greedy skips him; spec)
+- [ ] ISC-1707: squadOrderIsValid accepts blockade when the mission has entry points and refuses it otherwise; sameSquadOrder treats two blockades as the same order (spec)
+- [ ] ISC-1708: squadLabel returns BLOCKADE and orderLabel carries it for a member under a blockade task (spec)
+- [ ] ISC-1709: clearSquadOrder and squad wipe clear a blockade like any order (spec)
+
+Bot
+- [ ] ISC-1710: the issuer's advance becomes a mission order: the first squad past the quiet gate (door ahead cleared first, as now) issues `missionOrder { objective }` and every squad's issuer state syncs to the live order the engine stored for it (phase, target key) (spec on the quiet board: defend, clear, then a missionOrder whose stored order is advance to (17,20))
+- [ ] ISC-1711: kill-quota under the bot: after the first quiet count the squad's live order is blockade and the issuer never advances it (spec on space_hulk_2: 200 ticks, no advance in the log)
+- [ ] ISC-1712: the existing issuer cases (arrival defend, the flame hold, the stall watchdog, the clear cap, determinism) stay green
+- [ ] ISC-1713: Anti: the individual-orders rows of the re-scan equal step 2 to the seed (space_hulk_1 26, 27; space_hulk_2 29, 36, 58)
+
+The re-scan
+- [ ] ISC-1714: both hulks, 60 seeds, both policies, cycle cap 60, shipped tuning: raw output committed at docs/scans/2026-09-13-stage4-step4.txt
+- [ ] ISC-1715: space_hulk_2 under squads wins at least one of 60 (the step's exit criterion)
+- [ ] ISC-1716: space_hulk_1 under squads wins at least 6 of 60 (inside or above the step 2 interval; a fall below it is investigated with the toggle method before shipping)
+- [ ] ISC-1717: all nine missions at ten seeds under squads: space_hulk_6 stays 10 of 10, space_hulk_4 at least 6 of 10; every row's numbers in the plan
+- [ ] ISC-1718: every scan row resolves (O 0) and replays (det yes)
+
+Client
+- [ ] ISC-1719: Tab cycles the live squads, then an all-squads selection when two or more squads live, then the first again (e2e on space_hulk_3)
+- [ ] ISC-1720: the all-squads selection: rings on every living marine in his squad's colour, every roster row lit (e2e)
+- [ ] ISC-1721: right-click with all squads selected issues one missionOrder (a square defends, Shift advances, a door edge clears): every squad's state holds the order (e2e)
+- [ ] ISC-1722: Esc with all squads selected clears every squad's order and the selection (e2e)
+- [ ] ISC-1723: the I key with a squad selected issues `squadOrder { objective }`; with all squads selected `missionOrder { objective }` (e2e on space_hulk_1: Tab, I, the state holds advance to (17,20))
+- [ ] ISC-1724: I with a marine or nothing selected issues nothing (e2e: the command log gains no entry)
+- [ ] ISC-1725: a blockade reads BLOCKADE on the roster row and draws no squad marker (the level 2 task markers carry the posts) (e2e on space_hulk_2: Tab, I)
+- [ ] ISC-1726: keyboardHelp: I labelled objective, the Tab label and a KEY_NOTES sentence cover the all-squads selection and the key; keyboardHelp.spec's expected list updated (client unit)
+- [ ] ISC-1727: the manual page carries the key through the same data (grep src/manual reads SPECIAL_KEYS; the built manual lists "objective")
+- [ ] ISC-1728: the headless squad boot check passes on the dev server (boot-check-squads.mjs errors [])
+- [ ] ISC-1729: client unit suite green and e2e green, counts reported
+
+Docs and shipping
+- [ ] ISC-1730: the plan gains "## Stage 4 step 4: mission orders (2026-09-13)" with As built, the numbers table beside step 2, The reading; the Status line names step 4 as done and what is next
+- [ ] ISC-1731: rules-reference.md gains a mission orders paragraph (the fan-out, objective per mission, the blockade rule, the key) (grep "blockade")
+- [ ] ISC-1732: features.md controls name Tab's all-squads stop, the I key and the BLOCKADE word (grep)
+- [ ] ISC-1733: architecture.md names ai/objective.ts, runBlockade and the missionOrder command in the log (grep)
+- [ ] ISC-1734: CLAUDE.md: the balance numbers gain step 4, an invariant "Mission orders (2.x stage 4 step 4)", the test counts, the read-first row and "Where work would continue" point past step 4 (grep)
+- [ ] ISC-1735: docs/status.md names step 4 as done (grep)
+- [ ] ISC-1736: Anti: em dashes in the diff's added lines 0
+- [ ] ISC-1737: Anti: banned words in the added lines 0
+- [ ] ISC-1738: Anti: git diff core/CostTables.ts empty (nothing tuned)
+- [ ] ISC-1739: Anti: squad.spec (41) and transit.spec (16) pass unchanged (a concrete squadOrder behaves as before)
+- [ ] ISC-1740: engine tsc --noEmit exit 0
+- [ ] ISC-1741: engine suite green, counts reported
+- [ ] ISC-1742: coverage at or above 98% lines
+- [ ] ISC-1743: the change ships on /latest/ with a callout (user-facing, prerelease line): deploy-latest green, manifest sha = HEAD, the URL in the summary; no tag without Harry
+- [ ] ISC-1744: this run block all [x] with Verification, PROJECTS.md updated, commit pushed, tree clean
+- [ ] ISC-1745: Antecedent: the reading names what the blockade changed on space_hulk_2 against the step 2 baseline with intervals, and what sixty seeds cannot see
+- [ ] ISC-1746: the advisor is called before BUILD and before phase complete (Rule 2), its points folded in or answered in Decisions
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
@@ -828,6 +901,17 @@ Harry: "ok write any notes you need to so we can continue with step 4". Notes on
 | staged-posting | first post, stages, postsReached, issuer gate | ISC-1635..1642 | none | no |
 | player-takes-over | isPinned with orders, task cleared, planners exclude | ISC-1643..1648 | none | no |
 | column-covers | hold tasks for all on contact | ISC-1649..1652 | formation-overwatch | no |
+
+### Stage 4 step 4: mission orders (2026-09-13)
+
+| Feature | Description | Satisfies | Depends on | Parallel |
+|---|---|---|---|---|
+| mission-command | SquadOrderRequest, missionOrder, the resolver, the fan-out | ISC-1690..1699 | none | no |
+| blockade-order | runBlockade with defend's staging, validity, labels | ISC-1700..1709 | mission-command | no |
+| bot-objective | the issuer's advance as a mission order, the blockade phase | ISC-1710..1713 | blockade-order | no |
+| rescan | both hulks 60 seeds, nine at ten, the exit criterion | ISC-1714..1718 | bot-objective | no |
+| client-all-squads | Tab's all-squads stop, the I key, roster and markers, e2e (Forge) | ISC-1719..1729 | mission-command | yes |
+| docs-ship | plan, rules, features, architecture, CLAUDE.md, status, /latest/ | ISC-1730..1746 | rescan, client-all-squads | no |
 | step2-docs-scan | docs, re-scan, /latest/ callout | ISC-1653..1670 | all above | no |
 | squad-issuer | runSquadTurn, squadTarget, autoplay policy, spec | ISC-1593..1611 | none | no |
 | scan-script | scripts/scan.ts with Wilson intervals and det column (Forge) | ISC-1612..1616 | squad-issuer for the squads rows | yes |
@@ -934,6 +1018,8 @@ Harry: "ok write any notes you need to so we can continue with step 4". Notes on
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-13 (stage 4 step 4, OBSERVE to BUILD): mission orders per the entry notes, with four refinements the passes forced. FirstPrinciples classed "a blockade needs a target square" and "the bot must issue every advance as a mission order" as assumptions; the SystemsThinking causal-loop pass (Accidental Adversaries: two squads' local re-issues restarting each other's plans through the fan-out) fixed the shape: ONE mission order per game from the first squad past its quiet gate, every later re-issue that squad's own objective request, an idempotent receipt (a squad already on the resolved order past its relay is skipped), issuer states adopting a live order they did not place, blockade posts sticky between re-plans. The advisor before BUILD named staging under contact as the likeliest reason space_hulk_2 stays at zero (four marines held in their rooms, the cover never complete at a boundary) and asked for the victory metric in the greedy and a cover-size log; a probe showed two squares cover all eleven entries (one per corner cluster), so the greedy is by square under raw adjacency within 6, the blockade does not stage (`BLOCKADE_STAGING` false, a switch for the toggle row), and kill-quota's first call is the blockade itself rather than a gathering defend (space_hulk_2 deploys one marine per room; the gathering costs the cycles the blockade needs). The first quiet run walled the last reinforcement post off behind its own squad-mates' posts in the corridor (the flamer stuck at (0,23) for 260 ticks): a post must now be reachable without crossing a post already chosen. The blockade wins the quiet space_hulk_2 at tick 80, the second cycle boundary, before the reinforcement posts fill. Delegation: Forge on the client (the codex CLI still not on PATH, built by hand); the engine one author (coupled to squad.ts internals); the second delegation waived, show-your-math: every remaining piece reads the scan numbers. A tracked mission.spec.ts was overwritten by mistake and restored from HEAD at once; the new spec is mission_orders.spec.ts.
 
 - 2026-09-13 (step 4 entry notes, E2 with the ISC floor waived: a notes commit has nineteen probes): Harry moved step 4 ahead of step 3 and did not overrule the two step 2 refinements, so they stand. The notes commit the instrument's finding as design input: a single squad order cannot blockade space_hulk_2, so \`objective\` on kill-quota is a fourth squad order, \`blockade\`, built on the individual bot's per-marine entry cover; the recommended command shape is one \`missionOrder\` fanning out inside the engine so the log holds one entry and each squad keeps its own relay. No code changed.
 

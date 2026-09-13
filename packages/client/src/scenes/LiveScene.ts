@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { GameEngine, GameLogger, loadMission, missions, Square, Piece, StormBolterMarine, SergeantMarine, HeavyFlamerMarine, AssaultCannonMarine, ChainFistMarine, Genestealer, PieceEvents, visibleSquares, DIR_VEC, SeededRng, autoplay, runMarineTurn, flameFlood, Door, deploySeconds, TUNING, applyTuning, parseTuning, orderLabel, squadOf, squadLabel, type MarineCommand, type MarineOrder, type SquadOrder } from "@sulk/engine/index.js";
+import { GameEngine, GameLogger, loadMission, missions, Square, Piece, StormBolterMarine, SergeantMarine, HeavyFlamerMarine, AssaultCannonMarine, ChainFistMarine, Genestealer, PieceEvents, visibleSquares, DIR_VEC, SeededRng, autoplay, runMarineTurn, flameFlood, Door, deploySeconds, TUNING, applyTuning, parseTuning, orderLabel, squadOf, squadLabel, type MarineCommand, type MarineOrder, type SquadOrder, type SquadOrderRequest } from "@sulk/engine/index.js";
 import { Selection } from "../ui/Selection";
 import { Minimap } from '../ui/Minimap.js';
 import { HighlightSprite } from '../ui/HighlightSprite.js';
@@ -554,11 +554,11 @@ export default class LiveScene extends Phaser.Scene {
       if (this.seenKeyEvents.has(e)) return;
       this.seenKeyEvents.add(e);
       // A selected squad: Esc is "hold" (its order goes, the selection too);
-      // otherwise the free pause. During the command pause only the first.
+      // with every squad selected, every live order goes. Otherwise the free
+      // pause. During the command pause only the first.
       const squad = Selection.getSquad();
       if (squad && !this.paused) {
-        const member = this.squadMember(squad);
-        if (member && this.engine.squadState(squad)?.order) this.engine.command(member.id, { type: 'clearSquadOrder' });
+        this.clearSelectedSquadOrders(squad);
         this.selectSquad(null);
         return;
       }
@@ -574,6 +574,19 @@ export default class LiveScene extends Phaser.Scene {
       this.seenKeyEvents.add(e);
       if (this.attract || this.deployMode || this.paused || this.engine.state.result !== 'ongoing') return;
       this.cycleSquad();
+    });
+    // I sends the selection to the mission objective (stage 4 step 4). It is
+    // a squad key, not a direct-control one, so it has its own handler rather
+    // than a place in the addKeys list commandForKey reads: a marine or an
+    // empty selection means nothing at all. Same guards as Tab, the command
+    // pause included (orders still go out while it holds the clock), and the
+    // same seenKeyEvents dedupe against Phaser's cross-frame event replay.
+    this.input.keyboard!.on('keydown-I', (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (this.seenKeyEvents.has(e)) return;
+      this.seenKeyEvents.add(e);
+      if (this.attract || this.deployMode || this.paused || this.engine.state.result !== 'ongoing') return;
+      this.objectiveOrder();
     });
     // Space: the command pause (stage 3, unmetered). The clock stops, the
     // board stays readable, orders (right-click, Tab, Esc) still go; direct
@@ -1586,7 +1599,9 @@ export default class LiveScene extends Phaser.Scene {
   /**
    * Right-click with a squad selected (stage 3): a door edge means "clear
    * it", a square "defend it" (Shift: "advance there"). The order is
-   * addressed to any living member; the engine keys the squad off him.
+   * addressed to any living member; the engine keys the squad off him. With
+   * every squad selected the mapping is the same and the order goes out as
+   * one mission order, which the engine fans out to each squad in turn.
    */
   private handleSquadOrderClick(p: Phaser.Input.Pointer, squad: string): void {
     const member = this.squadMember(squad);
@@ -1601,12 +1616,44 @@ export default class LiveScene extends Phaser.Scene {
       const shift = (p.event as MouseEvent | undefined)?.shiftKey ?? false;
       order = shift ? { type: 'advance', x: hx, y: hy } : { type: 'defend', x: hx, y: hy };
     }
-    this.engine.command(member.id, { type: 'squadOrder', order });
+    this.issueSquadRequest(squad, member, order);
   }
 
-  /** The first living member of a squad, if any. */
+  /** I: send the selection to the mission objective (the engine resolves what
+   *  that means for each squad). Nothing happens with a marine selected or
+   *  with an empty selection: I is a squad key. */
+  private objectiveOrder(): void {
+    const squad = Selection.getSquad();
+    if (!squad) return;
+    const member = this.squadMember(squad);
+    if (!member) return;
+    this.issueSquadRequest(squad, member, { type: 'objective' });
+  }
+
+  /** One squad's request, or every squad's: the all-squads selection sends a
+   *  single mission order and lets the engine fan it out (one command in the
+   *  log, one relay per squad). */
+  private issueSquadRequest(squad: string, member: Piece, order: SquadOrderRequest): void {
+    this.engine.command(member.id, squad === Selection.ALL
+      ? { type: 'missionOrder', order }
+      : { type: 'squadOrder', order });
+  }
+
+  /** Esc's hold: drop the selected squad's live order, or with every squad
+   *  selected each squad that holds one, through one of its own members. */
+  private clearSelectedSquadOrders(squad: string): void {
+    const targets = squad === Selection.ALL ? this.liveSquads() : [squad];
+    for (const name of targets) {
+      if (!this.engine.squadState(name)?.order) continue;
+      const member = this.squadMember(name);
+      if (member) this.engine.command(member.id, { type: 'clearSquadOrder' });
+    }
+  }
+
+  /** The first living member of a squad, if any; any living marine for the
+   *  all-squads selection (a mission order is addressed to anyone). */
   private squadMember(squad: string): Piece | undefined {
-    return this.engine.marines.find(m => m.alive && squadOf(m) === squad);
+    return this.engine.marines.find(m => m.alive && (squad === Selection.ALL || squadOf(m) === squad));
   }
 
   /** Squads with a living member, deployment order. */
@@ -1629,31 +1676,41 @@ export default class LiveScene extends Phaser.Scene {
     this.roster.highlightSquad(name);
   }
 
-  /** Tab: the selected marine's squad, then the next squad each press. */
+  /** Tab: the selected marine's squad, then the next squad each press, then
+   *  the all-squads stop and round again. The stop only exists with two or
+   *  more squads on the board: with one, Tab keeps coming back to it. */
   private cycleSquad(): void {
     const names = this.liveSquads();
     if (names.length === 0) return;
+    const ring = names.length > 1 ? [...names, Selection.ALL] : names;
     const current = Selection.getSquad();
     const marineSquad = Selection.get() ? this.engine.findPiece(Selection.get()!) : undefined;
     let next: string;
-    if (current) next = names[(names.indexOf(current) + 1) % names.length];
+    // A current stop that has left the ring (its last marine died, or the
+    // all-squads stop with one squad left) restarts at the first squad.
+    if (current) next = ring[(ring.indexOf(current) + 1) % ring.length];
     else if (marineSquad && names.includes(squadOf(marineSquad))) next = squadOf(marineSquad);
-    else next = names[0];
+    else next = ring[0];
     this.selectSquad(next);
   }
 
-  /** Rings on every member of the selected squad (none when no squad is selected). */
+  /** Rings on every member of the selected squad (none when no squad is
+   *  selected); with every squad selected, on every living marine, each in
+   *  his own squad's colour. */
   private drawSquadHighlight(): void {
     const squad = Selection.getSquad();
     this.squadHighlight?.destroy();
     this.squadHighlight = undefined;
     if (!squad) return;
     const T = TILE_SIZE;
+    const all = squad === Selection.ALL;
     const g = this.add.graphics().setDepth(0.96).setName('squad-highlight');
     g.setData('squad', squad);
-    g.lineStyle(2, this.squadColour(squad), 0.9);
+    if (!all) g.lineStyle(2, this.squadColour(squad), 0.9);
     for (const m of this.engine.marines) {
-      if (!m.alive || squadOf(m) !== squad) continue;
+      if (!m.alive) continue;
+      if (!all && squadOf(m) !== squad) continue;
+      if (all) g.lineStyle(2, this.squadColour(squadOf(m)), 0.9);
       g.strokeRect(m.pos.c * T + 3, m.pos.r * T + 3, T - 6, T - 6);
     }
     this.squadHighlight = g;
@@ -1666,6 +1723,9 @@ export default class LiveScene extends Phaser.Scene {
     this.squadMarkers[squad]?.destroy();
     delete this.squadMarkers[squad];
     if (!order) return;
+    // A blockade names no square, so it gets no marker: its posts are the
+    // level 2 task markers already drawn on the entries it covers.
+    if (order.type === 'blockade') return;
     const T = TILE_SIZE;
     const colour = this.squadColour(squad);
     const g = this.add.graphics().setDepth(0.94).setName('squad-marker');

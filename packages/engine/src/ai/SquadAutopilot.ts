@@ -10,11 +10,11 @@ import { chebyshev, facingToward } from '../core/Direction.js';
 import { inFireArc } from '../board/vision.js';
 import { hasLineOfSight } from '../board/los.js';
 import { distanceField } from './hive.js';
+import { resolveObjective, objectiveTarget } from './objective.js';
 import { TUNING } from '../core/CostTables.js';
 import { nearestThreatInSight } from './MarineAI.js';
 import { chooseStep } from './orders.js';
-import { squadMembers, walk, downhill, flameJobPending, postsReached } from './squad.js';
-import { assignEntryPosts } from './MarineAutopilot.js';
+import { squadMembers, walk, flameJobPending, postsReached } from './squad.js';
 
 /**
  * The squad-order issuer (2.x stage 4, the balance instrument). It gives
@@ -23,7 +23,16 @@ import { assignEntryPosts } from './MarineAutopilot.js';
  *
  *  - first call: defend the section the squad stands in;
  *  - nothing in sight within TUNING.contactRange of any member for
- *    AUTOPILOT.quietTicks and a mission target ahead: advance toward it;
+ *    AUTOPILOT.quietTicks and a mission target ahead: advance toward it.
+ *    The first such advance in the game is the mission order (stage 4
+ *    step 4): one `missionOrder { objective }` from the squad that passed
+ *    the gate, fanned out by the engine to every squad (a blockade on
+ *    kill-quota, an advance to the threshold, the Data Room or the nearest
+ *    exit elsewhere, a defend on defend missions), so the bot plays the
+ *    order the player has. Every later re-issue is that squad's own
+ *    `squadOrder { objective }`: a mission order is one change of the
+ *    mission's state and gets one issuer (the systems pass's finding), and
+ *    a squad whose live order another squad's fan-out changed adopts it;
  *  - a threat in sight within contact range while advancing: nothing; the
  *    advance planner already holds the leader while it closes in, and a
  *    defend issued on contact would march the squad off overwatch to new
@@ -60,7 +69,7 @@ export const AUTOPILOT = {
   postWaitTicks: 80,
 };
 
-type Phase = 'defend' | 'advance' | 'clear';
+type Phase = 'defend' | 'advance' | 'clear' | 'blockade';
 
 interface IssuerState {
   phase: Phase;
@@ -77,6 +86,8 @@ interface IssuerState {
 
 const key = (c: { c: number; r: number }) => `${c.c},${c.r}`;
 const states = new WeakMap<GameEngine, Map<string, IssuerState>>();
+/** Engines whose one mission order has gone out. */
+const missionIssued = new WeakSet<GameEngine>();
 
 function stateOf(engine: GameEngine, squad: string): IssuerState {
   let map = states.get(engine);
@@ -114,58 +125,11 @@ export function squadInContact(board: Board, members: Piece[]): boolean {
   });
 }
 
-/**
- * The square the squad marches on for this mission, or undefined when the
- * job is to hold (defend missions). The same reading of the mission as the
- * individual issuer's missionTarget, at squad level: the nearest exit for
- * the missions that leave, the entry post the greedy blockade assigns the
- * first member for kill-quota, the objective for the flame missions, the
- * Data Room square for download.
- */
+/** The square the squad marches on for this mission (ai/objective.ts: the
+ *  same reading the engine gives the `objective` request), or undefined
+ *  when the job is to hold (defend, kill-quota's blockade). */
 export function squadTarget(engine: GameEngine, members: Piece[]): Coord | undefined {
-  const lead = members[0];
-  if (!lead) return undefined;
-  const board = engine.state.board;
-  // The threshold: walk downhill from the lead marine toward the objective
-  // and stop on the last square outside its section; the objective itself
-  // when he already stands inside or no path exists.
-  const threshold = (obj: Coord): Coord => {
-    const section = board.get(obj.c, obj.r)?.sectionId;
-    const field = distanceField(board, [obj]);
-    let cur: Coord = lead.pos;
-    if (board.get(cur.c, cur.r)?.sectionId === section || field.get(`${cur.c},${cur.r}`) === undefined) return obj;
-    for (let guard = 0; guard < 400; guard++) {
-      const next = downhill(board, field, cur);
-      if (!next) return obj;
-      if (board.get(next.c, next.r)?.sectionId === section) return cur;
-      cur = next;
-    }
-    return obj;
-  };
-  const near = (pts: { x: number; y: number }[]): Coord | undefined => {
-    const p = [...pts].sort((a, b) =>
-      Math.hypot(a.x - lead.pos.c, a.y - lead.pos.r) - Math.hypot(b.x - lead.pos.c, b.y - lead.pos.r))[0];
-    return p ? { c: p.x, r: p.y } : undefined;
-  };
-  const mission = engine.mission;
-  switch (mission.objective) {
-    case 'flame-objective':
-      return mission.objectivePoint ? threshold({ c: mission.objectivePoint.x, r: mission.objectivePoint.y }) : undefined;
-    case 'flame-objectives': {
-      const p = near((mission.objectivePoints ?? []).filter(p => !engine.cleansed.has(`${p.x},${p.y}`)));
-      return p ? threshold(p) : undefined;
-    }
-    case 'kill-quota': {
-      const post = assignEntryPosts(engine).get(lead.id);
-      return post ? { c: post.x, r: post.y } : undefined;
-    }
-    case 'download':
-      return mission.downloadPoint ? { c: mission.downloadPoint.x, r: mission.downloadPoint.y } : undefined;
-    case 'defend':
-      return undefined;
-    default:
-      return near(mission.exitPoints ?? []);
-  }
+  return objectiveTarget(engine, members);
 }
 
 /** The closed door the leader's next step toward `target` would cross, if any. */
@@ -236,13 +200,24 @@ export function runSquadTurn(engine: GameEngine): void {
     const st = engine.squadState(squad);
     const is = stateOf(engine, squad);
     const live = st?.order ?? null;
-    const target = squadTarget(engine, members);
+    const objective = resolveObjective(engine, members);
+    const target = objective?.type === 'advance' ? { c: objective.x, r: objective.y } : undefined;
     const leader = squadLeader(engine, squad, members, target);
     if (squadInContact(board, members)) is.lastContactTick = tick;
     const quiet = tick - is.lastContactTick >= AUTOPILOT.quietTicks;
     const tkey = target ? key(target) : null;
     const issue = (order: SquadOrder) => { engine.command(leader.id, { type: 'squadOrder', order }); };
     const defendHere = () => { issue({ type: 'defend', x: leader.pos.c, y: leader.pos.r }); is.phase = 'defend'; };
+    // Adopt a live order this issuer did not place (another squad's mission
+    // order changed it): the phase and the target key follow the engine.
+    if (live) {
+      const ph: Phase = live.type;
+      if (ph !== is.phase) {
+        is.phase = ph;
+        if (live.type === 'advance') { is.targetKey = key({ c: live.x, r: live.y }); is.leaderDist = Infinity; is.progressTick = tick; }
+        if (live.type === 'blockade') is.doneKey = 'blockade';
+      }
+    }
     // A closed door on the leader's next step is cleared first (at most
     // clearsPerDoor times; after that the column opens it on the march); the
     // check runs before an advance is issued too, because the leader opens
@@ -258,17 +233,38 @@ export function runSquadTurn(engine: GameEngine): void {
       is.phase = 'clear';
       return true;
     };
+    // The objective for this squad: the mission order the first time any
+    // squad asks for it (the engine fans it out and resolves it per squad),
+    // this squad's own objective request after that.
+    const issueObjective = () => {
+      if (!missionIssued.has(engine)) {
+        missionIssued.add(engine);
+        engine.command(leader.id, { type: 'missionOrder', order: { type: 'objective' } });
+      } else {
+        engine.command(leader.id, { type: 'squadOrder', order: { type: 'objective' } });
+      }
+    };
     const advanceTo = (t: Coord) => {
       is.targetKey = key(t); is.leaderDist = Infinity; is.progressTick = tick;
       if (clearAhead(t)) return;
-      issue({ type: 'advance', x: t.c, y: t.r });
+      issueObjective();
       is.phase = 'advance';
     };
     // Never race the relay: an issued order that is not yet due stands.
     if (live && st && tick < st.dueTick) continue;
-    if (!is.started) { is.started = true; defendHere(); continue; }
+    // First call: defend the section the squad stands in; on kill-quota the
+    // blockade at once (its posts are the mission's own defend, and the
+    // squad deploys scattered: gathering first costs the cycles the
+    // blockade needs to hold).
+    if (!is.started) {
+      is.started = true;
+      if (objective?.type === 'blockade') { is.doneKey = 'blockade'; issueObjective(); is.phase = 'blockade'; }
+      else defendHere();
+      continue;
+    }
     if (!live) {
-      // Advance and clear complete; defend never does (only an empty squad).
+      // Advance and clear complete; defend and blockade never do (only an
+      // empty squad).
       if (is.phase === 'advance') {
         is.doneKey = is.targetKey;
         is.phase = 'defend';
@@ -287,6 +283,7 @@ export function runSquadTurn(engine: GameEngine): void {
       // The order is held until every post is reached (transit rule C).
       const posted = !live || postsReached(engine, squad) || (st !== undefined && tick - st.issuedTick >= AUTOPILOT.postWaitTicks);
       if (quiet && posted && target && tkey !== is.doneKey) advanceTo(target);
+      else if (quiet && posted && objective?.type === 'blockade' && is.doneKey !== 'blockade') { is.doneKey = 'blockade'; issueObjective(); is.phase = 'blockade'; }
       else if (!live && !flamePending(engine, members)) defendHere();
       continue;
     }
@@ -299,6 +296,7 @@ export function runSquadTurn(engine: GameEngine): void {
       if (quiet && tick - is.progressTick >= AUTOPILOT.stallTicks) advanceTo(target);
       continue;
     }
+    if (is.phase === 'blockade') continue; // the planner re-plans on a death and at the cycle boundary
     // clear: wait for the planner; a clear that outlives three timeouts is abandoned.
     if (st && tick - st.issuedTick > TUNING.clearTimeoutTicks * 3) {
       if (target) advanceTo(target); else defendHere();

@@ -53,17 +53,17 @@ export function activeOrder(m: Piece): { order: MarineOrder; level: OrderLevel }
 }
 
 /** The squad word for a squad order. */
-export function squadLabel(order: SquadOrder | null | undefined): 'DEFEND' | 'ADVANCE' | 'CLEAR' | '' {
+export function squadLabel(order: SquadOrder | null | undefined): 'DEFEND' | 'ADVANCE' | 'CLEAR' | 'BLOCKADE' | '' {
   if (!order) return '';
-  return order.type === 'defend' ? 'DEFEND' : order.type === 'advance' ? 'ADVANCE' : 'CLEAR';
+  return order.type === 'defend' ? 'DEFEND' : order.type === 'advance' ? 'ADVANCE' : order.type === 'clear' ? 'CLEAR' : 'BLOCKADE';
 }
 
 /** The roster's one-word state for a marine: his own order first, then the
  *  squad word while a task is live, then his posture. */
-export function orderLabel(m: Piece, squadOrder?: SquadOrder | null): 'MOVE' | 'DOOR' | 'OW' | 'HOLD' | 'DEFEND' | 'ADVANCE' | 'CLEAR' {
+export function orderLabel(m: Piece, squadOrder?: SquadOrder | null): 'MOVE' | 'DOOR' | 'OW' | 'HOLD' | 'DEFEND' | 'ADVANCE' | 'CLEAR' | 'BLOCKADE' {
   if (m.order?.type === 'moveTo') return 'MOVE';
   if (m.order?.type === 'openDoor') return 'DOOR';
-  if (m.task && squadOrder) return squadLabel(squadOrder) as 'DEFEND' | 'ADVANCE' | 'CLEAR';
+  if (m.task && squadOrder) return squadLabel(squadOrder) as 'DEFEND' | 'ADVANCE' | 'CLEAR' | 'BLOCKADE';
   if (m.task) return 'MOVE';
   if (m instanceof StormBolterMarine && m.overwatch) return 'OW';
   return 'HOLD';

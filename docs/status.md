@@ -81,8 +81,12 @@ fire with the order held until every post is reached and a marine the
 player takes dropping out of the plan, the whole column covering on
 contact): space_hulk_1 under squad orders went from 2 to 10 wins in 60 on
 the same seeds, nothing tuned; on /latest/. The win-rate band per mission
-still waits on Harry before step 6. Next is step 4, mission orders, from the
-plan's "Stage 4 step 4 entry notes" (step 3 deferred behind it).
+still waits on Harry before step 6. Step 4 (2026-09-13) built mission
+orders: one `missionOrder` fanned out inside the engine, `objective`
+resolved per squad, the `blockade` order for Exterminate, Tab's all-squads
+stop and the I key; numbers in the plan's "Stage 4 step 4: mission orders".
+Next is step 3 (the fixtures, deferred) or step 5 (the metered pause), per
+Harry.
 
 ## Known gaps / residue
 

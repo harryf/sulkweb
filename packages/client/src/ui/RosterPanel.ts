@@ -1,6 +1,7 @@
 import { PieceEvents } from '@sulk/engine/index.js';
 import { groupBySquad, assignHotkeys, type RosterEntry } from './marineNames.js';
 import { KEY_ROWS, SPECIAL_KEYS, KEY_NOTES } from './keyboardHelp.js';
+import { Selection } from './Selection.js';
 import { FACING_ARROWS } from '../config.js';
 
 /** Live stats for one marine, read from the engine by the owner (GameScene). */
@@ -128,9 +129,11 @@ export class RosterPanel {
     r.row.classList.toggle('ordered', word !== '');
   }
 
-  /** Light the selected squad's row (null clears). */
+  /** Light the selected squad's row (null clears; Selection.ALL lights every
+   *  row, the all-squads selection). */
   highlightSquad(squad: string | null): void {
-    for (const [name, r] of this.squadRows) r.row.classList.toggle('selected', name === squad);
+    const all = squad === Selection.ALL;
+    for (const [name, r] of this.squadRows) r.row.classList.toggle('selected', all || name === squad);
   }
 
   /** Re-read every living card's stats from the engine (post-replay truth). */

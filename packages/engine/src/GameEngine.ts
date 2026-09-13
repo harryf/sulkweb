@@ -13,7 +13,8 @@ import { stealerTick, spawnBlips, rankEntries, convertRevealedBlips, chargeOrien
 import { runMarineAI } from './ai/MarineAI.js';
 import { orderIsValid, setOrder, setTask } from './ai/orders.js';
 import { squadTick, newSquadState, squadOf, hasSergeant, squadMembers, completeSquadOrder, type SquadState } from './ai/squad.js';
-import type { SquadOrder } from './core/Commands.js';
+import { resolveObjective } from './ai/objective.js';
+import type { SquadOrder, SquadOrderRequest } from './core/Commands.js';
 import { expireFlames } from './rules/flame.js';
 import { closeCombat } from './rules/combat.js';
 import { deployFacing, orderSquaresFrontToBack, autoDeployOrder } from './rules/deploy.js';
@@ -628,13 +629,13 @@ export class GameEngine {
     // or refused, is the player taking the wheel: it clears a live order.
     // Both rules key off receipt, which the command log records, so a replay
     // makes the same choices.
-    if (cmd.type !== 'order' && cmd.type !== 'clearOrder' && cmd.type !== 'squadOrder' && cmd.type !== 'clearSquadOrder') {
+    if (cmd.type !== 'order' && cmd.type !== 'clearOrder' && cmd.type !== 'squadOrder' && cmd.type !== 'clearSquadOrder' && cmd.type !== 'missionOrder') {
       m.lastCommandTick = this.tickCount
       if (m.order) setOrder(m, null)
     }
     // The player taking a marine (an order or the wheel) drops his squad
     // task at once; he is the player's until the pin lapses (stage 4 rider).
-    if (cmd.type !== 'clearOrder' && cmd.type !== 'squadOrder' && cmd.type !== 'clearSquadOrder' && m.task) setTask(m, null)
+    if (cmd.type !== 'clearOrder' && cmd.type !== 'squadOrder' && cmd.type !== 'clearSquadOrder' && cmd.type !== 'missionOrder' && m.task) setTask(m, null)
     const ok = this.execute(m, cmd)
     PieceEvents.emit('command', { tick: this.tickCount, pieceId: m.id, command: cmd, ok })
     if (ok) {
@@ -711,31 +712,34 @@ export class GameEngine {
         return true
       }
       case 'squadOrder': {
-        if (!squadOrderIsValid(board, cmd.order)) return false
         const squad = squadOf(m)
-        const st = this.squads.get(squad) ?? newSquadState(squad)
-        this.squads.set(squad, st)
         const members = squadMembers(this, squad)
-        // A different order supersedes the live plan: the members' tasks go,
-        // so the new planner starts from where they stand (an advance that
-        // inherited the defend's flamer post read it as his march and never
-        // moved; the stage 4 instrument's finding). The same order again is
-        // a re-plan and keeps the posts.
-        if (!st.order || !sameSquadOrder(st.order, cmd.order)) {
-          for (const m of members) setTask(m, null)
-          st.posts = []; st.stage = 'first'; st.firstPostId = null
-        }
-        st.coordinated = hasSergeant(members)
-        st.order = cmd.order
-        st.issuedTick = this.tickCount
-        st.dueTick = this.tickCount + (st.coordinated ? 1 : TUNING.relayTicks)
-        st.planKey = ''
-        st.started = false
-        st.contactDist = Infinity
-        st.contactTick = -Infinity
-        st.coverIssuedTick = -1
-        PieceEvents.emit('squadOrderChanged', { squad, order: cmd.order, coordinated: st.coordinated, dueTick: st.dueTick })
+        const order = this.resolveRequest(cmd.order, members)
+        if (!order) return false
+        this.applySquadOrder(squad, members, order)
         return true
+      }
+      case 'missionOrder': {
+        // The fan-out (2.x stage 4 step 4): the same request to every squad
+        // with a living member, resolved per squad, one squadOrderChanged
+        // each, the relay per squad. Accepted when any squad took it. A
+        // squad already on the resolved order and past its relay is left
+        // alone (no reset, no event): the fan-out is idempotent per squad,
+        // so one squad's re-issue can never restart the others' plans (the
+        // systems pass's "accidental adversaries" loop); an explicit
+        // squadOrder keeps its re-plan meaning.
+        let any = false
+        for (const squad of this.squadNames()) {
+          const members = squadMembers(this, squad)
+          if (members.length === 0) continue
+          const order = this.resolveRequest(cmd.order, members)
+          if (!order) continue
+          const st = this.squads.get(squad)
+          if (st?.order && st.started && sameSquadOrder(st.order, order)) { any = true; continue }
+          this.applySquadOrder(squad, members, order)
+          any = true
+        }
+        return any
       }
       case 'clearSquadOrder': {
         const st = this.squads.get(squadOf(m))
@@ -745,6 +749,37 @@ export class GameEngine {
       }
     }
     return false
+  }
+
+  /** The concrete order a request means for these members, validated
+   *  against the board and the mission; undefined refuses it. */
+  private resolveRequest(req: SquadOrderRequest, members: Piece[]): SquadOrder | undefined {
+    const order = req.type === 'objective' ? resolveObjective(this, members) : req
+    return order && squadOrderIsValid(this.state.board, this.mission, order) ? order : undefined
+  }
+
+  /** Store a squad order and start its relay. A different order supersedes
+   *  the live plan: the members' tasks go, so the new planner starts from
+   *  where they stand (an advance that inherited the defend's flamer post
+   *  read it as his march and never moved; the stage 4 instrument's
+   *  finding). The same order again is a re-plan and keeps the posts. */
+  private applySquadOrder(squad: string, members: Piece[], order: SquadOrder): void {
+    const st = this.squads.get(squad) ?? newSquadState(squad)
+    this.squads.set(squad, st)
+    if (!st.order || !sameSquadOrder(st.order, order)) {
+      for (const m of members) setTask(m, null)
+      st.posts = []; st.stage = 'first'; st.firstPostId = null
+    }
+    st.coordinated = hasSergeant(members)
+    st.order = order
+    st.issuedTick = this.tickCount
+    st.dueTick = this.tickCount + (st.coordinated ? 1 : TUNING.relayTicks)
+    st.planKey = ''
+    st.started = false
+    st.contactDist = Infinity
+    st.contactTick = -Infinity
+    st.coverIssuedTick = -1
+    PieceEvents.emit('squadOrderChanged', { squad, order, coordinated: st.coordinated, dueTick: st.dueTick })
   }
 
   /**
@@ -953,8 +988,10 @@ export class GameEngine {
   }
 }
 
-/** A squad order names a square on the board, or a door edge that exists. */
-function squadOrderIsValid(board: Board, order: SquadOrder): boolean {
+/** A squad order names a square on the board, or a door edge that exists;
+ *  a blockade needs entries to cover. */
+function squadOrderIsValid(board: Board, mission: CompiledMission, order: SquadOrder): boolean {
+  if (order.type === 'blockade') return (mission.entryPoints?.length ?? 0) > 0
   if (order.type === 'clear') return board.doorsAt({ c: order.x, r: order.y }).some(d => d.facing === order.facing)
   return board.get(order.x, order.y) !== undefined
 }
@@ -963,7 +1000,8 @@ function completeSquad(engine: GameEngine, st: SquadState): void {
   completeSquadOrder(engine, st, squadMembers(engine, st.squad))
 }
 
-/** Same kind, square and facing. */
+/** Same kind, square and facing (two blockades are the same order). */
 function sameSquadOrder(a: SquadOrder, b: SquadOrder): boolean {
+  if (a.type === 'blockade' || b.type === 'blockade') return a.type === b.type
   return a.type === b.type && a.x === b.x && a.y === b.y && (a.type !== 'clear' || b.type !== 'clear' || a.facing === b.facing)
 }

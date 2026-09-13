@@ -417,10 +417,10 @@ function postHeld(members: Piece[], p: DefendPost): boolean {
   return !(m instanceof StormBolterMarine) || m.overwatch || m.jammed;
 }
 
-/** Every post of the squad's defend plan is held (the order "reached"). */
+/** Every post of the squad's defend or blockade plan is held (the order "reached"). */
 export function postsReached(engine: GameEngine, squad: string): boolean {
   const st = engine.squadState(squad);
-  if (!st?.order || st.order.type !== 'defend') return false;
+  if (!st?.order || (st.order.type !== 'defend' && st.order.type !== 'blockade')) return false;
   const members = squadMembers(engine, squad).filter(m => !isPinned(engine, m));
   if (!st.started) return false;
   return st.posts.filter(p => members.some(m => m.id === p.id)).every(p => postHeld(members, p));
@@ -506,6 +506,144 @@ function runDefend(engine: GameEngine, st: SquadState, members: Piece[], order: 
     if (!p) { setTask(m, postTask(m, m.pos, holdFacing(m))); continue; } // no post of his own: he holds his square
     const walks = st.stage === 'all' || movers.has(m.id) || postHeld(active, p);
     setTask(m, walks ? postTask(m, p.c, p.facing) : postTask(m, m.pos, holdFacing(m)));
+  }
+}
+
+// -------------------------------------------------------------- blockade --
+
+/** The blockade metric: a marine within this many raw-adjacency squares of
+ *  an entry covers it (the kill-quota victory check, Board.pieceNear: walls
+ *  block, doors and bodies do not). */
+export const BLOCKADE_RANGE = 6;
+
+/** Whether the blockade posts in stages under contact like defend (the
+ *  first post fills while the rest hold). Off: the posts are one per marine
+ *  and far apart by design, so every member walks armed at once; a hold in
+ *  the deployment room covers nobody's post (the advisor's case). Kept as a
+ *  switch for the instrument's toggle rows. */
+export const BLOCKADE_STAGING = false;
+
+/** For every square within BLOCKADE_RANGE of an entry, the entries it covers. */
+function entryReach(board: Board, entries: Coord[]): Map<string, Set<string>> {
+  const reach = new Map<string, Set<string>>();
+  for (const e of entries) {
+    const start = board.get(e.c, e.r);
+    if (!start) continue;
+    const ek = key(e);
+    const mark = (sq: Square) => { const k = `${sq.x},${sq.y}`; let s = reach.get(k); if (!s) { s = new Set(); reach.set(k, s); } s.add(ek); };
+    let frontier: Square[] = [start];
+    const seen = new Set<Square>([start]);
+    mark(start);
+    for (let d = 1; d <= BLOCKADE_RANGE; d++) {
+      const next: Square[] = [];
+      for (const sq of frontier) for (const a of board.adjacentsOf(sq)) { if (seen.has(a)) continue; seen.add(a); mark(a); next.push(a); }
+      frontier = next;
+    }
+  }
+  return reach;
+}
+
+/**
+ * The blockade plan (2.x stage 4 step 4): a greedy set cover of the
+ * mission's entries by squares, one post per marine, computed over every
+ * living marine the player has not taken (the cover is the mission's, each
+ * squad runs its slice). Each round takes the square that covers the most
+ * still-uncovered entries under the victory metric and gives it to the
+ * nearest free marine by walk (a marine already walking to that square
+ * scores half a point more, so a re-plan never swaps equal posts); once
+ * every entry is covered the marines left take the best remaining squares
+ * by entries in reach, the reinforcement. A post must be reachable from its
+ * marine without crossing a post already chosen: the posts of one cluster
+ * line a corridor, and the first probe walled the last man off behind his
+ * own squad-mates on theirs. A post faces its nearest covered entry (the
+ * next nearest when it stands on one). On space_hulk_2 two squares cover
+ * all eleven entries, one per corner cluster.
+ */
+export function planBlockade(engine: GameEngine, marines: Piece[]): DefendPost[] {
+  const board = engine.state.board;
+  const entries = (engine.mission.entryPoints ?? []).map(e => ({ c: e.x, r: e.y })).filter(e => board.get(e.c, e.r));
+  const reach = entryReach(board, entries);
+  const free = marines.filter(m => m.alive && !isPinned(engine, m));
+  const posts: DefendPost[] = [];
+  const taken = new Set<string>();
+  const posted = new Set<string>();
+  const uncovered = new Set(entries.map(key));
+  const incumbent = (m: Piece, k: string) => m.task?.type === 'moveTo' && key({ c: m.task.x, r: m.task.y }) === k;
+  const pick = (scoreOf: (covers: Set<string>) => number): boolean => {
+    let best: { k: string; covers: Set<string>; m: Piece; score: number; d: number } | undefined;
+    for (const [k, covers] of reach) {
+      if (taken.has(k)) continue;
+      const base = scoreOf(covers);
+      if (base <= 0) continue;
+      const [c, r] = k.split(',').map(Number);
+      const holder = board.pieceAt({ c, r }) as Piece | undefined;
+      if (holder && !free.includes(holder)) continue;
+      // Reachable from the marine without crossing another post.
+      const field = walk(board, [{ c, r }], 400, taken);
+      for (const m of free) {
+        if (posted.has(m.id)) continue;
+        const d = field.get(key(m.pos));
+        if (d === undefined) continue;
+        const score = base + (incumbent(m, k) ? 0.5 : 0);
+        if (!best || score > best.score || (score === best.score && d < best.d)) best = { k, covers, m, score, d };
+      }
+    }
+    if (!best) return false;
+    const [c, r] = best.k.split(',').map(Number);
+    const here: Coord = { c, r };
+    const faces = [...best.covers].map(e => { const [ec, er] = e.split(',').map(Number); return { c: ec, r: er }; })
+      .filter(e => !at(e, here)).sort((a, b) => chebyshev(a, here) - chebyshev(b, here))[0];
+    posts.push({ id: best.m.id, c: here, facing: faces ? facingToward(here, faces) : best.m.facing, covers: best.covers });
+    taken.add(best.k);
+    posted.add(best.m.id);
+    for (const e of best.covers) uncovered.delete(e);
+    return true;
+  };
+  const gain = (covers: Set<string>) => { let g = 0; for (const e of covers) if (uncovered.has(e)) g++; return g; };
+  while (uncovered.size > 0 && posted.size < free.length && pick(gain));
+  while (posted.size < free.length && pick(covers => covers.size));
+  return posts;
+}
+
+/**
+ * Blockade: every member walks, armed, to his post from the plan above and
+ * holds it on overwatch; the plan is sticky (re-made when a marine dies, a
+ * pin changes or the cycle turns), so a walker is never re-routed by his
+ * own progress. Coordination changes nothing here: the posts are one per
+ * marine already. A member without a post (nothing in reach) holds where
+ * he stands.
+ */
+function runBlockade(engine: GameEngine, st: SquadState, members: Piece[]): void {
+  const board = engine.state.board;
+  const all = engine.marines.filter(m => m.alive);
+  const pins = all.filter(m => isPinned(engine, m)).map(m => m.id).join(',');
+  const planKey = `${all.map(m => m.id).join(',')}|${pins}|${engine.cycle}`;
+  if (planKey !== st.planKey) {
+    st.planKey = planKey;
+    st.posts = planBlockade(engine, all).filter(p => members.some(m => m.id === p.id));
+    if (st.firstPostId === null || !st.posts.some(p => p.id === st.firstPostId)) {
+      let best: { id: string; d: number } | undefined;
+      for (const p of st.posts) {
+        const m = members.find(q => q.id === p.id); if (!m) continue;
+        const d = postHeld(members, p) ? -1 : (walk(board, [m.pos], 400).get(key(p.c)) ?? Infinity);
+        if (!best || d < best.d) best = { id: p.id, d };
+      }
+      st.firstPostId = best?.id ?? null;
+    }
+  }
+  const active = members.filter(m => !isPinned(engine, m));
+  const first = st.posts.find(p => p.id === st.firstPostId);
+  const contact = BLOCKADE_STAGING && active.some(m => { const t = nearestThreatInSight(board, m); return t !== undefined && chebyshev(t.pos, m.pos) <= TUNING.contactRange; });
+  if (st.stage === 'first' && (!first || !contact || postHeld(active, first))) st.stage = 'all';
+  for (const m of active) {
+    const p = st.posts.find(q => q.id === m.id);
+    if (!p) { setTask(m, postTask(m, m.pos, m.facing)); continue; }
+    if (st.stage === 'first' && first && p.id !== first.id && !postHeld(active, p)) {
+      const t = nearestThreatInSight(board, m);
+      setTask(m, postTask(m, m.pos, t ? facingToward(m.pos, t.pos) : m.facing));
+      continue;
+    }
+    setTask(m, postTask(m, p.c, p.facing));
   }
 }
 
@@ -852,6 +990,7 @@ export function squadTick(engine: GameEngine): void {
     const order = st.order;
     if (order.type === 'defend') runDefend(engine, st, members, order);
     else if (order.type === 'advance') runAdvance(engine, st, members, order);
+    else if (order.type === 'blockade') runBlockade(engine, st, members);
     else runClear(engine, st, members, order);
   }
 }

@@ -10,6 +10,7 @@ import { Genestealer } from '../pieces/Genestealer.js';
 import { Dir } from '../core/Direction.js';
 import { runMarineTurn, autoplay, assignEntryPosts } from '../ai/MarineAutopilot.js';
 import { runSquadTurn, squadTarget, AUTOPILOT, firingSquare, sectionClearOfMarines } from '../ai/SquadAutopilot.js';
+import { resolveObjective } from '../ai/objective.js';
 import { planClear, walk, flameJobPending } from '../ai/squad.js';
 import type { CompiledMission, DeploySquareJSON } from '../missions/missionTypes.js';
 import type { MarineCommand, SquadOrder } from '../core/Commands.js';
@@ -32,14 +33,16 @@ function engineOn(mission: CompiledMission = quiet(), seed = 1): GameEngine {
   PieceEvents.all.clear();
   return new GameEngine(mission, [], new SeededRng(seed));
 }
-interface Issued { tick: number; pieceId: string; command: MarineCommand; ok: boolean }
+interface Issued { tick: number; pieceId: string; command: MarineCommand; ok: boolean; /** a concrete squad order the engine stored (squadOrderChanged) */ stored?: SquadOrder }
 function commandLog(): Issued[] {
   const log: Issued[] = [];
   PieceEvents.on('command', p => log.push(p as Issued));
+  // The squad orders as stored: the issuer's objective goes out as a request
+  // (missionOrder or squadOrder { objective }) and the engine resolves it.
+  PieceEvents.on('squadOrderChanged', ({ order }) => { if (order) log.push({ tick: -1, pieceId: '', command: { type: 'clearSquadOrder' }, ok: true, stored: order }); });
   return log;
 }
-const squadOrders = (log: Issued[]): SquadOrder[] =>
-  log.filter(e => e.command.type === 'squadOrder').map(e => (e.command as { order: SquadOrder }).order);
+const squadOrders = (log: Issued[]): SquadOrder[] => log.flatMap(e => e.stored ? [e.stored] : []);
 /** One issuer call, one tick: the autoplay loop's step under the squads policy. */
 function step(engine: GameEngine, n = 1): void {
   for (let i = 0; i < n && engine.state.result === 'ongoing'; i++) { runMarineTurn(engine, 'squads'); engine.tick(); }
@@ -166,11 +169,12 @@ describe('squad issuer: the mission target per objective', () => {
     expect(sq(engine, t).sectionId).not.toBe(sq(engine, { c: p.x, r: p.y }).sectionId);
   });
 
-  it('kill-quota: the entry post the blockade assigns the first member', () => {
+  it('kill-quota: no march target; the objective is the blockade (stage 4 step 4), the individual bot keeps its own entry posts', () => {
     PieceEvents.all.clear();
     const engine = new GameEngine(loadMission('space_hulk_2'), [], new SeededRng(1));
-    const post = assignEntryPosts(engine).get(engine.marines[0].id)!;
-    expect(squadTarget(engine, engine.marines)).toEqual({ c: post.x, r: post.y });
+    expect(squadTarget(engine, engine.marines)).toBeUndefined();
+    expect(resolveObjective(engine, engine.marines)).toEqual({ type: 'blockade' });
+    expect(assignEntryPosts(engine).get(engine.marines[0].id)).toBeDefined();
   });
 
   it('escort-cat, escape-count and exterminate-or-exit: the nearest exit; download: the Data Room square; defend: none', () => {

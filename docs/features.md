@@ -135,6 +135,18 @@ Space is the command pause: the clock stops, the board stays readable,
 right-click orders, Tab and Esc still work, and the keys that move a marine
 wait until Space resumes.
 
+**Mission orders (2.x stage 4).** Tab past the last squad selects every
+squad at once (every roster row lights, every marine gets his squad's ring).
+Right-click then gives the same order to all of them (defend the section,
+Shift advance, a door edge clears) as one command; Esc drops every squad's
+order. I sends the selected squad, or every squad, to the mission objective:
+the squad marches to the doorway of the room to burn, to the Data Room, to
+the nearest exit, holds where it stands on a defend mission, or on
+Exterminate spreads out to blockade the entries (each marine takes a post
+within six squares of the entries he covers, the spare marines reinforce;
+the squad row reads BLOCKADE and each marine's post ring is the only marker).
+Orders reach each squad through its own sergeant as before.
+
 ## Controls
 
 | Input | Action |

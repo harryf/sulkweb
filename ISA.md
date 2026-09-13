@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: context-override
-phase: build
-progress: "1679/1725 (stage 4 step 5 open: ISC-1747..1792; ISC-1038 dropped; ISC-71 deferred)"
+phase: complete
+progress: "1725/1725 (stage 4 step 5 done: ISC-1747..1792; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-13T18:01:00Z
+updated: 2026-09-13T18:40:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -739,58 +739,58 @@ Docs and shipping
 Harry: "OK let's do step 5". The plan's "Command pause" section and build order step 5 are the spec: `pausePool` on the engine advanced by tick() with the cap and recharge scaled by living sergeants (cap 10 s plus 10 s per sergeant, recharge 1 s per cycle plus 1 s per cycle per sergeant, no random element), the `pauseSpent` command at the resume tick, the pool meter on the HUD beside the pause button, P and command points retired outright, `?pause=free` as the run-level accessibility setting, no lockout; the times reviewed with Harry. E3.
 
 Engine: the pool
-- [ ] ISC-1747: TUNING gains `pausePool { base 10, perSergeant 10, rechargeBase 1, rechargePerSergeant 1 }` (seconds; the recharge per cycle) and applyTuning accepts `pausePool.base` (spec)
-- [ ] ISC-1748: `GameEngine.pausePool` is an integer count of milliseconds that starts at the cap: 20000 on space_hulk_1 (one sergeant), 10000 with no sergeant (spec)
-- [ ] ISC-1749: `pausePoolCap()` is (base + perSergeant times the living sergeants) times 1000; a sword sergeant counts, a dead one does not (spec on a two-sergeant board)
-- [ ] ISC-1750: tick step 1 recharges the pool by round((rechargeBase + rechargePerSergeant times sergeants) times 1000 / cycleTicks) ms, 50 ms a tick with one sergeant, 2 s over a cycle, clamped at the cap (spec)
-- [ ] ISC-1751: a sergeant's death lowers the cap and the recharge at once; the pool above the new cap is kept and not recharged until spent below it (refined from "the next tick clamps the pool": the advisor and the systems pass both named the clamp a cliff; spec)
-- [ ] ISC-1752: `pauseSpent { ms }` subtracts ms and clamps at 0, returns true; ms of 0, negative or non-integer is refused; refused when the game is not live (spec)
-- [ ] ISC-1753: pauseSpent stamps no lease and drops no task on the marine it is addressed to (spec)
-- [ ] ISC-1754: pauseSpent emits `pausePoolChanged { pool, cap }` and the command event carries the ms; the recharge emits no per-tick event (spec)
-- [ ] ISC-1755: two engines from one seed and one log holding a pauseSpent agree on stateHash at every tick, and the hash carries the pool (spec)
-- [ ] ISC-1756: the `cp` command, `spendCP`, `GameEngine.cp`, `rollCommandPoints` and the `cpChanged` event are gone: grep 0 in engine src, tsc clean; construction and the cycle boundary draw no dice for command points (spec: a RollQueue with only the blip draws is not exhausted over a cycle)
-- [ ] ISC-1757: the existing specs that used CP (clock, gameflow, command, deploy, beta2_mission, gamelog) are re-pointed at the pool; every pinned-seed expectation the dice-stream shift moved is re-baselined and listed in Decisions
-- [ ] ISC-1758: Anti: no existing TUNING value changes (git diff core/CostTables.ts shows only the added group and its type)
-- [ ] ISC-1759: Anti: the marine autopilot, the squad issuer and the scan never issue pauseSpent (grep ai/ and scripts/ 0): the scan measures the rules, not the pause
+- [x] ISC-1747: TUNING gains `pausePool { base 10, perSergeant 10, rechargeBase 1, rechargePerSergeant 1 }` (seconds; the recharge per cycle) and applyTuning accepts `pausePool.base` (spec)
+- [x] ISC-1748: `GameEngine.pausePool` is an integer count of milliseconds that starts at the cap: 20000 on space_hulk_1 (one sergeant), 10000 with no sergeant (spec)
+- [x] ISC-1749: `pausePoolCap()` is (base + perSergeant times the living sergeants) times 1000; a sword sergeant counts, a dead one does not (spec on a two-sergeant board)
+- [x] ISC-1750: tick step 1 recharges the pool by round((rechargeBase + rechargePerSergeant times sergeants) times 1000 / cycleTicks) ms, 50 ms a tick with one sergeant, 2 s over a cycle, clamped at the cap (spec)
+- [x] ISC-1751: a sergeant's death lowers the cap and the recharge at once; the pool above the new cap is kept and not recharged until spent below it (refined from "the next tick clamps the pool": the advisor and the systems pass both named the clamp a cliff; spec)
+- [x] ISC-1752: `pauseSpent { ms }` subtracts ms and clamps at 0, returns true; ms of 0, negative or non-integer is refused; refused when the game is not live (spec)
+- [x] ISC-1753: pauseSpent stamps no lease and drops no task on the marine it is addressed to (spec)
+- [x] ISC-1754: pauseSpent emits `pausePoolChanged { pool, cap }` and the command event carries the ms; the recharge emits no per-tick event (spec)
+- [x] ISC-1755: two engines from one seed and one log holding a pauseSpent agree on stateHash at every tick, and the hash carries the pool (spec)
+- [x] ISC-1756: the `cp` command, `spendCP`, `GameEngine.cp`, `rollCommandPoints` and the `cpChanged` event are gone: grep 0 in engine src, tsc clean; construction and the cycle boundary draw no dice for command points (spec: a RollQueue with only the blip draws is not exhausted over a cycle)
+- [x] ISC-1757: the existing specs that used CP (clock, gameflow, command, deploy, beta2_mission, gamelog) are re-pointed at the pool; every pinned-seed expectation the dice-stream shift moved is re-baselined and listed in Decisions (refined: marine_ai 26 to 43, quota_victory 29 to 12, the client e2e win path 26 to 43; determinism.spec kept its seeds once the hash carried the blip value)
+- [x] ISC-1758: Anti: no existing TUNING value changes (git diff core/CostTables.ts shows only the added group and its type)
+- [x] ISC-1759: Anti: the marine autopilot, the squad issuer and the scan never issue pauseSpent (grep ai/ and scripts/ 0): the scan measures the rules, not the pause
 
 The re-scan
-- [ ] ISC-1760: both hulks, 60 seeds, both policies, cycle cap 60, shipped tuning: raw output at docs/scans/2026-09-13-stage4-step5.txt
-- [ ] ISC-1761: the removal is proven behaviour-neutral in two stages: (a) with a phantom die drawn where the d6 was, the four 60-seed rows are byte-identical to step 4; (b) without it every row's interval overlaps its step 4 interval (rates, not seeds, are the comparison), or the difference is explained in the reading (refined: the advisor's two-stage method)
-- [ ] ISC-1762: all nine missions at ten seeds under squads, numbers in the plan
-- [ ] ISC-1763: every scan row resolves (O 0) and replays (det yes)
+- [x] ISC-1760: both hulks, 60 seeds, both policies, cycle cap 60, shipped tuning: raw output at docs/scans/2026-09-13-stage4-step5.txt
+- [x] ISC-1761: the removal is proven behaviour-neutral in two stages: (a) with a phantom die drawn where the d6 was, the four 60-seed rows are byte-identical to step 4; (b) without it every row's interval overlaps its step 4 interval (rates, not seeds, are the comparison), or the difference is explained in the reading (refined: the advisor's two-stage method)
+- [x] ISC-1762: all nine missions at ten seeds under squads, numbers in the plan
+- [x] ISC-1763: every scan row resolves (O 0) and replays (det yes)
 
 Client: the pause
-- [ ] ISC-1764: Space opens the command pause only with at least 1 s in the pool; below that the HUD flashes and the clock runs on (e2e with a tiny pool through ?tuning)
-- [ ] ISC-1765: while paused the overlay bar and the HUD meter count down the seconds left from the pool at pause start, updated every frame (e2e: the text changes over 600 ms)
-- [ ] ISC-1766: the pool running out resumes the clock on its own (e2e with ?tuning=pausePool.base:1,pausePool.perSergeant:0: paused, then running again within two seconds)
-- [ ] ISC-1767: at resume the client issues one `pauseSpent { ms }` with the wall-clock milliseconds spent, capped at the budget, and the engine's pool falls by it (e2e: one command event with ms in a plausible band; the pool after resume below the pool before)
-- [ ] ISC-1768: `?pause=free` makes the pause unmetered: no pauseSpent at resume, no countdown, the meter reads FREE (e2e)
-- [ ] ISC-1769: orders still go out during the metered pause and direct keys do not (the stage 3 e2e stays green)
-- [ ] ISC-1770: the HUD's one button reads COMMAND  Space once live (START while deploying) and toggles the command pause; the free pause stays on Esc (unit hud.spec, e2e deploy.spec label)
-- [ ] ISC-1771: the HUD meter beside the button: a bar and "Command time 20.0 / 20 s" text, updated every tick and every frame while paused (unit test on HudPanel.setPausePool)
-- [ ] ISC-1772: P is retired: not in addKeys, no cp command in commandForKey, keyboardHelp P unbound, keyboardHelp.spec and roster.spec unbound counts updated to five (client unit, e2e)
-- [ ] ISC-1773: the roster stats line reads "AP 4/4" with no CP; RosterPanel has no cp field or cpChanged subscription (unit roster.spec, e2e roster.spec)
-- [ ] ISC-1774: grep cpChanged and 'cp' in client src 0
-- [ ] ISC-1775: the manual: the "Action points and command points" section becomes action points and command time (id ap-pause, main.ts QUOTE_AFTER follows), the intro list names Space and the pool (grep)
-- [ ] ISC-1776: the headless boot check passes on the dev server (boot-check-squads.mjs errors [])
-- [ ] ISC-1777: client tsc clean, unit suite green, e2e green, counts reported
+- [x] ISC-1764: Space opens the command pause only with at least 1 s in the pool; below that the HUD flashes and the clock runs on (e2e with a tiny pool through ?tuning)
+- [x] ISC-1765: while paused the overlay bar and the HUD meter count down the seconds left from the pool at pause start, updated every frame (e2e: the text changes over 600 ms)
+- [x] ISC-1766: the pool running out resumes the clock on its own (e2e with ?tuning=pausePool.base:1,pausePool.perSergeant:0: paused, then running again within two seconds)
+- [x] ISC-1767: at resume the client issues one `pauseSpent { ms }` with the wall-clock milliseconds spent, capped at the budget, and the engine's pool falls by it (e2e: one command event with ms in a plausible band; the pool after resume below the pool before)
+- [x] ISC-1768: `?pause=free` makes the pause unmetered: no pauseSpent at resume, no countdown, the meter reads FREE (e2e)
+- [x] ISC-1769: orders still go out during the metered pause and direct keys do not (the stage 3 e2e stays green)
+- [x] ISC-1770: the HUD's one button reads COMMAND  Space once live (START while deploying) and toggles the command pause; the free pause stays on Esc (unit hud.spec, e2e deploy.spec label)
+- [x] ISC-1771: the HUD meter beside the button: a bar and "Command time 20.0 / 20 s" text, updated every tick and every frame while paused (unit test on HudPanel.setPausePool)
+- [x] ISC-1772: P is retired: not in addKeys, no cp command in commandForKey, keyboardHelp P unbound, keyboardHelp.spec and roster.spec unbound counts updated to five (Y, J, P, V, N) (client unit, e2e)
+- [x] ISC-1773: the roster stats line reads "AP 4/4" with no CP; RosterPanel has no cp field or cpChanged subscription (unit roster.spec, e2e roster.spec)
+- [x] ISC-1774: grep cpChanged and 'cp' in client src 0
+- [x] ISC-1775: the manual: the "Action points and command points" section becomes action points and command time (id ap-pause, main.ts QUOTE_AFTER follows), the intro list names Space and the pool (grep)
+- [x] ISC-1776: the headless boot check passes on the dev server (boot-check-squads.mjs errors [])
+- [x] ISC-1777: client tsc clean, unit suite green, e2e green, counts reported
 
 Docs and shipping
-- [ ] ISC-1778: the plan gains "## Stage 4 step 5: the metered command pause (2026-09-13)" with As built, the times table (cap and refill by living sergeants), the scan table beside step 4, The reading, and the open review of the times; the Status line names step 5 done
-- [ ] ISC-1779: rules-reference.md: the CP section replaced by "Command time (the pause pool)", the command pause paragraph metered (grep "pauseSpent")
-- [ ] ISC-1780: features.md: the Space row metered, the P row gone, the stage 3 pause paragraph updated (grep)
-- [ ] ISC-1781: architecture.md names pauseSpent and pausePoolChanged in the log paragraph with cpChanged retired; gamelog-format.md's event list follows, same format version (grep)
-- [ ] ISC-1782: CLAUDE.md: an invariant "Metered command pause (2.x stage 4 step 5)", the CP mentions (orchestrates, determinism note) rewritten, the balance numbers, the read-first row, the continuation, the test counts (grep)
-- [ ] ISC-1783: docs/status.md names step 5 done (grep)
-- [ ] ISC-1784: Anti: em dashes in the diff's added lines 0
-- [ ] ISC-1785: Anti: banned words in the added lines 0
-- [ ] ISC-1786: engine tsc --noEmit exit 0
-- [ ] ISC-1787: engine suite green, counts reported
-- [ ] ISC-1788: coverage at or above 98% lines
-- [ ] ISC-1789: the change ships on /latest/ with a callout: deploy green, manifest sha = HEAD, the URL in the summary; no tag without Harry
-- [ ] ISC-1790: this run block all [x] with Verification, PROJECTS.md updated, commit pushed, tree clean
-- [ ] ISC-1791: Antecedent: the summary puts the times to Harry for review as the plan asks: a full squad 20 s and a refill in 100 s of play, no sergeant 10 s and 400 s, two sergeants 30 s and 67 s
-- [ ] ISC-1792: the advisor is called before BUILD and before phase complete (Rule 2), its points folded in or answered in Decisions
+- [x] ISC-1778: the plan gains "## Stage 4 step 5: the metered command pause (2026-09-13)" with As built, the times table (cap and refill by living sergeants), the scan table beside step 4, The reading, and the open review of the times; the Status line names step 5 done
+- [x] ISC-1779: rules-reference.md: the CP section replaced by "Command time (the pause pool)", the command pause paragraph metered (grep "pauseSpent")
+- [x] ISC-1780: features.md: the Space row metered, the P row gone, the stage 3 pause paragraph updated (grep)
+- [x] ISC-1781: architecture.md names pauseSpent and pausePoolChanged in the log paragraph with cpChanged retired; gamelog-format.md's event list follows, same format version (grep)
+- [x] ISC-1782: CLAUDE.md: an invariant "Metered command pause (2.x stage 4 step 5)", the CP mentions (orchestrates, determinism note) rewritten, the balance numbers, the read-first row, the continuation, the test counts (grep)
+- [x] ISC-1783: docs/status.md names step 5 done (grep)
+- [x] ISC-1784: Anti: em dashes in the diff's added lines 0
+- [x] ISC-1785: Anti: banned words in the added lines 0
+- [x] ISC-1786: engine tsc --noEmit exit 0
+- [x] ISC-1787: engine suite green, counts reported
+- [x] ISC-1788: coverage at or above 98% lines
+- [x] ISC-1789: the change ships on /latest/ with a callout: deploy green, manifest sha = HEAD, the URL in the summary; no tag without Harry
+- [x] ISC-1790: this run block all [x] with Verification, PROJECTS.md updated, commit pushed, tree clean
+- [x] ISC-1791: Antecedent: the summary puts the times to Harry for review as the plan asks: a full squad 20 s and a refill in 100 s of play, no sergeant 10 s and 400 s, two sergeants 30 s and 67 s
+- [x] ISC-1792: the advisor is called before BUILD and before phase complete (Rule 2), its points folded in or answered in Decisions
 
 ## Test Strategy
 
@@ -1085,6 +1085,8 @@ Docs and shipping
 | gamelog-docs | schema doc, architecture section, features mention, CLAUDE.md row | ISC-958..961, 966 | game-logger | yes |
 
 ## Decisions
+
+- 2026-09-13 (stage 4 step 5, VERIFY to LEARN): the re-pins the shifted stream forced: marine_ai's seed 26 (under orders 3 order commands only on seed 5, 2 on 13; seed 43 wins with 6 orders and no direct action, so 43), quota_victory's seed 29 to 12 (the first winner of 12, 36, 53), the client win path (win.spec, gamelog.spec, home.spec) 26 to 43 with it. gamelog.spec swapped cpChanged for pausePoolChanged as its generic event (a regex left an octal literal, fixed). Stage (a) of the scan was run with the phantom draw taken out after eight seconds, which was enough for the first bun process (the four 60-seed rows, identical to step 4) but not for the second (the nine-at-ten rows, which therefore ran on the shipped stream and match stage (b) row for row: a consistency check by accident, recorded as such). Forge stopped at its turn limit once more and was resumed by message; it finished the manual, the specs and the e2e; the counts below are my own re-runs. The advisor before complete (six points): (1) the times are provisional until Harry reviews them, said so in the plan, status and rules reference, and the four constants sit together in TUNING.pausePool where a change moves no seed and no log version; (2) the hidden tab bypasses the meter: stated as design in the rules reference (the free pause has always shown the board for as long as the player likes with no orders; the meter prices orders under a held clock), the 1 s minimum applies on hide; (3) the bill is trusted (shape-checked only): the solo-play assumption written into the architecture notes, and a refused bill is impossible while live (a rounded integer of at least 1000), the meter and the dim markers re-read the engine anyway; (4) no log loader exists in the app (export only), so a version 1 log has no outcome to define; (5) the edge cases: above-cap-after-death and no-recharge-above-cap were already pinned, the remainder on a mid-cycle rate drop is a new case, the client clamps a late auto-resume to the budget at open and rounds before sending (in the code), the countdown now rounds up so 0.0 never shows while time is left; (6) the three e2e updates each reflect a real change (the pool at boot in place of the d6, format version 2, the COMMAND button opening the command pause), and the client source has no command point text left (grep).
 
 - 2026-09-13 (stage 4 step 5, OBSERVE to BUILD): the metered command pause per the plan's "Command pause" and open questions 15 to 22, with these choices. FirstPrinciples classed "seconds" as the unit the player sees and not the unit the engine stores (an integer millisecond pool with a remainder accumulator, exact for any cycle length; the hash carries both), "keep a phantom die so the pinned seeds hold" as an assumption (quota_victory has been re-pinned three times for rule changes; a dead draw would be a lie in the engine), the per-tick pool event as an assumption (the scene reads the field after each tick batch; only a spend is an event), and pauseSpent as a MarineCommand addressed to any living marine (the missionOrder precedent keeps the log shape). The advisor before BUILD (ten points): (1) the rounding hole at cycle lengths that do not divide the per-cycle amount, closed by the accumulator; (2) a double pause between ticks would double-spend, answered: command() applies between ticks at once, the resume never runs inside a tick, so the second open reads the spent pool (spec: a spend then a read); (3) a spend applies before the next tick's recharge (spec); (4) the clamp on a sergeant's death deletes banked time, taken: the cap falls, the surplus is kept and not recharged, recorded in the plan for Harry to overrule; (5) the log format version bumps to 2, taken, and pauseSpent cannot be refused for the addressee's state (execute never looks at him); (6) the two-stage scan, taken: stage (a) with a phantom die drawn where the d6 was gave the four 60-seed rows byte-identical to step 4, stage (b) without it is the step's numbers; (7) start full, taken; (8) the hidden tab bills and falls into the free pause, taken, the auto-resume computed from the same timestamp as the bill; (9) the meter shows the pool, the cap in 10 s segments, the recharge per cycle and the 1 s floor, taken; (10) the bot and ?pause=free never bill (grep). The SystemsThinking pass mapped the sergeant dividend as the dominant reinforcing loop (both axes stack, clamped by the floors), the pause frequency as an unpriced arrow (taken: each open costs at least one second), the relay lag as illegible under a paused order (taken where cheap: a dim squad marker until the due tick), the auto-resume as a surprise (taken: the last three seconds in red) and the pool's global scope beside the per-squad relay (the manual says so). The steady-state pause fraction of wall clock, recharge/(recharge plus one cycle), is the number to review with Harry: about 17% with one sergeant, 9% with none, 23% with two. Delegation: Forge on the client by hand (codex still not on PATH); the second delegation waived: the pool is written into tick order and the hash, a second engine author would collide on GameEngine.ts, and the scan is a command. The determinism probe lost its sensitivity to the seed without the d6 (two seeds hashed alike for 120 ticks): the hash now carries each blip's hidden value, which is play state.
 
@@ -1492,3 +1494,39 @@ The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/
 - ISC-1744: this block; PROJECTS.md "STEP 4 DONE 2026-09-13"; the commit pushed, tree clean
 - ISC-1745: the reading names the 6 to 2 paired split against the individual bot and the 7 to 0 against step 2 with the intervals, and what sixty seeds cannot call
 - ISC-1746: the advisor before BUILD (staging, the metric, the cover log: folded in as the probe, the no-staging rule and the toggle row) and before complete (below in Decisions)
+
+### Stage 4 step 5: the metered command pause (2026-09-13)
+
+- ISC-1747: pause_pool.spec "TUNING carries the plan's numbers and applyTuning accepts the group": base 30 gives a 40000 pool; `pausePool.seconds` throws
+- ISC-1748, 1749: pause_pool.spec: 20000 on space_hulk_1, 10000 on the corridor, 30000 with two sergeants (sword counted), livingSergeants 2
+- ISC-1750: pause_pool.spec: 50 ms after one tick, 2000 after a cycle, capped at 20000; the 30-tick cycle gives 1000 and 2000 exactly (the remainder)
+- ISC-1751: pause_pool.spec: after the death cap 20000, recharge 2000, the pool stays 30000 over five ticks, a 15000 bill then one cycle gives 17000
+- ISC-1752: pause_pool.spec: 2500 leaves 17500, 100000 clamps at 0, [0, -5, 1.5, NaN, Infinity, 2^53] all refused, the pool 100 after two ticks; refused during deployment
+- ISC-1753: pause_pool.spec: task identical and lastCommandTick unchanged after a 400 ms bill under a defend
+- ISC-1754: pause_pool.spec: one pausePoolChanged { pool 19000, cap 20000 } for the spend and none over a cycle; the command event carries { type pauseSpent, ms 1000 }
+- ISC-1755: pause_pool.spec: engine B replays A's three bills to the same hash at 61 ticks; a spent engine hashes differently at tick 0
+- ISC-1756: rg "cpChanged|spendCP|rollCommandPoints|\.cp\b|'cp'" packages/engine/src: 0 outside the retired-word comments; tsc exit 0; clock.spec: RollQueue remaining 400 after a cycle
+- ISC-1757: engine suite 49 files 553 tests green after the re-pins (Decisions)
+- ISC-1758: git diff core/CostTables.ts: 9 insertions, 0 deletions (the type field and the group)
+- ISC-1759: rg -c pauseSpent packages/engine/src/ai packages/engine/scripts: no match
+- ISC-1760: docs/scans/2026-09-13-stage4-step5.txt, 39 lines, stage (a) and stage (b)
+- ISC-1761: stage (a) rows byte-identical to step 4 (winners 26,27; 2,4,12,13,18,27,43,51,53,59; 29,36,58; 10,12,20,36,44,45,53); stage (b) 3W [1.7, 13.7], 11W [10.6, 29.9], 3W [1.7, 13.7], 9W [8.1, 26.1], each inside its step 4 interval
+- ISC-1762: nine at ten: sh6 10, sh4 7, sh5 2, sh2 2, sh1 1, rest 0; in the plan section
+- ISC-1763: O 0 and det yes on all thirteen rows
+- ISC-1764..1768: tests/pause.spec.ts five cases green in the full e2e run (132 passed): the countdown and the bill, the refused open under a second, the auto-resume, ?pause=free, the meter at boot
+- ISC-1769: squad.spec's command pause case green in the same run
+- ISC-1770: hud.spec: the button reads COMMAND  Space; deploy.spec e2e label contains COMMAND
+- ISC-1771: hud.spec setPausePool and setPausePoolFree cases; HudPanel meter under the button (METER_BLOCK shifts the rows below)
+- ISC-1772: LiveScene addKeys without P, no cp in commandForKey; keyboardHelp P unbound; keyboardHelp.spec unbound [J, N, P, V, Y]; roster.spec e2e unbound count 5
+- ISC-1773, 1774: RosterPanel stats line "AP 4/4"; rg "cpChanged|'cp'" packages/client/src: 0
+- ISC-1775: content.ts id ap-pause "Action points and command time"; main.ts QUOTE_AFTER ap-pause; the intro bullet "Space is the command pause."
+- ISC-1776: boot-check-squads.mjs: errors []
+- ISC-1777: client tsc exit 0; unit 11 files 98 tests; e2e 132 passed
+- ISC-1778: rg "^## Stage 4 step 5: the metered command pause (2026-09-13)" docs/realtime-plan.md; the times table, the numbers table, the reading; the Status line names step 5 done
+- ISC-1779..1783: rg pauseSpent docs/rules-reference.md, docs/architecture.md, docs/gamelog-format.md (formatVersion 2); features.md Space row and the step 5 paragraph, no P row; CLAUDE.md invariant "Metered command pause (2.x stage 4 step 5, 2026-09-13)", 553 unit tests, the numbers, the read-first row, the continuation; status.md step 5 paragraph
+- ISC-1784, 1785: em dashes and banned words over the diff's added lines: 0 and 0
+- ISC-1786..1788: engine tsc exit 0; 553 tests; coverage 98.41% lines
+- ISC-1789: commit 9e7fb02fccba47902985ddc9b0a02be4e99afe6f on main, Deploy latest to GitHub Pages green, manifest latest-9e7fb02, /latest/ index 200
+- ISC-1790: this block; PROJECTS.md updated; tree clean after the ISA close commit
+- ISC-1791: the summary carries the times table (0, 1, 2 sergeants: 10/20/30 s cap, 1/2/3 s per cycle, refill 100 s, 9/17/23% of wall clock)
+- ISC-1792: the advisor before BUILD (ten points, folded in or answered in Decisions) and before complete (Decisions)

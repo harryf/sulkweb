@@ -3,11 +3,11 @@ project: sulkweb
 task: "Project ISA; Sulk Web (playable Space Hulk port)"
 effort: E4
 effort_source: context-override
-phase: verify
-progress: "1601/1603 (stage 4 step 2: ISC-1630..1667 and 1670 verified; 1668 the /latest/ deploy and 1669 the commit pending; ISC-1038 dropped; ISC-71 deferred)"
+phase: complete
+progress: "1603/1603 (stage 4 step 2 shipped on /latest/; two provisional deviations for Harry; ISC-1038 dropped; ISC-71 deferred)"
 mode: interactive
 started: 2026-08-14T15:20:00Z
-updated: 2026-09-13T09:38:00Z
+updated: 2026-09-13T09:40:00Z
 ---
 
 # Sulk Web: Project ISA
@@ -633,8 +633,8 @@ Docs and the re-scan:
 - [x] ISC-1665: Anti: em dashes in the diff's added lines 0 (Harry's own decision block excepted, his text)
 - [x] ISC-1666: Anti: banned words in the added lines 0
 - [x] ISC-1667: Anti: git diff core/CostTables.ts empty
-- [ ] ISC-1668: the change ships on /latest/ with a callout (user-facing rules change, prerelease line): deploy-latest green, manifest sha = HEAD, the URL in the summary
-- [ ] ISC-1669: this run block all [x] with Verification, PROJECTS.md updated, commit pushed, tree clean
+- [x] ISC-1668: the change ships on /latest/ with a callout (user-facing rules change, prerelease line): deploy-latest green, manifest sha = HEAD, the URL in the summary
+- [x] ISC-1669: this run block all [x] with Verification, PROJECTS.md updated, commit pushed, tree clean
 - [x] ISC-1670: Antecedent: the re-scan is read against step 1 with the intervals, and the reading names what changed and what it cannot see (grep the plan section for "interval")
 
 ## Test Strategy
@@ -1283,3 +1283,5 @@ The full conjecture/refutation/learning trail: [docs/isa/changelog-log.md](docs/
 - ISC-1664: node boot-check-squads.mjs: "errors": [], no "ok": false
 - ISC-1665..1667: em dashes 0 (Harry's own decision block excepted), banned words 0, git diff core/CostTables.ts empty, no packages/client/src path in git status
 - ISC-1670: the reading names the intervals, the paired split and the McNemar p values, the mean without a spread, and what sixty seeds cannot see
+- ISC-1668: commit b86c9a3 on main, deploy-latest run 34749911930 success (build-publish, deploy); /latest/manifest.json version latest-b86c9a3; the callout with the URL and space_hulk_2's gap is in the closing summary
+- ISC-1669: this block; PROJECTS.md names step 2 done with the hash; the ISA close commit follows; tree clean after it
